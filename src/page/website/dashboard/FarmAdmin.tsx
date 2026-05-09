@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { showToast } from "@/components/ui/ToastComponent";
 import { Toaster } from "react-hot-toast";
-import { Plus, Edit, Trash2, Save, X } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Printer } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 
@@ -282,7 +282,13 @@ const FarmAdmin = () => {
         const duplicate = existing.find(r => r.id !== editingId);
         if (duplicate) {
           const inSameFarm = duplicate.farm_id === selectedFarm.id;
-          showToast({ variant: "error", title: inSameFarm ? "Email already exists" : "Unable to add member", description: inSameFarm ? "This email is already in this farm group." : "This email cannot be added at this time." });
+          showToast({ 
+            variant: "error", 
+            title: "Email already exists", 
+            description: inSameFarm 
+              ? "This email is already in this farm group." 
+              : "This email is already in another farm group." 
+          });
           return;
         }
       }
@@ -379,7 +385,7 @@ const FarmAdmin = () => {
   };
 
   const handleDeleteFarm = async (farmId: string) => {
-    if (!confirm("Delete this entire farm group and all its member records? This cannot be undone.")) return;
+    if (!confirm("Are you sure you want to delete farm group?")) return;
     
     await supabase.from("farm_expenses").delete().eq("farm_id", farmId);
 
@@ -407,6 +413,10 @@ const FarmAdmin = () => {
   const set = (field: keyof FarmRecord, val: string | number) =>
     setFormData((prev) => ({ ...prev, [field]: val }));
 
+  const handleDownloadPDF = () => {
+    window.print();
+  };
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="text-center">
@@ -429,15 +439,69 @@ const FarmAdmin = () => {
   const netBalance = grossBalance - totalExpensesValue;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6 print:p-0">
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .print-container, .print-container * {
+            visibility: visible;
+          }
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          .no-print, button, .Button {
+            display: none !important;
+          }
+          .card, .Card {
+            border: 1px solid #e5e7eb !important;
+            break-inside: avoid;
+            margin-bottom: 1.5rem !important;
+          }
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+          }
+          th, td {
+            border: 1px solid #f3f4f6 !important;
+          }
+          * {
+            transform: none !important;
+            transition: none !important;
+            animation: none !important;
+          }
+          @page {
+            margin: 1cm;
+            size: auto;
+          }
+        }
+      `}</style>
+      <div className="print-container">
       <Toaster />
       <div className="max-w-7xl mx-auto">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Farm Administration</h1>
-          <p className="text-gray-600">Manage all farm groups and member records</p>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Farm Administration</h1>
+              <p className="text-gray-600">Manage all farm groups and member records</p>
+            </div>
+            <Button 
+              onClick={handleDownloadPDF} 
+              variant="outline" 
+              className="no-print border-green-800 text-green-800 hover:bg-green-50 w-full sm:w-auto"
+            >
+              <Printer className="w-4 h-4 mr-2" /> Download PDF
+            </Button>
+          </div>
         </motion.div>
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-6 no-print">
           <label htmlFor="farm-select" className="text-sm font-medium text-gray-700 whitespace-nowrap">
             Select Farm Group:
           </label>
@@ -449,7 +513,7 @@ const FarmAdmin = () => {
           >
             <option value="" disabled>-- Choose a farm group --</option>
             {farms.map((farm) => (
-              <option key={farm.id} value={farm.id}>{farm.name} (/{farm.slug})</option>
+              <option key={farm.id} value={farm.id}>{farm.name}</option>
             ))}
           </select>
           {selectedFarm && (
@@ -467,7 +531,7 @@ const FarmAdmin = () => {
             {selectedFarm && (
               <>
                 {!showAddForm && !editingId && !showExpenseForm && (
-                  <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3 no-print">
                     <Button onClick={handleAdd} className="bg-green-800 hover:bg-green-700 w-full sm:w-auto">
                       <Plus className="w-4 h-4 mr-2" /> Add Member Record
                     </Button>
@@ -478,7 +542,7 @@ const FarmAdmin = () => {
                 )}
 
                 {(showAddForm || editingId) && (
-                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="no-print">
                     <Card>
                       <CardHeader><CardTitle>{editingId ? "Edit Record" : "Add New Record"}</CardTitle></CardHeader>
                       <CardContent className="space-y-4">
@@ -489,7 +553,7 @@ const FarmAdmin = () => {
                               <Input
                                 type="email"
                                 value={formData.email || ""}
-                                onChange={(e) => { set("email", e.target.value); setAutoFilled(false); }}
+                                onChange={(e) => { set("email", e.target.value.toLowerCase()); setAutoFilled(false); }}
                                 onBlur={(e) => lookupUserByEmail(e.target.value)}
                                 placeholder="Enter member email to auto-fill details"
                                 readOnly={!!editingId}
@@ -570,7 +634,7 @@ const FarmAdmin = () => {
                 )}
 
                 {showExpenseForm && (
-                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}>
+                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="no-print">
                     <Card>
                       <CardHeader><CardTitle>{editingExpenseId ? "Edit Expense" : "Add New Expense"}</CardTitle></CardHeader>
                       <CardContent className="space-y-4">
@@ -623,7 +687,7 @@ const FarmAdmin = () => {
                               <th className="text-left p-2">Total</th>
                               <th className="text-left p-2">Email</th>
                               <th className="text-left p-2">Phone</th>
-                              <th className="text-left p-2">Actions</th>
+                              <th className="text-left p-2 no-print">Actions</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -653,7 +717,7 @@ const FarmAdmin = () => {
                                 <td className="p-2 font-semibold text-green-800">₦{calcTotal(record).toLocaleString()}</td>
                                 <td className="p-2 text-gray-600">{record.email}</td>
                                 <td className="p-2 text-gray-600">{record.phone}</td>
-                                <td className="p-2">
+                                <td className="p-2 no-print">
                                   <div className="flex gap-1">
                                     <Button onClick={() => handleEdit(record)} variant="outline" size="sm"><Edit className="w-4 h-4" /></Button>
                                     <Button onClick={() => handleDeleteRecord(record.id)} variant="outline" size="sm" className="text-red-600 hover:text-red-700"><Trash2 className="w-4 h-4" /></Button>
@@ -672,7 +736,7 @@ const FarmAdmin = () => {
                               <td className="p-2">₦{records.reduce((s, r) => s + calcFine(r), 0).toLocaleString()}</td>
                               <td className="p-2 font-bold text-green-800">₦{records.reduce((s, r) => s + calcTotal(r), 0).toLocaleString()}</td>
                               <td className="p-2" /><td className="p-2" />
-                              <td className="p-2" />
+                              <td className="p-2 no-print" />
                             </tr>
                           </tfoot>
                         </table>
@@ -697,7 +761,7 @@ const FarmAdmin = () => {
                                 <th className="text-left p-2">Category</th>
                                 {/* <th className="text-left p-2">Description</th> */}
                                 <th className="text-right p-2">Amount</th>
-                                <th className="text-center p-2">Actions</th>
+                                <th className="text-center p-2 no-print">Actions</th>
                               </tr>
                             </thead>
                             <tbody>
@@ -709,7 +773,7 @@ const FarmAdmin = () => {
                                   <td className="p-2 font-medium text-gray-900">{expense.category}</td>
                                   {/* <td className="p-2 text-gray-500 italic">{expense.description || "-"}</td> */}
                                   <td className="p-2 text-right font-semibold">₦{expense.amount.toLocaleString()}</td>
-                                  <td className="p-2">
+                                  <td className="p-2 no-print">
                                     <div className="flex justify-center gap-1">
                                       <Button onClick={() => handleEditExpense(expense)} variant="outline" size="sm"><Edit className="w-3 h-3" /></Button>
                                       <Button onClick={() => handleDeleteExpense(expense.id)} variant="outline" size="sm" className="text-red-600 hover:text-red-700"><Trash2 className="w-3 h-3" /></Button>
@@ -724,7 +788,7 @@ const FarmAdmin = () => {
                                 <td className="p-2 text-right text-red-700">
                                   ₦{expenses.reduce((sum, exp) => sum + exp.amount, 0).toLocaleString()}
                                 </td>
-                                <td className="p-2" />
+                                <td className="p-2 no-print" />
                               </tr>
                             </tfoot>
                           </table>
@@ -792,6 +856,7 @@ const FarmAdmin = () => {
               </>
             )}
         </div>
+      </div>
       </div>
     </div>
   );

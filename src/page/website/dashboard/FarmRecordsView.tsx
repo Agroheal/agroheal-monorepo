@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { showToast } from "@/components/ui/ToastComponent";
 import { Toaster } from "react-hot-toast";
-import { Plus, Edit, Trash2, Save, X } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Printer } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 
@@ -331,7 +331,7 @@ const FarmRecordsView = () => {
         if (inSameFarm) {
           showToast({ variant: "error", title: "Email already exists", description: "This email is already in this farm group." });
         } else {
-          showToast({ variant: "error", title: "Unable to add member", description: "This email cannot be added at this time." });
+          showToast({ variant: "error", title: "Email already exists", description: "This email is already in another farm group." });
         }
         return;
       }
@@ -451,16 +451,80 @@ const FarmRecordsView = () => {
   const grossBalance = totalFarmSetup + totalAbsenteeFine;
   const netBalance = grossBalance - totalExpensesValue;
 
+  const handleDownloadPDF = () => {
+    window.print();
+  };
+
   return (
-    <div className="p-4 md:p-6">
+    <div className="p-4 md:p-6 print:p-0">
+      <style>{`
+        @media print {
+          /* Hide everything by default */
+          body * {
+            visibility: hidden;
+          }
+          /* Show only the content container and its children */
+          .print-container, .print-container * {
+            visibility: visible;
+          }
+          /* Position the content at the top left */
+          .print-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100% !important;
+            padding: 0 !important;
+            margin: 0 !important;
+          }
+          /* Hide buttons and interactive elements during print */
+          .no-print {
+            display: none !important;
+          }
+          /* Ensure cards have borders and white backgrounds */
+          .card, .Card {
+            border: 1px solid #e5e7eb !important;
+            break-inside: avoid;
+            margin-bottom: 1.5rem !important;
+          }
+          /* Optimize table for print */
+          table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+          }
+          th, td {
+            border: 1px solid #f3f4f6 !important;
+          }
+          /* Remove motion animations during print */
+          * {
+            transform: none !important;
+            transition: none !important;
+            animation: none !important;
+          }
+          /* Page settings */
+          @page {
+            margin: 1cm;
+            size: auto;
+          }
+        }
+      `}</style>
+      <div className="print-container">
       <Toaster />
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">{farm.name} Records</h2>
-        <p className="text-gray-600">Farm bookkeeping and finance tracking</p>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{farm.name} Records</h2>
+          <p className="text-gray-600">Farm bookkeeping and finance tracking</p>
+        </div>
+        <Button 
+          onClick={handleDownloadPDF} 
+          variant="outline" 
+          className="no-print border-green-800 text-green-800 hover:bg-green-50 w-full sm:w-auto"
+        >
+          <Printer className="w-4 h-4 mr-2" /> Download PDF
+        </Button>
       </motion.div>
 
       {isCoordinator && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6 flex flex-col sm:flex-row gap-3">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6 flex flex-col sm:flex-row gap-3 no-print">
           <Button onClick={handleAdd} className="bg-green-800 hover:bg-green-700 w-full sm:w-auto">
             <Plus className="w-4 h-4 mr-2" /> Add Member Record
           </Button>
@@ -484,7 +548,7 @@ const FarmRecordsView = () => {
                       type="email"
                       value={formData.email || ""}
                       onChange={(e) => {
-                        set("email", e.target.value);
+                        set("email", e.target.value.toLowerCase());
                         setAutoFilled(false);
                       }}
                       onBlur={(e) => lookupUserByEmail(e.target.value)}
@@ -808,6 +872,7 @@ const FarmRecordsView = () => {
           </CardContent>
         </Card>
       </motion.div>
+      </div>
     </div>
   );
 };
