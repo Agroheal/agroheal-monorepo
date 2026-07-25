@@ -300,6 +300,8 @@ const Dashboard = () => {
       iconColor: "text-[#229ED9]",
       valueColor: "text-gray-700",
       actionHref: "https://t.me/+8a7pjUluliZjNTg0",
+      whatsappHref:
+        "https://chat.whatsapp.com/JNekCCmjxVq28tnhIz5vyy?s=cl&p=a&ilr=0&amv=3",
       actionLabel: undefined,
     },
     {
@@ -397,16 +399,40 @@ const Dashboard = () => {
                   </Button>
                 ))}
 
-              {stat.actionHref && (
-                <Button
-                  asChild
-                  variant="outline"
-                  className="mt-2.5 sm:mt-4 w-full rounded-lg border border-green-800 bg-green-800 text-white px-2.5 sm:px-3 py-2 sm:py-2.5 text-[11px] sm:text-xs font-semibold shadow-sm transition-all duration-200"
-                >
-                  <a href={stat.actionHref} target="_blank" rel="noreferrer">
-                    Join Telegram
-                  </a>
-                </Button>
+              {(stat.actionHref || stat.whatsappHref) && (
+                <div className="mt-2.5 sm:mt-4 flex w-full flex-col sm:flex-row gap-2">
+                  {stat.actionHref && (
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full flex-1 min-w-0 rounded-lg border border-green-800 bg-green-800 text-white px-2.5 sm:px-3 py-2 sm:py-2.5 text-[11px] sm:text-xs font-semibold shadow-sm transition-all duration-200"
+                    >
+                      <a
+                        href={stat.actionHref}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Join Telegram
+                      </a>
+                    </Button>
+                  )}
+
+                  {stat.whatsappHref && (
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full flex-1 min-w-0 rounded-lg border border-[#25D366] bg-[#25D366] text-white px-2.5 sm:px-3 py-2 sm:py-2.5 text-[11px] sm:text-xs font-semibold shadow-sm transition-all duration-200"
+                    >
+                      <a
+                        href={stat.whatsappHref}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Join Whatsapp
+                      </a>
+                    </Button>
+                  )}
+                </div>
               )}
 
               {stat.label === "Total Referrals" && (

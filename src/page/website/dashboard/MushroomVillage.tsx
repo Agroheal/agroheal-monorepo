@@ -284,6 +284,7 @@ const MushroomVillage = () => {
                 <h2 className="text-xl font-bold text-gray-900">
                   Payment details
                 </h2>
+                +
               </div>
               <div className="space-y-4 text-sm text-gray-700">
                 <div className="flex items-center justify-between">

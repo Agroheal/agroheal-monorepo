@@ -26,6 +26,27 @@ export interface Course {
 export const COURSESDATA: Course[] = [
   // Foundation Courses (from original data)
   {
+    id: 0,
+    Image: "https://img.youtube.com/vi/yMSHPl11JHI/maxresdefault.jpg",
+    thumbnail: "https://img.youtube.com/vi/yMSHPl11JHI/maxresdefault.jpg",
+    slug: "100-day-container-garden-challenge",
+    title: "100-Day Container Garden Challenge",
+    description:
+      "A practical challenge to grow food in containers with weekly guidance and real impact.",
+    duration: "0h 52m",
+    lessons: [
+      {
+        id: "0-1",
+        title: "Day 1",
+        duration: "52:39",
+        videoId: "yMSHPl11JHI",
+      },
+    ],
+    rating: 5.0,
+    free: true,
+    category: "100-DAY CONTAINER GARDEN CHALLENGE",
+  },
+  {
     id: 1,
     Image: AgrohealImages?.IntroductionFarming,
     slug: "introduction-to-organic-farming",

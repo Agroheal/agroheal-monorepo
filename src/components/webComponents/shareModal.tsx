@@ -16,43 +16,27 @@ const ShareReferralModal = ({
 }: ShareReferralModalProps) => {
   const [copied, setCopied] = useState(false);
 
-  const textCopy = `https://agroheal.solutions/signup?ref=${referralCode}
+  const textCopy = `Click the link below to register for the Challenge:
 
-Ginger is the new Gold!
+https://www.agroheal.solutions/signup?ref=${referralCode}
 
-Ginger prices have skyrocketed from ₦30,000 to over ₦600,000 per bag due to disease outbreaks and insecurity in northern farms.
+🌍 Grow Food, Build Impact!
 
-This has created a massive opportunity for new farmers and investors in the savannah zone of southern Nigeria.
+The 100 Day Container Garden Challenge isn’t just about food—it’s about impact.
 
-At Gingertown:
-•⁠  ⁠You can farm with peace of mind in a secure farm estate.
-•⁠  ⁠Manage your farm remotely with one day a month work rotation.
-•⁠  ⁠Enjoy expert guidance.
-•⁠  ⁠Farm ginger organically with carefully treated seedlings. 
-•⁠  ⁠Access premium export markets.
+Imagine thousands of families across Nigeria growing their own Ugu, Okra, Tomatoes, Pepper, Yam, Fish, etc around their homes.
 
-⚠️ Limited spaces available for this farming cycle.
+That is why we cannot keep this to ourselves or look away; we must reach our family, friends, and neighbours to join the challenge. Together, we can build food sufficiency and resilience.
 
-Step 1: Click the link above to register.
+Join Weekly Training Sessions on Sundays 8pm on Google Meet
 
-Step 2: Pay the learning platform subscription - N2,000 only.
+All trainings are uploaded to the Agroheal dashboard. Once you register you immediately gain access to your user dashboard for resources for the Challenge and 30+ prior learning resources on Organic food production.
 
-Step 3: Join Gingertown -  per Farm Slot:
-A. Admin fee - N2,000  
-B. Group Farm establishment - contribute N5,000 monthly/5 months.
-C. Agroheal farm support - N500 monthly.
-Total per Farm Slot - N33,000 (1st year) 2nd year onwards reduced to N8,000 (minus farm establishment).
+🎟️ Registration: ₦2,000 only.
 
-Multiple Slots! Multiple Returns!
+📍 Venue: Meeting links are shared to Telegram and Whatsapp groups, which participants join through their dashboard after signing up.
 
-📊 Projected Returns:
-• Up to 300% ROI on Ginger (8 months)
-• Up to 50% ROI on Garlic (5 months)
-
-🌍 The world wants Nigerian ginger. 
-🌱 Gingertown is building the supply.
-
-Click the link above to join the Ginger Gold-rush now! Learn. Farm. Earn.! It's a total package!`;
+🍄 Mushroom Village Slots: Join in Group farming at ₦5,000 per slot — own multiple slots for multiple return`;
 
   const handleCopy = async () => {
     try {
@@ -70,7 +54,7 @@ Click the link above to join the Ginger Gold-rush now! Learn. Farm. Earn.! It's 
         },
       });
       setTimeout(() => setCopied(false), 3000);
-    } catch {
+    } catch (error) {
       toast.error("Failed to copy", {
         duration: 3000,
         position: "top-right",
@@ -193,7 +177,7 @@ Click the link above to join the Ginger Gold-rush now! Learn. Farm. Earn.! It's 
                 <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-2">
                   Message Preview
                 </p>
-                <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">
+                <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line text-justify">
                   {textCopy}
                 </p>
               </motion.div>
