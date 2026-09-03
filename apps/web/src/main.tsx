@@ -17,10 +17,10 @@ import Courses from "./page/website/Courses/Courses";
 import Dashboard from "./page/website/dashboard/Dashboard";
 import SingleCoursePage from "./page/website/Courses/CoursesDetails";
 import ProtectedRoute from "./routes/ProtectedRoutes";
+import RequireSubscription from "./routes/RequireSubscription";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import Checkout from "./page/website/Slots/Checkout";
 import DashboardError from "./page/error/DashboardError";
-import GreenCardPrompt from "./page/website/dashboard/GreenCardPrompt";
 import Subscribe from "./page/website/dashboard/Subscribe";
 import ForgotPasswordForm from "./page/ForgotPassword";
 import UpdatePasswordForm from "./page/UpdatePassword";
@@ -93,14 +93,15 @@ const route = createBrowserRouter([
       { path: "/subscribe", element: <Subscribe /> },
       { path: "/dashboard/green-card", element: <GreenCardCommunity /> },
 
-      // login-protected dashboard area — GreenCardPrompt no longer blocks
-      // access, it just nudges Green Card-less users with a dismissible popup
+      // dashboard area requires both a session (ProtectedRoute, above) and
+      // an active subscription — RequireSubscription redirects to /subscribe
+      // otherwise, so courses/checkout/farm tools/etc. are all paywalled.
       {
         path: "/dashboard",
         element: (
-          <GreenCardPrompt>
+          <RequireSubscription>
             <Outlet />
-          </GreenCardPrompt>
+          </RequireSubscription>
         ),
         errorElement: <DashboardError />,
         children: [
