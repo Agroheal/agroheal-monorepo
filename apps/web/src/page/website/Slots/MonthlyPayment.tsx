@@ -693,7 +693,7 @@ const MonthlyPayment = () => {
     const targetSlot = slot ?? selectedSlot ?? activeSubscription;
     if (!targetSlot) return;
 
-    if (!(window as any).FlutterwaveCheckout) {
+    if (!window.FlutterwaveCheckout) {
       toast({
         title: "Payment Error",
         description: "Flutterwave is still loading. Please try again.",
@@ -709,14 +709,14 @@ const MonthlyPayment = () => {
 
     setIsProcessing(true);
     try {
-      (window as any).FlutterwaveCheckout({
+      window.FlutterwaveCheckout({
         public_key: FLUTTERWAVE_KEYS,
         tx_ref: `MONTHLY_${targetSlot.id}_${Date.now()}`,
         amount: targetSlot.monthly_pay,
         currency: "NGN",
         payment_options: "card, banktransfer, ussd",
         customer: {
-          email: user.email,
+          email: user.email ?? "",
           name: user.user_metadata?.full_name || user.email,
         },
         meta: {
@@ -735,7 +735,7 @@ const MonthlyPayment = () => {
           });
           setIsProcessing(false);
         },
-        callback: function (response: any) {
+        callback: function (response) {
           if (
             response.status === "successful" ||
             response.status === "completed"
@@ -758,7 +758,7 @@ const MonthlyPayment = () => {
           }
         },
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Payment Error",
         description: "Failed to initialize payment.",

@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Leaf, TrendingUp, Users, Shield, Clock, Award } from "lucide-react";
+import { Leaf, TrendingUp, Users } from "lucide-react";
 import { SectionDivider } from "../webComponents/SectionDivider";
 import { SectionHeading } from "../webComponents/SectionHeading";
 import { AgrohealImages } from "@/constant/Image";

@@ -18,20 +18,28 @@ import * as Sentry from "@sentry/react";
 import { Toaster } from "react-hot-toast";
 import PaymentGuidancePopup from "@/components/webComponents/PaymentGuidancePopup";
 import { PROJECT_CATEGORIES } from "@/constant/projectCategories";
+import type { User } from "@supabase/supabase-js";
+
+type PaymentType = "farm_setup" | "farm_support" | "absentee_fine" | "";
+
+interface SlotSubscriptionRow {
+  id: string;
+  slots: number;
+  project_category?: string;
+  last_payment_date: string;
+}
 
 const OtherPayments = () => {
-  const [paymentType, setPaymentType] = useState<
-    "farm_setup" | "farm_support" | "absentee_fine" | ""
-  >("");
+  const [paymentType, setPaymentType] = useState<PaymentType>("");
   const [months, setMonths] = useState(1);
   const [category, setCategory] = useState("");
   const [totalSlots, setTotalSlots] = useState(0);
-  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [subscriptions, setSubscriptions] = useState<SlotSubscriptionRow[]>([]);
   const [selectedSubscriptionId, setSelectedSubscriptionId] =
     useState<string>("");
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const navigate = useNavigate();
 
   const FEES = {
@@ -61,12 +69,10 @@ const OtherPayments = () => {
     absentee_fine: 12,
   };
 
-  const getMaxMonths = (
-    type: "farm_setup" | "farm_support" | "absentee_fine" | "",
-  ) => {
+  const getMaxMonths = (type: PaymentType, forCategory: string = category) => {
     if (!type) return 1;
     if (
-      category === "Organic FoodNation (1 Million Hectares against Hunger)" &&
+      forCategory === "Organic FoodNation (1 Million Hectares against Hunger)" &&
       type === "farm_setup"
     ) {
       return 1;
@@ -126,28 +132,26 @@ const OtherPayments = () => {
   };
   const decrementMonths = () => setMonths((m) => Math.max(m - 1, 1));
 
-  // Reset months if they exceed max for new selection
-  useEffect(() => {
-    if (paymentType && months > getMaxMonths(paymentType)) {
-      setMonths(getMaxMonths(paymentType));
-    }
-  }, [paymentType, category]);
-
-  // Update total slots when category or subscription changes
-  useEffect(() => {
-    if (!selectedSubscriptionId) {
-      const filtered = subscriptions.filter(
-        (s) => (s.project_category || "Gingertown") === category,
-      );
-      const slotsCount = filtered.reduce((total, item) => {
-        const slotValue = Number(item?.slots ?? 0);
-        return total + (Number.isNaN(slotValue) ? 0 : slotValue);
-      }, 0);
-      setTotalSlots(slotsCount);
-    }
-  }, [category, subscriptions, selectedSubscriptionId]);
+  const computeSlotsForCategory = (cat: string) => {
+    const filtered = subscriptions.filter(
+      (s) => (s.project_category || "Gingertown") === cat,
+    );
+    return filtered.reduce((total, item) => {
+      const slotValue = Number(item?.slots ?? 0);
+      return total + (Number.isNaN(slotValue) ? 0 : slotValue);
+    }, 0);
+  };
 
   const handlePayment = async () => {
+    if (!user) {
+      showToast({
+        title: "Login Required",
+        description: "Please log in to continue.",
+        variant: "error",
+      });
+      return;
+    }
+
     if (!category) {
       showToast({
         title: "Category Required",
@@ -207,7 +211,7 @@ const OtherPayments = () => {
         currency: "NGN",
         payment_options: "card, banktransfer, ussd",
         customer: {
-          email: user.email,
+          email: user.email ?? "",
           name: user.user_metadata?.full_name || user.email,
         },
         meta: {
@@ -225,7 +229,7 @@ const OtherPayments = () => {
         onclose: () => {
           setIsProcessing(false);
         },
-        callback: async (response: any) => {
+        callback: async (response) => {
           if (
             response.status === "successful" ||
             response.status === "completed"
@@ -255,11 +259,11 @@ const OtherPayments = () => {
           }
         },
       });
-    } catch (error: any) {
+    } catch (error) {
       Sentry.captureException(error);
       showToast({
         title: "Error",
-        description: error.message || "Failed to initialize payment.",
+        description: error instanceof Error ? error.message : "Failed to initialize payment.",
         variant: "error",
       });
       setIsProcessing(false);
@@ -316,12 +320,26 @@ const OtherPayments = () => {
                       const newCategory = e.target.value;
                       setCategory(newCategory);
                       setSelectedSubscriptionId(""); // Reset batch when category changes
+
+                      let nextPaymentType = paymentType;
                       if (
                         newCategory ===
                           "Organic FoodNation (1 Million Hectares against Hunger)" &&
                         paymentType === "absentee_fine"
                       ) {
                         setPaymentType("");
+                        nextPaymentType = "";
+                      }
+
+                      if (
+                        nextPaymentType &&
+                        months > getMaxMonths(nextPaymentType, newCategory)
+                      ) {
+                        setMonths(getMaxMonths(nextPaymentType, newCategory));
+                      }
+
+                      if (!selectedSubscriptionId) {
+                        setTotalSlots(computeSlotsForCategory(newCategory));
                       }
                     }}
                     className="w-full h-12 rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
@@ -346,7 +364,13 @@ const OtherPayments = () => {
                   </label>
                   <select
                     value={paymentType || ""}
-                    onChange={(e) => setPaymentType(e.target.value as any)}
+                    onChange={(e) => {
+                      const newType = e.target.value as PaymentType;
+                      setPaymentType(newType);
+                      if (newType && months > getMaxMonths(newType)) {
+                        setMonths(getMaxMonths(newType));
+                      }
+                    }}
                     className="w-full h-12 rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
                   >
                     <option value="" disabled>
@@ -375,17 +399,7 @@ const OtherPayments = () => {
                         if (sub) setTotalSlots(Number(sub.slots));
                       } else {
                         // Filtered Slots selected, recalculate total
-                        const filtered = subscriptions.filter(
-                          (s) =>
-                            (s.project_category || "Gingertown") === category,
-                        );
-                        const slotsCount = filtered.reduce((total, item) => {
-                          const slotValue = Number(item?.slots ?? 0);
-                          return (
-                            total + (Number.isNaN(slotValue) ? 0 : slotValue)
-                          );
-                        }, 0);
-                        setTotalSlots(slotsCount);
+                        setTotalSlots(computeSlotsForCategory(category));
                       }
                     }}
                     className="w-full h-12 rounded-xl border border-gray-200 bg-gray-50 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"

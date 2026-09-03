@@ -31,7 +31,7 @@ async function callWithdrawals<T>(payload: unknown): Promise<T> {
   });
 
   const text = await res.text();
-  let data: any = null;
+  let data: Record<string, unknown> | null = null;
   try {
     data = text ? JSON.parse(text) : null;
   } catch {
@@ -40,8 +40,8 @@ async function callWithdrawals<T>(payload: unknown): Promise<T> {
 
   if (!res.ok) {
     const msg =
-      data?.message ||
-      data?.error ||
+      (typeof data?.message === "string" && data.message) ||
+      (typeof data?.error === "string" && data.error) ||
       `Withdrawals function error (${res.status})`;
     if (/ip\s*whitelist/i.test(String(msg))) {
       throw new Error(
@@ -75,9 +75,9 @@ export default function Withdrawals() {
           userId: user.id,
         });
         setBalance(Number(data?.balance ?? 0));
-      } catch (e: any) {
+      } catch (e) {
         console.error(e);
-        toast.error(e?.message || "Failed to load balance");
+        toast.error(e instanceof Error ? e.message : "Failed to load balance");
       } finally {
         if (mounted) setLoading(false);
       }

@@ -14,7 +14,6 @@ import {
   ChevronRight,
   BookOpen,
   Users,
-  Database,
   IdCard,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";

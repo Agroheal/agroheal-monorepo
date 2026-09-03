@@ -39,8 +39,6 @@ const FarmLogin = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<FarmRecord>>({});
 
-  useEffect(() => { fetchFarmAndRecords(); }, [farmSlug]);
-
   const fetchFarmAndRecords = async () => {
     if (!farmSlug) return;
     const { data: { user } } = await supabase.auth.getUser();
@@ -67,6 +65,8 @@ const FarmLogin = () => {
     }
     setLoading(false);
   };
+
+  useEffect(() => { fetchFarmAndRecords(); }, [farmSlug]);
 
   const handleAdd = () => {
     setFormData({ name: "", email: "", phone: "", farm_slots: 0, months_farm_setup: 0, months_farm_support: 0, absentee_fine: 0 });

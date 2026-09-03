@@ -37,6 +37,18 @@ interface FarmRecord {
   fine_batches?: string;
 }
 
+interface AuthUserRow {
+  user_id: string;
+  email: string;
+}
+
+interface CategoryPaymentRow {
+  user_id: string;
+  payment_type: string;
+  months?: number;
+  amount?: number;
+}
+
 interface FarmExpense {
   id: string;
   farm_id: string;
@@ -106,9 +118,6 @@ const FarmRecordsView = () => {
     return r.farm_slots * slotFeeRate;
   };
 
-  const calcTotal = (r: FarmRecord) =>
-    calcSetup(r) + calcSupport(r) + calcSlotFee(r) + calcFine(r);
-
   const getRecordTotal = (r: FarmRecord) =>
     calcSetup(r) +
     calcSupport(r) +
@@ -127,11 +136,11 @@ const FarmRecordsView = () => {
   const [autoFilled, setAutoFilled] = useState(false);
 
   const enrichRecordsWithBatches = async (
-    records: any[],
+    records: FarmRecord[],
     projectCategory: string,
   ) => {
     if (!records || records.length === 0) return [];
-    const enrichedRecords = [...records] as FarmRecord[];
+    const enrichedRecords = [...records];
     const emails = [
       ...new Set(
         enrichedRecords
@@ -148,7 +157,7 @@ const FarmRecordsView = () => {
     });
 
     if (authUsers && authUsers.length > 0) {
-      const userIds = authUsers.map((u: any) => u.user_id);
+      const userIds = authUsers.map((u: AuthUserRow) => u.user_id);
       const { data: payments } = await supabase.rpc(
         "get_users_category_payments_batch",
         {
@@ -161,34 +170,35 @@ const FarmRecordsView = () => {
         .select("id, referral_code")
         .in("id", userIds);
       const referralCodesByUserId = new Map(
-        (profilesData || []).map((profile: any) => [
+        (profilesData || []).map((profile: { id: string; referral_code?: string }) => [
           profile.id,
           profile.referral_code,
         ]),
       );
 
       if (payments) {
+        const categoryPayments = payments as CategoryPaymentRow[];
         return enrichedRecords.map((record) => {
-          const authUser = authUsers.find(
-            (u: any) => u.email?.toLowerCase() === record.email?.toLowerCase(),
+          const authUser = (authUsers as AuthUserRow[]).find(
+            (u) => u.email?.toLowerCase() === record.email?.toLowerCase(),
           );
           if (!authUser) return record;
 
-          const userPayments = payments.filter(
-            (p: any) => p.user_id === authUser.user_id,
+          const userPayments = categoryPayments.filter(
+            (p) => p.user_id === authUser.user_id,
           );
           const getBatchInfo = (type: string) => {
             const typePayments = userPayments.filter(
-              (p: any) => p.payment_type === type,
+              (p) => p.payment_type === type,
             );
             if (typePayments.length === 0)
               return { months: "", total: undefined };
 
             const monthsStr = typePayments
-              .map((p: any) => p.months || 0)
+              .map((p) => p.months || 0)
               .join(", ");
             const totalPaid = typePayments.reduce(
-              (sum: number, p: any) => sum + (p.amount || 0),
+              (sum, p) => sum + (p.amount || 0),
               0,
             );
             return { months: monthsStr, total: totalPaid };
@@ -239,7 +249,10 @@ const FarmRecordsView = () => {
       .select("farm_id, farm_groups!inner(*)")
       .eq("email", user.email);
 
-    const memberFarms = memberRecords?.map((r) => r.farm_groups as any) || [];
+    const memberFarms =
+      memberRecords?.map(
+        (r) => r.farm_groups as unknown as FarmRecord["farm_groups"],
+      ) || [];
 
     // Combine and deduplicate
     const combinedFarms = [...(coordFarms || []), ...memberFarms];
@@ -378,11 +391,11 @@ const FarmRecordsView = () => {
 
       const getTotalPaid = (type: string) => {
         if (!payments) return 0;
-        return payments
+        return (payments as CategoryPaymentRow[])
           .filter(
-            (p: any) => p.payment_type?.toLowerCase() === type.toLowerCase(),
+            (p) => p.payment_type?.toLowerCase() === type.toLowerCase(),
           )
-          .reduce((sum: number, p: any) => sum + (Number(p.amount) || 0), 0);
+          .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
       };
 
       const setupAmt = getTotalPaid("farm_setup");
@@ -471,11 +484,10 @@ const FarmRecordsView = () => {
         .eq("email", formData.email);
 
       if (existingRecords && existingRecords.length > 0) {
-        const inSameCategory = existingRecords.some(
-          (r: any) =>
-            (r.farm_groups?.project_category || "Gingertown") ===
-            farm.project_category,
-        );
+        const inSameCategory = existingRecords.some((r) => {
+          const fg = r.farm_groups as unknown as { project_category?: string } | null;
+          return (fg?.project_category || "Gingertown") === farm.project_category;
+        });
 
         if (inSameCategory) {
           showToast({

@@ -7,6 +7,9 @@ import { showToast } from "@/components/ui/ToastComponent";
 import { supabaseANON, supabaseURL } from "@/config/Index";
 import { supabase } from "@/lib/supabaseClient";
 
+const getErrorMessage = (error: unknown) =>
+  error instanceof Error ? error.message : undefined;
+
 const projectCategories = [
   "Mushroom Village",
   "Gingertown",
@@ -198,15 +201,15 @@ const BackendUpload = () => {
         description: "The record was inserted into slot_subscriptions.",
         variant: "success",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Slot subscription save failed:", error);
       setSlotStatus({
         type: "error",
-        message: error?.message || "Unable to save slot subscription.",
+        message: getErrorMessage(error) || "Unable to save slot subscription.",
       });
       showToast({
         title: "Save failed",
-        description: error?.message || "Unable to save slot subscription.",
+        description: getErrorMessage(error) || "Unable to save slot subscription.",
         variant: "error",
       });
     } finally {
@@ -248,15 +251,15 @@ const BackendUpload = () => {
         description: "The record was inserted into other_payments.",
         variant: "success",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Other payment save failed:", error);
       setOtherPaymentStatus({
         type: "error",
-        message: error?.message || "Unable to save other payment.",
+        message: getErrorMessage(error) || "Unable to save other payment.",
       });
       showToast({
         title: "Save failed",
-        description: error?.message || "Unable to save other payment.",
+        description: getErrorMessage(error) || "Unable to save other payment.",
         variant: "error",
       });
     } finally {
@@ -293,15 +296,15 @@ const BackendUpload = () => {
         description: "The record was inserted into subscriptions.",
         variant: "success",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Subscription save failed:", error);
       setSubscriptionStatus({
         type: "error",
-        message: error?.message || "Unable to save subscription.",
+        message: getErrorMessage(error) || "Unable to save subscription.",
       });
       showToast({
         title: "Save failed",
-        description: error?.message || "Unable to save subscription.",
+        description: getErrorMessage(error) || "Unable to save subscription.",
         variant: "error",
       });
     } finally {
@@ -326,15 +329,15 @@ const BackendUpload = () => {
         description: "The user UID was resolved successfully.",
         variant: "success",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("UID lookup failed:", error);
       setUidFinderStatus({
         type: "error",
-        message: error?.message || "Unable to resolve the UID.",
+        message: getErrorMessage(error) || "Unable to resolve the UID.",
       });
       showToast({
         title: "UID lookup failed",
-        description: error?.message || "Unable to resolve the UID.",
+        description: getErrorMessage(error) || "Unable to resolve the UID.",
         variant: "error",
       });
     }

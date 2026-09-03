@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Leaf, Mail, Lock, User, EyeOff, Eye } from "lucide-react";
+import { Leaf, Mail, Lock, User, Phone, EyeOff, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,6 +21,7 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [referral, setReferral] = useState<string>(() => {
@@ -32,6 +33,17 @@ const Signup = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    const formattedPhone = phone.trim();
+    if (!formattedPhone) {
+      setLoading(false);
+      showToast({
+        variant: "error",
+        title: "Phone number required",
+        description: "Please enter your phone number to continue.",
+      });
+      return;
+    }
 
     const formattedEmail = email.toLowerCase().trim();
 
@@ -67,14 +79,14 @@ const Signup = () => {
       options: {
         data: {
           full_name: name,
+          phone: formattedPhone,
           referral_code: referral.trim().toUpperCase() || null,
         },
       },
     });
 
-    setLoading(false);
-
     if (error) {
+      setLoading(false);
       console.error("Signup Error Details:", error);
       Sentry.captureException(error, {
         extra: {
@@ -92,7 +104,24 @@ const Signup = () => {
     }
 
     const user = data.user;
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const { error: phoneUpdateError } = await supabase
+      .from("profiles")
+      .update({ phone: formattedPhone })
+      .eq("id", user.id);
+
+    if (phoneUpdateError) {
+      console.error("Failed to save phone number on profile:", phoneUpdateError);
+      Sentry.captureException(phoneUpdateError, {
+        extra: { action: "signup_phone_update", userId: user.id },
+      });
+    }
+
+    setLoading(false);
 
     showToast({
       variant: "success",
@@ -174,6 +203,22 @@ const Signup = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
                   placeholder="you@example.com"
+                  className="pl-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="phone"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  type="tel"
+                  placeholder="08012345678"
                   className="pl-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
                   required
                 />

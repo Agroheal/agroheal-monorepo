@@ -17,12 +17,6 @@ import { supabase } from "@/lib/supabaseClient";
 import * as Sentry from "@sentry/react";
 import { PROJECT_CATEGORIES } from "@/constant/projectCategories";
 
-declare global {
-  interface Window {
-    FlutterwaveCheckout: (config: any) => { close: () => void };
-  }
-}
-
 const Checkout = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -37,7 +31,6 @@ const Checkout = () => {
     ? 200 * slotQuantity
     : 500 * slotQuantity;
   const [isProcessing, setIsProcessing] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -48,14 +41,6 @@ const Checkout = () => {
 
   // ── Load Flutterwave script ───────────────────────────────────────────────
   useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    getUser();
-
     if (document.getElementById("flutterwave-script")) return;
     const script = document.createElement("script");
     script.id = "flutterwave-script";
@@ -198,17 +183,17 @@ const Checkout = () => {
           });
           setIsProcessing(false);
         },
-        callback: function (response: any) {
+        callback: function (response) {
           if (
             response.status === "successful" ||
             response.status === "completed"
           ) {
             Sentry.metrics.count("payment_success", 1);
 
-            const reference = `SUB_${Date.now()}_${user.id.slice(0, 8)}`;
+            const reference = `SUB_${Date.now()}_${order.user_id.slice(0, 8)}`;
             localStorage.setItem("pending_payment_ref", reference);
             localStorage.setItem("pending_payment_provider", "flutterwave");
-            localStorage.setItem("pending_payment_userId", user.id);
+            localStorage.setItem("pending_payment_userId", order.user_id);
 
             const flwTransactionId =
               response.transaction_id || response.id || response.flw_ref;
@@ -235,7 +220,7 @@ const Checkout = () => {
                   .from("slot_subscriptions")
                   .insert([
                     {
-                      user_id: user.id,
+                      user_id: order.user_id,
                       checkout_id: order.id,
                       amount: totalPrice,
                       slotprice: slotPrice,

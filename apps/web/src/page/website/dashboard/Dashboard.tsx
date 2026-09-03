@@ -36,9 +36,30 @@ interface SlotPaymentHistoryItem {
   last_payment_date: string;
 }
 
+interface DashboardProfile {
+  id: string;
+  full_name?: string;
+  referral_code?: string;
+  referred_by?: string;
+  referrer_name?: string;
+  referrer_phone?: string | null;
+  total_referrals?: number;
+  referral_earnings?: number;
+  slot_bonus?: number;
+  phone?: string | boolean | null;
+  referrals?: ReferralProps[];
+  [key: string]: unknown;
+}
+
+interface KinDetails {
+  kin_name: string;
+  kin_address: string;
+  kin_number: string;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<DashboardProfile | null>(null);
   const [totalSlotsPurchased, setTotalSlotsPurchased] = useState(0);
   const [slotPaymentHistory, setSlotPaymentHistory] = useState<
     SlotPaymentHistoryItem[]
@@ -49,7 +70,7 @@ const Dashboard = () => {
   const [showKinModal, setShowKinModal] = useState<boolean>(false);
   const [showSecureSlotModal, setShowSecureSlotModal] =
     useState<boolean>(false);
-  const [kinDetails, setKinDetails] = useState<any>(null);
+  const [kinDetails, setKinDetails] = useState<KinDetails | null>(null);
   const [referralNumber, setReferralNumber] = useState("");
   const [otherSubscriptions, setOtherSubscriptions] = useState<{
     setup: { status: "active" | "inactive"; expiryDate?: Date };
@@ -324,6 +345,15 @@ const Dashboard = () => {
       valueColor: "text-gray-900",
       actionLabel: undefined,
     },
+    {
+      label: "Referral Earnings",
+      value: `₦${Number(profile?.referral_earnings ?? 0).toLocaleString()}`,
+      icon: TrendingUp,
+      bg: "bg-yellow-50",
+      iconColor: "text-[#e8b130]",
+      valueColor: "text-gray-900",
+      actionLabel: undefined,
+    },
   ];
 
   return (
@@ -369,7 +399,8 @@ const Dashboard = () => {
                 className={`${
                   stat.actionTo ||
                   stat.actionHref ||
-                  stat.label === "Total Referrals"
+                  stat.label === "Total Referrals" ||
+                  stat.label === "Referral Earnings"
                     ? "text-base sm:text-lg leading-snug sm:leading-relaxed"
                     : "text-xl sm:text-3xl"
                 } font-bold ${stat.valueColor} text-center sm:text-left`}
@@ -900,13 +931,13 @@ const Dashboard = () => {
                 </div>
               )}
 
-              {profile?.referrals?.length > 0 && (
+              {(profile?.referrals?.length ?? 0) > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
                     People You Referred
                   </p>
                   <div className="space-y-2 max-h-80 overflow-y-auto">
-                    {profile.referrals.map((r: ReferralProps) => (
+                    {profile?.referrals?.map((r: ReferralProps) => (
                       <div
                         key={r.id}
                         className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2"
@@ -961,14 +992,14 @@ const Dashboard = () => {
       <ShareReferralModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
-        referralCode={profile?.referral_code}
+        referralCode={profile?.referral_code ?? ""}
       />
       {showPhoneModal && profile && (
         <PhoneModal
           userId={profile.id}
           onComplete={() => {
             setShowPhoneModal(false);
-            setProfile((prev: any) => ({ ...prev, phone: true }));
+            setProfile((prev) => (prev ? { ...prev, phone: true } : prev));
           }}
         />
       )}

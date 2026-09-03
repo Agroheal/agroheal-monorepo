@@ -8,16 +8,16 @@ import { supabase } from "@/lib/supabaseClient";
 import { FLUTTERWAVE_KEYS } from "@/config/Index";
 import * as Sentry from "@sentry/react";
 import { Toaster } from "react-hot-toast";
+import type { User } from "@supabase/supabase-js";
 
 const MushroomVillage = () => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [slots, setSlots] = useState(1);
   const navigate = useNavigate();
 
   const TOTAL_PER_SLOT = 5000;
-  const SLOT_ADMIN_MARKETING = 1500;
   const SLOT_SUBSCRIPTION_FEE = 1000;
   const FARM_SUPPORT_FEE = 500;
   const FARM_SETUP_FEE = 3500;
@@ -67,7 +67,7 @@ const MushroomVillage = () => {
       return;
     }
 
-    if (!(window as any).FlutterwaveCheckout) {
+    if (!window.FlutterwaveCheckout) {
       showToast({
         title: "Payment Error",
         description: "Flutterwave is still loading. Please try again.",
@@ -81,14 +81,14 @@ const MushroomVillage = () => {
     try {
       const reference = `MV_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-      (window as any).FlutterwaveCheckout({
+      window.FlutterwaveCheckout({
         public_key: FLUTTERWAVE_KEYS,
         tx_ref: reference,
         amount: totalAmount,
         currency: "NGN",
         payment_options: "card, banktransfer, ussd",
         customer: {
-          email: user.email,
+          email: user.email ?? "",
           name: user.user_metadata?.full_name || user.email,
         },
         customizations: {
@@ -98,7 +98,7 @@ const MushroomVillage = () => {
         onclose: () => {
           setIsProcessing(false);
         },
-        callback: async (response: any) => {
+        callback: async (response) => {
           if (
             response.status === "successful" ||
             response.status === "completed"
@@ -180,7 +180,7 @@ const MushroomVillage = () => {
               setTimeout(() => {
                 navigate("/dashboard/slots-subscription");
               }, 1000);
-            } catch (error: any) {
+            } catch (error) {
               console.error("Payment recording error:", error);
               Sentry.captureException(error);
               setIsProcessing(false);
@@ -196,12 +196,12 @@ const MushroomVillage = () => {
           }
         },
       });
-    } catch (error: any) {
+    } catch (error) {
       Sentry.captureException(error);
       setIsProcessing(false);
       showToast({
         title: "Payment Error",
-        description: error.message || "Failed to iniytialize payment.",
+        description: error instanceof Error ? error.message : "Failed to iniytialize payment.",
         variant: "error",
       });
     }

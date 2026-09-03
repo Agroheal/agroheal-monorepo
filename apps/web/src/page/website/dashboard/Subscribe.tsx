@@ -13,20 +13,15 @@ import { CheckCircle, ArrowRight, Sparkles } from "lucide-react";
 import { FLUTTERWAVE_KEYS } from "@/config/Index";
 import * as Sentry from "@sentry/react";
 import PaymentGuidancePopup from "@/components/webComponents/PaymentGuidancePopup";
+import type { User } from "@supabase/supabase-js";
 
-declare global {
-  interface Window {
-    FlutterwaveCheckout: (config: any) => { close: () => void };
-  }
-}
-
-const GREEN_CARD_FEE = 1000;
+const GREEN_CARD_FEE = 2000;
 const LIFETIME_YEARS = 100;
 
 const Subscribe = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [activationError, setActivationError] = useState(false);
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
@@ -90,7 +85,7 @@ const Subscribe = () => {
         currency: "NGN",
         payment_options: "card, banktransfer, ussd",
         customer: {
-          email: user.email,
+          email: user.email ?? "",
           name: user.user_metadata?.full_name || user.email,
         },
         meta: {
@@ -103,7 +98,7 @@ const Subscribe = () => {
           logo: "https://ptowfacejneezksyhntk.supabase.co/storage/v1/object/sign/agroheal-%20buckets/logo.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iZGE2NjM1ZS00NTAzLTRkZDktOTdmOS0zYWExY2Y5NzNiOGQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhZ3JvaGVhbC0gYnVja2V0cy9sb2dvLnBuZyIsImlhdCI6MTc3NDAwODY3OCwiZXhwIjo0OTI3NjA4Njc4fQ.fuwva3-hMj5KmMRqElcclgJqzA5d4aigxCIlHVHgMak",
         },
         onclose: () => setLoading(false),
-        callback: function (response: any) {
+        callback: function (response) {
           if (
             response.status === "successful" ||
             response.status === "completed"
@@ -201,10 +196,10 @@ const Subscribe = () => {
           }
         },
       });
-    } catch (error: any) {
+    } catch (error) {
       Sentry.captureException(error);
       Sentry.metrics.count("payment_failed", 1);
-      alert(`Failed to initialize payment: ${error.message}`);
+      alert(`Failed to initialize payment: ${error instanceof Error ? error.message : String(error)}`);
       setLoading(false);
     }
   };
@@ -412,7 +407,7 @@ const Subscribe = () => {
       localStorage.removeItem("pending_payment_referral_code");
       await supabase.auth.refreshSession();
       setShowSuccess(true);
-    } catch (err) {
+    } catch {
       setActivationError(true);
     } finally {
       setLoading(false);

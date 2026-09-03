@@ -46,10 +46,6 @@ const FarmRecords = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<FarmRecord>>({});
 
-  useEffect(() => {
-    fetchFarmAndRecords();
-  }, [farmSlug]);
-
   const fetchFarmAndRecords = async () => {
     if (!farmSlug) return;
     const {
@@ -95,6 +91,10 @@ const FarmRecords = () => {
     }
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchFarmAndRecords();
+  }, [farmSlug]);
 
   const handleAdd = () => {
     setFormData({

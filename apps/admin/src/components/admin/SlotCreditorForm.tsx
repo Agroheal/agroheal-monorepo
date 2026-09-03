@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,16 @@ import { MemberCombobox } from "@/components/admin/MemberCombobox";
 import { ProgramPills } from "@/components/admin/MemberBadges";
 import { creditSlots } from "@/lib/adminActions";
 import { computeSlotCreditBreakdown } from "@/lib/pricing";
+import { assignSlotsToFarmGroup, fetchFarmGroups, type FarmGroup } from "@/lib/farmAssignment";
 import type { Member } from "@/types/admin";
 
-const PROGRAM_CATEGORIES = ["Mushroom Village", "Sweet Potato Village", "Ginger Village"];
+const PROGRAM_CATEGORIES = [
+  "Gingertown",
+  "Mushroom Village",
+  "Organic FoodNation (1 Million Hectares against Hunger)",
+];
+
+const NO_FARM_GROUP = "__none__";
 
 interface Props {
   members: Member[];
@@ -19,14 +26,53 @@ interface Props {
   onError: (message: string) => void;
 }
 
+/**
+ * Crediting slots and assigning the member to a coordinator's farm used to be
+ * two disconnected manual steps — crediting here, then a separate insert in
+ * the Group Farm admin UI. That gap is exactly how members ended up with
+ * slots but no farm_records row at all. Picking a farm group here folds both
+ * into one action, so a credited member and their farm assignment can't
+ * drift apart or get forgotten.
+ */
 export function SlotCreditorForm({ members, onCredited, onSuccess, onError }: Props) {
   const [memberId, setMemberId] = useState("");
   const [category, setCategory] = useState(PROGRAM_CATEGORIES[0]);
   const [slots, setSlots] = useState(1);
+  const [farmGroups, setFarmGroups] = useState<FarmGroup[]>([]);
+  const [farmGroupId, setFarmGroupId] = useState(NO_FARM_GROUP);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchFarmGroups()
+      .then(setFarmGroups)
+      .catch((err) => console.error("Failed to load farm groups:", err));
+  }, []);
+
+  useEffect(() => {
+    setFarmGroupId(NO_FARM_GROUP);
+  }, [category]);
 
   const selectedMember = members.find((m) => m.id === memberId);
   const breakdown = computeSlotCreditBreakdown(slots);
+  const farmGroupsForCategory = farmGroups.filter((g) => g.project_category === category);
+
+  const assignFarmRecord = async () => {
+    if (farmGroupId === NO_FARM_GROUP || !selectedMember) return;
+    try {
+      await assignSlotsToFarmGroup({
+        farmGroupId,
+        category,
+        name: selectedMember.full_name,
+        email: selectedMember.email,
+        phone: selectedMember.phone,
+        slots,
+      });
+    } catch (err) {
+      throw new Error(`Slots were credited, but the farm assignment failed: ${err instanceof Error ? err.message : String(err)}`, {
+        cause: err,
+      });
+    }
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -42,9 +88,16 @@ export function SlotCreditorForm({ members, onCredited, onSuccess, onError }: Pr
     setLoading(true);
     try {
       await creditSlots({ user_id: memberId, slots, project_category: category });
-      onSuccess(`Successfully credited ${slots} ${category} slots!`);
+      await assignFarmRecord();
+      onSuccess(
+        `Successfully credited ${slots} ${category} slots!` +
+          (farmGroupId !== NO_FARM_GROUP
+            ? ` Assigned to ${farmGroupsForCategory.find((g) => g.id === farmGroupId)?.name ?? "the selected farm"}.`
+            : ""),
+      );
       setSlots(1);
       setMemberId("");
+      setFarmGroupId(NO_FARM_GROUP);
       onCredited();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Failed to credit farm slots.");
@@ -98,6 +151,29 @@ export function SlotCreditorForm({ members, onCredited, onSuccess, onError }: Pr
               <label className="mb-1.5 block text-sm font-medium text-foreground">Number of Slots</label>
               <Input type="number" min={1} value={slots} onChange={(e) => setSlots(Number(e.target.value))} />
             </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Assign to Farm Group (optional)
+            </label>
+            <Select value={farmGroupId} onValueChange={setFarmGroupId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_FARM_GROUP}>Don't assign — just credit slots</SelectItem>
+                {farmGroupsForCategory.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Picking a farm here creates (or tops up) the member's record on that coordinator's dashboard in the
+              same step — no separate manual entry needed.
+            </p>
           </div>
 
           <div className="space-y-1 rounded-lg bg-background/60 p-3 text-xs">

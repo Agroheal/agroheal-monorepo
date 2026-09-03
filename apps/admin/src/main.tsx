@@ -10,6 +10,7 @@ import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import MembersPage from "@/pages/MembersPage";
 import PaymentsPage from "@/pages/PaymentsPage";
+import FarmAssignmentsPage from "@/pages/FarmAssignmentsPage";
 import SettingsPage from "@/pages/SettingsPage";
 
 const router = createBrowserRouter([
@@ -24,6 +25,7 @@ const router = createBrowserRouter([
           { index: true, element: <DashboardPage /> },
           { path: "members", element: <MembersPage /> },
           { path: "payments", element: <PaymentsPage /> },
+          { path: "farm-assignments", element: <FarmAssignmentsPage /> },
           { path: "settings", element: <SettingsPage /> },
         ],
       },

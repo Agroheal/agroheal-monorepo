@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, CreditCard, Settings as SettingsIcon, Sprout, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, Settings as SettingsIcon, Sprout, LogOut, MapPinned } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -22,6 +22,7 @@ const navItems = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
   { label: "Members", path: "/members", icon: Users },
   { label: "Payments", path: "/payments", icon: CreditCard },
+  { label: "Farm Assignments", path: "/farm-assignments", icon: MapPinned },
   { label: "Settings", path: "/settings", icon: SettingsIcon },
 ];
 

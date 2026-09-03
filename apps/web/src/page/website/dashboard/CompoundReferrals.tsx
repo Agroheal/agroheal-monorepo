@@ -80,7 +80,7 @@ const buildReferralTree = async (
 
     const email = await resolveEmailByUserId(userId);
 
-    const { data: childrenData, error: childrenError } = await supabase
+    const { data: childrenData } = await supabase
       .from("profiles")
       .select("id")
       .eq("referred_by", userId);
@@ -208,15 +208,16 @@ const CompoundReferrals = () => {
         description: `Loaded ${total} profile(s) from the referral chain.`,
         variant: "success",
       });
-    } catch (error: any) {
+    } catch (error) {
       console.error("Compound referral lookup failed", error);
+      const message = error instanceof Error ? error.message : "Unable to build the referral tree.";
       setStatus({
         type: "error",
-        message: error?.message || "Unable to build the referral tree.",
+        message,
       });
       showToast({
         title: "Lookup failed",
-        description: error?.message || "Unable to build the referral tree.",
+        description: message,
         variant: "error",
       });
     } finally {

@@ -47,7 +47,7 @@ Sign up with my link above and let's grow this together.`;
         },
       });
       setTimeout(() => setCopied(false), 3000);
-    } catch (error) {
+    } catch {
       toast.error("Failed to copy", {
         duration: 3000,
         position: "top-right",
