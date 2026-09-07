@@ -24,8 +24,9 @@ const Signup = () => {
   const [phone, setPhone] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const hasQueryRef = Boolean(searchParams.get("ref"));
   const [referral, setReferral] = useState<string>(() => {
-    return searchParams.get("ref") || "356FV1";
+    return searchParams.get("ref") || "";
   });
 
   // console.log("ref param:", searchParams.get("ref"));
@@ -253,15 +254,17 @@ const Signup = () => {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="referral">Referral Code</Label>
+              <Label htmlFor="referral">
+                Referral Code {hasQueryRef ? "(Applied)" : "(Optional)"}
+              </Label>
               <Input
                 id="referral"
-                value={referral || "356FV1"}
+                value={referral}
                 onChange={(e) => setReferral(e.target.value)}
                 type="text"
-                disabled={true}
-                placeholder="Enter a valid referral code"
-                className="pl-4 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
+                disabled={hasQueryRef}
+                placeholder="Enter sponsor code (if any)"
+                className="pl-4 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all uppercase"
               />
             </div>
 

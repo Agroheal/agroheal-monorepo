@@ -27,26 +27,44 @@ begin
   into new_code
   from generate_series(1, 6);
 
-  incoming_ref := new.raw_user_meta_data->>'referral_code';
+  incoming_ref := trim(coalesce(new.raw_user_meta_data->>'referral_code', new.raw_user_meta_data->>'sponsor_code', ''));
 
-  if incoming_ref is not null then
+  if incoming_ref != '' then
     select id into referrer_id
     from public.profiles
-    where referral_code = incoming_ref;
+    where referral_code = upper(incoming_ref)
+       or member_id = incoming_ref
+       or id::text = incoming_ref
+    limit 1;
   end if;
 
-  insert into public.profiles (id, email, full_name, referral_code, referred_by, created_at)
+  insert into public.profiles (
+    id,
+    email,
+    full_name,
+    referral_code,
+    referred_by,
+    sponsor_id,
+    role,
+    created_at,
+    updated_at
+  )
   values (
     new.id,
     new.email,
     coalesce(new.raw_user_meta_data->>'full_name', new.email, ''),
     new_code,
     referrer_id,
+    referrer_id,
+    'member',
+    now(),
     now()
   )
   on conflict (id) do update set
     email = coalesce(excluded.email, public.profiles.email),
-    full_name = case when public.profiles.full_name is null or public.profiles.full_name = '' then excluded.full_name else public.profiles.full_name end;
+    full_name = case when public.profiles.full_name is null or public.profiles.full_name = '' then excluded.full_name else public.profiles.full_name end,
+    sponsor_id = coalesce(public.profiles.sponsor_id, excluded.sponsor_id),
+    referred_by = coalesce(public.profiles.referred_by, excluded.referred_by);
 
   return new;
 end;
