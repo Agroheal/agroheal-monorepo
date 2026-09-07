@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Sprout, Lock, Mail, AlertCircle, ShieldAlert, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { fetchAdminProfile, useAdminAuth } from "@/hooks/useAdminAuth";
+import { canAccessAdminPortal } from "@shared";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,7 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { session, isAdmin, loading: authLoading } = useAdminAuth();
+  const { session, canAccessAdmin, loading: authLoading } = useAdminAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,10 +19,10 @@ export default function LoginPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
-    if (!authLoading && session && isAdmin) {
+    if (!authLoading && session && canAccessAdmin) {
       navigate("/", { replace: true });
     }
-  }, [authLoading, session, isAdmin, navigate]);
+  }, [authLoading, session, canAccessAdmin, navigate]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -43,10 +44,11 @@ export default function LoginPage() {
       if (!data.user) throw new Error("Authentication succeeded but no user returned.");
 
       const profile = await fetchAdminProfile(data.user.id);
+      const isAllowed = canAccessAdminPortal(profile?.role, data.user.email);
 
-      if (profile && profile.role !== "admin") {
+      if (!isAllowed) {
         await supabase.auth.signOut();
-        throw new Error("Access Denied: Your account does not have administrator privileges.");
+        throw new Error("Access Denied: Your account does not have administrative or support privileges.");
       }
 
       navigate("/", { replace: true });

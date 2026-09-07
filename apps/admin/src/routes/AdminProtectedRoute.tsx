@@ -10,7 +10,7 @@ import { supabase } from "@/lib/supabaseClient";
  * the login form already enforced correctly.
  */
 export default function AdminProtectedRoute() {
-  const { session, loading, isAdmin } = useAdminAuth();
+  const { session, loading, canAccessAdmin } = useAdminAuth();
 
   if (loading) {
     return (
@@ -24,10 +24,11 @@ export default function AdminProtectedRoute() {
     return <Navigate to="/login" replace />;
   }
 
-  if (!isAdmin) {
+  if (!canAccessAdmin) {
     supabase.auth.signOut();
     return <Navigate to="/login" replace />;
   }
+
 
   return <Outlet />;
 }

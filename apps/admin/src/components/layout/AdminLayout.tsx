@@ -31,7 +31,7 @@ function isItemActive(path: string, pathname: string) {
 }
 
 export default function AdminLayout() {
-  const { profile, isReadOnly } = useAdminAuth();
+  const { profile, isReadOnly, isSupport } = useAdminAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -40,8 +40,13 @@ export default function AdminLayout() {
     navigate("/login", { replace: true });
   };
 
+  const visibleNavItems = navItems.filter((item) => {
+    if (isSupport && item.path === "/settings") return false;
+    return true;
+  });
+
   const currentTitle =
-    navItems.find((item) => isItemActive(item.path, location.pathname))?.label ?? "Dashboard";
+    visibleNavItems.find((item) => isItemActive(item.path, location.pathname))?.label ?? "Dashboard";
 
   const initials = (profile?.full_name || profile?.email || "A").slice(0, 2).toUpperCase();
 
@@ -64,7 +69,7 @@ export default function AdminLayout() {
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
-                {navItems.map((item) => {
+                {visibleNavItems.map((item) => {
                   const active = isItemActive(item.path, location.pathname);
                   return (
                     <SidebarMenuItem key={item.path}>
@@ -81,6 +86,7 @@ export default function AdminLayout() {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
+
 
         <SidebarFooter>
           <SidebarMenu>

@@ -69,10 +69,14 @@ const route = createBrowserRouter([
     ],
   },
 
-  // Farm management route (direct access)
+  // Farm management route (session protected)
   {
     path: "/:farmSlug",
-    element: <FarmManagement />,
+    element: (
+      <ProtectedRoute>
+        <FarmManagement />
+      </ProtectedRoute>
+    ),
   },
 
   // Only login protection

@@ -3,20 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { showToast } from "@/components/ui/ToastComponent";
 import { Toaster } from "react-hot-toast";
 import { PROJECT_CATEGORIES, DEFAULT_CATEGORY } from "@/constant/projectCategories";
 import { cleanName, cleanSlug } from "@shared/dataSanitizers";
+import { useAuth } from "@/hooks/useAuth";
 
 const CreateFarmGroup = () => {
   const navigate = useNavigate();
+  const { isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
   const [farmName, setFarmName] = useState("");
   const [category, setCategory] = useState(DEFAULT_CATEGORY);
   const [loading, setLoading] = useState(false);
-
-  // Removed on-mount redirect as coordinators can have multiple groups now
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,15 +38,27 @@ const CreateFarmGroup = () => {
       return;
     }
 
-    if (user.email?.toLowerCase() !== "developerelijah360@gmail.com") {
+    const IS_AUDIT_MODE_LOCKED = true;
+    if (IS_AUDIT_MODE_LOCKED && !isSuperAdmin) {
       showToast({
         variant: "error",
         title: "Read-Only Audit Mode",
-        description: "Farm group creation is temporarily restricted during system reconciliation.",
+        description: "Farm group creation is temporarily restricted to super developer during system reconciliation.",
       });
       setLoading(false);
       return;
     }
+
+    if (!isAdmin) {
+      showToast({
+        variant: "error",
+        title: "Permission Denied",
+        description: "Only Platform Administrators are authorized to create new farm groups.",
+      });
+      setLoading(false);
+      return;
+    }
+
 
     const slug = cleanSlug(cleanedFarmName);
 
@@ -115,9 +128,34 @@ const CreateFarmGroup = () => {
     },
   };
 
+  if (!authLoading && !isAdmin) {
+    return (
+      <div className="max-w-md mx-auto p-6 mt-8">
+        <Toaster />
+        <Card className="border-amber-200 bg-amber-50">
+          <CardContent className="pt-6 text-center">
+            <h2 className="text-xl font-bold text-amber-900 mb-2">
+              Administrator Permission Required
+            </h2>
+            <p className="text-sm text-amber-800 mb-4">
+              Only platform administrators are authorized to initialize new community farm groups.
+            </p>
+            <Button
+              onClick={() => navigate("/dashboard")}
+              className="bg-green-800 hover:bg-green-700 text-white"
+            >
+              Return to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-md mx-auto p-6 mt-8">
       <Toaster />
+
       <motion.div {...fadeUp} className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Create Farm Group

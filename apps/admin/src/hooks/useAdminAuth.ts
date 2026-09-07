@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import type { Session } from "@supabase/supabase-js";
+import {
+  UserRole,
+  isPlatformAdmin,
+  canAccessAdminPortal,
+  SUPER_DEV_EMAIL,
+} from "@shared";
 
 export interface AdminProfile {
   id: string;
@@ -12,7 +18,7 @@ export interface AdminProfile {
 /**
  * Single place that fetches the profiles.role/full_name row used to decide
  * admin access — shared by useAdminAuth (route guard) and LoginPage (blocks
- * non-admin sign-ins immediately) so the check only lives in one place.
+ * unauthorized sign-ins immediately) so the check only lives in one place.
  */
 export async function fetchAdminProfile(userId: string) {
   const { data, error } = await supabase
@@ -28,7 +34,7 @@ export async function fetchAdminProfile(userId: string) {
   return data;
 }
 
-export const SUPER_DEV_EMAIL = "developerelijah360@gmail.com";
+export { SUPER_DEV_EMAIL };
 
 export const useAdminAuth = () => {
   const [session, setSession] = useState<Session | null>(null);
@@ -74,15 +80,23 @@ export const useAdminAuth = () => {
     };
   }, []);
 
-  const isSuperDeveloper = profile?.email?.toLowerCase() === SUPER_DEV_EMAIL.toLowerCase();
+  const isSuperDeveloper =
+    profile?.email?.toLowerCase() === SUPER_DEV_EMAIL.toLowerCase() ||
+    profile?.role === UserRole.SUPER_ADMIN;
+  const isAdmin = isPlatformAdmin(profile?.role, profile?.email);
+  const isSupport = profile?.role === UserRole.SUPPORT;
+  const canAccessAdmin = canAccessAdminPortal(profile?.role, profile?.email);
   const isReadOnly = !isSuperDeveloper;
 
   return {
     session,
     profile,
     loading,
-    isAdmin: profile?.role === "admin",
+    isAdmin,
     isSuperDeveloper,
+    isSupport,
+    canAccessAdmin,
     isReadOnly,
   };
 };
+

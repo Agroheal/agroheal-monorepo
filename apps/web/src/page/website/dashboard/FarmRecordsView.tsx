@@ -13,6 +13,7 @@ import {
   DEFAULT_CATEGORY,
 } from "@/constant/projectCategories";
 import { cleanName, cleanEmail, normalizePhoneNumber, parsePositiveInt } from "@shared/dataSanitizers";
+import { useAuth } from "@/hooks/useAuth";
 
 interface FarmRecord {
   id: string;
@@ -124,13 +125,19 @@ const FarmRecordsView = () => {
     calcSupport(r) +
     calcSlotFee(r) +
     (isOrganicFoodNation ? 0 : calcFine(r));
+  const { isAdmin: authIsAdmin, isSuperAdmin: authIsSuperAdmin } = useAuth();
   const [isCoordinator, setIsCoordinator] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
-  const isSuperAdmin = currentUserEmail === "developerelijah360@gmail.com";
+  const isSuperAdmin =
+    currentUserEmail?.toLowerCase() === "developerelijah360@gmail.com" ||
+    authIsSuperAdmin;
+  const isAdmin = authIsAdmin || isSuperAdmin;
 
-  // System Audit Lock: When true, only Super Developer can edit. When false, strict Coordinator RBAC applies.
+  // System Audit Lock: When true, only Super Developer can edit. When false, strict Coordinator & Admin RBAC applies.
   const IS_AUDIT_MODE_LOCKED = true;
-  const canManageRecords = IS_AUDIT_MODE_LOCKED ? isSuperAdmin : isCoordinator;
+  // Platform Admins + Designated Farm Coordinators can manage member records
+  const canManageRecords = IS_AUDIT_MODE_LOCKED ? isSuperAdmin : (isCoordinator || isAdmin);
+  // Farm Coordinators ALONE manage operating expenses for their assigned farm!
   const canManageExpenses = IS_AUDIT_MODE_LOCKED ? isSuperAdmin : isCoordinator;
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -264,8 +271,15 @@ const FarmRecordsView = () => {
         (r) => r.farm_groups as unknown as FarmRecord["farm_groups"],
       ) || [];
 
+    // 3. If admin or super_admin, also fetch all farm groups across the platform
+    let adminFarms: FarmRecord["farm_groups"][] = [];
+    if (isAdmin) {
+      const { data: allFarms } = await supabase.from("farm_groups").select("*");
+      adminFarms = (allFarms || []) as unknown as FarmRecord["farm_groups"][];
+    }
+
     // Combine and deduplicate
-    const combinedFarms = [...(coordFarms || []), ...memberFarms];
+    const combinedFarms = [...(coordFarms || []), ...memberFarms, ...adminFarms];
     const uniqueFarms = Array.from(
       new Map(combinedFarms.map((f) => [f.id, f])).values(),
     );
@@ -458,7 +472,7 @@ const FarmRecordsView = () => {
         title: IS_AUDIT_MODE_LOCKED ? "Read-Only Audit Mode" : "Permission Denied",
         description: IS_AUDIT_MODE_LOCKED
           ? "Farm records are locked in Read-Only Audit Mode. Modifications are restricted to developerelijah360@gmail.com."
-          : "Only the designated Farm Coordinator can add or edit member records for this farm.",
+          : "Only the Farm Coordinator or Platform Administrator can add or edit member records for this farm.",
       });
       return;
     }
@@ -576,7 +590,7 @@ const FarmRecordsView = () => {
         title: IS_AUDIT_MODE_LOCKED ? "Read-Only Audit Mode" : "Permission Denied",
         description: IS_AUDIT_MODE_LOCKED
           ? "Farm records are locked in Read-Only Audit Mode. Deletions are restricted to developerelijah360@gmail.com."
-          : "Only the designated Farm Coordinator can delete member records from this farm.",
+          : "Only the Farm Coordinator or Platform Administrator can delete member records from this farm.",
       });
       return;
     }
