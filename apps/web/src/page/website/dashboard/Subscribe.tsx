@@ -624,7 +624,7 @@ const Subscribe = () => {
                       </p>
                       <div className="flex items-baseline gap-1">
                         <span className="text-4xl font-bold text-gray-900">
-                          ₦1,000
+                          ₦2,000
                         </span>
                         <span className="text-sm text-gray-400">
                           one-time

@@ -8,22 +8,22 @@ import { AgrohealImages } from "@/constant/Image";
 const benefits = [
   {
     icon: Leaf,
-    title: "Secure Your Green Card (₦1,000)",
+    title: "Secure Your Green Card (₦2,000)",
     description:
-      "Start with a one-time ₦1,000 Green Card fee. This gives you access to all our training courses, from composting to crop.",
+      "Start with a one-time ₦2,000 Green Card fee. This grants permanent lifetime access to our training academy, your digital Green Card ID, and affiliate referral earning rights.",
   },
   {
     icon: TrendingUp,
     title: "Secure Your Farm Slot (₦5,000 per slot)",
     description:
-      "Each group farm is one unit of Mushroom Fruiting House, divided into 1000 slots. Secure one slot with a one-time ₦5,000 (inclusive of admin & marketing fee, housing and operations cost and the cost of two Mushroom Substrate Bags). Your slot is permanent once secured. Once you secure your slot, you're officially part of a group farm. Multiple slots, Multiple Returns. The Farm is managed transparently by the Group farm owners in a WhatsApp Group Chat so every naira is accounted for.",
+      "Each group farm is one unit of Mushroom Fruiting House, divided into 1,000 production slots. Secure one slot with a one-time ₦5,000 payment (70% covers fruiting house setup, racks, labor, and 2 initial substrate bags; 10% sponsor bonus; 20% platform admin). There are zero monthly maintenance fees.",
   },
   {
     icon: Users,
     title:
       "Mushroom Village: Low-Cost Entry to Ownership in Gingertown & Organic FoodNation",
     description:
-      "Double production capacity in the second quarter, earn up to 40% Quarterly Returns from the 6th to 12th Month and put 25% each into Gingertown and Organic FoodNation.\n\nHow it Works:\n\nParticipants join Mushroom Group Farms to learn and earn from the production of Oyster Mushrooms.\n\n1. Secure Your Green Card (₦1,000)\nStart with a one-time ₦1,000 Green Card fee. This gives you access to all our training courses, from composting to crop.\n\n2. Secure Your Farm Slot (₦5,000 per slot)\nEach group farm is one unit of Mushroom Fruiting House, divided into 1000 slots. Secure one slot with a one-time ₦5,000 (inclusive of admin & marketing fee, housing and operations cost and the cost of two Mushroom Substrate Bags).\n\n3. Once you secure your slot, you're officially part of a group farm. Multiple slots, Multiple Returns.\n\n4. The Farm is managed transparently by the Group farm owners in a WhatsApp Group Chat so every naira is accounted for.\n\n5. Harvest & Share the Profits from the 6th Month. Mushrooms are harvested, processed and sold directly to guaranteed Farm to Table iMarts as well as to fulfill export supply contracts.",
+      "Cycle 1 (Months 1–3) reinvests 90% of harvest to double capacity from 2 to 4 bags per slot. Cycle 2 onwards pays ₦2,400 per slot in quarterly cash profit while allocating 20% each into Gingertown and Organic FoodNation expansion funds.",
   },
 ];
 

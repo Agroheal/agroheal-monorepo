@@ -23,7 +23,7 @@ ${SITE_URL}/signup?ref=${referralCode}
 
 🌱 What's the Agroheal Green Card?
 
-For a one-time ₦1,000 fee, you get full access to the Agroheal platform — organic farming courses, farm slot opportunities, and the LEAP Community.
+For a one-time ₦2,000 fee, you get full access to the Agroheal platform — organic farming courses, farm slot opportunities, and the LEAP Community.
 
 🫚 Free Ginger Seedlings
 

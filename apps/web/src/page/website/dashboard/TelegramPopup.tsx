@@ -86,7 +86,7 @@ const FarmingInitiativePopup = () => {
                     <p className="text-green-300 text-xs">Ginger ROI</p>
                   </div>
                   <div className="hidden bg-[#e8b130]/20 border border-[#e8b130]/40 rounded-xl px-3 py-2 text-center">
-                    <p className="text-[#e8b130] font-bold text-base">₦1,000</p>
+                    <p className="text-[#e8b130] font-bold text-base">₦2,000</p>
                     <p className="text-green-300 text-xs">Reg. Fee</p>
                   </div>
                 </div>

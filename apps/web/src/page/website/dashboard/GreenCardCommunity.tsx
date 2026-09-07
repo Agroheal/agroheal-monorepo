@@ -202,7 +202,7 @@ const GreenCardCommunity = () => {
             className="w-full h-11 bg-green-800 text-white hover:bg-green-700 rounded-xl font-semibold"
           >
             <IdCard className="w-4 h-4 mr-2" />
-            Get your Green Card — ₦1,000
+            Get your Green Card — ₦2,000
           </Button>
         </div>
       </div>

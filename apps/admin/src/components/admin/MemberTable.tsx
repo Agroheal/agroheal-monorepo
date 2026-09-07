@@ -75,7 +75,7 @@ export function MemberTable({ members, activatingMemberId, recoveryLoading, onIs
                       className="h-7 gap-1 border-emerald-500/40 bg-emerald-500/10 px-2 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/20"
                       disabled={activatingMemberId === m.id}
                       onClick={() => onIssueGreenCard(m)}
-                      title="Confirm offline payment (₦1,000) and issue Green Card"
+                      title="Confirm offline payment (₦2,000) and issue Green Card"
                     >
                       <IdCard className="h-3 w-3" /> {activatingMemberId === m.id ? "Issuing..." : "Issue"}
                     </Button>

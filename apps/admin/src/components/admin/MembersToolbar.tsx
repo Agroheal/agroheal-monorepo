@@ -53,9 +53,9 @@ export function MembersToolbar({
             <SelectItem value="all">All Programs</SelectItem>
             <SelectItem value="has_slots">🌱 Has Active Slots ({hasSlots})</SelectItem>
             <SelectItem value="no_slots">0 Slots ({noSlots})</SelectItem>
-            <SelectItem value="Mushroom">🍄 Mushroom</SelectItem>
-            <SelectItem value="Sweet Potato">🍠 Sweet Potato</SelectItem>
-            <SelectItem value="Ginger">🌿 Ginger</SelectItem>
+            <SelectItem value="Mushroom">🍄 Mushroom Village</SelectItem>
+            <SelectItem value="Ginger">🌿 Gingertown</SelectItem>
+            <SelectItem value="FoodNation">🌾 Organic FoodNation</SelectItem>
           </SelectContent>
         </Select>
       </div>

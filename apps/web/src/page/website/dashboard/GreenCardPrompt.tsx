@@ -79,7 +79,7 @@ export default function GreenCardPrompt({
               }}
               className="h-11 w-full rounded-xl bg-green-800 font-semibold text-white hover:bg-green-700"
             >
-              Get your Green Card — ₦1,000
+              Get your Green Card — ₦2,000
             </Button>
             <button
               onClick={() => setOpen(false)}

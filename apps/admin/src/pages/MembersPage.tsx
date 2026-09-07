@@ -57,7 +57,7 @@ export default function MembersPage() {
   };
 
   const handleActivateGreenCard = async (member: Member, skipConfirm = false) => {
-    if (!skipConfirm && !confirm(`Confirm offline payment (₦1,000) and issue Green Card status for ${member.full_name}?`)) {
+    if (!skipConfirm && !confirm(`Confirm offline payment (₦2,000) and issue Green Card status for ${member.full_name}?`)) {
       return;
     }
 

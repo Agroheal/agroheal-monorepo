@@ -9,7 +9,7 @@ import { updateConfig } from "@/lib/adminActions";
 const DEFAULT_AGREEMENT =
   "# Agroheal LEAP — Terms of Service & Membership Agreement\n\n" +
   "### 1. Platform Membership\nBy subscribing to the Agroheal LEAP Green Card program, members gain access to organic farming education, training modules, and the right to lease community farm slots.\n\n" +
-  "### 2. Farm Slots & Management\nFarm slots (e.g. Mushroom Village, Sweet Potatoes, Ginger) are leased under community group farm agreements. All monthly operational and setup contributions are allocated to farm management, security, and organic harvest distribution.\n\n" +
+  "### 2. Farm Slots & Management\nFarm slots (Mushroom Village, Gingertown, Organic FoodNation) are leased under community group farm agreements. All slot contributions fund farm setup, substrate bags, and quarterly organic harvest distribution.\n\n" +
   "### 3. Acceptance of Terms\nRegistration on the platform constitutes legal acceptance of these terms, organic farming guidelines, and platform referral rules.";
 
 interface Props {

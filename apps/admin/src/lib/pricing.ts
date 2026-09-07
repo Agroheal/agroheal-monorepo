@@ -8,7 +8,7 @@
 export const SLOT_FEE = 1000;
 export const SETUP_FEE = 3500;
 export const SUPPORT_FEE = 500;
-export const GREEN_CARD_FEE = 1000;
+export const GREEN_CARD_FEE = 2000;
 
 export function computeSlotCreditBreakdown(slots: number) {
   return {

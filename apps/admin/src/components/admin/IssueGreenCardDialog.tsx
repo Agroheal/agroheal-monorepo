@@ -55,8 +55,8 @@ export function IssueGreenCardDialog({ open, onOpenChange, members, activatingMe
             <span className="block text-xs font-semibold text-primary">Confirmation Summary:</span>
             <p className="leading-relaxed">
               • <strong className="text-foreground">Member:</strong> {selected.full_name} ({selected.email})
-              <br />• <strong className="text-foreground">Subscription:</strong> 1-Year Agroheal Green Card Membership
-              <br />• <strong className="text-foreground">Offline Fee:</strong> ₦1,000 (Payment Confirmed)
+              <br />• <strong className="text-foreground">Subscription:</strong> Lifetime Permanent Agroheal Green Card Membership
+              <br />• <strong className="text-foreground">Offline Fee:</strong> ₦2,000 (Payment Confirmed)
               <br />• <strong className="text-foreground">Action:</strong> Assigns sequential Member ID &amp; enables
               community benefits
             </p>
