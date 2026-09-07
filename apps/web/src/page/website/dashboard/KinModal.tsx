@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { LoaderCircle, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabaseClient";
-import { cleanName, normalizePhoneNumber } from "@/lib/dataSanitizers";
+import { cleanName, normalizePhoneNumber } from "@shared/dataSanitizers";
 
 type KinModalProps = {
   userId: string;

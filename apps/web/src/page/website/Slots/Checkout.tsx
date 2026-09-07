@@ -16,7 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import * as Sentry from "@sentry/react";
 import { PROJECT_CATEGORIES } from "@/constant/projectCategories";
-import { cleanName, cleanEmail, normalizePhoneNumber } from "@/lib/dataSanitizers";
+import { cleanName, cleanEmail, normalizePhoneNumber, parsePositiveInt } from "@shared/dataSanitizers";
 
 const Checkout = () => {
   const { toast } = useToast();
@@ -134,6 +134,20 @@ const Checkout = () => {
     }
 
     setErrors({}); // Clear errors if valid
+
+    // Read-only audit mode guard
+    const {
+      data: { user: currentUser },
+    } = await supabase.auth.getUser();
+    if (currentUser && currentUser.email !== "developerelijah360@gmail.com") {
+      toast({
+        title: "System in Audit Mode",
+        description:
+          "Slot purchases are temporarily paused during financial reconciliation. Only developerelijah360@gmail.com can test transactions.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     if (!window.FlutterwaveCheckout) {
       toast({

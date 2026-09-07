@@ -9,7 +9,7 @@ import { showToast } from "@/components/ui/ToastComponent";
 import { Toaster } from "react-hot-toast";
 import { Plus, Edit, Trash2, Save, X, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cleanName, cleanEmail, normalizePhoneNumber, parsePositiveInt } from "@/lib/dataSanitizers";
+import { cleanName, cleanEmail, normalizePhoneNumber, parsePositiveInt } from "@shared/dataSanitizers";
 
 const FARM_SETUP_RATE = 5000;
 const FARM_SUPPORT_RATE = 500;

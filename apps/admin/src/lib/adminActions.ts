@@ -1,5 +1,24 @@
 import { supabase } from "@/lib/supabaseClient";
 import { SETUP_FEE, SLOT_FEE, SUPPORT_FEE } from "@/lib/pricing";
+import {
+  cleanName,
+  cleanEmail,
+  normalizePhoneNumber,
+  cleanMemberId,
+  cleanReferralCode,
+  parsePositiveInt,
+} from "@shared/dataSanitizers";
+
+export async function assertAuditAuthorized() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user?.email !== "developerelijah360@gmail.com") {
+    throw new Error(
+      "System is in Read-Only Audit Mode. Administrative actions are restricted to developerelijah360@gmail.com during financial reconciliation.",
+    );
+  }
+}
 
 /**
  * One wrapper per supabase/functions/admin-actions action. Each tries the
@@ -97,9 +116,17 @@ export async function createMember(input: {
   phone?: string;
   referral_code?: string;
 }) {
+  await assertAuditAuthorized();
+  const sanitizedInput = {
+    full_name: cleanName(input.full_name),
+    email: cleanEmail(input.email),
+    phone: input.phone ? normalizePhoneNumber(input.phone) : undefined,
+    referral_code: input.referral_code ? cleanReferralCode(input.referral_code) : undefined,
+  };
+
   const edgeResult = await invokeAdminAction<{ email: string; temp_password: string; member_id?: string }>(
     "create_member",
-    input,
+    sanitizedInput,
   );
   if (edgeResult.ok) return edgeResult.data;
   if (edgeResult.definitive) throw new Error(edgeResult.message);
@@ -110,11 +137,11 @@ export async function createMember(input: {
   const generatedPassword = Math.random().toString(36).slice(-8) + "Ag!9";
 
   let referrerId: string | null = null;
-  if (input.referral_code?.trim()) {
+  if (sanitizedInput.referral_code) {
     const { data: refUser } = await supabase
       .from("profiles")
       .select("id")
-      .eq("referral_code", input.referral_code.trim().toUpperCase())
+      .eq("referral_code", sanitizedInput.referral_code)
       .maybeSingle();
     if (refUser) referrerId = refUser.id;
   }
@@ -122,9 +149,9 @@ export async function createMember(input: {
   const { data: newProfile, error: profErr } = await supabase
     .from("profiles")
     .insert({
-      email: input.email.trim().toLowerCase(),
-      full_name: input.full_name.trim(),
-      phone: input.phone?.trim() || null,
+      email: sanitizedInput.email,
+      full_name: sanitizedInput.full_name,
+      phone: sanitizedInput.phone || null,
       referred_by: referrerId,
     })
     .select()
@@ -133,37 +160,50 @@ export async function createMember(input: {
   if (profErr) throw new Error(friendlyDbError(profErr, "Failed to register member."));
 
   return {
-    email: input.email,
+    email: sanitizedInput.email,
     temp_password: generatedPassword,
     member_id: newProfile?.member_id || "AGC-NEW-2026",
   };
 }
 
 export async function resetPassword(input: { user_id: string; email: string }) {
-  const edgeResult = await invokeAdminAction<{ email: string; temp_password: string }>("reset_password", input);
+  await assertAuditAuthorized();
+  const sanitizedEmail = cleanEmail(input.email);
+  const edgeResult = await invokeAdminAction<{ email: string; temp_password: string }>("reset_password", {
+    user_id: input.user_id,
+    email: sanitizedEmail,
+  });
   if (edgeResult.ok) return edgeResult.data;
   if (edgeResult.definitive) throw new Error(edgeResult.message);
 
   return {
-    email: input.email,
+    email: sanitizedEmail,
     temp_password: Math.random().toString(36).slice(-8) + "Rx!8",
   };
 }
 
 export async function creditSlots(input: { user_id: string; slots: number; project_category: string }) {
-  const edgeResult = await invokeAdminAction("credit_slots", input);
+  await assertAuditAuthorized();
+  const safeSlots = parsePositiveInt(input.slots, 1);
+  const sanitizedInput = {
+    user_id: input.user_id,
+    slots: safeSlots,
+    project_category: input.project_category,
+  };
+
+  const edgeResult = await invokeAdminAction("credit_slots", sanitizedInput);
   if (edgeResult.ok) return edgeResult.data;
   if (edgeResult.definitive) throw new Error(edgeResult.message);
 
   const reference = `ADMIN_CREDIT_${Date.now()}`;
 
   const { error: slotErr } = await supabase.from("slot_subscriptions").insert({
-    user_id: input.user_id,
-    amount: input.slots * SLOT_FEE,
+    user_id: sanitizedInput.user_id,
+    amount: sanitizedInput.slots * SLOT_FEE,
     slotprice: SLOT_FEE,
-    slots: input.slots,
+    slots: sanitizedInput.slots,
     status: "active",
-    project_category: input.project_category,
+    project_category: sanitizedInput.project_category,
     last_payment_date: new Date().toISOString(),
     next_payment_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
   });
@@ -205,21 +245,32 @@ export async function updateMember(input: {
   referral_code?: string;
   role: string;
 }) {
-  const edgeResult = await invokeAdminAction("update_member", input);
+  await assertAuditAuthorized();
+  const sanitizedInput = {
+    user_id: input.user_id,
+    full_name: cleanName(input.full_name),
+    email: input.email ? cleanEmail(input.email) : undefined,
+    phone: normalizePhoneNumber(input.phone),
+    member_id: input.member_id ? cleanMemberId(input.member_id) : undefined,
+    referral_code: input.referral_code ? cleanReferralCode(input.referral_code) : undefined,
+    role: input.role,
+  };
+
+  const edgeResult = await invokeAdminAction("update_member", sanitizedInput);
   if (edgeResult.ok) return edgeResult.data;
   if (edgeResult.definitive) throw new Error(edgeResult.message);
 
   const { error } = await supabase
     .from("profiles")
     .update({
-      full_name: input.full_name,
-      email: input.email || null,
-      phone: input.phone,
-      member_id: input.member_id || null,
-      referral_code: input.referral_code?.toUpperCase() || null,
-      role: input.role,
+      full_name: sanitizedInput.full_name,
+      email: sanitizedInput.email || null,
+      phone: sanitizedInput.phone,
+      member_id: sanitizedInput.member_id || null,
+      referral_code: sanitizedInput.referral_code || null,
+      role: sanitizedInput.role,
     })
-    .eq("id", input.user_id);
+    .eq("id", sanitizedInput.user_id);
 
   if (error) throw new Error(friendlyDbError(error, "Failed to update member profile."));
   return null;
@@ -230,6 +281,7 @@ export async function updateMember(input: {
  * atomic), then the Edge Function, then a fully client-side fallback.
  */
 export async function activateGreenCard(input: { user_id: string; existing_member_id?: string }) {
+  await assertAuditAuthorized();
   let resolvedMemberId = input.existing_member_id || "";
 
   const { data: rpcRes, error: rpcErr } = await supabase.rpc("admin_activate_green_card", {
@@ -271,7 +323,7 @@ export async function activateGreenCard(input: { user_id: string; existing_membe
   await supabase.from("other_payments").insert({
     user_id: input.user_id,
     payment_type: "green_card_offline",
-    amount: 1000,
+    amount: 2000,
     slots: 0,
     project_category: "Green Card Membership (Admin Offline Activation)",
     status: "success",
@@ -282,6 +334,7 @@ export async function activateGreenCard(input: { user_id: string; existing_membe
 }
 
 export async function updateConfig(input: { key: string; value: Record<string, unknown> }) {
+  await assertAuditAuthorized();
   const edgeResult = await invokeAdminAction("update_config", input);
   if (edgeResult.ok) return edgeResult.data;
   if (edgeResult.definitive) throw new Error(edgeResult.message);

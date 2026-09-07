@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Phone, LoaderCircle } from "lucide-react";
 import toast from "react-hot-toast";
-import { normalizePhoneNumber } from "@/lib/dataSanitizers";
+import { normalizePhoneNumber } from "@shared/dataSanitizers";
 
 const PhoneModal = ({
   userId,

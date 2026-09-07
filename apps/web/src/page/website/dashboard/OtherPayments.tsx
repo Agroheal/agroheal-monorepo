@@ -9,6 +9,7 @@ import {
   Calendar,
   AlertCircle,
   CheckCircle2,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
@@ -19,6 +20,7 @@ import { Toaster } from "react-hot-toast";
 import PaymentGuidancePopup from "@/components/webComponents/PaymentGuidancePopup";
 import { PROJECT_CATEGORIES } from "@/constant/projectCategories";
 import type { User } from "@supabase/supabase-js";
+import { parsePositiveInt } from "@shared/dataSanitizers";
 
 type PaymentType = "farm_setup" | "farm_support" | "absentee_fine" | "";
 
@@ -142,11 +144,23 @@ const OtherPayments = () => {
     }, 0);
   };
 
+  const isReadOnly = user?.email !== "developerelijah360@gmail.com";
+
   const handlePayment = async () => {
     if (!user) {
       showToast({
         title: "Login Required",
         description: "Please log in to continue.",
+        variant: "error",
+      });
+      return;
+    }
+
+    if (isReadOnly) {
+      showToast({
+        title: "System in Audit Mode",
+        description:
+          "Payments are temporarily paused during financial reconciliation. Only developerelijah360@gmail.com can test transactions.",
         variant: "error",
       });
       return;
@@ -161,7 +175,8 @@ const OtherPayments = () => {
       return;
     }
 
-    if (totalSlots <= 0) {
+    const safeSlots = parsePositiveInt(totalSlots, 0);
+    if (safeSlots <= 0) {
       showToast({
         title: "No Slots Found",
         description: "You must have purchased farm slots to use this feature.",
@@ -498,12 +513,30 @@ const OtherPayments = () => {
                 </div>
 
                 <div className="pt-6 border-t border-gray-100">
+                  {isReadOnly && (
+                    <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 flex items-start gap-2">
+                      <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <span>
+                        <strong>Audit Mode:</strong> Fee payments are temporarily paused during financial reconciliation.
+                      </span>
+                    </div>
+                  )}
+
                   <Button
                     onClick={handlePayment}
-                    disabled={isProcessing || totalSlots <= 0 || !paymentType}
+                    disabled={
+                      isProcessing ||
+                      totalSlots <= 0 ||
+                      !paymentType ||
+                      isReadOnly
+                    }
                     className="w-full h-12 bg-green-800 hover:bg-green-700 text-white font-bold rounded-xl shadow-lg transition-all"
                   >
-                    {isProcessing ? "Processing..." : "Pay with Flutterwave"}
+                    {isProcessing
+                      ? "Processing..."
+                      : isReadOnly
+                        ? "Payments Paused (Audit Mode)"
+                        : "Pay with Flutterwave"}
                   </Button>
                   <div className="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400">
                     <Shield className="w-3.5 h-3.5" />

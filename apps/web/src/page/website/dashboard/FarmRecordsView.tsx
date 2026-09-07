@@ -6,12 +6,13 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { showToast } from "@/components/ui/ToastComponent";
 import { Toaster } from "react-hot-toast";
-import { Plus, Edit, Trash2, Save, X, Printer } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Printer, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PROJECT_CATEGORIES,
   DEFAULT_CATEGORY,
 } from "@/constant/projectCategories";
+import { cleanName, cleanEmail, normalizePhoneNumber, parsePositiveInt } from "@shared/dataSanitizers";
 
 interface FarmRecord {
   id: string;
@@ -124,6 +125,8 @@ const FarmRecordsView = () => {
     calcSlotFee(r) +
     (isOrganicFoodNation ? 0 : calcFine(r));
   const [isCoordinator, setIsCoordinator] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const isSuperAdmin = currentUserEmail === "developerelijah360@gmail.com";
   const [showAddForm, setShowAddForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -235,6 +238,7 @@ const FarmRecordsView = () => {
       setLoading(false);
       return;
     }
+    setCurrentUserEmail(user.email);
 
     // First: fetch all farm groups this user is associated with (as member or coordinator)
     // 1. Groups where user is a coordinator
@@ -442,7 +446,15 @@ const FarmRecordsView = () => {
   const handleSave = async () => {
     if (!farm) return;
 
-    // Required field validation
+    if (!isSuperAdmin) {
+      showToast({
+        variant: "error",
+        title: "Read-Only Audit Mode",
+        description: "Farm records are locked in Read-Only Audit Mode. Modifications are restricted to developerelijah360@gmail.com.",
+      });
+      return;
+    }
+
     if (!formData.email?.trim()) {
       showToast({
         variant: "error",
@@ -451,18 +463,26 @@ const FarmRecordsView = () => {
       });
       return;
     }
-    if (!formData.name?.trim()) {
+    if (!formData.name) {
       showToast({
         variant: "error",
-        title: "Name is required",
+        title: "Name required",
         description: "Please enter the member's name.",
       });
       return;
     }
-    if (!formData.phone?.trim()) {
+    if (!formData.email) {
       showToast({
         variant: "error",
-        title: "Phone is required",
+        title: "Email required",
+        description: "Please enter the member's email address.",
+      });
+      return;
+    }
+    if (!formData.phone) {
+      showToast({
+        variant: "error",
+        title: "Phone required",
         description: "Please enter the member's phone number.",
       });
       return;
@@ -478,10 +498,11 @@ const FarmRecordsView = () => {
 
     // On new record only: validate email uniqueness within the SAME CATEGORY
     if (!editingId && formData.email) {
+      const sanitizedEmail = cleanEmail(formData.email);
       const { data: existingRecords } = await supabase
         .from("farm_records")
         .select("farm_id, farm_groups!inner(project_category)")
-        .eq("email", formData.email);
+        .eq("email", sanitizedEmail);
 
       if (existingRecords && existingRecords.length > 0) {
         const inSameCategory = existingRecords.some((r) => {
@@ -501,13 +522,13 @@ const FarmRecordsView = () => {
     }
 
     const payload = {
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      farm_slots: formData.farm_slots,
-      months_farm_setup: formData.months_farm_setup,
-      months_farm_support: formData.months_farm_support,
-      absentee_fine: isOrganicFoodNation ? "0" : formData.absentee_fine,
+      name: cleanName(formData.name),
+      email: cleanEmail(formData.email),
+      phone: normalizePhoneNumber(formData.phone),
+      farm_slots: parsePositiveInt(formData.farm_slots, 0),
+      months_farm_setup: String(formData.months_farm_setup || ""),
+      months_farm_support: String(formData.months_farm_support || ""),
+      absentee_fine: isOrganicFoodNation ? "0" : String(formData.absentee_fine || "0"),
       farm_id: farm.id,
       project_category: farm.project_category || "Gingertown",
     };
@@ -541,6 +562,14 @@ const FarmRecordsView = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!isSuperAdmin) {
+      showToast({
+        variant: "error",
+        title: "Read-Only Audit Mode",
+        description: "Farm records are locked in Read-Only Audit Mode. Deletions are restricted to developerelijah360@gmail.com.",
+      });
+      return;
+    }
     if (!confirm("Delete this record?")) return;
     const { error } = await supabase.from("farm_records").delete().eq("id", id);
     if (error) {
@@ -569,6 +598,14 @@ const FarmRecordsView = () => {
 
   const handleSaveExpense = async () => {
     if (!farm) return;
+    if (!isSuperAdmin) {
+      showToast({
+        variant: "error",
+        title: "Read-Only Audit Mode",
+        description: "Farm expenses are locked in Read-Only Audit Mode. Modifications are restricted to developerelijah360@gmail.com.",
+      });
+      return;
+    }
     if (!expenseFormData.category) {
       showToast({
         variant: "error",
@@ -616,6 +653,14 @@ const FarmRecordsView = () => {
   };
 
   const handleDeleteExpense = async (id: string) => {
+    if (!isSuperAdmin) {
+      showToast({
+        variant: "error",
+        title: "Read-Only Audit Mode",
+        description: "Farm expenses are locked in Read-Only Audit Mode. Deletions are restricted to developerelijah360@gmail.com.",
+      });
+      return;
+    }
     if (!confirm("Delete this expense record?")) return;
     const { error } = await supabase
       .from("farm_expenses")
@@ -808,7 +853,19 @@ const FarmRecordsView = () => {
           </Button>
         </motion.div>
 
-        {isCoordinator && (
+        {!isSuperAdmin && (
+          <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-sm no-print">
+            <div className="flex items-center gap-2 font-semibold">
+              <Lock className="w-5 h-5 text-amber-600" />
+              <span>Read-Only Audit Mode Active</span>
+            </div>
+            <p className="mt-1 text-xs text-amber-800">
+              Farm bookkeeping and membership records are locked in read-only mode during our comprehensive financial reconciliation. Record creations, edits, and deletions are temporarily disabled.
+            </p>
+          </div>
+        )}
+
+        {isCoordinator && isSuperAdmin && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1091,7 +1148,7 @@ const FarmRecordsView = () => {
                         )}
                         <th className="text-left p-2">Total</th>
                         <th className="text-left p-2">Email</th>
-                        {isCoordinator && (
+                        {isCoordinator && isSuperAdmin && (
                           <th className="text-left p-2">Actions</th>
                         )}
                       </tr>
@@ -1151,7 +1208,7 @@ const FarmRecordsView = () => {
                             ₦{getRecordTotal(record).toLocaleString()}
                           </td>
                           <td className="p-2 text-gray-600">{record.email}</td>
-                          {isCoordinator && (
+                          {isCoordinator && isSuperAdmin && (
                             <td className="p-2">
                               <div className="flex gap-1">
                                 <Button
@@ -1264,7 +1321,7 @@ const FarmRecordsView = () => {
                         <th className="text-left p-2">Category</th>
                         {/* <th className="text-left p-2">Description</th> */}
                         <th className="text-right p-2">Amount</th>
-                        {isCoordinator && (
+                        {isCoordinator && isSuperAdmin && (
                           <th className="text-center p-2">Actions</th>
                         )}
                       </tr>
@@ -1285,7 +1342,7 @@ const FarmRecordsView = () => {
                           <td className="p-2 text-right font-semibold">
                             ₦{expense.amount.toLocaleString()}
                           </td>
-                          {isCoordinator && (
+                          {isCoordinator && isSuperAdmin && (
                             <td className="p-2">
                               <div className="flex justify-center gap-1">
                                 <Button
@@ -1325,7 +1382,7 @@ const FarmRecordsView = () => {
                             .reduce((sum, exp) => sum + exp.amount, 0)
                             .toLocaleString()}
                         </td>
-                        {isCoordinator && <td className="p-2" />}
+                        {isCoordinator && isSuperAdmin && <td className="p-2" />}
                       </tr>
                     </tfoot>
                   </table>

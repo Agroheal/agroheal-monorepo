@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CreditCard, Shield, LoaderCircle } from "lucide-react";
+import { CreditCard, Shield, LoaderCircle, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
 import { supabase } from "@/lib/supabaseClient";
@@ -9,6 +9,7 @@ import { FLUTTERWAVE_KEYS } from "@/config/Index";
 import * as Sentry from "@sentry/react";
 import { Toaster } from "react-hot-toast";
 import type { User } from "@supabase/supabase-js";
+import { parsePositiveInt } from "@shared/dataSanitizers";
 
 const MushroomVillage = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -57,11 +58,33 @@ const MushroomVillage = () => {
     setSlots((current) => Math.min(MAX_SLOTS, current + 1));
   const decreaseSlots = () => setSlots((current) => Math.max(1, current - 1));
 
+  const isReadOnly = user?.email !== "developerelijah360@gmail.com";
+
   const handlePayment = async () => {
     if (!user) {
       showToast({
         title: "Login Required",
         description: "Please login to continue with Mushroom Village payment.",
+        variant: "error",
+      });
+      return;
+    }
+
+    if (isReadOnly) {
+      showToast({
+        title: "System in Audit Mode",
+        description:
+          "Mushroom Village payments are temporarily paused during financial reconciliation. Only developerelijah360@gmail.com can test transactions.",
+        variant: "error",
+      });
+      return;
+    }
+
+    const safeSlots = parsePositiveInt(slots, 1);
+    if (safeSlots < 1 || safeSlots > MAX_SLOTS) {
+      showToast({
+        title: "Invalid Slots",
+        description: `Please select between 1 and ${MAX_SLOTS} slots.`,
         variant: "error",
       });
       return;
@@ -328,14 +351,25 @@ const MushroomVillage = () => {
                 </div>
               </div>
 
+              {isReadOnly && (
+                <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 flex items-start gap-2">
+                  <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Audit Mode:</strong> Payments are temporarily paused during financial reconciliation.
+                  </span>
+                </div>
+              )}
+
               <Button
-                disabled={isProcessing}
+                disabled={isProcessing || isReadOnly}
                 onClick={handlePayment}
                 className="mt-6 w-full"
               >
                 {isProcessing
                   ? "Processing payment..."
-                  : "Pay Mushroom Village Fee"}
+                  : isReadOnly
+                    ? "Payments Paused (Audit Mode)"
+                    : "Pay Mushroom Village Fee"}
               </Button>
             </div>
           </div>

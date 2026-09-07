@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { showToast } from "@/components/ui/ToastComponent";
 import { Toaster } from "react-hot-toast";
 import { PROJECT_CATEGORIES, DEFAULT_CATEGORY } from "@/constant/projectCategories";
-import { cleanName, cleanSlug } from "@/lib/dataSanitizers";
+import { cleanName, cleanSlug } from "@shared/dataSanitizers";
 
 const CreateFarmGroup = () => {
   const navigate = useNavigate();

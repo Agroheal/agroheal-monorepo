@@ -1,5 +1,11 @@
 import { supabase } from "@/lib/supabaseClient";
 import { SETUP_FEE, SUPPORT_FEE } from "@/lib/pricing";
+import {
+  cleanName,
+  cleanEmail,
+  normalizePhoneNumber,
+  parsePositiveInt,
+} from "@shared/dataSanitizers";
 
 export interface FarmGroup {
   id: string;
@@ -28,7 +34,21 @@ export async function assignSlotsToFarmGroup(input: {
   phone: string;
   slots: number;
 }) {
-  const { farmGroupId, category, name, email, phone, slots } = input;
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (user?.email !== "developerelijah360@gmail.com") {
+    throw new Error(
+      "System is in Read-Only Audit Mode. Farm assignments are restricted to developerelijah360@gmail.com during financial reconciliation.",
+    );
+  }
+
+  const farmGroupId = input.farmGroupId;
+  const category = input.category;
+  const name = cleanName(input.name);
+  const email = cleanEmail(input.email);
+  const phone = normalizePhoneNumber(input.phone);
+  const slots = parsePositiveInt(input.slots, 1);
 
   const { data: existing, error: lookupErr } = await supabase
     .from("farm_records")

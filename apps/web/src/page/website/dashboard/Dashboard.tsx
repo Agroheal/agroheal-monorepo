@@ -906,7 +906,7 @@ const Dashboard = () => {
                 </Button>
               </div>
 
-              {(profile?.referred_by || profile?.sponsor_id) && (
+              {Boolean(profile?.referred_by || profile?.sponsor_id) && (
                 <div className="space-y-2">
                   <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
                     Referred by

@@ -1,6 +1,6 @@
 /**
- * Centralized Data Sanitization & Integrity Helpers for Agroheal Admin
- * Enforces strict input formats to eliminate database corruption, orphan records, and formatting anomalies.
+ * Centralized Single Source of Truth for Data Sanitization & Integrity in Agroheal.
+ * Shared across both apps/web, apps/admin, and backend modules.
  */
 
 /**

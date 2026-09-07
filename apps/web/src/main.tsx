@@ -30,7 +30,6 @@ import Legal from "./page/website/Legal";
 import RoadmapGuide from "./page/website/dashboard/RoadmapGuide";
 import CreateFarmGroup from "./page/website/dashboard/CreateFarmGroup";
 import FarmRecordsView from "./page/website/dashboard/FarmRecordsView";
-import FarmAdmin from "./page/website/dashboard/FarmAdmin";
 import KinDetails from "./page/website/dashboard/KinDetails";
 import OtherPayments from "./page/website/dashboard/OtherPayments";
 import MushroomVillage from "./page/website/dashboard/MushroomVillage";

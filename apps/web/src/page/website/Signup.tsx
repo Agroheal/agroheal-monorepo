@@ -14,7 +14,7 @@ import { showToast } from "@/components/ui/ToastComponent";
 
 import * as Sentry from "@sentry/react";
 import AuthSidebar from "@/components/webComponents/authSidebar";
-import { cleanName, cleanEmail, normalizePhoneNumber, cleanReferralCode } from "@/lib/dataSanitizers";
+import { cleanName, cleanEmail, normalizePhoneNumber, cleanReferralCode } from "@shared/dataSanitizers";
 
 const Signup = () => {
   const [searchParams] = useSearchParams();

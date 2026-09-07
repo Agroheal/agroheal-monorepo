@@ -7,7 +7,7 @@ import { showToast } from "@/components/ui/ToastComponent";
 import { supabaseANON, supabaseURL } from "@/config/Index";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
-import { cleanEmail } from "@/lib/dataSanitizers";
+import { cleanEmail } from "@shared/dataSanitizers";
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : undefined;
@@ -764,7 +764,6 @@ const BackendUpload = () => {
           </form>
         </div>
       </div>
-    </div>
   );
 };
 
