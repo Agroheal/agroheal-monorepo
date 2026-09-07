@@ -182,12 +182,13 @@ const Dashboard = () => {
         await supabase.auth.updateUser({ data: { referral_code: null } });
       }
 
-      // Fetch referrer data if referral exists
-      if (profileData.referred_by) {
+      // Fetch referrer data if referral exists (supports both dual-hierarchy sponsor_id and legacy referred_by)
+      const effectiveReferrerId = profileData.sponsor_id || profileData.referred_by;
+      if (effectiveReferrerId) {
         const { data: referrerData } = await supabase
           .from("profiles")
           .select("phone, full_name")
-          .eq("id", profileData.referred_by)
+          .eq("id", effectiveReferrerId)
           .single();
 
         profileData.referrer_phone = referrerData?.phone || null;
@@ -905,7 +906,7 @@ const Dashboard = () => {
                 </Button>
               </div>
 
-              {profile?.referred_by && (
+              {(profile?.referred_by || profile?.sponsor_id) && (
                 <div className="space-y-2">
                   <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">
                     Referred by

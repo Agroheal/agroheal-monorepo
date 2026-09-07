@@ -34,7 +34,7 @@ export function IssueGreenCardDialog({ open, onOpenChange, members, activatingMe
 
         <p className="text-sm text-muted-foreground">
           Select a registered member who has made an offline payment (cash or direct bank transfer) to assign their
-          official Member ID and activate 1-year Green Card benefits.
+          official Member ID and activate permanent lifetime Green Card benefits.
         </p>
 
         <div>

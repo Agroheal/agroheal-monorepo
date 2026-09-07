@@ -16,7 +16,7 @@ function openWhatsApp(text: string) {
 export function IssuedGreenCardSuccessDialog({ details, onOpenChange, onCopied }: Props) {
   if (!details) return null;
   const { member, memberId } = details;
-  const message = `Hello ${member.full_name}!\n\nYour Agroheal LEAP Green Card registration and payment have been confirmed.\n\nMember ID: ${memberId}\nEmail: ${member.email}\nStatus: Active (1 Year)\n\nYou can access your dashboard, training, and community slots at: https://www.agroheal.solutions/dashboard`;
+  const message = `Hello ${member.full_name}!\n\nYour Agroheal LEAP Green Card registration and payment have been confirmed.\n\nMember ID: ${memberId}\nEmail: ${member.email}\nStatus: Active (Lifetime Permanent)\n\nYou can access your dashboard, training, and community slots at: https://www.agroheal.solutions/dashboard`;
 
   return (
     <Dialog open={Boolean(details)} onOpenChange={onOpenChange}>
@@ -39,7 +39,7 @@ export function IssuedGreenCardSuccessDialog({ details, onOpenChange, onCopied }
             <span className="font-mono font-bold text-primary">{memberId}</span>
           </div>
           <div>
-            <strong>Membership Status:</strong> <span className="font-semibold text-emerald-400">Active (1 Year)</span>
+            <strong>Membership Status:</strong> <span className="font-semibold text-emerald-400">Active (Lifetime Permanent)</span>
           </div>
         </div>
 
