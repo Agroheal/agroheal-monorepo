@@ -24,9 +24,11 @@ const Signup = () => {
   const [phone, setPhone] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const hasQueryRef = Boolean(searchParams.get("ref"));
+  const DEFAULT_SPONSOR_CODE = "356FV1"; // Adetola Esther (Co-founder Root Sponsor)
+  const queryRef = searchParams.get("ref");
+  const hasQueryRef = Boolean(queryRef);
   const [referral, setReferral] = useState<string>(() => {
-    return searchParams.get("ref") || "";
+    return queryRef || DEFAULT_SPONSOR_CODE;
   });
 
   // console.log("ref param:", searchParams.get("ref"));
@@ -81,7 +83,7 @@ const Signup = () => {
         data: {
           full_name: name,
           phone: formattedPhone,
-          referral_code: referral.trim().toUpperCase() || null,
+          referral_code: referral.trim().toUpperCase() || DEFAULT_SPONSOR_CODE,
         },
       },
     });

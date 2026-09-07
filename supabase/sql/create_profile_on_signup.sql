@@ -28,15 +28,16 @@ begin
   from generate_series(1, 6);
 
   incoming_ref := trim(coalesce(new.raw_user_meta_data->>'referral_code', new.raw_user_meta_data->>'sponsor_code', ''));
-
-  if incoming_ref != '' then
-    select id into referrer_id
-    from public.profiles
-    where referral_code = upper(incoming_ref)
-       or member_id = incoming_ref
-       or id::text = incoming_ref
-    limit 1;
+  if incoming_ref = '' then
+    incoming_ref := '356FV1'; -- Official Co-founder Root Sponsor (Adetola Esther)
   end if;
+
+  select id into referrer_id
+  from public.profiles
+  where referral_code = upper(incoming_ref)
+     or member_id = incoming_ref
+     or id::text = incoming_ref
+  limit 1;
 
   insert into public.profiles (
     id,
