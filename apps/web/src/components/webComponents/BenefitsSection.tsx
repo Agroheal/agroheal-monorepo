@@ -23,7 +23,7 @@ const benefits = [
     title:
       "Mushroom Village: Low-Cost Entry to Ownership in Gingertown & Organic FoodNation",
     description:
-      "Cycle 1 (Months 1–3) reinvests 90% of harvest to double capacity from 2 to 4 bags per slot. Cycle 2 onwards pays ₦2,400 per slot in quarterly cash profit while allocating 20% each into Gingertown and Organic FoodNation expansion funds.",
+      "Cycle 1 (Months 1–3) reinvests 90% of harvest to double capacity from 2 to 4 bags per slot. Cycle 2 onwards pays up to 40% quarterly returns from net harvest proceeds while allocating 20% each into Gingertown and Organic FoodNation expansion funds.",
   },
 ];
 
