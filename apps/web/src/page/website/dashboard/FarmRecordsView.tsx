@@ -127,6 +127,12 @@ const FarmRecordsView = () => {
   const [isCoordinator, setIsCoordinator] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const isSuperAdmin = currentUserEmail === "developerelijah360@gmail.com";
+
+  // System Audit Lock: When true, only Super Developer can edit. When false, strict Coordinator RBAC applies.
+  const IS_AUDIT_MODE_LOCKED = true;
+  const canManageRecords = IS_AUDIT_MODE_LOCKED ? isSuperAdmin : isCoordinator;
+  const canManageExpenses = IS_AUDIT_MODE_LOCKED ? isSuperAdmin : isCoordinator;
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -446,11 +452,13 @@ const FarmRecordsView = () => {
   const handleSave = async () => {
     if (!farm) return;
 
-    if (!isSuperAdmin) {
+    if (!canManageRecords) {
       showToast({
         variant: "error",
-        title: "Read-Only Audit Mode",
-        description: "Farm records are locked in Read-Only Audit Mode. Modifications are restricted to developerelijah360@gmail.com.",
+        title: IS_AUDIT_MODE_LOCKED ? "Read-Only Audit Mode" : "Permission Denied",
+        description: IS_AUDIT_MODE_LOCKED
+          ? "Farm records are locked in Read-Only Audit Mode. Modifications are restricted to developerelijah360@gmail.com."
+          : "Only the designated Farm Coordinator can add or edit member records for this farm.",
       });
       return;
     }
@@ -562,11 +570,13 @@ const FarmRecordsView = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!isSuperAdmin) {
+    if (!canManageRecords) {
       showToast({
         variant: "error",
-        title: "Read-Only Audit Mode",
-        description: "Farm records are locked in Read-Only Audit Mode. Deletions are restricted to developerelijah360@gmail.com.",
+        title: IS_AUDIT_MODE_LOCKED ? "Read-Only Audit Mode" : "Permission Denied",
+        description: IS_AUDIT_MODE_LOCKED
+          ? "Farm records are locked in Read-Only Audit Mode. Deletions are restricted to developerelijah360@gmail.com."
+          : "Only the designated Farm Coordinator can delete member records from this farm.",
       });
       return;
     }
@@ -598,11 +608,13 @@ const FarmRecordsView = () => {
 
   const handleSaveExpense = async () => {
     if (!farm) return;
-    if (!isSuperAdmin) {
+    if (!canManageExpenses) {
       showToast({
         variant: "error",
-        title: "Read-Only Audit Mode",
-        description: "Farm expenses are locked in Read-Only Audit Mode. Modifications are restricted to developerelijah360@gmail.com.",
+        title: IS_AUDIT_MODE_LOCKED ? "Read-Only Audit Mode" : "Permission Denied",
+        description: IS_AUDIT_MODE_LOCKED
+          ? "Farm expenses are locked in Read-Only Audit Mode. Modifications are restricted to developerelijah360@gmail.com."
+          : "Only the designated Farm Coordinator can log or modify expenses for this farm group.",
       });
       return;
     }
@@ -653,11 +665,13 @@ const FarmRecordsView = () => {
   };
 
   const handleDeleteExpense = async (id: string) => {
-    if (!isSuperAdmin) {
+    if (!canManageExpenses) {
       showToast({
         variant: "error",
-        title: "Read-Only Audit Mode",
-        description: "Farm expenses are locked in Read-Only Audit Mode. Deletions are restricted to developerelijah360@gmail.com.",
+        title: IS_AUDIT_MODE_LOCKED ? "Read-Only Audit Mode" : "Permission Denied",
+        description: IS_AUDIT_MODE_LOCKED
+          ? "Farm expenses are locked in Read-Only Audit Mode. Deletions are restricted to developerelijah360@gmail.com."
+          : "Only the designated Farm Coordinator can delete expenses from this farm group.",
       });
       return;
     }
@@ -865,30 +879,34 @@ const FarmRecordsView = () => {
           </div>
         )}
 
-        {isCoordinator && isSuperAdmin && (
+        {(canManageRecords || canManageExpenses) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
             className="mb-6 flex flex-col sm:flex-row gap-3 no-print"
           >
-            <Button
-              onClick={handleAdd}
-              className="bg-green-800 hover:bg-green-700 w-full sm:w-auto"
-            >
-              <Plus className="w-4 h-4 mr-2" /> Add Member Record
-            </Button>
-            <Button
-              onClick={handleAddExpense}
-              variant="outline"
-              className="border-green-800 text-green-800 hover:bg-green-50 w-full sm:w-auto"
-            >
-              <Plus className="w-4 h-4 mr-2" /> Add Expenses
-            </Button>
+            {canManageRecords && (
+              <Button
+                onClick={handleAdd}
+                className="bg-green-800 hover:bg-green-700 w-full sm:w-auto"
+              >
+                <Plus className="w-4 h-4 mr-2" /> Add Member Record
+              </Button>
+            )}
+            {canManageExpenses && (
+              <Button
+                onClick={handleAddExpense}
+                variant="outline"
+                className="border-green-800 text-green-800 hover:bg-green-50 w-full sm:w-auto"
+              >
+                <Plus className="w-4 h-4 mr-2" /> Add Expenses
+              </Button>
+            )}
           </motion.div>
         )}
 
-        {(showAddForm || editingId) && isCoordinator && (
+        {(showAddForm || editingId) && canManageRecords && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -1031,7 +1049,7 @@ const FarmRecordsView = () => {
           </motion.div>
         )}
 
-        {showExpenseForm && isCoordinator && (
+        {showExpenseForm && canManageExpenses && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -1148,7 +1166,7 @@ const FarmRecordsView = () => {
                         )}
                         <th className="text-left p-2">Total</th>
                         <th className="text-left p-2">Email</th>
-                        {isCoordinator && isSuperAdmin && (
+                        {canManageRecords && (
                           <th className="text-left p-2">Actions</th>
                         )}
                       </tr>
@@ -1208,7 +1226,7 @@ const FarmRecordsView = () => {
                             ₦{getRecordTotal(record).toLocaleString()}
                           </td>
                           <td className="p-2 text-gray-600">{record.email}</td>
-                          {isCoordinator && isSuperAdmin && (
+                          {canManageRecords && (
                             <td className="p-2">
                               <div className="flex gap-1">
                                 <Button
@@ -1321,7 +1339,7 @@ const FarmRecordsView = () => {
                         <th className="text-left p-2">Category</th>
                         {/* <th className="text-left p-2">Description</th> */}
                         <th className="text-right p-2">Amount</th>
-                        {isCoordinator && isSuperAdmin && (
+                        {canManageExpenses && (
                           <th className="text-center p-2">Actions</th>
                         )}
                       </tr>
@@ -1342,47 +1360,47 @@ const FarmRecordsView = () => {
                           <td className="p-2 text-right font-semibold">
                             ₦{expense.amount.toLocaleString()}
                           </td>
-                          {isCoordinator && isSuperAdmin && (
+                          {canManageExpenses && (
                             <td className="p-2">
                               <div className="flex justify-center gap-1">
                                 <Button
-                                  onClick={() => handleEditExpense(expense)}
-                                  variant="outline"
-                                  size="sm"
-                                >
-                                  <Edit className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  onClick={() =>
-                                    handleDeleteExpense(expense.id)
-                                  }
-                                  variant="outline"
-                                  size="sm"
-                                  className="text-red-600 hover:text-red-700"
-                                >
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                    </tbody>
-                    <tfoot>
-                      <tr className="border-t-2 font-bold bg-gray-100">
-                        <td
-                          colSpan={2}
-                          className="p-2 text-right uppercase tracking-wider"
-                        >
-                          Total Expenses
-                        </td>
-                        <td className="p-2 text-right text-red-700">
-                          ₦
-                          {expenses
-                            .reduce((sum, exp) => sum + exp.amount, 0)
-                            .toLocaleString()}
-                        </td>
-                        {isCoordinator && isSuperAdmin && <td className="p-2" />}
+                                   onClick={() => handleEditExpense(expense)}
+                                   variant="outline"
+                                   size="sm"
+                                 >
+                                   <Edit className="w-3 h-3" />
+                                 </Button>
+                                 <Button
+                                   onClick={() =>
+                                     handleDeleteExpense(expense.id)
+                                   }
+                                   variant="outline"
+                                   size="sm"
+                                   className="text-red-600 hover:text-red-700"
+                                 >
+                                   <Trash2 className="w-3 h-3" />
+                                 </Button>
+                               </div>
+                             </td>
+                           )}
+                         </tr>
+                       ))}
+                     </tbody>
+                     <tfoot>
+                       <tr className="border-t-2 font-bold bg-gray-100">
+                         <td
+                           colSpan={2}
+                           className="p-2 text-right uppercase tracking-wider"
+                         >
+                           Total Expenses
+                         </td>
+                         <td className="p-2 text-right text-red-700">
+                           ₦
+                           {expenses
+                             .reduce((sum, exp) => sum + exp.amount, 0)
+                             .toLocaleString()}
+                         </td>
+                         {canManageExpenses && <td className="p-2" />}
                       </tr>
                     </tfoot>
                   </table>
