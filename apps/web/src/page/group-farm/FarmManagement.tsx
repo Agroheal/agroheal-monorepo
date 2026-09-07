@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { showToast } from "@/components/ui/ToastComponent";
 import { Toaster } from "react-hot-toast";
-import { Plus, Edit, Trash2, Save, X } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const FARM_SETUP_RATE = 5000;
@@ -45,6 +45,10 @@ const FarmManagement = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<FarmRecord>>({});
+  const [userEmail, setUserEmail] = useState<string>("");
+
+  const isSuperDeveloper = userEmail.toLowerCase() === "developerelijah360@gmail.com";
+  const isReadOnly = !isSuperDeveloper;
 
   const fetchFarmAndRecords = async () => {
     if (!farmSlug) return;
@@ -55,6 +59,7 @@ const FarmManagement = () => {
       navigate("/login");
       return;
     }
+    setUserEmail(user.email || "");
 
     const { data: farmData, error: farmError } = await supabase
       .from("farm_groups")
@@ -115,6 +120,14 @@ const FarmManagement = () => {
   };
 
   const handleSave = async () => {
+    if (isReadOnly) {
+      showToast({
+        variant: "error",
+        title: "Read-Only Audit Mode",
+        description: "Farm record modifications are restricted during the system audit.",
+      });
+      return;
+    }
     if (!farm || !formData.name?.trim()) return;
     const data = { ...formData, farm_id: farm.id };
     let error;
@@ -145,6 +158,14 @@ const FarmManagement = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (isReadOnly) {
+      showToast({
+        variant: "error",
+        title: "Read-Only Audit Mode",
+        description: "Record deletion is restricted during the system audit.",
+      });
+      return;
+    }
     if (!confirm("Delete this record?")) return;
     const { error } = await supabase.from("farm_records").delete().eq("id", id);
     if (error) {
@@ -209,6 +230,19 @@ const FarmManagement = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <Toaster />
+      {isReadOnly && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3.5 mb-6 text-xs sm:text-sm text-amber-800 flex items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2">
+            <Lock className="w-4 h-4 shrink-0 text-amber-600" />
+            <span>
+              <strong>Read-Only Audit Mode:</strong> System is undergoing financial reconciliation. Farm record modifications are restricted to Super Developer (<code className="font-semibold">developerelijah360@gmail.com</code>).
+            </span>
+          </div>
+          <span className="shrink-0 text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-mono font-bold tracking-wider">
+            AUDIT ACTIVE
+          </span>
+        </div>
+      )}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -230,8 +264,18 @@ const FarmManagement = () => {
         transition={{ delay: 0.1 }}
         className="mb-6"
       >
-        <Button onClick={handleAdd} className="bg-green-800 hover:bg-green-700">
-          <Plus className="w-4 h-4 mr-2" /> Add Member Record
+        <Button
+          onClick={handleAdd}
+          disabled={isReadOnly}
+          className="bg-green-800 hover:bg-green-700"
+          title={isReadOnly ? "Record creation locked during financial audit" : undefined}
+        >
+          {isReadOnly ? (
+            <Lock className="w-4 h-4 mr-2" />
+          ) : (
+            <Plus className="w-4 h-4 mr-2" />
+          )}
+          {isReadOnly ? "Audit Mode Active (Locked)" : "Add Member Record"}
         </Button>
       </motion.div>
 
@@ -420,6 +464,8 @@ const FarmManagement = () => {
                               onClick={() => handleEdit(record)}
                               variant="outline"
                               size="sm"
+                              disabled={isReadOnly}
+                              title={isReadOnly ? "Editing locked during audit" : undefined}
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
@@ -428,6 +474,8 @@ const FarmManagement = () => {
                               variant="outline"
                               size="sm"
                               className="text-red-600 hover:text-red-700"
+                              disabled={isReadOnly}
+                              title={isReadOnly ? "Deletion locked during audit" : undefined}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/lib/supabaseClient";
 import { updateConfig } from "@/lib/adminActions";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 const DEFAULT_AGREEMENT =
   "# Agroheal LEAP — Terms of Service & Membership Agreement\n\n" +
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export function LegalDocEditor({ onSuccess, onError }: Props) {
+  const { isReadOnly } = useAdminAuth();
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -40,6 +42,11 @@ export function LegalDocEditor({ onSuccess, onError }: Props) {
   }, []);
 
   const handleSave = async () => {
+    if (isReadOnly) {
+      onError("System is in Read-Only Audit Mode. Configuration changes are restricted to Super Developer (developerelijah360@gmail.com).");
+      return;
+    }
+
     setSaving(true);
     try {
       await updateConfig({
@@ -84,9 +91,20 @@ export function LegalDocEditor({ onSuccess, onError }: Props) {
             className="font-mono text-xs leading-relaxed"
           />
         )}
-        <Button type="button" onClick={handleSave} disabled={saving || loading} className="w-full gap-2">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-          {saving ? "Saving..." : "Publish Updated Legal Agreement"}
+        <Button
+          type="button"
+          onClick={handleSave}
+          disabled={isReadOnly || saving || loading}
+          className="w-full gap-2"
+        >
+          {saving ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : isReadOnly ? (
+            <span className="flex items-center gap-1.5 text-xs">Read-Only Mode Active</span>
+          ) : (
+            <Send className="h-4 w-4" />
+          )}
+          {saving ? "Saving..." : isReadOnly ? "" : "Publish Updated Legal Agreement"}
         </Button>
       </CardContent>
     </Card>

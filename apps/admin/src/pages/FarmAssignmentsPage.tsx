@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
-import { Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBanner } from "@/components/admin/StatusBanner";
 import { useFarmAssignmentGaps, type FarmAssignmentGap } from "@/hooks/useFarmAssignmentGaps";
 import { fetchFarmGroups, assignSlotsToFarmGroup, type FarmGroup } from "@/lib/farmAssignment";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 function gapKey(gap: FarmAssignmentGap) {
   return `${gap.memberId}::${gap.category}`;
 }
 
 export default function FarmAssignmentsPage() {
+  const { isReadOnly } = useAdminAuth();
   const { gaps, loading, error, refetch } = useFarmAssignmentGaps();
   const [farmGroups, setFarmGroups] = useState<FarmGroup[]>([]);
   const [selectedFarm, setSelectedFarm] = useState<Record<string, string>>({});
@@ -30,6 +32,11 @@ export default function FarmAssignmentsPage() {
   };
 
   const handleAssign = async (gap: FarmAssignmentGap) => {
+    if (isReadOnly) {
+      flash(setErrorMessage, "System is in Read-Only Audit Mode. Farm assignments are restricted to Super Developer (developerelijah360@gmail.com).");
+      return;
+    }
+
     const key = gapKey(gap);
     const farmGroupId = selectedFarm[key];
     if (!farmGroupId) {
@@ -136,11 +143,16 @@ export default function FarmAssignmentsPage() {
                     <td className="px-4 py-3">
                       <Button
                         size="sm"
-                        disabled={assigningKey === key || !selectedFarm[key]}
+                        disabled={isReadOnly || assigningKey === key || !selectedFarm[key]}
                         onClick={() => handleAssign(gap)}
+                        title={isReadOnly ? "Assignments locked during financial audit" : undefined}
                       >
-                        {assigningKey === key && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                        Assign
+                        {assigningKey === key ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : isReadOnly ? (
+                          <Lock className="h-3.5 w-3.5 mr-1" />
+                        ) : null}
+                        {isReadOnly ? "Locked" : "Assign"}
                       </Button>
                     </td>
                   </tr>

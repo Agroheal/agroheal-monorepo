@@ -35,6 +35,16 @@ const CreateFarmGroup = () => {
       return;
     }
 
+    if (user.email?.toLowerCase() !== "developerelijah360@gmail.com") {
+      showToast({
+        variant: "error",
+        title: "Read-Only Audit Mode",
+        description: "Farm group creation is temporarily restricted during system reconciliation.",
+      });
+      setLoading(false);
+      return;
+    }
+
     const slug = farmName.trim().toLowerCase().replace(/\s+/g, "-");
 
     // Check if coordinator already has a farm in this category

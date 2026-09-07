@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, CreditCard, Settings as SettingsIcon, Sprout, LogOut, MapPinned } from "lucide-react";
+import { LayoutDashboard, Users, CreditCard, Settings as SettingsIcon, Sprout, LogOut, MapPinned, Lock } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -31,7 +31,7 @@ function isItemActive(path: string, pathname: string) {
 }
 
 export default function AdminLayout() {
-  const { profile } = useAdminAuth();
+  const { profile, isReadOnly } = useAdminAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -105,6 +105,21 @@ export default function AdminLayout() {
             </Avatar>
           </div>
         </header>
+
+        {isReadOnly && (
+          <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 text-xs md:text-sm text-amber-700 dark:text-amber-300 flex items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-2">
+              <Lock className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>
+                <strong>Read-Only Audit Mode:</strong> System is undergoing financial & farm group reconciliation. Administrative modifications, offline payment confirmations, and farm slot assignments are restricted to Super Developer (<code className="font-semibold text-foreground">developerelijah360@gmail.com</code>).
+              </span>
+            </div>
+            <span className="shrink-0 text-[10px] bg-amber-500/20 text-amber-800 dark:text-amber-200 px-2 py-0.5 rounded font-mono font-bold tracking-wider">
+              LOCKED
+            </span>
+          </div>
+        )}
+
         <main className="flex-1 overflow-y-auto p-4 md:p-6">
           <Outlet />
         </main>

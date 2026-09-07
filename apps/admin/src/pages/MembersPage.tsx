@@ -14,12 +14,14 @@ import { IssueGreenCardDialog } from "@/components/admin/IssueGreenCardDialog";
 import { IssuedGreenCardSuccessDialog } from "@/components/admin/IssuedGreenCardSuccessDialog";
 import { StatusBanner } from "@/components/admin/StatusBanner";
 import type { Member } from "@/types/admin";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 function openWhatsApp(text: string) {
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
 }
 
 export default function MembersPage() {
+  const { isReadOnly } = useAdminAuth();
   const { members, loading, refetch } = useAdminMembers();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
@@ -57,6 +59,11 @@ export default function MembersPage() {
   };
 
   const handleActivateGreenCard = async (member: Member, skipConfirm = false) => {
+    if (isReadOnly) {
+      flash(setErrorMessage, "System is in Read-Only Audit Mode. Green Card activations are restricted to Super Developer (developerelijah360@gmail.com).");
+      return;
+    }
+
     if (!skipConfirm && !confirm(`Confirm offline payment (₦2,000) and issue Green Card status for ${member.full_name}?`)) {
       return;
     }
@@ -88,6 +95,11 @@ export default function MembersPage() {
 
   const handleSaveMemberProfile = async (values: EditMemberValues) => {
     if (!editingMember) return;
+    if (isReadOnly) {
+      flash(setErrorMessage, "System is in Read-Only Audit Mode. Member profile edits are restricted to Super Developer (developerelijah360@gmail.com).");
+      return;
+    }
+
     setEditSaving(true);
     setErrorMessage("");
     try {
@@ -111,6 +123,11 @@ export default function MembersPage() {
   };
 
   const handlePasswordReset = async (member: Member) => {
+    if (isReadOnly) {
+      flash(setErrorMessage, "System is in Read-Only Audit Mode. Password resets are restricted to Super Developer (developerelijah360@gmail.com).");
+      return;
+    }
+
     setRecoveryLoading(true);
     setErrorMessage("");
     setRecoveryCredentials(null);

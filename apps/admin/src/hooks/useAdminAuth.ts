@@ -28,6 +28,8 @@ export async function fetchAdminProfile(userId: string) {
   return data;
 }
 
+export const SUPER_DEV_EMAIL = "developerelijah360@gmail.com";
+
 export const useAdminAuth = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<AdminProfile | null>(null);
@@ -72,5 +74,15 @@ export const useAdminAuth = () => {
     };
   }, []);
 
-  return { session, profile, loading, isAdmin: profile?.role === "admin" };
+  const isSuperDeveloper = profile?.email?.toLowerCase() === SUPER_DEV_EMAIL.toLowerCase();
+  const isReadOnly = !isSuperDeveloper;
+
+  return {
+    session,
+    profile,
+    loading,
+    isAdmin: profile?.role === "admin",
+    isSuperDeveloper,
+    isReadOnly,
+  };
 };

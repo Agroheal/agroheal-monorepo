@@ -15,9 +15,11 @@ import {
   BookOpen,
   Users,
   IdCard,
+  Lock,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
 
 const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
 
@@ -128,6 +130,10 @@ const DashboardLayout = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const { session } = useAuth();
+
+  const isSuperDeveloper = session?.user?.email?.toLowerCase() === "developerelijah360@gmail.com";
+  const isReadOnly = !isSuperDeveloper;
 
   const normalizedPath = normalizePath(pathname);
 
@@ -233,6 +239,20 @@ const DashboardLayout = () => {
             </span>
           </div>
         </header>
+
+        {isReadOnly && (
+          <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs sm:text-sm text-amber-800 flex items-center justify-between gap-3 shadow-xs shrink-0">
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 shrink-0 text-amber-600" />
+              <span>
+                <strong>Read-Only Audit Mode:</strong> The platform is currently undergoing financial reconciliation & audit. Data modifications and new slot subscriptions are temporarily in view-only mode.
+              </span>
+            </div>
+            <span className="shrink-0 text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-mono font-bold tracking-wider">
+              AUDIT ACTIVE
+            </span>
+          </div>
+        )}
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">
