@@ -109,11 +109,10 @@ const route = createBrowserRouter([
           // { path: "withdrawals", element: <Withdrawals /> }, // Hidden for now
           { path: "group-farm-accounts", element: <FarmRecordsView /> },
           { path: "create-farm-group", element: <CreateFarmGroup /> },
-          { path: "farm-admin", element: <FarmAdmin /> },
+          { path: "farm-admin", element: <FarmRecordsView /> },
           { path: "roadmap-guide", element: <RoadmapGuide /> },
           { path: "other-payments", element: <OtherPayments /> },
           { path: "mushroom-village", element: <MushroomVillage /> },
-          { path: "backend-upload", element: <BackendUpload /> },
           { path: "compound-referrals", element: <CompoundReferrals /> },
           { path: "kin", element: <KinDetails /> },
           { path: "legal", element: <Legal /> },

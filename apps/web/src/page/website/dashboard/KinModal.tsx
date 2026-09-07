@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { LoaderCircle, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { cleanName, normalizePhoneNumber } from "@/lib/dataSanitizers";
 
 type KinModalProps = {
   userId: string;
@@ -36,18 +37,22 @@ const KinModal = ({
   }, [initialData]);
 
   const handleSubmit = async () => {
-    if (!kinName.trim()) {
+    const cleanedKinName = cleanName(kinName);
+    const cleanedKinAddress = kinAddress.trim().replace(/\s+/g, " ");
+    const normalizedKinNumber = normalizePhoneNumber(kinNumber);
+
+    if (!cleanedKinName) {
       toast.error("Enter a name for Next of Kin");
       return;
     }
 
-    if (!kinAddress.trim()) {
+    if (!cleanedKinAddress) {
       toast.error("Enter the address for Next of Kin");
       return;
     }
 
-    if (!/^[0-9]+$/.test(kinNumber) || kinNumber.length < 7) {
-      toast.error("Enter a valid phone number for Next of Kin");
+    if (!/^[0-9]+$/.test(normalizedKinNumber) || normalizedKinNumber.length < 10) {
+      toast.error("Enter a valid phone number for Next of Kin (at least 10 digits)");
       return;
     }
 
@@ -72,9 +77,9 @@ const KinModal = ({
       const result = await supabase
         .from("kin_details")
         .update({
-          kin_name: kinName.trim(),
-          kin_address: kinAddress.trim(),
-          kin_number: kinNumber.trim(),
+          kin_name: cleanedKinName,
+          kin_address: cleanedKinAddress,
+          kin_number: normalizedKinNumber,
           date_updated: now,
         })
         .eq("user_id", userId);
@@ -82,9 +87,9 @@ const KinModal = ({
     } else {
       const result = await supabase.from("kin_details").insert({
         user_id: userId,
-        kin_name: kinName.trim(),
-        kin_address: kinAddress.trim(),
-        kin_number: kinNumber.trim(),
+        kin_name: cleanedKinName,
+        kin_address: cleanedKinAddress,
+        kin_number: normalizedKinNumber,
         date_created: now,
         date_updated: now,
       });
@@ -100,9 +105,9 @@ const KinModal = ({
 
     toast.success("Next of Kin details saved!");
     onComplete({
-      kin_name: kinName.trim(),
-      kin_address: kinAddress.trim(),
-      kin_number: kinNumber.trim(),
+      kin_name: cleanedKinName,
+      kin_address: cleanedKinAddress,
+      kin_number: normalizedKinNumber,
     });
   };
 

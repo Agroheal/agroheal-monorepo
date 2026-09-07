@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import * as Sentry from "@sentry/react";
 import { PROJECT_CATEGORIES } from "@/constant/projectCategories";
+import { cleanName, cleanEmail, normalizePhoneNumber } from "@/lib/dataSanitizers";
 
 const Checkout = () => {
   const { toast } = useToast();
@@ -71,15 +72,20 @@ const Checkout = () => {
       return null;
     }
 
+    const cleanFirstName = cleanName(formData.firstName);
+    const cleanLastName = cleanName(formData.lastName);
+    const normalizedEmail = cleanEmail(formData.email);
+    const normalizedPhone = normalizePhoneNumber(formData.phone);
+
     const { data, error } = await supabase
       .from("checkout")
       .insert([
         {
           user_id: user.id,
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
+          first_name: cleanFirstName,
+          last_name: cleanLastName,
+          email: normalizedEmail,
+          phone: normalizedPhone,
           amount: totalPrice,
           payment_method: "flutterwave",
           status: "pending",
@@ -103,12 +109,18 @@ const Checkout = () => {
   };
 
   const handleFlutterwave = async () => {
+    const cleanFirstName = cleanName(formData.firstName);
+    const cleanLastName = cleanName(formData.lastName);
+    const normalizedEmail = cleanEmail(formData.email);
+    const normalizedPhone = normalizePhoneNumber(formData.phone);
+
     const newErrors: Record<string, string> = {};
-    if (!formData.firstName.trim())
-      newErrors.firstName = "First name is required";
-    if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
-    if (!formData.email.trim()) newErrors.email = "Email address is required";
-    if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
+    if (!cleanFirstName) newErrors.firstName = "First name is required";
+    if (!cleanLastName) newErrors.lastName = "Last name is required";
+    if (!normalizedEmail) newErrors.email = "Email address is required";
+    if (!normalizedPhone || normalizedPhone.length < 10) {
+      newErrors.phone = "Enter a valid phone number (at least 10 digits)";
+    }
     if (!category) newErrors.category = "Please select a project category";
 
     if (Object.keys(newErrors).length > 0) {

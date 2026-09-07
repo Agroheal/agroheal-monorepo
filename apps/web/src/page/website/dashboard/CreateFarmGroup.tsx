@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { showToast } from "@/components/ui/ToastComponent";
 import { Toaster } from "react-hot-toast";
 import { PROJECT_CATEGORIES, DEFAULT_CATEGORY } from "@/constant/projectCategories";
+import { cleanName, cleanSlug } from "@/lib/dataSanitizers";
 
 const CreateFarmGroup = () => {
   const navigate = useNavigate();
@@ -19,7 +20,8 @@ const CreateFarmGroup = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!farmName.trim()) return;
+    const cleanedFarmName = cleanName(farmName);
+    if (!cleanedFarmName) return;
     setLoading(true);
 
     const {
@@ -45,7 +47,7 @@ const CreateFarmGroup = () => {
       return;
     }
 
-    const slug = farmName.trim().toLowerCase().replace(/\s+/g, "-");
+    const slug = cleanSlug(cleanedFarmName);
 
     // Check if coordinator already has a farm in this category
     const { data: existingInCategory } = await supabase
@@ -83,7 +85,7 @@ const CreateFarmGroup = () => {
     }
 
     const { error } = await supabase.from("farm_groups").insert({
-      name: farmName.trim(),
+      name: cleanedFarmName,
       slug,
       coordinator_id: user.id,
       project_category: category,

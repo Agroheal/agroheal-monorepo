@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { getProgramEmoji, getProgramPillClass } from "@/lib/memberFilters";
 import { cn } from "@/lib/utils";
 import type { Member } from "@/types/admin";
+import { cleanName, cleanEmail, normalizePhoneNumber, cleanMemberId, cleanReferralCode } from "@/lib/dataSanitizers";
 
 const editMemberSchema = z.object({
   full_name: z.string().trim().min(1, "Full Name cannot be empty."),
@@ -70,7 +71,20 @@ export function EditMemberDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit((values) => onSave(values))} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit((values) => {
+              const cleaned: EditMemberValues = {
+                full_name: cleanName(values.full_name),
+                email: cleanEmail(values.email),
+                phone: normalizePhoneNumber(values.phone),
+                member_id: cleanMemberId(values.member_id),
+                referral_code: cleanReferralCode(values.referral_code),
+                role: values.role,
+              };
+              onSave(cleaned);
+            })}
+            className="space-y-4"
+          >
             <div className="rounded-lg border border-border bg-background/40 p-3">
               <span className="mb-1.5 block text-xs font-semibold text-muted-foreground">
                 Current Program Enrollments &amp; Slots:

@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { showToast } from "@/components/ui/ToastComponent";
 import { supabaseANON, supabaseURL } from "@/config/Index";
 import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/hooks/useAuth";
+import { cleanEmail } from "@/lib/dataSanitizers";
 
 const getErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : undefined;
@@ -136,6 +138,9 @@ type FormStatus = {
 };
 
 const BackendUpload = () => {
+  const { session } = useAuth();
+  const isSuperDeveloper = session?.user?.email?.toLowerCase() === "developerelijah360@gmail.com";
+
   const [slotForm, setSlotForm] = useState(slotInitialState);
   const [otherPaymentForm, setOtherPaymentForm] = useState(
     otherPaymentInitialState,
@@ -171,16 +176,19 @@ const BackendUpload = () => {
     setLoading("slot");
 
     try {
-      const userId = await resolveUserId(slotForm.email);
+      const userId = await resolveUserId(cleanEmail(slotForm.email));
+      const slots = Math.max(1, Math.floor(Number(slotForm.slots) || 1));
+      const unitPrice = Math.max(0, Number(slotForm.slotprice) || 0);
+      const computedAmount = slots * unitPrice;
 
       const payload = {
         user_id: userId,
-        amount: Number(slotForm.amount),
+        amount: computedAmount,
         next_payment_date: formatDateForPayload(slotForm.nextPaymentDate),
         last_payment_date: formatDateForPayload(slotForm.lastPaymentDate),
         created_at: new Date().toISOString(),
-        slots: Number(slotForm.slots),
-        slotprice: Number(slotForm.slotprice),
+        slots: slots,
+        slotprice: unitPrice,
         project_category: slotForm.projectCategory,
         status: "active",
       };
@@ -380,10 +388,19 @@ const BackendUpload = () => {
     );
   };
 
+  if (!isSuperDeveloper) {
+    return (
+      <div className="p-8 max-w-md mx-auto text-center mt-12 bg-white rounded-xl border border-red-200 shadow-sm">
+        <h2 className="text-xl font-bold text-red-700">Access Restricted</h2>
+        <p className="text-sm text-gray-600 mt-2">
+          Direct backend record insertion is restricted to Super Developer (developerelijah360@gmail.com) to maintain database integrity.
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
-      <Toaster />
-      <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-5xl p-6 space-y-8">
         <div className="space-y-2">
           <h1 className="text-3xl font-semibold text-gray-900">
             Backend upload

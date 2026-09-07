@@ -9,6 +9,7 @@ import { showToast } from "@/components/ui/ToastComponent";
 import { Toaster } from "react-hot-toast";
 import { Plus, Edit, Trash2, Save, X, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cleanName, cleanEmail, normalizePhoneNumber, parsePositiveInt } from "@/lib/dataSanitizers";
 
 const FARM_SETUP_RATE = 5000;
 const FARM_SUPPORT_RATE = 500;
@@ -128,8 +129,27 @@ const FarmManagement = () => {
       });
       return;
     }
-    if (!farm || !formData.name?.trim()) return;
-    const data = { ...formData, farm_id: farm.id };
+    const cleanedName = cleanName(formData.name);
+    if (!farm || !cleanedName) {
+      showToast({
+        variant: "error",
+        title: "Validation Error",
+        description: "Member name is required",
+      });
+      return;
+    }
+
+    const data = {
+      farm_id: farm.id,
+      name: cleanedName,
+      email: cleanEmail(formData.email) || null,
+      phone: normalizePhoneNumber(formData.phone) || null,
+      farm_slots: parsePositiveInt(formData.farm_slots),
+      months_farm_setup: parsePositiveInt(formData.months_farm_setup),
+      months_farm_support: parsePositiveInt(formData.months_farm_support),
+      absentee_fine: parsePositiveInt(formData.absentee_fine),
+    };
+
     let error;
     if (editingId) {
       ({ error } = await supabase

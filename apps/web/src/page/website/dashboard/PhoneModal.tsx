@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Phone, LoaderCircle } from "lucide-react";
 import toast from "react-hot-toast";
+import { normalizePhoneNumber } from "@/lib/dataSanitizers";
 
 const PhoneModal = ({
   userId,
@@ -14,15 +15,16 @@ const PhoneModal = ({
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!/^[0-9]+$/.test(phone) || phone.length < 10) {
-      toast.error("Enter a valid phone number");
+    const normalized = normalizePhoneNumber(phone);
+    if (!/^[0-9]+$/.test(normalized) || normalized.length < 10) {
+      toast.error("Enter a valid phone number (at least 10 digits)");
       return;
     }
 
     setLoading(true);
     const { error } = await supabase
       .from("profiles")
-      .update({ phone })
+      .update({ phone: normalized })
       .eq("id", userId);
 
     setLoading(false);

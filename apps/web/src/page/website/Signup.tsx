@@ -14,6 +14,7 @@ import { showToast } from "@/components/ui/ToastComponent";
 
 import * as Sentry from "@sentry/react";
 import AuthSidebar from "@/components/webComponents/authSidebar";
+import { cleanName, cleanEmail, normalizePhoneNumber, cleanReferralCode } from "@/lib/dataSanitizers";
 
 const Signup = () => {
   const [searchParams] = useSearchParams();
@@ -37,18 +38,30 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
 
-    const formattedPhone = phone.trim();
-    if (!formattedPhone) {
+    const cleanedName = cleanName(name);
+    if (!cleanedName) {
       setLoading(false);
       showToast({
         variant: "error",
-        title: "Phone number required",
-        description: "Please enter your phone number to continue.",
+        title: "Full name required",
+        description: "Please enter your full name.",
       });
       return;
     }
 
-    const formattedEmail = email.toLowerCase().trim();
+    const formattedPhone = normalizePhoneNumber(phone);
+    if (!formattedPhone || formattedPhone.length < 10) {
+      setLoading(false);
+      showToast({
+        variant: "error",
+        title: "Valid phone number required",
+        description: "Please enter a valid phone number (at least 10 digits).",
+      });
+      return;
+    }
+
+    const formattedEmail = cleanEmail(email);
+    const cleanedReferral = cleanReferralCode(referral) || DEFAULT_SPONSOR_CODE;
 
     // Check if email already registered
     const { data: emailExists, error: rpcError } = await supabase.rpc(
@@ -81,9 +94,9 @@ const Signup = () => {
       password,
       options: {
         data: {
-          full_name: name,
+          full_name: cleanedName,
           phone: formattedPhone,
-          referral_code: referral.trim().toUpperCase() || DEFAULT_SPONSOR_CODE,
+          referral_code: cleanedReferral,
         },
       },
     });
