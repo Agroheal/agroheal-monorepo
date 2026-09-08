@@ -121,6 +121,7 @@ const route = createBrowserRouter([
           { path: "other-payments", element: <OtherPayments /> },
           { path: "mushroom-village", element: <MushroomVillage /> },
           { path: "compound-referrals", element: <CompoundReferrals /> },
+          { path: "organogram", element: <CompoundReferrals /> },
           { path: "kin", element: <KinDetails /> },
           { path: "legal", element: <Legal /> },
         ],

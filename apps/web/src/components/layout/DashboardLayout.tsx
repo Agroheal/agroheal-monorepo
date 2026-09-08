@@ -17,6 +17,7 @@ import {
   IdCard,
   Lock,
   Wallet,
+  GitBranch,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
@@ -47,9 +48,9 @@ const navItems = [
     icon: CreditCard,
   },
   {
-    label: "Compound Referrals",
+    label: "5×7 Matrix Organogram",
     path: "/dashboard/compound-referrals",
-    icon: Users,
+    icon: GitBranch,
   },
   {
     label: "Mushroom Village",
