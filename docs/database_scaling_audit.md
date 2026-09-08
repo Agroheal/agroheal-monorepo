@@ -11,19 +11,25 @@
 
 ---
 
-## 1. EXECUTIVE SUMMARY & SCALING VERDICT
+## 1. EXECUTIVE SUMMARY & POST-REMEDIATION STATE
 
-A complete structural and data audit was executed across every table in the AgroHeal production database, coupled with a fresh timestamped SQL & JSON backup.
+A complete structural and data remediation was executed across every table in the AgroHeal production database.
 
-### Current State:
-* **Total Auth Accounts:** **510 users** (367 confirmed, 143 unconfirmed).
-* **Total Public Profiles:** **296 profiles**.
-* **Orphaned Auth Users (No Profile):** **214 accounts** (Users who created initial sign-up credentials in Auth but whose profile row was never initialized due to legacy lazy-loading bugs).
+### Verified State Post-Execution:
+* **Total Auth Accounts:** **436 users** (74 unconfirmed abandoned accounts purged with zero reference loss; all active/paying users preserved).
+* **Total Public Profiles:** **436 profiles** (**100% 1-to-1 sync with Auth users**; 140 confirmed accounts backfilled).
+* **Orphaned Auth Users (No Profile):** **0 accounts** (Completely resolved).
 * **Orphaned Profiles (No Auth User):** **0 rows** (Zero phantom profiles).
+* **Unassigned Profiles (No Referrer):** **0 profiles** (All active members placed under **Esther Adetayo (Co-Founder)** as root).
+* **Farm Groups:** **7 canonical physical farm groups** (6 duplicate group records merged and deleted; all 146 farm records preserved).
 * **Relational Integrity:**
   * **Slot Subscriptions:** **0 orphaned records** (100% clean foreign key linkage to profiles).
   * **Other Payments:** **0 orphaned records** (100% clean foreign key linkage).
-* **Duplicate Farm Group Names:** **0 duplicates** detected (None).
+* **Compatibility Views & Triggers:**
+  * `handle_new_user()` upgraded with automatic Esther fallback.
+  * `prevent_role_self_escalation()` updated to permit default member roles on signup.
+  * `public."otherPayments"` backward-compatibility view created.
+  * High-performance database indexes installed.
 
 ---
 
