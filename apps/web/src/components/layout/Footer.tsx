@@ -13,9 +13,12 @@ const footerLinks = {
     // { name: "Blog", href: "/blog" },
   ],
   legal: [
-    { name: "Privacy Policy", href: "/legal" },
-    { name: "Terms of Service", href: "/legal" },
-    { name: "Cookie Policy", href: "/legal" },
+    { name: "Terms of Service", href: "/legal#terms" },
+    { name: "Group Farming Agreement", href: "/legal#agreement" },
+    { name: "Affiliate & 5x7 Matrix", href: "/legal#affiliate" },
+    { name: "Wallet & Reinvestment", href: "/legal#wallet" },
+    { name: "Risk Disclosure", href: "/legal#risk" },
+    { name: "Privacy Policy & NDPR", href: "/legal#privacy" },
   ],
 };
 

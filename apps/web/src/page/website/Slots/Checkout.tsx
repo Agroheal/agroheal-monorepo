@@ -7,6 +7,9 @@ import {
   Plus,
   Shield,
   Sprout,
+  Wallet,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,6 +35,9 @@ const Checkout = () => {
     ? 200 * slotQuantity
     : 500 * slotQuantity;
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"flutterwave" | "wallet">("flutterwave");
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -50,6 +56,41 @@ const Checkout = () => {
     document.body.appendChild(script);
   }, []);
 
+  // ── Auto-prefill logged in member details & fetch wallet balance ──────────
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("first_name, last_name, phone, email, referral_earnings, wallet_balance")
+          .eq("id", user.id)
+          .single();
+
+        if (profile) {
+          setFormData((prev) => ({
+            firstName: prev.firstName || profile.first_name || "",
+            lastName: prev.lastName || profile.last_name || "",
+            phone: prev.phone || profile.phone || "",
+            email: prev.email || profile.email || user.email || "",
+          }));
+          const bal = Number(profile.referral_earnings ?? profile.wallet_balance ?? 0);
+          setWalletBalance(bal);
+        }
+      } catch (err) {
+        console.error("Error loading profile in checkout:", err);
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    loadProfile();
+  }, []);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -58,7 +99,7 @@ const Checkout = () => {
   const incrementSlot = () => setSlotQuantity((q) => Math.min(q + 1, 100));
   const decrementSlot = () => setSlotQuantity((q) => Math.max(q - 1, 1));
 
-  const createCheckout = async () => {
+  const createCheckout = async (method: "flutterwave" | "wallet" = "flutterwave") => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -87,7 +128,7 @@ const Checkout = () => {
           email: normalizedEmail,
           phone: normalizedPhone,
           amount: totalPrice,
-          payment_method: "flutterwave",
+          payment_method: method,
           status: "pending",
           project_category: category,
         },
@@ -106,6 +147,99 @@ const Checkout = () => {
     }
 
     return data;
+  };
+
+  const handleWalletPayment = async () => {
+    const cleanFirstName = cleanName(formData.firstName);
+    const cleanLastName = cleanName(formData.lastName);
+    const normalizedEmail = cleanEmail(formData.email);
+    const normalizedPhone = normalizePhoneNumber(formData.phone);
+
+    const newErrors: Record<string, string> = {};
+    if (!cleanFirstName) newErrors.firstName = "First name is required";
+    if (!cleanLastName) newErrors.lastName = "Last name is required";
+    if (!normalizedEmail) newErrors.email = "Email address is required";
+    if (!normalizedPhone || normalizedPhone.length < 10) {
+      newErrors.phone = "Enter a valid phone number (at least 10 digits)";
+    }
+    if (!category) newErrors.category = "Please select a project category";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields marked in red.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (walletBalance < totalPrice) {
+      toast({
+        title: "Insufficient Balance",
+        description: `Your available wallet balance is ₦${walletBalance.toLocaleString()}, but this order requires ₦${totalPrice.toLocaleString()}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsProcessing(true);
+
+    try {
+      const order = await createCheckout("wallet");
+      if (!order) {
+        setIsProcessing(false);
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new Error("User session expired");
+      }
+
+      // Invoke atomic PostgreSQL stored procedure
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc(
+        "pay_checkout_with_wallet",
+        {
+          p_user_id: user.id,
+          p_checkout_id: order.id,
+          p_amount: totalPrice,
+          p_slots: slotQuantity,
+          p_slot_price: slotPrice,
+          p_category: category,
+        }
+      );
+
+      if (rpcErr) {
+        throw rpcErr;
+      }
+
+      if (!rpcRes?.success) {
+        throw new Error(rpcRes?.message || "Failed to process wallet payment.");
+      }
+
+      Sentry.metrics.count("wallet_reinvestment_success", 1);
+      toast({
+        title: "Slot Secured Successfully!",
+        description: `₦${totalPrice.toLocaleString()} paid from wallet balance. ${slotQuantity} slot(s) activated!`,
+      });
+
+      setWalletBalance((prev) => Math.max(0, prev - totalPrice));
+      navigate("/dashboard/slots-subscription");
+    } catch (err: any) {
+      console.error("Wallet payment failed:", err);
+      Sentry.captureException(err);
+      toast({
+        title: "Payment Error",
+        description: err.message || "Failed to complete wallet payment.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleFlutterwave = async () => {
@@ -500,65 +634,186 @@ const Checkout = () => {
                       </div>
 
                       <div className="space-y-3 bg-muted/30 rounded-xl p-4 border border-border/50">
-                        <h4 className="text-sm font-semibold text-foreground flex items-stretch gap-2 leading-tight text-justify">
-                          <div className="w-1 bg-primary rounded-full shrink-0" />
-                          <span>
-                            After paying for farm slot, below are the fees you
-                            need to pay for, to keep your farm going.
+                        <div className="flex items-center gap-2">
+                          <Sprout className="w-4 h-4 text-green-700 shrink-0" />
+                          <span className="text-xs font-bold text-green-900 uppercase tracking-wider">
+                            LEAP Practical Cluster Setup
                           </span>
-                        </h4>
-
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">
-                              {isOrganicFoodNation
-                                ? "Farm Setup Fee/year"
-                                : "Farm Setup Fee/month"}
-                            </span>
-                            <span className="text-foreground font-bold text-lg">
-                              ₦{farmSetupFee.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-sm">
-                            <span className="text-muted-foreground">
-                              Farm Support Fee/month
-                            </span>
-                            <span className="text-foreground font-bold text-lg">
-                              ₦{farmSupportFee.toLocaleString()}
-                            </span>
-                          </div>
                         </div>
-
-                        {!isOrganicFoodNation && (
-                          <div className="bg-amber-50 border border-amber-100 rounded-lg p-4">
-                            <p className="text-amber-800 leading-tight">
-                              <span className="text-base font-bold">
-                                Absentee Fine = ₦
-                                {(500 * slotQuantity).toLocaleString()}/month
-                              </span>
-                            </p>
-                          </div>
-                        )}
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Each slot includes physical biological starter materials and hands-on supervision. Operating expenses are sustained via harvest yields with <span className="font-semibold text-foreground">zero recurring monthly fees</span>.
+                        </p>
                       </div>
                     </motion.div>
+                  </div>
+
+                  {/* Payment Method Selector */}
+                  <div className="space-y-3 pt-2">
+                    <Label className="text-sm font-semibold text-foreground block">
+                      Select Payment Method
+                    </Label>
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      {/* Flutterwave Card */}
+                      <div
+                        onClick={() => setPaymentMethod("flutterwave")}
+                        className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                          paymentMethod === "flutterwave"
+                            ? "border-green-800 bg-green-50/50 shadow-sm"
+                            : "border-border hover:border-gray-300 bg-card"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                                paymentMethod === "flutterwave"
+                                  ? "bg-green-800 text-white"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              <CreditCard className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="font-semibold text-sm text-foreground">
+                                Flutterwave
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Card, Transfer, USSD
+                              </p>
+                            </div>
+                          </div>
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            checked={paymentMethod === "flutterwave"}
+                            onChange={() => setPaymentMethod("flutterwave")}
+                            className="mt-1 text-green-800 focus:ring-green-800"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Wallet Balance Card */}
+                      <div
+                        onClick={() => setPaymentMethod("wallet")}
+                        className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                          paymentMethod === "wallet"
+                            ? "border-green-800 bg-green-50/50 shadow-sm"
+                            : "border-border hover:border-gray-300 bg-card"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                                paymentMethod === "wallet"
+                                  ? "bg-green-800 text-white"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              <Wallet className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <p className="font-semibold text-sm text-foreground">
+                                  Wallet Balance
+                                </p>
+                                {walletBalance >= totalPrice && (
+                                  <span className="bg-green-100 text-green-800 text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                    Ready
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs font-semibold text-green-700">
+                                ₦{walletBalance.toLocaleString()} available
+                              </p>
+                            </div>
+                          </div>
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            checked={paymentMethod === "wallet"}
+                            onChange={() => setPaymentMethod("wallet")}
+                            className="mt-1 text-green-800 focus:ring-green-800"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Wallet Guidance Message */}
+                    {paymentMethod === "wallet" && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`rounded-xl p-3.5 border text-sm ${
+                          walletBalance >= totalPrice
+                            ? "bg-emerald-50 border-emerald-200 text-emerald-900"
+                            : "bg-amber-50 border-amber-200 text-amber-900"
+                        }`}
+                      >
+                        {walletBalance >= totalPrice ? (
+                          <div className="flex items-start gap-2.5">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="font-bold text-xs">
+                                Instant Balance Reinvestment
+                              </p>
+                              <p className="text-xs mt-0.5 text-emerald-800">
+                                ₦{totalPrice.toLocaleString()} will be deducted from your earnings balance. Remaining: ₦{(walletBalance - totalPrice).toLocaleString()}.
+                              </p>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-start gap-2.5">
+                            <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                            <div>
+                              <p className="font-bold text-xs">
+                                Insufficient Wallet Balance
+                              </p>
+                              <p className="text-xs mt-0.5 text-amber-800">
+                                This order requires ₦{totalPrice.toLocaleString()}, but you have ₦{walletBalance.toLocaleString()}. Select Flutterwave to pay with card/bank transfer, or accrue more bonuses.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
                   </div>
                 </div>
 
                 <div className="mt-8 space-y-3">
-                  <Button
-                    onClick={handleFlutterwave}
-                    disabled={isProcessing}
-                    className="w-full h-12 bg-green-800 hover:bg-green-900 text-white font-semibold"
-                  >
-                    {isProcessing ? (
-                      <span className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Processing...
-                      </span>
-                    ) : (
-                      "Pay with Flutterwave"
-                    )}
-                  </Button>
+                  {paymentMethod === "flutterwave" ? (
+                    <Button
+                      onClick={handleFlutterwave}
+                      disabled={isProcessing}
+                      className="w-full h-12 bg-green-800 hover:bg-green-900 text-white font-semibold"
+                    >
+                      {isProcessing ? (
+                        <span className="flex items-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Processing Flutterwave...
+                        </span>
+                      ) : (
+                        `Pay ₦${totalPrice.toLocaleString()} with Flutterwave`
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleWalletPayment}
+                      disabled={isProcessing || walletBalance < totalPrice}
+                      className="w-full h-12 bg-green-800 hover:bg-green-900 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isProcessing ? (
+                        <span className="flex items-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Deducting Balance & Securing Slot...
+                        </span>
+                      ) : walletBalance >= totalPrice ? (
+                        `Pay ₦${totalPrice.toLocaleString()} from Wallet Balance`
+                      ) : (
+                        `Insufficient Wallet Balance (₦${walletBalance.toLocaleString()})`
+                      )}
+                    </Button>
+                  )}
                 </div>
 
                 <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
