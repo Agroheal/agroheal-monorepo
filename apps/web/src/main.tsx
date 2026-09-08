@@ -10,6 +10,7 @@ import Home from "./page/website/Home";
 import Layout from "./components/layout/Layout";
 import Error from "./page/error/Error";
 import About from "./page/website/About";
+import Careers from "./page/website/Careers";
 import Login from "./page/website/Login";
 import Signup from "./page/website/Signup";
 import Slots from "./page/website/Slots/Slots";
@@ -56,6 +57,7 @@ Sentry.init({
 });
 
 const route = createBrowserRouter([
+  // Public Marketing & Informational Routes
   {
     path: "/",
     element: <Layout />,
@@ -63,9 +65,12 @@ const route = createBrowserRouter([
     children: [
       { index: true, element: <Home /> },
       { path: "about", element: <About /> },
+      { path: "careers", element: <Careers /> },
+      { path: "legal", element: <Legal /> },
+      { path: "privacy", element: <Legal /> },
+      { path: "terms", element: <Legal /> },
       { path: "login", element: <Login /> },
       { path: "signup", element: <Signup /> },
-      { path: "legal", element: <Legal /> },
       { path: "forgot-password", element: <ForgotPasswordForm /> },
       { path: "reset-password", element: <UpdatePasswordForm /> },
       { path: "verify-card/:memberId", element: <VerifyCard /> },
@@ -82,7 +87,7 @@ const route = createBrowserRouter([
     ),
   },
 
-  // Only login protection
+  // Member Portal & Dashboard Routes (Session Protected)
   {
     element: (
       <ProtectedRoute>
@@ -93,28 +98,53 @@ const route = createBrowserRouter([
       { path: "/subscribe", element: <Subscribe /> },
       { path: "/dashboard/green-card", element: <GreenCardCommunity /> },
 
-      // dashboard area requires both a session (ProtectedRoute, above) and
-      // an active subscription — RequireSubscription redirects to /subscribe
-      // otherwise, so courses/checkout/farm tools/etc. are all paywalled.
+      // Core dashboard area is accessible to all registered members (both subscribed
+      // and unsubscribed). Unsubscribed members can track their referral link, organogram,
+      // and accumulating wallet earnings. Specific paid features (courses, farm tools)
+      // are individually paywalled with RequireSubscription.
       {
         path: "/dashboard",
-        element: (
-          <RequireSubscription>
-            <Outlet />
-          </RequireSubscription>
-        ),
+        element: <Outlet />,
         errorElement: <DashboardError />,
         children: [
           { index: true, element: <Dashboard /> },
           { path: "transactions", element: <TransactionLedger /> },
           { path: "slots", element: <Slots /> },
           { path: "checkout", element: <Checkout /> },
-          { path: "courses", element: <Courses /> },
-          { path: "courses/:slug", element: <SingleCoursePage /> },
+          {
+            path: "courses",
+            element: (
+              <RequireSubscription>
+                <Courses />
+              </RequireSubscription>
+            ),
+          },
+          {
+            path: "courses/:slug",
+            element: (
+              <RequireSubscription>
+                <SingleCoursePage />
+              </RequireSubscription>
+            ),
+          },
           { path: "profile", element: <ProfileComponent /> },
-          { path: "slots-subscription", element: <MonthlyPayment /> },
+          {
+            path: "slots-subscription",
+            element: (
+              <RequireSubscription>
+                <MonthlyPayment />
+              </RequireSubscription>
+            ),
+          },
           // { path: "withdrawals", element: <Withdrawals /> }, // Hidden for now
-          { path: "group-farm-accounts", element: <FarmRecordsView /> },
+          {
+            path: "group-farm-accounts",
+            element: (
+              <RequireSubscription>
+                <FarmRecordsView />
+              </RequireSubscription>
+            ),
+          },
           { path: "create-farm-group", element: <CreateFarmGroup /> },
           { path: "farm-admin", element: <FarmRecordsView /> },
           { path: "roadmap-guide", element: <RoadmapGuide /> },

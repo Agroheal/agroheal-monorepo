@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
 import {
   Users,
@@ -106,6 +107,7 @@ const CompoundReferrals: React.FC = () => {
   // Calculator State
   const [calcSlotsPerMember, setCalcSlotsPerMember] = useState<number>(1);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [isProjectSubscribed, setIsProjectSubscribed] = useState<boolean>(false);
 
   // Load member and initial tree
   useEffect(() => {
@@ -197,6 +199,23 @@ const CompoundReferrals: React.FC = () => {
         const diff = Math.max(0, Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
         setPqvDaysRemaining(diff);
       }
+
+      // Check active project subscription
+      const { data: subData } = await supabase
+        .from("subscriptions")
+        .select("id")
+        .eq("user_id", authId)
+        .eq("status", "active")
+        .limit(1);
+
+      const { data: coData } = await supabase
+        .from("checkout")
+        .select("id")
+        .eq("user_id", authId)
+        .eq("status", "paid")
+        .limit(1);
+
+      setIsProjectSubscribed(Boolean((subData && subData.length > 0) || (coData && coData.length > 0)));
 
       // 5. Build Organogram Subtree for target root
       const rootToLoad = customRootUserId || authId;
@@ -456,7 +475,8 @@ const CompoundReferrals: React.FC = () => {
   };
 
   // Qualification Calculations
-  const isDirectWithdrawable = directReferralEarnings >= MIN_DIRECT_REFERRAL_WITHDRAWAL;
+  const isDirectWithdrawable = isProjectSubscribed && directReferralEarnings >= MIN_DIRECT_REFERRAL_WITHDRAWAL;
+  const canSubscribeWithWallet = !isProjectSubscribed && directReferralEarnings >= 10000;
   const directRemaining = Math.max(0, MIN_DIRECT_REFERRAL_WITHDRAWAL - directReferralEarnings);
 
   const hasEnoughReferrals = directReferralsCount >= MIN_DIRECT_REFERRALS_FOR_MATRIX;
@@ -572,23 +592,49 @@ const CompoundReferrals: React.FC = () => {
                 className={
                   isDirectWithdrawable
                     ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                    : "bg-amber-100 text-amber-800 border-amber-300"
+                    : canSubscribeWithWallet
+                    ? "bg-purple-100 text-purple-800 border-purple-300 font-bold"
+                    : !isProjectSubscribed
+                    ? "bg-amber-100 text-amber-800 border-amber-300"
+                    : "bg-gray-100 text-gray-700 border-gray-300"
                 }
               >
-                {isDirectWithdrawable ? "Withdrawable Now" : "Below ₦2,000 Min"}
+                {isDirectWithdrawable
+                  ? "Withdrawable Now"
+                  : canSubscribeWithWallet
+                  ? "₦10k Ready to Activate"
+                  : !isProjectSubscribed
+                  ? "Project Subscription Required"
+                  : "Below ₦2,000 Min"}
               </Badge>
             </div>
 
             <div className="mt-4 pt-3 border-t border-gray-100 space-y-1.5">
               <div className="flex items-center justify-between text-xs text-gray-600">
-                <span>Withdrawal Threshold:</span>
-                <span className="font-semibold text-gray-900">₦2,000.00</span>
+                <span>Withdrawal Status:</span>
+                <span className="font-semibold text-gray-900">
+                  {isProjectSubscribed ? "Active Project Member" : "Registered Member"}
+                </span>
               </div>
               <p className="text-[11px] text-gray-500 leading-relaxed">
                 {isDirectWithdrawable
                   ? "✓ Unrestricted. Direct earnings can be withdrawn immediately without 5-direct or PQV requirements."
+                  : canSubscribeWithWallet
+                  ? "🎉 You have reached ₦10,000 in referral earnings! Visit Wallet & Ledger to activate your project subscription using your wallet balance and unlock bank withdrawals."
+                  : !isProjectSubscribed
+                  ? "Your referral earnings accumulate safely in your wallet. Bank withdrawals unlock once you pay for a project, or once your wallet credit reaches ₦10,000 to subscribe directly using your balance."
                   : `₦${directRemaining.toLocaleString("en-NG")} more required to reach minimum withdrawal threshold.`}
               </p>
+              {!isProjectSubscribed && (
+                <div className="pt-2">
+                  <Link
+                    to={canSubscribeWithWallet ? "/dashboard/transactions" : "/subscribe"}
+                    className="inline-flex items-center text-xs font-semibold text-emerald-800 hover:text-emerald-900 gap-1"
+                  >
+                    {canSubscribeWithWallet ? "Activate in Wallet & Ledger →" : "Subscribe to Project (₦2,000) →"}
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
 

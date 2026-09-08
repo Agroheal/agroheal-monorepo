@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   Wallet,
   TrendingUp,
@@ -17,6 +18,8 @@ import {
   Users,
   Sprout,
   CreditCard,
+  Sparkles,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
@@ -30,13 +33,13 @@ interface LedgerItem {
   category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION";
   amount: number;
   description: string;
-  status: "completed" | "pending" | "processing";
+  status: "COMPLETED" | "PENDING" | "FAILED";
   reference: string;
 }
 
-export const TransactionLedger: React.FC = () => {
-  const [loading, setLoading] = useState(true);
-  const [memberId, setMemberId] = useState<string>("");
+export default function TransactionLedger() {
+  const [loading, setLoading] = useState<boolean>(true);
+  const [memberId, setMemberId] = useState<string>("AGC-PENDING");
   const [directReferralEarnings, setDirectReferralEarnings] = useState<number>(0);
   const [matrixEarnings, setMatrixEarnings] = useState<number>(0);
   const [directReferralsCount, setDirectReferralsCount] = useState<number>(0);
@@ -48,12 +51,15 @@ export const TransactionLedger: React.FC = () => {
   const [requeryRef, setRequeryRef] = useState<string>("");
   const [requeryLoading, setRequeryLoading] = useState<boolean>(false);
   const [showRequeryModal, setShowRequeryModal] = useState<boolean>(false);
+  const [isProjectSubscribed, setIsProjectSubscribed] = useState<boolean>(false);
+  const [subscribingWithWallet, setSubscribingWithWallet] = useState<boolean>(false);
 
   // Matrix Withdrawal Qualification: 5 direct referrals AND ₦5,000 PQV in 30 days
   const isMatrixQualified = directReferralsCount >= 5 && activePqv30d >= 5000;
 
-  // Direct Referral Withdrawal Qualification: >= ₦2,000
-  const isDirectReferralWithdrawable = directReferralEarnings >= 2000;
+  // Direct Referral Withdrawal Qualification: Active Project Subscribed AND >= ₦2,000
+  const isDirectReferralWithdrawable = isProjectSubscribed && directReferralEarnings >= 2000;
+  const canSubscribeWithWallet = !isProjectSubscribed && directReferralEarnings >= 10000;
 
   const loadLedger = async () => {
     setLoading(true);
@@ -97,6 +103,12 @@ export const TransactionLedger: React.FC = () => {
       setMemberId(formatAgcId(profile?.member_id));
       const refEarnings = Number(profile?.referral_earnings || 0);
       setDirectReferralEarnings(refEarnings);
+
+      const hasActiveSub = Boolean(
+        (subscriptions && subscriptions.some((s: any) => s.status === 'active' && (!s.expires_at || new Date(s.expires_at) > new Date()))) ||
+        (checkouts && checkouts.some((c: any) => c.status === 'paid'))
+      );
+      setIsProjectSubscribed(hasActiveSub);
 
       const refCount = referrals ? referrals.length : (profile?.total_referrals || 0);
       setDirectReferralsCount(refCount);
@@ -242,6 +254,47 @@ export const TransactionLedger: React.FC = () => {
     }
   };
 
+  const handleSubscribeWithWallet = async () => {
+    setSubscribingWithWallet(true);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase.rpc("subscribe_with_wallet_balance", {
+        p_user_id: user.id,
+      });
+
+      if (error || (data && !data.success)) {
+        showToast({
+          variant: "error",
+          title: "Subscription Failed",
+          description:
+            error?.message ||
+            data?.message ||
+            "Failed to activate subscription from wallet balance.",
+        });
+      } else {
+        showToast({
+          variant: "success",
+          title: "Project Subscription Activated! 🎉",
+          description:
+            "₦10,000 wallet credit applied. Your project subscription is now active and bank withdrawals are unlocked!",
+        });
+        await loadLedger();
+      }
+    } catch (err: any) {
+      showToast({
+        variant: "error",
+        title: "Error",
+        description: err.message || "An unexpected error occurred.",
+      });
+    } finally {
+      setSubscribingWithWallet(false);
+    }
+  };
+
   const filteredTransactions = transactions.filter((t) => {
     if (filterType !== "ALL" && t.category !== filterType && t.type !== filterType) {
       return false;
@@ -258,42 +311,53 @@ export const TransactionLedger: React.FC = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#faf9f6] py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        {/* ── HEADER & MEMBER ID BADGE ── */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="px-3 py-1 bg-emerald-50 text-emerald-800 font-mono font-bold text-xs rounded-full border border-emerald-200">
+                {memberId}
+              </span>
+              <span className="text-xs text-gray-400">•</span>
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Audited Member Ledger
+              </span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
               Transaction Ledger & Wallets
             </h1>
-            <p className="text-xs sm:text-sm text-gray-500 mt-1">
-              Member ID: <span className="font-mono font-bold text-gray-800">{memberId}</span> · Complete financial ledger and earnings distribution.
+            <p className="text-sm text-gray-500 mt-1">
+              Immutable financial record of slot purchases, subscriptions, referral rewards, and network spillovers.
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
+              size="sm"
               onClick={() => setShowRequeryModal(true)}
-              className="rounded-xl border-gray-300 text-xs font-semibold bg-white hover:bg-gray-50 text-gray-700 h-10 shadow-xs"
+              className="border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl gap-2 font-semibold text-xs h-10"
             >
-              <RefreshCw className="w-3.5 h-3.5 mr-1.5 text-gray-500" />
+              <RefreshCw className="w-3.5 h-3.5 text-gray-500" />
               Requery Payment
             </Button>
             <Button
+              size="sm"
               onClick={loadLedger}
-              className="rounded-xl bg-emerald-800 hover:bg-emerald-700 text-xs font-semibold text-white h-10 shadow-xs"
+              className="bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl gap-2 font-semibold text-xs h-10 shadow-sm"
             >
-              <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+              <RefreshCw className="w-3.5 h-3.5" />
               Refresh
             </Button>
           </div>
         </div>
 
         {/* ── WALLET SUMMARY CARDS ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 1. Direct Referral Earnings Wallet */}
-          <div className="bg-white rounded-3xl p-6 border border-emerald-100 shadow-sm space-y-5">
+          <div className="bg-white rounded-3xl p-6 border border-amber-100 shadow-sm space-y-5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
@@ -308,10 +372,20 @@ export const TransactionLedger: React.FC = () => {
                 className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
                   isDirectReferralWithdrawable
                     ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                    : canSubscribeWithWallet
+                    ? "bg-purple-100 text-purple-800 border border-purple-200"
+                    : !isProjectSubscribed
+                    ? "bg-amber-100 text-amber-800 border border-amber-200"
                     : "bg-gray-100 text-gray-600"
                 }`}
               >
-                {isDirectReferralWithdrawable ? "Withdrawable" : "Min. ₦2,000"}
+                {isDirectReferralWithdrawable
+                  ? "Withdrawable"
+                  : canSubscribeWithWallet
+                  ? "₦10k Ready to Activate"
+                  : !isProjectSubscribed
+                  ? "Unsubscribed (Accumulating)"
+                  : "Min. ₦2,000"}
               </span>
             </div>
 
@@ -324,15 +398,45 @@ export const TransactionLedger: React.FC = () => {
               </p>
             </div>
 
-            <div className="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-100 text-xs text-amber-900 space-y-1">
-              <p className="font-semibold flex items-center gap-1.5 text-amber-950">
-                <ShieldCheck className="w-4 h-4 text-amber-700" />
-                Unrestricted Withdrawal Rule
-              </p>
-              <p className="text-amber-900/90 leading-relaxed">
-                Direct referral earnings are independent of 5x7 matrix gates. You can withdraw your direct referral balance whenever it reaches ₦2,000.
-              </p>
-            </div>
+            {/* Dynamic Status / Information Box */}
+            {isProjectSubscribed ? (
+              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-xs text-emerald-900 space-y-1">
+                <p className="font-semibold flex items-center gap-1.5 text-emerald-950">
+                  <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                  Active Project Member
+                </p>
+                <p className="text-emerald-900/90 leading-relaxed">
+                  Direct referral earnings are independent of 5x7 matrix gates. You can withdraw your direct referral balance whenever it reaches ₦2,000.
+                </p>
+              </div>
+            ) : canSubscribeWithWallet ? (
+              <div className="p-3.5 rounded-2xl bg-purple-50 border border-purple-200 text-xs text-purple-950 space-y-2">
+                <p className="font-bold flex items-center gap-1.5 text-purple-900">
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                  ₦10,000 Wallet Credit Milestone Reached!
+                </p>
+                <p className="text-purple-800 leading-relaxed">
+                  You have accumulated ₦{directReferralEarnings.toLocaleString()} in your wallet! Use ₦10,000 of your wallet balance to activate your project subscription and unlock bank withdrawals.
+                </p>
+                <Button
+                  disabled={subscribingWithWallet}
+                  onClick={handleSubscribeWithWallet}
+                  className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs h-9 rounded-xl shadow-sm"
+                >
+                  {subscribingWithWallet ? "Activating Subscription..." : "Activate Project Subscription from Wallet (₦10,000)"}
+                </Button>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 text-xs text-amber-950 space-y-2">
+                <p className="font-bold flex items-center gap-1.5 text-amber-900">
+                  <Lock className="w-4 h-4 text-amber-700" />
+                  Project Subscription Required to Withdraw
+                </p>
+                <p className="text-amber-900/90 leading-relaxed">
+                  Your referral earnings accumulate safely in your wallet. Bank withdrawals unlock once you subscribe to an active project, or once your wallet credit reaches ₦10,000 to subscribe directly using your balance.
+                </p>
+              </div>
+            )}
 
             <Button
               disabled={!isDirectReferralWithdrawable}
@@ -352,6 +456,8 @@ export const TransactionLedger: React.FC = () => {
               <ArrowUpRight className="w-4 h-4 mr-1.5" />
               {isDirectReferralWithdrawable
                 ? "Withdraw Direct Earnings"
+                : !isProjectSubscribed
+                ? "Withdrawal Locked (Project Subscription Required)"
                 : `Accumulate ₦${(2000 - directReferralEarnings).toLocaleString()} More to Withdraw`}
             </Button>
           </div>
@@ -605,5 +711,3 @@ export const TransactionLedger: React.FC = () => {
     </div>
   );
 };
-
-export default TransactionLedger;
