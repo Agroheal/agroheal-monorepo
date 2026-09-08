@@ -68,14 +68,31 @@ export const PQV_WINDOW_DAYS = 30;
 export const MIN_DIRECT_REFERRAL_WITHDRAWAL = 2000;
 
 export const MATRIX_COMMISSIONS = [
-  { level: 1, percentage: 10, amount: 500, maxMembers: 5, potential: 2500 },
-  { level: 2, percentage: 7, amount: 350, maxMembers: 25, potential: 8750 },
-  { level: 3, percentage: 6, amount: 300, maxMembers: 125, potential: 37500 },
-  { level: 4, percentage: 5, amount: 250, maxMembers: 625, potential: 156250 },
-  { level: 5, percentage: 5, amount: 250, maxMembers: 3125, potential: 781250 },
-  { level: 6, percentage: 4, amount: 200, maxMembers: 15625, potential: 3125000 },
-  { level: 7, percentage: 3, amount: 150, maxMembers: 78125, potential: 11718750 },
+  { level: 1, percentage: 10, amount: 500, maxMembers: 5, potential: 2500, requiredDirects: 5 },
+  { level: 2, percentage: 7, amount: 350, maxMembers: 25, potential: 8750, requiredDirects: 10 },
+  { level: 3, percentage: 6, amount: 300, maxMembers: 125, potential: 37500, requiredDirects: 15 },
+  { level: 4, percentage: 5, amount: 250, maxMembers: 625, potential: 156250, requiredDirects: 20 },
+  { level: 5, percentage: 5, amount: 250, maxMembers: 3125, potential: 781250, requiredDirects: 25 },
+  { level: 6, percentage: 4, amount: 200, maxMembers: 15625, potential: 3125000, requiredDirects: 30 },
+  { level: 7, percentage: 3, amount: 150, maxMembers: 78125, potential: 11718750, requiredDirects: 35 },
 ];
+
+export const getUnlockedMatrixLevel = (directCount: number): number => {
+  return Math.min(7, Math.floor(directCount / 5));
+};
+
+export const getNextMatrixLevelTarget = (directCount: number) => {
+  const currentLevel = Math.min(7, Math.floor(directCount / 5));
+  if (currentLevel >= 7) {
+    return { nextLevel: 7, requiredDirects: 35, remainingDirects: 0, progressPercent: 100, isMax: true };
+  }
+  const nextLevel = currentLevel + 1;
+  const requiredDirects = nextLevel * 5;
+  const remainingDirects = Math.max(0, requiredDirects - directCount);
+  const tierProgress = directCount - currentLevel * 5;
+  const progressPercent = Math.min(100, Math.round((tierProgress / 5) * 100));
+  return { nextLevel, requiredDirects, remainingDirects, progressPercent, isMax: false };
+};
 
 const CompoundReferrals: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"organogram" | "directory" | "rules">("organogram");
@@ -556,9 +573,11 @@ const CompoundReferrals: React.FC = () => {
   const canSubscribeWithWallet = !isProjectSubscribed && directReferralEarnings >= 10000;
   const directRemaining = Math.max(0, MIN_DIRECT_REFERRAL_WITHDRAWAL - directReferralEarnings);
 
-  const hasEnoughReferrals = directReferralsCount >= MIN_DIRECT_REFERRALS_FOR_MATRIX;
+  const unlockedLevel = getUnlockedMatrixLevel(directReferralsCount);
+  const nextLevelTarget = getNextMatrixLevelTarget(directReferralsCount);
+  const hasEnoughReferrals = unlockedLevel >= 1;
   const hasEnoughPqv = activePqv30d >= MIN_PQV_FOR_MATRIX_WITHDRAWAL;
-  const isMatrixQualified = hasEnoughReferrals && hasEnoughPqv;
+  const isMatrixQualified = unlockedLevel >= 1 && hasEnoughPqv;
 
   // Filtered Downline Directory
   const filteredDirectory = useMemo(() => {
@@ -737,9 +756,11 @@ const CompoundReferrals: React.FC = () => {
               >
                 {userSlotsHeld === 0
                   ? "Farm Slot Required"
-                  : isMatrixQualified
-                  ? "Qualified to Withdraw"
-                  : "Locked (Accumulating)"}
+                  : unlockedLevel >= 7
+                  ? "All 7 Levels Unlocked"
+                  : unlockedLevel >= 1
+                  ? `Level ${unlockedLevel} Unlocked`
+                  : "Locked (Need 5 Directs)"}
               </Badge>
             </div>
 
@@ -747,17 +768,28 @@ const CompoundReferrals: React.FC = () => {
             <div className="mt-3 space-y-2.5">
               <div>
                 <div className="flex justify-between text-[11px] font-medium text-gray-700 mb-1">
-                  <span>Requirement 1: 5 Direct Referrals</span>
-                  <span className={hasEnoughReferrals ? "text-emerald-700 font-bold" : "text-amber-700"}>
-                    {directReferralsCount} / 5
+                  <span>
+                    {unlockedLevel >= 7
+                      ? "All 7 Levels Unlocked"
+                      : `Unlock Level ${nextLevelTarget.nextLevel} (Needs ${nextLevelTarget.requiredDirects} Directs)`}
+                  </span>
+                  <span className={unlockedLevel >= 1 ? "text-emerald-700 font-bold" : "text-amber-700"}>
+                    {directReferralsCount} / {nextLevelTarget.requiredDirects}
                   </span>
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
                   <div
-                    className={`h-full rounded-full ${hasEnoughReferrals ? "bg-emerald-500" : "bg-amber-500"}`}
-                    style={{ width: `${Math.min(100, (directReferralsCount / 5) * 100)}%` }}
+                    className={`h-full rounded-full ${unlockedLevel >= 1 ? "bg-emerald-500" : "bg-amber-500"}`}
+                    style={{
+                      width: `${Math.min(100, (directReferralsCount / nextLevelTarget.requiredDirects) * 100)}%`,
+                    }}
                   />
                 </div>
+                <p className="text-[10px] text-gray-400 mt-1">
+                  {unlockedLevel >= 7
+                    ? "✓ Apex Producer: Full 40% waterfall unlocked down to Level 7."
+                    : `Sponsor ${nextLevelTarget.remainingDirects} more direct partner(s) to unlock Level ${nextLevelTarget.nextLevel} matrix commissions.`}
+                </p>
               </div>
 
               <div>
@@ -982,19 +1014,25 @@ const CompoundReferrals: React.FC = () => {
                 </div>
               )}
 
-              {hasEnoughReferrals ? (
+              {unlockedLevel >= 1 ? (
                 <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl p-4 flex items-start gap-3 text-xs text-emerald-900 shadow-sm">
                   <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-emerald-950 text-sm">5-Direct Matrix Qualified (Active)</span>
+                      <span className="font-bold text-emerald-950 text-sm">
+                        Matrix Depth: Level {unlockedLevel} of 7 Unlocked
+                      </span>
                       <Badge className="bg-emerald-200 text-emerald-900 border-emerald-300 text-[10px]">
                         ✓ {directReferralsCount} Direct Partners Sponsored
                       </Badge>
                     </div>
                     <p className="text-emerald-800/90 leading-relaxed">
-                      You have personally sponsored {directReferralsCount} partners (meeting the 5-direct recruitment threshold).
-                      You earn ongoing multilevel matrix harvest dividends across all 7 levels of your tree, including from community spillover placements.
+                      You qualify to earn matrix harvest dividends through <strong>Level {unlockedLevel}</strong>.
+                      {unlockedLevel < 7 ? (
+                        <> Sponsor <strong>{nextLevelTarget.remainingDirects} more direct partner(s)</strong> (total {nextLevelTarget.requiredDirects}) to unlock Level {nextLevelTarget.nextLevel} dividends. Deeper level commissions remain safely locked in escrow until unlocked.</>
+                      ) : (
+                        <> You have unlocked all 7 levels of matrix harvest dividends as an Apex Producer!</>
+                      )}
                     </p>
                   </div>
                 </div>
@@ -1003,14 +1041,15 @@ const CompoundReferrals: React.FC = () => {
                   <AlertCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-amber-950 text-sm">Matrix Commission Protection Gate</span>
+                      <span className="font-bold text-amber-950 text-sm">Matrix Depth Protection Gate: Level 0</span>
                       <Badge className="bg-amber-200/90 text-amber-900 border-amber-300 text-[10px]">
                         {directReferralsCount} of 5 Direct Recruits
                       </Badge>
                     </div>
                     <p className="text-amber-800/90 leading-relaxed">
-                      Balanced spillover placements from your upline actively fill and balance your 5×7 tree.
-                      However, per <strong>PRD §9 cooperative rules</strong>, matrix harvest payouts from spillover members remain <strong>locked</strong> until you personally recruit at least <strong>5 direct partners</strong> who hold farm slots ({5 - directReferralsCount} more needed). Your <strong>₦1,000 personal direct referral bonuses are never locked</strong>.
+                      Per cooperative matrix rules, each batch of <strong>5 direct recruits unlocks the next matrix level</strong>.
+                      You have sponsored <strong>{directReferralsCount}/5</strong> direct partners needed for Level 1.
+                      Deeper downline and spillover harvest payouts remain <strong>locked</strong> until you sponsor your first 5 direct partners ({5 - directReferralsCount} more needed). Personal <strong>₦1,000 direct referral bonuses are never locked</strong>.
                     </p>
                   </div>
                 </div>
@@ -1354,30 +1393,64 @@ const CompoundReferrals: React.FC = () => {
                       <th className="py-3 px-4">Commission %</th>
                       <th className="py-3 px-4">Payout Per ₦5k Slot</th>
                       <th className="py-3 px-4">Max Capacity ($5^L$)</th>
-                      <th className="py-3 px-4 rounded-r-xl">Potential Earnings (1 Slot/Member)</th>
+                      <th className="py-3 px-4">Directs to Unlock</th>
+                      <th className="py-3 px-4">Your Status</th>
+                      <th className="py-3 px-4 rounded-r-xl">Potential Earnings</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 text-gray-700">
-                    {MATRIX_COMMISSIONS.map((tier) => (
-                      <tr key={tier.level} className="hover:bg-emerald-50/40 transition-colors">
-                        <td className="py-3 px-4 font-bold text-gray-900">Level {tier.level}</td>
-                        <td className="py-3 px-4 font-semibold text-emerald-800">{tier.percentage}%</td>
-                        <td className="py-3 px-4 font-bold text-gray-900">₦{tier.amount.toLocaleString()}</td>
-                        <td className="py-3 px-4 font-mono">{tier.maxMembers.toLocaleString()} members</td>
-                        <td className="py-3 px-4 font-black text-emerald-700">
-                          ₦{tier.potential.toLocaleString("en-NG", { minimumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    ))}
+                    {MATRIX_COMMISSIONS.map((tier) => {
+                      const isTierUnlocked = unlockedLevel >= tier.level;
+                      return (
+                        <tr key={tier.level} className="hover:bg-emerald-50/40 transition-colors">
+                          <td className="py-3 px-4 font-bold text-gray-900">Level {tier.level}</td>
+                          <td className="py-3 px-4 font-semibold text-emerald-800">{tier.percentage}%</td>
+                          <td className="py-3 px-4 font-bold text-gray-900">₦{tier.amount.toLocaleString()}</td>
+                          <td className="py-3 px-4 font-mono">{tier.maxMembers.toLocaleString()} members</td>
+                          <td className="py-3 px-4 font-semibold text-gray-800">
+                            {tier.requiredDirects} Directs
+                          </td>
+                          <td className="py-3 px-4">
+                            {isTierUnlocked ? (
+                              <span className="bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full text-[10px] inline-flex items-center gap-1">
+                                🔓 Unlocked
+                              </span>
+                            ) : (
+                              <span className="bg-amber-100 text-amber-900 font-medium px-2 py-0.5 rounded-full text-[10px] inline-flex items-center gap-1">
+                                🔒 Locked ({tier.requiredDirects - directReferralsCount} needed)
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-3 px-4 font-black text-emerald-700">
+                            ₦{tier.potential.toLocaleString("en-NG", { minimumFractionDigits: 2 })}
+                          </td>
+                        </tr>
+                      );
+                    })}
                     <tr className="bg-emerald-50/80 font-black text-emerald-950">
                       <td className="py-3 px-4">TOTALS (7 Levels)</td>
                       <td className="py-3 px-4">40.0%</td>
                       <td className="py-3 px-4">₦2,000.00</td>
                       <td className="py-3 px-4">97,655 members</td>
+                      <td className="py-3 px-4">35 Directs</td>
+                      <td className="py-3 px-4">
+                        {unlockedLevel >= 7 ? "✓ All Unlocked" : `Level ${unlockedLevel}/7 Active`}
+                      </td>
                       <td className="py-3 px-4 text-emerald-900">₦15,830,000.00</td>
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              {/* 5-per-Level Rule Explainer */}
+              <div className="bg-emerald-50/60 rounded-2xl p-4 border border-emerald-100 text-xs text-emerald-950 flex items-start gap-3">
+                <Info className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <strong className="text-emerald-900 block font-bold">Progressive Depth Gating (5 Directs per Level):</strong>
+                  <p className="text-emerald-800/90 leading-relaxed">
+                    To prevent passive freeloading and encourage personal network expansion, each batch of <strong>5 direct recruits unlocks 1 deeper level</strong> of matrix harvest dividends. Commissions generated at deeper levels before you qualify are <strong>safely escrowed as locked dividends</strong> and automatically release once you recruit the required direct partners.
+                  </p>
+                </div>
               </div>
             </div>
 
