@@ -37,6 +37,7 @@ import BackendUpload from "./page/website/dashboard/BackendUpload";
 import CompoundReferrals from "./page/website/dashboard/CompoundReferrals";
 import FarmManagement from "./page/group-farm/FarmManagement";
 import GreenCardCommunity from "./page/website/dashboard/GreenCardCommunity";
+import VerifyCard from "./page/website/VerifyCard";
 import { Analytics } from "@vercel/analytics/react";
 
 Sentry.init({
@@ -66,6 +67,7 @@ const route = createBrowserRouter([
       { path: "legal", element: <Legal /> },
       { path: "forgot-password", element: <ForgotPasswordForm /> },
       { path: "reset-password", element: <UpdatePasswordForm /> },
+      { path: "verify-card/:memberId", element: <VerifyCard /> },
     ],
   },
 

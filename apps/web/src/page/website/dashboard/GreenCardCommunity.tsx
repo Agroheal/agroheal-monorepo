@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
 import { supabase } from "@/lib/supabaseClient";
 import { SITE_URL } from "@/config/Index";
-import GreenCardImage from "@/components/webComponents/GreenCardImage";
+import DigitalGreenCard, { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 
 const TIER_SIZE = 50;
 
@@ -225,26 +225,13 @@ const GreenCardCommunity = () => {
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">
-          {/* GreenCardImage is a self-contained SVG card that scales fluidly
-              via its own viewBox (no manual resize handling needed here) and
-              owns its own "Download card" button internally. */}
-          <div className="max-w-2xl mx-auto">
-            <GreenCardImage
-              memberName={fullName || undefined}
-              memberId={memberId || "AGC-PENDING"}
-              memberSince={memberSince}
-              qrValue={referralLink || memberId || undefined}
-              fileName={memberId || undefined}
-              qrRenderer={(value, size) => (
-                <QRCode
-                  value={value}
-                  size={size}
-                  bgColor="#ffffff"
-                  fgColor="#111111"
-                />
-              )}
-            />
-          </div>
+          <DigitalGreenCard
+            memberName={fullName || undefined}
+            memberId={memberId || undefined}
+            memberSince={memberSince}
+            referralCode={referralCode}
+            isActive={hasGreenCard}
+          />
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm">

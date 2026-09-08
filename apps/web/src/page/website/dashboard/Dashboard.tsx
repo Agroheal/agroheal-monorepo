@@ -11,6 +11,9 @@ import {
   SendHorizontal,
   AlertCircle,
   TrendingUp,
+  IdCard,
+  Award,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -21,6 +24,7 @@ import FarmingInitiativePopup from "./TelegramPopup";
 import ShareReferralModal from "@/components/webComponents/shareModal";
 import PhoneModal from "./PhoneModal";
 import KinModal from "./KinModal";
+import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 
 interface ReferralProps {
   id: string;
@@ -367,11 +371,26 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="max-w-[96%] mx-auto"
+          className="max-w-[96%] mx-auto flex flex-wrap items-center justify-between gap-4"
         >
-          <h1 className="text-2xl md:text-3xl font-bold text-white">
-            Welcome, {profile?.full_name?.split(" ")[0]}
-          </h1>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">
+              Welcome, {profile?.full_name?.split(" ")[0]}
+            </h1>
+            <p className="text-xs sm:text-sm text-green-200 mt-0.5">
+              Organic Farming & Wealth Cooperative Dashboard
+            </p>
+          </div>
+
+          <Link
+            to="/dashboard/green-card"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold backdrop-blur-sm border border-white/20 transition-colors shadow-xs"
+            title="View Official Green Card"
+          >
+            <Award className="w-4 h-4 text-emerald-300" />
+            <span className="font-mono">{formatAgcId(profile?.member_id as string)}</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          </Link>
         </motion.div>
       </div>
 
@@ -489,6 +508,52 @@ const Dashboard = () => {
               )}
             </motion.div>
           ))}
+        </div>
+
+        {/* ── OFFICIAL GREEN CARD (AGC) QUICK BANNER ── */}
+        <div className="bg-gradient-to-r from-emerald-950 via-green-900 to-emerald-950 rounded-2xl p-4 sm:p-5 text-white shadow-sm border border-emerald-700/40 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 shrink-0 shadow-inner">
+              <IdCard className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-sm sm:text-base">AgroHeal Digital Green Card (AGC)</span>
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Verified Credential
+                </span>
+              </div>
+              <p className="text-xs text-emerald-100/80 mt-0.5">
+                Member ID: <span className="font-mono font-bold text-white">{formatAgcId(profile?.member_id as string)}</span> · Qualifies for 5×7 community matrix upon securing a farm slot.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <Button
+              asChild
+              className="flex-1 md:flex-initial h-9 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-xs px-4 border border-emerald-500/40 shadow-xs"
+            >
+              <Link to="/dashboard/green-card">View & Download Card</Link>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={async () => {
+                const id = formatAgcId(profile?.member_id as string);
+                try {
+                  await navigator.clipboard.writeText(id);
+                  toast.success(`Copied ${id}`);
+                } catch {
+                  toast.error("Could not copy ID");
+                }
+              }}
+              className="h-9 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-mono font-medium"
+              title="Copy Member ID"
+            >
+              <Copy className="w-3.5 h-3.5" />
+            </Button>
+          </div>
         </div>
 
         {showSecureSlotModal && (
