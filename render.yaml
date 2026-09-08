@@ -18,6 +18,8 @@ services:
         sync: false
       - key: VITE_FLUTTERWAVE_PUBLIC_KEY
         sync: false
+      - key: VITE_API_URL
+        sync: false
 
   # Admin Panel Application
   - type: web
@@ -33,5 +35,7 @@ services:
       - key: VITE_SUPABASE_URL
         sync: false
       - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_API_URL
         sync: false
 

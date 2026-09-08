@@ -13,3 +13,11 @@ export const PAYSTACK_KEY =
   import.meta.env.VITE_PAYSTACK_KEYS;
 export const FLUTTERWAVE_KEYS = import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY;
 
+// Express Server API URLs (Railway)
+// Production: https://agroheal-server-prod.up.railway.app
+// Dev / Staging: https://agroheal-server-dev.up.railway.app
+export const SERVER_API_URL =
+  (import.meta.env.VITE_API_URL as string) ||
+  (import.meta.env.MODE === "production"
+    ? "https://agroheal-server-prod.up.railway.app"
+    : "https://agroheal-server-dev.up.railway.app");
