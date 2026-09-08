@@ -254,19 +254,19 @@ const CompoundReferrals: React.FC = () => {
       .eq("user_id", targetId);
     const slotsCount = (rootSlots || []).reduce((sum, s) => sum + (Number(s.slots) || 0), 0);
 
-    // Fetch direct children (downline)
+    // Fetch direct referrals (downline)
     const { data: childrenProfiles } = await supabase
       .from("profiles")
       .select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals")
       .eq("referred_by", targetId)
       .order("created_at", { ascending: true })
-      .limit(10);
+      .limit(50);
 
     const childrenNodes: OrganogramNode[] = [];
     const allRoster: OrganogramNode[] = [];
 
     if (childrenProfiles && childrenProfiles.length > 0) {
-      for (let i = 0; i < Math.min(5, childrenProfiles.length); i++) {
+      for (let i = 0; i < childrenProfiles.length; i++) {
         const cp = childrenProfiles[i];
         const { data: cSlots } = await supabase
           .from("slot_subscriptions")
@@ -279,14 +279,21 @@ const CompoundReferrals: React.FC = () => {
           .select("id")
           .eq("referred_by", cp.id);
 
-        const childNode: OrganogramNode = {
+        // In the 5x7 matrix, ONLY members who hold at least 1 farm slot occupy matrix positions (Leg 1-5)!
+        // Members who only paid ₦2,000 Green Card remain direct enrollees (Leg 0) until they subscribe to a slot.
+        let assignedLeg = 0;
+        if (cSlotCount > 0 && childrenNodes.length < 5) {
+          assignedLeg = childrenNodes.length + 1;
+        }
+
+        const memberItem: OrganogramNode = {
           id: cp.id,
           fullName: cp.full_name || "Downline Partner",
           email: cp.email || "",
           phone: cp.phone || null,
           memberId: formatAgcId(cp.member_id),
           parentId: targetId,
-          position: i + 1,
+          position: assignedLeg,
           level: 1,
           slotsHeld: cSlotCount,
           directReferralsCount: grandChildren ? grandChildren.length : 0,
@@ -294,28 +301,13 @@ const CompoundReferrals: React.FC = () => {
           hasGreenCard: Boolean(cp.member_id),
           children: [],
         };
-        childrenNodes.push(childNode);
-        allRoster.push(childNode);
-      }
 
-      // Add remaining for directory list
-      for (let j = 5; j < childrenProfiles.length; j++) {
-        const cp = childrenProfiles[j];
-        allRoster.push({
-          id: cp.id,
-          fullName: cp.full_name || "Downline Partner",
-          email: cp.email || "",
-          phone: cp.phone || null,
-          memberId: formatAgcId(cp.member_id),
-          parentId: targetId,
-          position: j + 1,
-          level: 1,
-          slotsHeld: 0,
-          directReferralsCount: 0,
-          createdAt: cp.created_at,
-          hasGreenCard: Boolean(cp.member_id),
-          children: [],
-        });
+        // All direct referrals are preserved in the directory roster
+        allRoster.push(memberItem);
+
+        if (assignedLeg > 0) {
+          childrenNodes.push(memberItem);
+        }
       }
     }
 
@@ -492,8 +484,8 @@ const CompoundReferrals: React.FC = () => {
         item.memberId.toLowerCase().includes(searchQuery.toLowerCase());
 
       if (!matchSearch && searchQuery) return false;
-      if (directoryFilter === "DIRECT") return item.position <= 5;
-      if (directoryFilter === "SPILLOVER") return item.position > 5;
+      if (directoryFilter === "DIRECT") return item.position >= 1 && item.position <= 5;
+      if (directoryFilter === "SPILLOVER") return item.position === 0 || item.position > 5;
       return true;
     });
   }, [downlineList, searchQuery, directoryFilter]);
@@ -651,12 +643,18 @@ const CompoundReferrals: React.FC = () => {
               </div>
               <Badge
                 className={
-                  isMatrixQualified
+                  userSlotsHeld === 0
+                    ? "bg-amber-100 text-amber-800 border-amber-300 font-bold"
+                    : isMatrixQualified
                     ? "bg-emerald-100 text-emerald-800 border-emerald-300 font-bold"
                     : "bg-purple-100 text-purple-800 border-purple-300 font-medium"
                 }
               >
-                {isMatrixQualified ? "Qualified to Withdraw" : "Locked (Accumulating)"}
+                {userSlotsHeld === 0
+                  ? "Farm Slot Required"
+                  : isMatrixQualified
+                  ? "Qualified to Withdraw"
+                  : "Locked (Accumulating)"}
               </Badge>
             </div>
 
@@ -708,8 +706,8 @@ const CompoundReferrals: React.FC = () => {
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" /> Matrix Entry Status
                 </span>
-                <Badge className="bg-emerald-600 text-white">
-                  {userSlotsHeld > 0 ? "Active Slot Holder" : "Slot Required"}
+                <Badge className={userSlotsHeld > 0 ? "bg-emerald-600 text-white font-bold" : "bg-amber-600 text-white font-bold"}>
+                  {userSlotsHeld > 0 ? "Active 5×7 Slot Holder" : "Slot Required (₦2k Registered)"}
                 </Badge>
               </div>
 
@@ -734,7 +732,11 @@ const CompoundReferrals: React.FC = () => {
             </div>
 
             <div className="mt-3 pt-2.5 border-t border-emerald-200/60 text-[11px] text-emerald-800/90 leading-relaxed">
-              💡 <em>Purchasing at least 1 farm slot (₦5,000) unlocks your 5×7 matrix tree position for spillover.</em>
+              {userSlotsHeld > 0 ? (
+                <span>✓ You hold {userSlotsHeld} active farm slot(s) and occupy an active node in your Group Farm 5×7 matrix.</span>
+              ) : (
+                <span>💡 <em>Your ₦2,000 Green Card qualifies you for direct referrals. Subscribing to a Farm Slot (₦5,000) unlocks your 5×7 matrix position and spillover.</em></span>
+              )}
             </div>
           </div>
         </div>
@@ -815,165 +817,199 @@ const CompoundReferrals: React.FC = () => {
 
         {/* ── TAB 1: VISUAL 5x7 ORGANOGRAM ── */}
         {activeTab === "organogram" && activeRootNode && (
-          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200/90 space-y-8">
-            {/* Breadcrumb Trail */}
-            <div className="flex items-center flex-wrap gap-1 text-xs text-gray-500 pb-4 border-b border-gray-100">
-              <span className="font-semibold text-gray-400 mr-1 flex items-center gap-1">
-                <Layers className="w-3.5 h-3.5" /> Navigation Trail:
-              </span>
-              {breadcrumbs.map((b, idx) => (
-                <React.Fragment key={b.id}>
-                  {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-gray-300" />}
-                  <button
-                    onClick={() => buildSubtree(b.id, b.id === currentUserId)}
-                    className={`hover:underline font-semibold ${
-                      idx === breadcrumbs.length - 1 ? "text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-md" : "text-gray-600"
-                    }`}
-                  >
-                    {b.name} ({b.memberId})
-                  </button>
-                </React.Fragment>
-              ))}
+          activeRootNode.id === currentUserId && userSlotsHeld === 0 ? (
+            <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-emerald-800/15 text-center space-y-6 max-w-2xl mx-auto my-6">
+              <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto shadow-inner">
+                <Lock className="w-8 h-8 text-amber-700" />
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-amber-700 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                  Farm Slot Subscription Required
+                </span>
+                <h3 className="text-2xl font-black text-gray-900">
+                  5×7 Farm Matrix is Locked
+                </h3>
+                <p className="text-sm text-gray-600 leading-relaxed max-w-lg mx-auto">
+                  Your <strong>₦2,000 Green Card</strong> entitles you to lifetime educational curriculum access and <strong>₦1,000 direct referral rewards</strong>.
+                </p>
+                <p className="text-xs text-gray-500 leading-relaxed max-w-lg mx-auto">
+                  However, the <strong>5×7 Matrix</strong> is an operational farm cluster structure reserved for members who subscribe to an active farm slot. Once you subscribe for a Farm Slot (₦5,000), you will be assigned a placement node under your Group Farm cluster, unlocking the 5×7 organogram tree, community spillover, and 7-level harvest distributions.
+                </p>
+              </div>
+
+              <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Link
+                  to="/dashboard/checkout"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow-md transition-all"
+                >
+                  <Sprout className="w-4 h-4" />
+                  Secure a Farm Slot (₦5,000)
+                </Link>
+                <button
+                  onClick={() => setActiveTab("directory")}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm transition-all"
+                >
+                  <Users className="w-4 h-4" />
+                  View Direct Referrals ({directReferralsCount})
+                </button>
+              </div>
             </div>
-
-            {/* Tree Canvas */}
-            <div className="flex flex-col items-center">
-              {/* 1. ROOT NODE CARD */}
-              <div className="relative group flex flex-col items-center">
-                <div className="w-72 sm:w-80 bg-gradient-to-b from-white to-emerald-50/40 rounded-2xl p-4 sm:p-5 border-2 border-emerald-600 shadow-md flex flex-col items-center text-center relative z-20">
-                  <div className="absolute -top-3 bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-0.5 rounded-full shadow-sm">
-                    {activeRootNode.id === currentUserId ? "Your Root Position" : "Active Tree Pivot"}
-                  </div>
-
-                  <div className="w-12 h-12 rounded-full bg-emerald-800 text-white font-black text-lg flex items-center justify-center mt-1 shadow-inner">
-                    {activeRootNode.fullName.charAt(0).toUpperCase()}
-                  </div>
-
-                  <h3 className="font-extrabold text-gray-900 text-base mt-2 line-clamp-1">
-                    {activeRootNode.fullName}
-                  </h3>
-                  <p className="font-mono text-xs text-emerald-800 font-bold bg-emerald-100/60 px-2 py-0.5 rounded-md mt-1">
-                    {activeRootNode.memberId}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-0.5">{activeRootNode.email}</p>
-
-                  <div className="grid grid-cols-2 gap-2 w-full mt-3 pt-3 border-t border-emerald-100 text-xs">
-                    <div className="bg-white/80 p-1.5 rounded-lg border border-emerald-100">
-                      <span className="text-[10px] text-gray-500 block">Slots Held</span>
-                      <span className="font-bold text-gray-800">{activeRootNode.slotsHeld} Slots</span>
-                    </div>
-                    <div className="bg-white/80 p-1.5 rounded-lg border border-emerald-100">
-                      <span className="text-[10px] text-gray-500 block">Direct Legs</span>
-                      <span className="font-bold text-emerald-700">{activeRootNode.children.length} / 5</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* SVG Branch Connector */}
-                <div className="w-full flex justify-center mt-2">
-                  <div className="w-0.5 h-8 bg-emerald-400" />
-                </div>
+          ) : (
+            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200/90 space-y-8">
+              {/* Breadcrumb Trail */}
+              <div className="flex items-center flex-wrap gap-1 text-xs text-gray-500 pb-4 border-b border-gray-100">
+                <span className="font-semibold text-gray-400 mr-1 flex items-center gap-1">
+                  <Layers className="w-3.5 h-3.5" /> Navigation Trail:
+                </span>
+                {breadcrumbs.map((b, idx) => (
+                  <React.Fragment key={b.id}>
+                    {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-gray-300" />}
+                    <button
+                      onClick={() => buildSubtree(b.id, b.id === currentUserId)}
+                      className={`hover:underline font-semibold ${
+                        idx === breadcrumbs.length - 1 ? "text-emerald-800 font-bold bg-emerald-50 px-2 py-0.5 rounded-md" : "text-gray-600"
+                      }`}
+                    >
+                      {b.name} ({b.memberId})
+                    </button>
+                  </React.Fragment>
+                ))}
               </div>
 
-              {/* Connecting Horizontal Line across 5 children */}
-              <div className="w-full max-w-5xl px-8 hidden sm:block">
-                <div className="w-full h-0.5 bg-emerald-300 relative">
-                  <div className="absolute left-1/2 -top-1 w-2 h-2 rounded-full bg-emerald-600 -translate-x-1/2" />
+              {/* Tree Canvas */}
+              <div className="flex flex-col items-center">
+                {/* 1. ROOT NODE CARD */}
+                <div className="relative group flex flex-col items-center">
+                  <div className="w-72 sm:w-80 bg-gradient-to-b from-white to-emerald-50/40 rounded-2xl p-4 sm:p-5 border-2 border-emerald-600 shadow-md flex flex-col items-center text-center relative z-20">
+                    <div className="absolute -top-3 bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-0.5 rounded-full shadow-sm">
+                      {activeRootNode.id === currentUserId ? "Your Root Position" : "Active Tree Pivot"}
+                    </div>
+
+                    <div className="w-12 h-12 rounded-full bg-emerald-800 text-white font-black text-lg flex items-center justify-center mt-1 shadow-inner">
+                      {activeRootNode.fullName.charAt(0).toUpperCase()}
+                    </div>
+
+                    <h3 className="font-extrabold text-gray-900 text-base mt-2 line-clamp-1">
+                      {activeRootNode.fullName}
+                    </h3>
+                    <p className="font-mono text-xs text-emerald-800 font-bold bg-emerald-100/60 px-2 py-0.5 rounded-md mt-1">
+                      {activeRootNode.memberId}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">{activeRootNode.email}</p>
+
+                    <div className="grid grid-cols-2 gap-2 w-full mt-3 pt-3 border-t border-emerald-100 text-xs">
+                      <div className="bg-white/80 p-1.5 rounded-lg border border-emerald-100">
+                        <span className="text-[10px] text-gray-500 block">Slots Held</span>
+                        <span className="font-bold text-gray-800">{activeRootNode.slotsHeld} Slots</span>
+                      </div>
+                      <div className="bg-white/80 p-1.5 rounded-lg border border-emerald-100">
+                        <span className="text-[10px] text-gray-500 block">Direct Recruits</span>
+                        <span className="font-bold text-emerald-800">{activeRootNode.directReferralsCount} Partners</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Vertical connector from Root down */}
+                  <div className="w-0.5 h-8 bg-emerald-600 relative z-10" />
                 </div>
-              </div>
 
-              {/* 2. THE 5 MATRIX CHILDREN LEGS (1 to 5) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 w-full max-w-6xl mt-2 sm:mt-0">
-                {[1, 2, 3, 4, 5].map((legPosition) => {
-                  const childNode = activeRootNode.children.find((c) => c.position === legPosition);
+                {/* Horizontal distribution bar spanning all 5 child slots */}
+                <div className="hidden lg:block w-[88%] max-w-5xl h-0.5 bg-emerald-600 -mt-0.5 relative z-10" />
 
-                  if (childNode) {
+                {/* 2. FIVE CHILD SLOTS (LEVEL 1 / FRONTLINE) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 w-full mt-4 lg:mt-0 relative z-20">
+                  {[0, 1, 2, 3, 4].map((slotIndex) => {
+                    const child = activeRootNode.children[slotIndex];
+                    const legNumber = slotIndex + 1;
+
+                    if (child) {
+                      return (
+                        <motion.div
+                          key={child.id}
+                          initial={{ opacity: 0, y: 15 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="flex flex-col items-center"
+                        >
+                          {/* Vertical connection pip */}
+                          <div className="w-0.5 h-4 bg-emerald-300 hidden sm:block" />
+
+                          <div className="w-full bg-white rounded-2xl p-4 border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-400 transition-all flex flex-col justify-between text-center relative group">
+                            <div className="flex items-center justify-between text-[10px] font-bold text-emerald-800 mb-2">
+                              <span className="bg-emerald-100/80 px-2 py-0.5 rounded-full">
+                                Leg #{legNumber}
+                              </span>
+                              <span className="text-gray-400 font-normal">Level 1</span>
+                            </div>
+
+                            <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 font-bold mx-auto flex items-center justify-center text-sm shadow-inner">
+                              {child.fullName.charAt(0).toUpperCase()}
+                            </div>
+
+                            <div className="mt-2">
+                              <h4 className="font-bold text-gray-900 text-xs line-clamp-1">
+                                {child.fullName}
+                              </h4>
+                              <p className="font-mono text-[11px] text-emerald-700 font-semibold mt-0.5">
+                                {child.memberId}
+                              </p>
+                            </div>
+
+                            <div className="mt-3 pt-2.5 border-t border-gray-100 text-[11px] text-gray-600 space-y-1">
+                              <div className="flex justify-between">
+                                <span>Slots:</span>
+                                <span className="font-bold text-gray-800">{child.slotsHeld}</span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Direct:</span>
+                                <span className="font-bold text-emerald-700">{child.directReferralsCount}</span>
+                              </div>
+                            </div>
+
+                            <Button
+                              variant="outline"
+                              onClick={() => buildSubtree(child.id, false)}
+                              className="mt-3 w-full text-[11px] h-7 border-emerald-600 text-emerald-800 hover:bg-emerald-50 rounded-lg flex items-center justify-center gap-1 font-semibold"
+                            >
+                              Drill Down <CornerDownRight className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </motion.div>
+                      );
+                    }
+
+                    // Empty Slot (Open for spillover / new direct referral)
                     return (
-                      <motion.div
-                        key={childNode.id}
-                        initial={{ opacity: 0, y: 15 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex flex-col items-center"
-                      >
-                        {/* Vertical connection pip */}
-                        <div className="w-0.5 h-4 bg-emerald-300 hidden sm:block" />
+                      <div key={`empty-${legNumber}`} className="flex flex-col items-center">
+                        <div className="w-0.5 h-4 bg-gray-200 hidden sm:block" />
 
-                        <div className="w-full bg-white rounded-2xl p-4 border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-400 transition-all flex flex-col justify-between text-center relative group">
-                          <div className="flex items-center justify-between text-[10px] font-bold text-emerald-800 mb-2">
-                            <span className="bg-emerald-100/80 px-2 py-0.5 rounded-full">
-                              Leg #{legPosition}
-                            </span>
-                            <span className="text-gray-400 font-normal">Level 1</span>
+                        <div className="w-full bg-slate-50/70 rounded-2xl p-4 border-2 border-dashed border-gray-200 flex flex-col justify-between items-center text-center min-h-[220px]">
+                          <div className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                            Leg #{legNumber} (Open)
                           </div>
 
-                          <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 font-bold mx-auto flex items-center justify-center text-sm shadow-inner">
-                            {childNode.fullName.charAt(0).toUpperCase()}
+                          <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 text-gray-300 flex items-center justify-center my-2">
+                            <Users className="w-4 h-4 text-gray-400" />
                           </div>
 
-                          <div className="mt-2">
-                            <h4 className="font-bold text-gray-900 text-xs line-clamp-1">
-                              {childNode.fullName}
-                            </h4>
-                            <p className="font-mono text-[11px] text-emerald-700 font-semibold mt-0.5">
-                              {childNode.memberId}
+                          <div>
+                            <p className="text-xs font-semibold text-gray-600">Available Spillover Slot</p>
+                            <p className="text-[10px] text-gray-400 mt-1 leading-snug">
+                              Ready to be filled by your next referral or upline spillover.
                             </p>
                           </div>
 
-                          <div className="mt-3 pt-2.5 border-t border-gray-100 text-[11px] text-gray-600 space-y-1">
-                            <div className="flex justify-between">
-                              <span>Slots:</span>
-                              <span className="font-bold text-gray-800">{childNode.slotsHeld}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>Direct:</span>
-                              <span className="font-bold text-emerald-700">{childNode.directReferralsCount}</span>
-                            </div>
-                          </div>
-
                           <Button
-                            variant="outline"
-                            onClick={() => buildSubtree(childNode.id, false)}
-                            className="mt-3 w-full text-[11px] h-7 border-emerald-600 text-emerald-800 hover:bg-emerald-50 rounded-lg flex items-center justify-center gap-1 font-semibold"
+                            variant="ghost"
+                            onClick={handleCopyReferralLink}
+                            className="mt-2 text-[11px] h-7 text-emerald-700 hover:bg-emerald-50 rounded-lg font-bold w-full"
                           >
-                            Drill Down <CornerDownRight className="w-3 h-3" />
+                            + Invite to Fill Leg
                           </Button>
                         </div>
-                      </motion.div>
-                    );
-                  }
-
-                  // Empty Slot (Open for spillover / new direct referral)
-                  return (
-                    <div key={`empty-${legPosition}`} className="flex flex-col items-center">
-                      <div className="w-0.5 h-4 bg-gray-200 hidden sm:block" />
-
-                      <div className="w-full bg-slate-50/70 rounded-2xl p-4 border-2 border-dashed border-gray-200 flex flex-col justify-between items-center text-center min-h-[220px]">
-                        <div className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-                          Leg #{legPosition} (Open)
-                        </div>
-
-                        <div className="w-10 h-10 rounded-full bg-gray-100 border border-gray-200 text-gray-300 flex items-center justify-center my-2">
-                          <Users className="w-4 h-4 text-gray-400" />
-                        </div>
-
-                        <div>
-                          <p className="text-xs font-semibold text-gray-600">Available Spillover Slot</p>
-                          <p className="text-[10px] text-gray-400 mt-1 leading-snug">
-                            Ready to be filled by your next referral or upline spillover.
-                          </p>
-                        </div>
-
-                        <Button
-                          variant="ghost"
-                          onClick={handleCopyReferralLink}
-                          className="mt-2 text-[11px] h-7 text-emerald-700 hover:bg-emerald-50 rounded-lg font-bold w-full"
-                        >
-                          + Invite to Fill Leg
-                        </Button>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </div>
 
@@ -988,7 +1024,7 @@ const CompoundReferrals: React.FC = () => {
               </div>
             </div>
           </div>
-        )}
+        ))}
 
         {/* ── TAB 2: DOWNLINE DIRECTORY ── */}
         {activeTab === "directory" && (
@@ -1014,14 +1050,14 @@ const CompoundReferrals: React.FC = () => {
                   onClick={() => setDirectoryFilter("DIRECT")}
                   className={`text-xs h-8 rounded-lg ${directoryFilter === "DIRECT" ? "bg-emerald-800" : ""}`}
                 >
-                  Direct Legs ({Math.min(5, downlineList.length)})
+                  Matrix Legs ({downlineList.filter((d) => d.position >= 1 && d.position <= 5).length})
                 </Button>
                 <Button
                   variant={directoryFilter === "SPILLOVER" ? "default" : "outline"}
                   onClick={() => setDirectoryFilter("SPILLOVER")}
                   className={`text-xs h-8 rounded-lg ${directoryFilter === "SPILLOVER" ? "bg-emerald-800" : ""}`}
                 >
-                  Extended ({Math.max(0, downlineList.length - 5)})
+                  Direct Enrollees ({downlineList.filter((d) => d.position === 0 || d.position > 5).length})
                 </Button>
               </div>
             </div>
@@ -1062,12 +1098,26 @@ const CompoundReferrals: React.FC = () => {
                           {m.phone && <div className="text-[11px] text-gray-400">{m.phone}</div>}
                         </td>
                         <td className="py-3 px-4 font-bold text-gray-800">
-                          <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200/60">
-                            {m.slotsHeld} Slots
-                          </span>
+                          {m.slotsHeld > 0 ? (
+                            <span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200/60 font-medium inline-flex items-center gap-1">
+                              🟢 Active Farm Slot ({m.slotsHeld})
+                            </span>
+                          ) : (
+                            <span className="bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full border border-amber-200/60 font-medium inline-flex items-center gap-1">
+                              🟡 ₦2k Member (No Farm Slot)
+                            </span>
+                          )}
                         </td>
                         <td className="py-3 px-4">
-                          <span className="font-semibold text-gray-700">Leg #{m.position}</span>
+                          {m.position > 0 ? (
+                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md text-[11px] border border-emerald-100">
+                              Leg #{m.position}
+                            </span>
+                          ) : (
+                            <span className="font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-md text-[11px]">
+                              Direct Enrollee
+                            </span>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-right space-x-1.5">
                           {m.phone && (
