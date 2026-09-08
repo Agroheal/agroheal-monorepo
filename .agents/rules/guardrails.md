@@ -22,3 +22,9 @@
 5. **Design & Aesthetics Excellence:**
    - High-fidelity UI: Emerald & gold metallic accents, glassmorphism, smooth micro-animations.
    - No placeholder images or broken states.
+
+6. **Operational Directives & Post-Launch Reminders:**
+   - Remind user to send formal agreement.
+   - Hosting: Frontend on Render (Static Sites, 100% free), DB & Auth on Supabase, Express Server on Railway (unified env variables for dev and staging).
+   - Ingest clean financial records from farm coordinators to replace historical dirty data.
+   - Reconcile orphaned / no-referral accounts and audit remainder of database prior to launch.
