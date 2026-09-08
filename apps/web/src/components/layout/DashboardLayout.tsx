@@ -57,7 +57,6 @@ const navItems = [
     path: "/dashboard/mushroom-village",
     icon: Leaf,
   },
-  // { label: "Withdrawals", path: "/dashboard/withdrawals", icon: Wallet }, // Hidden for now
   {
     label: "Step-by-Step Guide",
     path: "/dashboard/roadmap-guide",

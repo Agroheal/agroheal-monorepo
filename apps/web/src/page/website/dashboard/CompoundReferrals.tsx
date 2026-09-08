@@ -50,6 +50,8 @@ export interface OrganogramNode {
   directReferralsCount: number;
   createdAt?: string;
   hasGreenCard: boolean;
+  isSpillover?: boolean;
+  sponsorName?: string;
   children: OrganogramNode[];
 }
 
@@ -232,10 +234,14 @@ const CompoundReferrals: React.FC = () => {
   /**
    * Builds an Organogram tree node and up to 5 child slots
    */
+  /**
+   * Builds an Organogram tree node and up to 5 child slots,
+   * integrating direct referrals and balanced round-robin upline spillover.
+   */
   const buildSubtree = async (targetId: string, isSelf: boolean) => {
     setActiveRootId(targetId);
 
-    // Fetch target node profile
+    // 1. Fetch target node profile
     const { data: rootProfile } = await supabase
       .from("profiles")
       .select("id, full_name, email, phone, member_id, referred_by, total_referrals, created_at")
@@ -247,20 +253,20 @@ const CompoundReferrals: React.FC = () => {
       return;
     }
 
-    // Target slots
+    // 2. Target slots
     const { data: rootSlots } = await supabase
       .from("slot_subscriptions")
       .select("slots")
       .eq("user_id", targetId);
     const slotsCount = (rootSlots || []).reduce((sum, s) => sum + (Number(s.slots) || 0), 0);
 
-    // Fetch direct referrals (downline)
+    // 3. Fetch direct referrals (downline)
     const { data: childrenProfiles } = await supabase
       .from("profiles")
       .select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals")
       .eq("referred_by", targetId)
       .order("created_at", { ascending: true })
-      .limit(50);
+      .limit(100);
 
     const childrenNodes: OrganogramNode[] = [];
     const allRoster: OrganogramNode[] = [];
@@ -274,9 +280,9 @@ const CompoundReferrals: React.FC = () => {
           .eq("user_id", cp.id);
         const cSlotCount = (cSlots || []).reduce((sum, s) => sum + (Number(s.slots) || 0), 0);
 
-        const { data: grandChildren } = await supabase
+        const { count: grandChildrenCount } = await supabase
           .from("profiles")
-          .select("id")
+          .select("id", { count: "exact", head: true })
           .eq("referred_by", cp.id);
 
         // In the 5x7 matrix, ONLY members who hold at least 1 farm slot occupy matrix positions (Leg 1-5)!
@@ -296,9 +302,10 @@ const CompoundReferrals: React.FC = () => {
           position: assignedLeg,
           level: 1,
           slotsHeld: cSlotCount,
-          directReferralsCount: grandChildren ? grandChildren.length : 0,
+          directReferralsCount: grandChildrenCount || 0,
           createdAt: cp.created_at,
           hasGreenCard: Boolean(cp.member_id),
+          isSpillover: false,
           children: [],
         };
 
@@ -308,6 +315,83 @@ const CompoundReferrals: React.FC = () => {
         if (assignedLeg > 0) {
           childrenNodes.push(memberItem);
         }
+      }
+    }
+
+    // 4. Balanced Round-Robin Spillover from Upline:
+    // If target has fewer than 5 active legs and has an upline sponsor, check if the upline
+    // has overflow beyond their 5 frontline slots (Index >= 5).
+    // The overflow is evenly distributed to frontline children via (index - 5) % 5.
+    if (childrenNodes.length < 5 && rootProfile.referred_by) {
+      try {
+        const uplineId = rootProfile.referred_by;
+        const { data: uplineProfile } = await supabase
+          .from("profiles")
+          .select("id, full_name, member_id")
+          .eq("id", uplineId)
+          .maybeSingle();
+
+        const { data: uplineChildren } = await supabase
+          .from("profiles")
+          .select("id, full_name, email, phone, member_id, created_at")
+          .eq("referred_by", uplineId)
+          .order("created_at", { ascending: true })
+          .limit(100);
+
+        if (uplineChildren && uplineChildren.length > 5) {
+          // Identify frontline slot holders of the upline
+          const uplineSlotChildren: any[] = [];
+          for (const uc of uplineChildren) {
+            const { data: ucSlots } = await supabase
+              .from("slot_subscriptions")
+              .select("slots")
+              .eq("user_id", uc.id);
+            const ucSlotsCount = (ucSlots || []).reduce((sum, s) => sum + (Number(s.slots) || 0), 0);
+            if (ucSlotsCount > 0) {
+              uplineSlotChildren.push({ ...uc, slotsHeld: ucSlotsCount });
+            }
+          }
+
+          // Determine target's leg position under upline (0 to 4)
+          const myLegIndex = uplineSlotChildren.findIndex((u) => u.id === targetId);
+          if (myLegIndex >= 0 && myLegIndex < 5) {
+            // Any upline slot child at index >= 5 with (i - 5) % 5 === myLegIndex spills into this node
+            for (let i = 5; i < uplineSlotChildren.length; i++) {
+              if ((i - 5) % 5 === myLegIndex && childrenNodes.length < 5) {
+                const spillCandidate = uplineSlotChildren[i];
+                if (!allRoster.some((m) => m.id === spillCandidate.id)) {
+                  const { count: spillGrandChildren } = await supabase
+                    .from("profiles")
+                    .select("id", { count: "exact", head: true })
+                    .eq("referred_by", spillCandidate.id);
+
+                  const spillNode: OrganogramNode = {
+                    id: spillCandidate.id,
+                    fullName: spillCandidate.full_name || "Spillover Partner",
+                    email: spillCandidate.email || "",
+                    phone: spillCandidate.phone || null,
+                    memberId: formatAgcId(spillCandidate.member_id),
+                    parentId: targetId,
+                    position: childrenNodes.length + 1,
+                    level: 1,
+                    slotsHeld: spillCandidate.slotsHeld,
+                    directReferralsCount: spillGrandChildren || 0,
+                    createdAt: spillCandidate.created_at,
+                    hasGreenCard: Boolean(spillCandidate.member_id),
+                    isSpillover: true,
+                    sponsorName: uplineProfile?.full_name || "Upline Sponsor",
+                    children: [],
+                  };
+
+                  childrenNodes.push(spillNode);
+                  allRoster.push(spillNode);
+                }
+              }
+            }
+          }
+        }
+      } catch (spillErr) {
+        console.warn("Spillover evaluation fallback", spillErr);
       }
     }
 
@@ -324,6 +408,7 @@ const CompoundReferrals: React.FC = () => {
       directReferralsCount: childrenProfiles ? childrenProfiles.length : 0,
       createdAt: rootProfile.created_at,
       hasGreenCard: Boolean(rootProfile.member_id),
+      isSpillover: false,
       children: childrenNodes,
     };
 
@@ -484,8 +569,8 @@ const CompoundReferrals: React.FC = () => {
         item.memberId.toLowerCase().includes(searchQuery.toLowerCase());
 
       if (!matchSearch && searchQuery) return false;
-      if (directoryFilter === "DIRECT") return item.position >= 1 && item.position <= 5;
-      if (directoryFilter === "SPILLOVER") return item.position === 0 || item.position > 5;
+      if (directoryFilter === "DIRECT") return !item.isSpillover;
+      if (directoryFilter === "SPILLOVER") return Boolean(item.isSpillover);
       return true;
     });
   }, [downlineList, searchQuery, directoryFilter]);
@@ -877,6 +962,60 @@ const CompoundReferrals: React.FC = () => {
                 ))}
               </div>
 
+              {/* Qualification Status & Pivot Notice */}
+              {activeRootNode.id !== currentUserId && (
+                <div className="bg-blue-50/80 border border-blue-200 text-blue-900 text-xs px-4 py-3 rounded-2xl flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span>
+                      Inspecting downline sub-tree for <strong>{activeRootNode.fullName}</strong> ({activeRootNode.memberId}).
+                    </span>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleResetToSelf}
+                    className="h-7 text-xs border-blue-300 text-blue-700 hover:bg-blue-100/60 rounded-lg"
+                  >
+                    Return to My Tree
+                  </Button>
+                </div>
+              )}
+
+              {hasEnoughReferrals ? (
+                <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl p-4 flex items-start gap-3 text-xs text-emerald-900 shadow-sm">
+                  <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-emerald-950 text-sm">5-Direct Matrix Qualified (Active)</span>
+                      <Badge className="bg-emerald-200 text-emerald-900 border-emerald-300 text-[10px]">
+                        ✓ {directReferralsCount} Direct Partners Sponsored
+                      </Badge>
+                    </div>
+                    <p className="text-emerald-800/90 leading-relaxed">
+                      You have personally sponsored {directReferralsCount} partners (meeting the 5-direct recruitment threshold).
+                      You earn ongoing multilevel matrix harvest dividends across all 7 levels of your tree, including from community spillover placements.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex items-start gap-3 text-xs text-amber-900 shadow-sm">
+                  <AlertCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-amber-950 text-sm">Matrix Commission Protection Gate</span>
+                      <Badge className="bg-amber-200/90 text-amber-900 border-amber-300 text-[10px]">
+                        {directReferralsCount} of 5 Direct Recruits
+                      </Badge>
+                    </div>
+                    <p className="text-amber-800/90 leading-relaxed">
+                      Balanced spillover placements from your upline actively fill and balance your 5×7 tree.
+                      However, per <strong>PRD §9 cooperative rules</strong>, matrix harvest payouts from spillover members remain <strong>locked</strong> until you personally recruit at least <strong>5 direct partners</strong> who hold farm slots ({5 - directReferralsCount} more needed). Your <strong>₦1,000 personal direct referral bonuses are never locked</strong>.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Tree Canvas */}
               <div className="flex flex-col items-center">
                 {/* 1. ROOT NODE CARD */}
@@ -935,10 +1074,16 @@ const CompoundReferrals: React.FC = () => {
                           <div className="w-0.5 h-4 bg-emerald-300 hidden sm:block" />
 
                           <div className="w-full bg-white rounded-2xl p-4 border border-emerald-200 shadow-sm hover:shadow-md hover:border-emerald-400 transition-all flex flex-col justify-between text-center relative group">
-                            <div className="flex items-center justify-between text-[10px] font-bold text-emerald-800 mb-2">
-                              <span className="bg-emerald-100/80 px-2 py-0.5 rounded-full">
-                                Leg #{legNumber}
-                              </span>
+                            <div className="flex items-center justify-between text-[10px] font-bold mb-2">
+                              {child.isSpillover ? (
+                                <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full border border-blue-200 flex items-center gap-1">
+                                  🌊 Spillover (Leg #{legNumber})
+                                </span>
+                              ) : (
+                                <span className="bg-emerald-100/80 text-emerald-800 px-2 py-0.5 rounded-full">
+                                  ⭐ Leg #{legNumber}
+                                </span>
+                              )}
                               <span className="text-gray-400 font-normal">Level 1</span>
                             </div>
 
@@ -953,6 +1098,11 @@ const CompoundReferrals: React.FC = () => {
                               <p className="font-mono text-[11px] text-emerald-700 font-semibold mt-0.5">
                                 {child.memberId}
                               </p>
+                              {child.isSpillover && child.sponsorName && (
+                                <p className="text-[10px] text-blue-600 font-medium mt-0.5 line-clamp-1">
+                                  Sponsor: {child.sponsorName}
+                                </p>
+                              )}
                             </div>
 
                             <div className="mt-3 pt-2.5 border-t border-gray-100 text-[11px] text-gray-600 space-y-1">
@@ -964,6 +1114,24 @@ const CompoundReferrals: React.FC = () => {
                                 <span>Direct:</span>
                                 <span className="font-bold text-emerald-700">{child.directReferralsCount}</span>
                               </div>
+                            </div>
+
+                            <div className="mt-2 text-[10px] font-semibold">
+                              {child.isSpillover ? (
+                                hasEnoughReferrals ? (
+                                  <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                    🔓 Comm. Active
+                                  </span>
+                                ) : (
+                                  <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                                    🔒 Comm. Locked (Need 5)
+                                  </span>
+                                )
+                              ) : (
+                                <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                  ✓ Direct Partner
+                                </span>
+                              )}
                             </div>
 
                             <Button
@@ -1050,14 +1218,14 @@ const CompoundReferrals: React.FC = () => {
                   onClick={() => setDirectoryFilter("DIRECT")}
                   className={`text-xs h-8 rounded-lg ${directoryFilter === "DIRECT" ? "bg-emerald-800" : ""}`}
                 >
-                  Matrix Legs ({downlineList.filter((d) => d.position >= 1 && d.position <= 5).length})
+                  Direct Personal ({downlineList.filter((d) => !d.isSpillover).length})
                 </Button>
                 <Button
                   variant={directoryFilter === "SPILLOVER" ? "default" : "outline"}
                   onClick={() => setDirectoryFilter("SPILLOVER")}
                   className={`text-xs h-8 rounded-lg ${directoryFilter === "SPILLOVER" ? "bg-emerald-800" : ""}`}
                 >
-                  Direct Enrollees ({downlineList.filter((d) => d.position === 0 || d.position > 5).length})
+                  Spillover ({downlineList.filter((d) => d.isSpillover).length})
                 </Button>
               </div>
             </div>
@@ -1080,8 +1248,9 @@ const CompoundReferrals: React.FC = () => {
                       <th className="py-3 px-4">Member Name</th>
                       <th className="py-3 px-4">AGC Member ID</th>
                       <th className="py-3 px-4">Contact Info</th>
+                      <th className="py-3 px-4">Source / Sponsor</th>
                       <th className="py-3 px-4">Slots Held</th>
-                      <th className="py-3 px-4">Position</th>
+                      <th className="py-3 px-4">Tree Position</th>
                       <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -1096,6 +1265,17 @@ const CompoundReferrals: React.FC = () => {
                         <td className="py-3 px-4 text-gray-600">
                           <div>{m.email}</div>
                           {m.phone && <div className="text-[11px] text-gray-400">{m.phone}</div>}
+                        </td>
+                        <td className="py-3 px-4">
+                          {m.isSpillover ? (
+                            <span className="bg-blue-50 text-blue-800 px-2.5 py-0.5 rounded-full border border-blue-200/60 font-medium inline-flex items-center gap-1 text-[11px]">
+                              🌊 Spillover ({m.sponsorName || "Upline"})
+                            </span>
+                          ) : (
+                            <span className="bg-emerald-50 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-200/60 font-medium inline-flex items-center gap-1 text-[11px]">
+                              ⭐ Direct Personal
+                            </span>
+                          )}
                         </td>
                         <td className="py-3 px-4 font-bold text-gray-800">
                           {m.slotsHeld > 0 ? (

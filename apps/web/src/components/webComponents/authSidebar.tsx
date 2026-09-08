@@ -83,4 +83,7 @@ const AuthSidebar = () => {
   );
 };
 
+export { AuthSidebar };
 export default AuthSidebar;
+
+

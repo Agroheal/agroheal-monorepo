@@ -137,7 +137,7 @@ export default function TransactionLedger() {
           category: "REFERRAL_BONUS",
           amount: refEarnings,
           description: `Direct Referral Bonuses (${refCount} active referrals)`,
-          status: "completed",
+          status: "COMPLETED",
           reference: `DIR-REF-${refCount}`,
         });
       }
@@ -154,7 +154,7 @@ export default function TransactionLedger() {
           description: isSlot
             ? `Secured ${s.slots} Group Farm Slot(s)`
             : `AgroHeal Green Card Activation (${s.plan || "Annual"})`,
-          status: s.status === "active" ? "completed" : "pending",
+          status: s.status === "active" ? "COMPLETED" : "PENDING",
           reference: `SUB-${(s.id || idx).toString().slice(0, 8)}`,
         });
       });
@@ -168,7 +168,7 @@ export default function TransactionLedger() {
           category: "SUBSCRIPTION",
           amount: Number(p.amount || 0),
           description: `${p.payment_type.replace(/_/g, " ").toUpperCase()} Contribution`,
-          status: p.status === "confirmed" || p.status === "active" ? "completed" : "pending",
+          status: p.status === "confirmed" || p.status === "active" ? "COMPLETED" : "PENDING",
           reference: p.reference || `PAY-${p.id.slice(0, 8)}`,
         });
       });
@@ -183,7 +183,7 @@ export default function TransactionLedger() {
             category: "SLOT_PURCHASE",
             amount: Number(c.amount || 0),
             description: "Online Platform Payment",
-            status: c.status === "success" ? "completed" : "pending",
+            status: c.status === "success" ? "COMPLETED" : "PENDING",
             reference: c.payment_reference || `CHK-${c.id.slice(0, 8)}`,
           });
         }
@@ -634,12 +634,12 @@ export default function TransactionLedger() {
                       <td className="py-4 px-5 whitespace-nowrap text-center">
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                            t.status === "completed"
+                            t.status === "COMPLETED"
                               ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                               : "bg-amber-50 text-amber-700 border border-amber-200"
                           }`}
                         >
-                          {t.status === "completed" ? (
+                          {t.status === "COMPLETED" ? (
                             <CheckCircle2 className="w-3 h-3" />
                           ) : (
                             <Clock className="w-3 h-3" />
