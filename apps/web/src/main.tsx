@@ -38,6 +38,7 @@ import CompoundReferrals from "./page/website/dashboard/CompoundReferrals";
 import FarmManagement from "./page/group-farm/FarmManagement";
 import GreenCardCommunity from "./page/website/dashboard/GreenCardCommunity";
 import VerifyCard from "./page/website/VerifyCard";
+import TransactionLedger from "./page/website/dashboard/TransactionLedger";
 import { Analytics } from "@vercel/analytics/react";
 
 Sentry.init({
@@ -105,6 +106,7 @@ const route = createBrowserRouter([
         errorElement: <DashboardError />,
         children: [
           { index: true, element: <Dashboard /> },
+          { path: "transactions", element: <TransactionLedger /> },
           { path: "slots", element: <Slots /> },
           { path: "checkout", element: <Checkout /> },
           { path: "courses", element: <Courses /> },

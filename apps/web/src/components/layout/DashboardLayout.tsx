@@ -16,16 +16,19 @@ import {
   Users,
   IdCard,
   Lock,
+  Wallet,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
+import NotificationBell from "./NotificationBell";
 
 const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
 
 const navItems = [
   { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
   { label: "Green Card Community", path: "/dashboard/green-card", icon: IdCard },
+  { label: "Wallet & Ledger", path: "/dashboard/transactions", icon: Wallet },
   { label: "Courses", path: "/dashboard/courses", icon: ScrollText },
   { label: "Secure Practice Slot", path: "/dashboard/slots", icon: Sprout },
   {
@@ -228,6 +231,9 @@ const DashboardLayout = () => {
               )?.label ?? "Dashboard"}
             </h1>
           </div>
+
+          {/* Notification Bell */}
+          <NotificationBell />
 
           {/* Logo — shown in top bar on mobile since sidebar is hidden */}
           <div className="flex items-center gap-2 lg:hidden">
