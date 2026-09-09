@@ -380,6 +380,15 @@ const FarmRecordsView = () => {
   const [sales, setSales] = useState<FarmSale[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_CATEGORY);
+  const [allUserFarms, setAllUserFarms] = useState<
+    Array<{
+      id: string;
+      name: string;
+      coordinator_id: string;
+      project_category: string;
+    }>
+  >([]);
+  const [selectedFarmId, setSelectedFarmId] = useState<string | null>(null);
   const isOrganicFoodNation =
     selectedCategory ===
     "Organic FoodNation (1 Million Hectares against Hunger)";
@@ -551,8 +560,8 @@ const FarmRecordsView = () => {
     return enrichedRecords;
   };
 
-  const fetchRecords = async (categoryInput?: string) => {
-    const categoryToUse = categoryInput || selectedCategory;
+  const fetchRecords = async (categoryInput?: string, farmIdInput?: string) => {
+    let categoryToUse = categoryInput || selectedCategory;
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -591,15 +600,34 @@ const FarmRecordsView = () => {
     const combinedFarms = [...(coordFarms || []), ...memberFarms, ...platformFarms];
     const uniqueFarms = Array.from(
       new Map(combinedFarms.map((f) => [f.id, f])).values(),
-    );
+    ) as Array<{ id: string; name: string; coordinator_id: string; project_category: string }>;
 
-    // Filter by category
-    const activeFarm = uniqueFarms.find(
+    setAllUserFarms(uniqueFarms);
+
+    // Check farms matching current category
+    let categoryFarms = uniqueFarms.filter(
       (f) => (f.project_category || "Gingertown") === categoryToUse,
     );
 
+    // If user has no farm in the chosen category, but has farms in other categories, auto-switch to their available category
+    if (categoryFarms.length === 0 && uniqueFarms.length > 0 && !categoryInput) {
+      const firstAvailableCategory = uniqueFarms[0].project_category || "Gingertown";
+      categoryToUse = firstAvailableCategory;
+      setSelectedCategory(firstAvailableCategory);
+      categoryFarms = uniqueFarms.filter(
+        (f) => (f.project_category || "Gingertown") === firstAvailableCategory,
+      );
+    }
+
+    // Pick active farm: by farmIdInput, or selectedFarmId, or first farm in category
+    const activeFarm =
+      categoryFarms.find((f) => f.id === (farmIdInput || selectedFarmId)) ||
+      categoryFarms[0] ||
+      null;
+
     if (activeFarm) {
       setFarm(activeFarm);
+      setSelectedFarmId(activeFarm.id);
       setIsCoordinator(activeFarm.coordinator_id === user.id);
 
       const [recRes, expRes, salesRes] = await Promise.all([
@@ -631,12 +659,24 @@ const FarmRecordsView = () => {
       setSales(salesRes.data || []);
     } else {
       setFarm(null);
+      setSelectedFarmId(null);
       setRecords([]);
       setExpenses([]);
       setSales([]);
     }
 
     setLoading(false);
+  };
+
+  const handleCategoryChange = (newCategory: string) => {
+    setSelectedCategory(newCategory);
+    setSelectedFarmId(null);
+    fetchRecords(newCategory, undefined);
+  };
+
+  const handleFarmChange = (newFarmId: string) => {
+    setSelectedFarmId(newFarmId);
+    fetchRecords(selectedCategory, newFarmId);
   };
 
   useEffect(() => {
@@ -1250,17 +1290,41 @@ const FarmRecordsView = () => {
                 Select a project category to view records
               </p>
             </div>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="h-9 w-full max-w-[250px] sm:max-w-xs md:max-w-sm lg:max-w-md rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all no-print shadow-sm text-ellipsis overflow-hidden whitespace-nowrap"
-            >
-              {PROJECT_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+            <div className="flex flex-col gap-2 no-print">
+              <select
+                value={selectedCategory}
+                onChange={(e) => handleCategoryChange(e.target.value)}
+                className="h-9 w-full max-w-[250px] sm:max-w-xs md:max-w-sm lg:max-w-md rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all shadow-sm text-ellipsis overflow-hidden whitespace-nowrap"
+              >
+                {PROJECT_CATEGORIES.map((cat) => {
+                  const count = allUserFarms.filter(
+                    (f) => (f.project_category || "Gingertown") === cat,
+                  ).length;
+                  return (
+                    <option key={cat} value={cat}>
+                      {cat} {count > 0 ? `(${count} group${count > 1 ? "s" : ""})` : ""}
+                    </option>
+                  );
+                })}
+              </select>
+
+              {/* Quick Multi-Category Navigator */}
+              {allUserFarms.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                  <span className="text-[11px] text-gray-500 font-medium">Your Categories:</span>
+                  {Array.from(new Set(allUserFarms.map((f) => f.project_category || "Gingertown"))).map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => handleCategoryChange(cat)}
+                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-800 border border-green-200 hover:bg-green-100 transition-all"
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
         <Card>
@@ -1361,26 +1425,87 @@ const FarmRecordsView = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4"
         >
-          <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {farm?.name || "No"} Records
-              </h2>
-              <p className="text-gray-600">
-                Farm bookkeeping and finance tracking
-              </p>
+          <div className="flex flex-col gap-2.5">
+            <div className="flex flex-col md:flex-row gap-3 items-start md:items-center flex-wrap">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-0.5">
+                  {farm?.name || "No"} Records
+                </h2>
+                <p className="text-gray-600 text-xs">
+                  {farm?.project_category} • Bookkeeping and finance tracking
+                </p>
+              </div>
+
+              {/* Controls: Category Selector & Farm Group Selector */}
+              <div className="flex items-center gap-2 flex-wrap no-print">
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 shadow-sm"
+                >
+                  {PROJECT_CATEGORIES.map((cat) => {
+                    const count = allUserFarms.filter(
+                      (f) => (f.project_category || "Gingertown") === cat,
+                    ).length;
+                    return (
+                      <option key={cat} value={cat}>
+                        {cat} {count > 0 ? `(${count} group${count > 1 ? "s" : ""})` : ""}
+                      </option>
+                    );
+                  })}
+                </select>
+
+                {/* Farm Group Selector when multiple groups exist in category */}
+                {allUserFarms.filter((f) => (f.project_category || "Gingertown") === selectedCategory).length > 1 && (
+                  <select
+                    value={farm?.id || ""}
+                    onChange={(e) => handleFarmChange(e.target.value)}
+                    className="h-9 rounded-lg border border-emerald-300 bg-emerald-50/70 px-3 text-xs font-bold text-emerald-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-sm"
+                    title="Switch between your farm groups in this category"
+                  >
+                    {allUserFarms
+                      .filter((f) => (f.project_category || "Gingertown") === selectedCategory)
+                      .map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.name} {f.coordinator_id === currentUserId ? "★ (Coordinator)" : ""}
+                        </option>
+                      ))}
+                  </select>
+                )}
+              </div>
             </div>
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="h-9 w-full max-w-[250px] sm:max-w-xs md:max-w-sm lg:max-w-md rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all no-print shadow-sm text-ellipsis overflow-hidden whitespace-nowrap"
-            >
-              {PROJECT_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+
+            {/* Quick Multi-Category Navigator Bar if user has farm groups in more than one category */}
+            {Array.from(new Set(allUserFarms.map((f) => f.project_category || "Gingertown"))).length > 1 && (
+              <div className="flex items-center gap-1.5 flex-wrap no-print">
+                <span className="text-[11px] text-gray-500 font-medium">Switch Category:</span>
+                {Array.from(new Set(allUserFarms.map((f) => f.project_category || "Gingertown"))).map((cat) => {
+                  const isCurrent = cat === selectedCategory;
+                  const catFarms = allUserFarms.filter((f) => (f.project_category || "Gingertown") === cat);
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => handleCategoryChange(cat)}
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold transition-all ${
+                        isCurrent
+                          ? "bg-green-800 text-white shadow-sm ring-1 ring-green-700"
+                          : "bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200"
+                      }`}
+                    >
+                      <span>{cat}</span>
+                      <span
+                        className={`text-[10px] px-1 rounded-full ${
+                          isCurrent ? "bg-green-900 text-green-100" : "bg-slate-200 text-slate-600"
+                        }`}
+                      >
+                        {catFarms.length}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <Button
             onClick={handleDownloadPDF}
