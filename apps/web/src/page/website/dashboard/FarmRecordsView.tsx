@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { showToast } from "@/components/ui/ToastComponent";
 import { Toaster } from "react-hot-toast";
-import { Plus, Edit, Trash2, Save, X, Printer, Lock } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Printer, Lock, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PROJECT_CATEGORIES,
@@ -37,6 +37,9 @@ interface FarmRecord {
   setup_batches?: string;
   support_batches?: string;
   fine_batches?: string;
+  created_by?: string;
+  created_by_name?: string;
+  updated_at?: string;
 }
 
 interface AuthUserRow {
@@ -57,7 +60,28 @@ interface FarmExpense {
   category: string;
   amount: number;
   description?: string;
+  created_by?: string;
+  created_by_name?: string;
   created_at: string;
+  updated_at?: string;
+}
+
+interface FarmSale {
+  id: string;
+  farm_id: string;
+  produce_name: string;
+  quantity: number;
+  unit: string;
+  unit_price: number;
+  amount: number;
+  buyer_name?: string;
+  sales_channel?: string;
+  sale_date: string;
+  description?: string;
+  created_by?: string;
+  created_by_name?: string;
+  created_at: string;
+  updated_at?: string;
 }
 
 const EXPENSE_CATEGORIES = [
@@ -84,6 +108,79 @@ const MUSHROOM_VILLAGE_EXPENSE_CATEGORIES = [
   "Operations",
 ];
 
+const UNITS_OF_MEASURE = ["kg", "crates", "packs", "bags", "baskets", "pieces", "tonnes"];
+
+const SALES_CHANNELS = [
+  "Offtaker",
+  "Wholesale Market",
+  "Supermarket Retail",
+  "Direct Consumer",
+  "Farm Gate",
+  "Food Processor",
+  "Other",
+];
+
+const MUSHROOM_PRODUCE_PRESETS = [
+  "Fresh Oyster Mushrooms",
+  "Dried Oyster Mushrooms",
+  "Mushroom Spawn",
+  "Spent Substrate / Compost",
+  "Fresh Button Mushrooms",
+  "Custom Produce / Other",
+];
+
+const GINGER_PRODUCE_PRESETS = [
+  "Fresh Ginger Rhizomes",
+  "Dried Split Ginger",
+  "Chili Pepper Intercrop",
+  "Custom Produce / Other",
+];
+
+const GENERAL_PRODUCE_PRESETS = [
+  "Fresh Harvest Produce",
+  "Intercrop Produce",
+  "Custom Produce / Other",
+];
+
+const getProducePresets = (projectCategory?: string) => {
+  if (projectCategory === "Mushroom Village") return MUSHROOM_PRODUCE_PRESETS;
+  if (projectCategory === "Gingertown") return GINGER_PRODUCE_PRESETS;
+  return GENERAL_PRODUCE_PRESETS;
+};
+
+const formatDateOnly = (dateStr?: string) => {
+  if (!dateStr) return "—";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return dateStr;
+  }
+};
+
+const formatDateTime = (dateStr?: string) => {
+  if (!dateStr) return "—";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    return `${d.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })} at ${d.toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })}`;
+  } catch {
+    return dateStr;
+  }
+};
+
 const getExpenseCategories = (projectCategory?: string) =>
   projectCategory === "Mushroom Village"
     ? MUSHROOM_VILLAGE_EXPENSE_CATEGORIES
@@ -107,6 +204,7 @@ const FarmRecordsView = () => {
   } | null>(null);
   const [records, setRecords] = useState<FarmRecord[]>([]);
   const [expenses, setExpenses] = useState<FarmExpense[]>([]);
+  const [sales, setSales] = useState<FarmSale[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_CATEGORY);
   const isOrganicFoodNation =
@@ -125,7 +223,7 @@ const FarmRecordsView = () => {
     calcSupport(r) +
     calcSlotFee(r) +
     (isOrganicFoodNation ? 0 : calcFine(r));
-  const { isAdmin: authIsAdmin, isSuperAdmin: authIsSuperAdmin } = useAuth();
+  const { user: authUser, profile: authProfile, isAdmin: authIsAdmin, isSuperAdmin: authIsSuperAdmin } = useAuth();
   const [isCoordinator, setIsCoordinator] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const isSuperAdmin =
@@ -137,17 +235,25 @@ const FarmRecordsView = () => {
   const IS_AUDIT_MODE_LOCKED = true;
   // Platform Admins + Designated Farm Coordinators can manage member records
   const canManageRecords = IS_AUDIT_MODE_LOCKED ? isSuperAdmin : (isCoordinator || isAdmin);
-  // Farm Coordinators ALONE manage operating expenses for their assigned farm!
+  // Farm Coordinators ALONE manage operating expenses and sales revenue for their assigned farm!
   const canManageExpenses = IS_AUDIT_MODE_LOCKED ? isSuperAdmin : isCoordinator;
+
+  // Audit attribution context for the current active user
+  const currentUserName = authProfile?.full_name || authProfile?.email || authUser?.email || currentUserEmail || "Coordinator";
+  const currentUserId = authProfile?.id || authUser?.id;
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
+  const [showSalesForm, setShowSalesForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null);
+  const [editingSaleId, setEditingSaleId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<FarmRecord>>({});
   const [expenseFormData, setExpenseFormData] = useState<Partial<FarmExpense>>(
     {},
   );
+  const [salesFormData, setSalesFormData] = useState<Partial<FarmSale>>({});
+  const [customProduceName, setCustomProduceName] = useState("");
   const [emailLookupLoading, setEmailLookupLoading] = useState(false);
   const [autoFilled, setAutoFilled] = useState(false);
 
@@ -293,7 +399,7 @@ const FarmRecordsView = () => {
       setFarm(activeFarm);
       setIsCoordinator(activeFarm.coordinator_id === user.id);
 
-      const [recRes, expRes] = await Promise.all([
+      const [recRes, expRes, salesRes] = await Promise.all([
         supabase
           .from("farm_records")
           .select("*")
@@ -304,6 +410,11 @@ const FarmRecordsView = () => {
           .select("*")
           .eq("farm_id", activeFarm.id)
           .order("created_at", { ascending: false }),
+        supabase
+          .from("farm_sales")
+          .select("*")
+          .eq("farm_id", activeFarm.id)
+          .order("sale_date", { ascending: false }),
       ]);
 
       if (recRes.data) {
@@ -314,10 +425,12 @@ const FarmRecordsView = () => {
         setRecords(enriched);
       }
       setExpenses(expRes.data || []);
+      setSales(salesRes.data || []);
     } else {
       setFarm(null);
       setRecords([]);
       setExpenses([]);
+      setSales([]);
     }
 
     setLoading(false);
@@ -325,10 +438,17 @@ const FarmRecordsView = () => {
 
   useEffect(() => {
     fetchRecords();
-    // Clear the Add Members Record form when category changes
+    // Clear forms when category changes
     setShowAddForm(false);
+    setShowExpenseForm(false);
+    setShowSalesForm(false);
     setEditingId(null);
+    setEditingExpenseId(null);
+    setEditingSaleId(null);
     setFormData({});
+    setExpenseFormData({});
+    setSalesFormData({});
+    setCustomProduceName("");
     setAutoFilled(false);
   }, [selectedCategory]);
 
@@ -553,6 +673,9 @@ const FarmRecordsView = () => {
       absentee_fine: isOrganicFoodNation ? "0" : String(formData.absentee_fine || "0"),
       farm_id: farm.id,
       project_category: farm.project_category || "Gingertown",
+      created_by: currentUserId,
+      created_by_name: currentUserName,
+      updated_at: new Date().toISOString(),
     };
 
     let error;
@@ -649,7 +772,13 @@ const FarmRecordsView = () => {
       return;
     }
 
-    const data = { ...expenseFormData, farm_id: farm.id };
+    const data = {
+      ...expenseFormData,
+      farm_id: farm.id,
+      created_by: currentUserId,
+      created_by_name: currentUserName,
+      updated_at: new Date().toISOString(),
+    };
     let error;
     if (editingExpenseId) {
       ({ error } = await supabase
@@ -703,6 +832,154 @@ const FarmRecordsView = () => {
       return;
     }
     showToast({ variant: "success", title: "Expense deleted" });
+    fetchRecords();
+  };
+
+  const handleAddSale = () => {
+    const defaultProduce = isMushroomVillage ? "Fresh Oyster Mushrooms" : "Fresh Harvest Produce";
+    setSalesFormData({
+      produce_name: defaultProduce,
+      quantity: 1,
+      unit: "kg",
+      unit_price: 0,
+      amount: 0,
+      buyer_name: "",
+      sales_channel: "Offtaker",
+      sale_date: new Date().toISOString().split("T")[0],
+      description: "",
+    });
+    setCustomProduceName("");
+    setEditingSaleId(null);
+    setShowSalesForm(true);
+  };
+
+  const handleEditSale = (sale: FarmSale) => {
+    const presets = getProducePresets(farm?.project_category);
+    const isCustom = !presets.includes(sale.produce_name);
+    setSalesFormData({
+      ...sale,
+      produce_name: isCustom ? "Custom Produce / Other" : sale.produce_name,
+    });
+    setCustomProduceName(isCustom ? sale.produce_name : "");
+    setEditingSaleId(sale.id);
+    setShowSalesForm(true);
+  };
+
+  const cancelSaleEdit = () => {
+    setShowSalesForm(false);
+    setEditingSaleId(null);
+    setSalesFormData({});
+    setCustomProduceName("");
+  };
+
+  const handleSaveSale = async () => {
+    if (!farm) return;
+    if (!canManageExpenses) {
+      showToast({
+        variant: "error",
+        title: IS_AUDIT_MODE_LOCKED ? "Read-Only Audit Mode" : "Permission Denied",
+        description: IS_AUDIT_MODE_LOCKED
+          ? "Farm sales are locked in Read-Only Audit Mode. Modifications are restricted to developerelijah360@gmail.com."
+          : "Only the designated Farm Coordinator can log or modify sales for this farm group.",
+      });
+      return;
+    }
+
+    let finalProduceName = salesFormData.produce_name || "";
+    if (finalProduceName === "Custom Produce / Other") {
+      finalProduceName = customProduceName.trim();
+    }
+    if (!finalProduceName) {
+      showToast({
+        variant: "error",
+        title: "Produce name required",
+        description: "Please select or enter the produce name.",
+      });
+      return;
+    }
+
+    const qty = Number(salesFormData.quantity) || 0;
+    const amount = Number(salesFormData.amount) || 0;
+    if (amount <= 0 && qty <= 0) {
+      showToast({
+        variant: "error",
+        title: "Amount or Quantity required",
+        description: "Please enter a valid sales quantity or total revenue amount.",
+      });
+      return;
+    }
+
+    const payload = {
+      farm_id: farm.id,
+      produce_name: finalProduceName,
+      quantity: qty > 0 ? qty : 1,
+      unit: salesFormData.unit || "kg",
+      unit_price: Number(salesFormData.unit_price) || 0,
+      amount: amount > 0 ? amount : (qty * (Number(salesFormData.unit_price) || 0)),
+      buyer_name: salesFormData.buyer_name?.trim() || null,
+      sales_channel: salesFormData.sales_channel || "Offtaker",
+      sale_date: salesFormData.sale_date || new Date().toISOString().split("T")[0],
+      description: salesFormData.description?.trim() || null,
+      created_by: currentUserId,
+      created_by_name: currentUserName,
+      updated_at: new Date().toISOString(),
+    };
+
+    let error;
+    if (editingSaleId) {
+      ({ error } = await supabase
+        .from("farm_sales")
+        .update(payload)
+        .eq("id", editingSaleId));
+    } else {
+      ({ error } = await supabase.from("farm_sales").insert(payload));
+    }
+
+    if (error) {
+      showToast({
+        variant: "error",
+        title: "Failed to save sale",
+        description: error.message,
+      });
+      return;
+    }
+
+    showToast({
+      variant: "success",
+      title: editingSaleId ? "Sale record updated" : "Sales revenue recorded",
+    });
+    setShowSalesForm(false);
+    setEditingSaleId(null);
+    setSalesFormData({});
+    setCustomProduceName("");
+    fetchRecords();
+  };
+
+  const handleDeleteSale = async (id: string) => {
+    if (!canManageExpenses) {
+      showToast({
+        variant: "error",
+        title: IS_AUDIT_MODE_LOCKED ? "Read-Only Audit Mode" : "Permission Denied",
+        description: IS_AUDIT_MODE_LOCKED
+          ? "Farm sales are locked in Read-Only Audit Mode. Deletions are restricted to developerelijah360@gmail.com."
+          : "Only the designated Farm Coordinator can delete sales from this farm group.",
+      });
+      return;
+    }
+    if (!confirm("Delete this sales revenue record?")) return;
+    const { error } = await supabase
+      .from("farm_sales")
+      .delete()
+      .eq("id", id);
+    if (error) {
+      showToast({
+        variant: "error",
+        title: "Failed to delete",
+        description: error.message,
+      });
+      return;
+    }
+    showToast({ variant: "success", title: "Sale record deleted" });
     fetchRecords();
   };
 
@@ -779,7 +1056,10 @@ const FarmRecordsView = () => {
   const totalFarmSupport = records.reduce((s, r) => s + calcSupport(r), 0);
   const totalFarmSetup = records.reduce((s, r) => s + calcSetup(r), 0);
   const totalAbsenteeFine = records.reduce((s, r) => s + calcFine(r), 0);
-  const totalExpensesValue = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  const totalExpensesValue = expenses.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
+  const totalSalesRevenue = sales.reduce((sum, sale) => sum + Number(sale.amount || 0), 0);
+  const harvestNetProfit = totalSalesRevenue - totalExpensesValue;
+  const netProfitMargin = totalSalesRevenue > 0 ? (harvestNetProfit / totalSalesRevenue) * 100 : 0;
 
   const totalFarmIncome = records.reduce((s, r) => s + getRecordTotal(r), 0);
   const slotFeeRate = selectedCategory === "Mushroom Village" ? 1000 : 2000;
@@ -909,13 +1189,21 @@ const FarmRecordsView = () => {
               </Button>
             )}
             {canManageExpenses && (
-              <Button
-                onClick={handleAddExpense}
-                variant="outline"
-                className="border-green-800 text-green-800 hover:bg-green-50 w-full sm:w-auto"
-              >
-                <Plus className="w-4 h-4 mr-2" /> Add Expenses
-              </Button>
+              <>
+                <Button
+                  onClick={handleAddSale}
+                  className="bg-emerald-700 hover:bg-emerald-600 text-white w-full sm:w-auto shadow-sm"
+                >
+                  <TrendingUp className="w-4 h-4 mr-2" /> Add Sales Revenue
+                </Button>
+                <Button
+                  onClick={handleAddExpense}
+                  variant="outline"
+                  className="border-green-800 text-green-800 hover:bg-green-50 w-full sm:w-auto"
+                >
+                  <Plus className="w-4 h-4 mr-2" /> Add Expenses
+                </Button>
+              </>
             )}
           </motion.div>
         )}
@@ -1143,6 +1431,214 @@ const FarmRecordsView = () => {
           </motion.div>
         )}
 
+        {showSalesForm && canManageExpenses && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-6"
+          >
+            <Card className="border-2 border-emerald-600/30 shadow-md">
+              <CardHeader className="bg-emerald-50/50">
+                <CardTitle className="text-emerald-950 flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-emerald-700" />
+                  {editingSaleId ? "Edit Produce Sales Record" : "Record Produce Sales Revenue"}
+                </CardTitle>
+                <p className="text-xs text-gray-500 mt-1">
+                  Record produce sales from mushroom harvest, ginger, or other farm outputs. Subtraction of operating expenses from sales revenue yields the net profit.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div>
+                    <Label>Produce Name</Label>
+                    <select
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                      value={salesFormData.produce_name || ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setSalesFormData((prev) => ({ ...prev, produce_name: val }));
+                        if (val !== "Custom Produce / Other") {
+                          setCustomProduceName("");
+                        }
+                      }}
+                    >
+                      {getProducePresets(farm?.project_category).map((prod) => (
+                        <option key={prod} value={prod}>
+                          {prod}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {salesFormData.produce_name === "Custom Produce / Other" && (
+                    <div>
+                      <Label>Custom Produce Name</Label>
+                      <Input
+                        value={customProduceName}
+                        onChange={(e) => setCustomProduceName(e.target.value)}
+                        placeholder="e.g. Fresh Lion's Mane, Dried Chili"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <Label>Sale Date</Label>
+                    <Input
+                      type="date"
+                      value={salesFormData.sale_date || new Date().toISOString().split("T")[0]}
+                      onChange={(e) =>
+                        setSalesFormData((prev) => ({
+                          ...prev,
+                          sale_date: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Sales Channel</Label>
+                    <select
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                      value={salesFormData.sales_channel || "Offtaker"}
+                      onChange={(e) =>
+                        setSalesFormData((prev) => ({
+                          ...prev,
+                          sales_channel: e.target.value,
+                        }))
+                      }
+                    >
+                      {SALES_CHANNELS.map((ch) => (
+                        <option key={ch} value={ch}>
+                          {ch}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label>Quantity</Label>
+                    <Input
+                      type="number"
+                      min="0.1"
+                      step="any"
+                      value={salesFormData.quantity ?? 1}
+                      onChange={(e) => {
+                        const q = parseFloat(e.target.value) || 0;
+                        const p = Number(salesFormData.unit_price) || 0;
+                        setSalesFormData((prev) => ({
+                          ...prev,
+                          quantity: q,
+                          amount: p > 0 ? q * p : prev.amount,
+                        }));
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Unit of Measure</Label>
+                    <select
+                      className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                      value={salesFormData.unit || "kg"}
+                      onChange={(e) =>
+                        setSalesFormData((prev) => ({
+                          ...prev,
+                          unit: e.target.value,
+                        }))
+                      }
+                    >
+                      {UNITS_OF_MEASURE.map((u) => (
+                        <option key={u} value={u}>
+                          {u}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <Label>Unit Price (₦ per unit)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={salesFormData.unit_price ?? 0}
+                      onChange={(e) => {
+                        const p = parseFloat(e.target.value) || 0;
+                        const q = Number(salesFormData.quantity) || 0;
+                        setSalesFormData((prev) => ({
+                          ...prev,
+                          unit_price: p,
+                          amount: q > 0 ? q * p : prev.amount,
+                        }));
+                      }}
+                      placeholder="e.g. 3500"
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Total Sales Revenue (₦)</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      value={salesFormData.amount ?? 0}
+                      onChange={(e) =>
+                        setSalesFormData((prev) => ({
+                          ...prev,
+                          amount: parseFloat(e.target.value) || 0,
+                        }))
+                      }
+                      className="font-bold text-emerald-800"
+                    />
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      Auto-calculated from Qty × Unit Price, or override for negotiated bulk lot.
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label>Buyer / Customer / Offtaker (Optional)</Label>
+                    <Input
+                      value={salesFormData.buyer_name || ""}
+                      onChange={(e) =>
+                        setSalesFormData((prev) => ({
+                          ...prev,
+                          buyer_name: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g. Mile 12 Wholesale Buyer"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 lg:col-span-3">
+                    <Label>Harvest Batch / Notes (Optional)</Label>
+                    <Input
+                      value={salesFormData.description || ""}
+                      onChange={(e) =>
+                        setSalesFormData((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
+                      }
+                      placeholder="e.g. Grade A harvest from mushroom house #1, morning flush"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    onClick={handleSaveSale}
+                    className="bg-emerald-800 hover:bg-emerald-700 text-white"
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {editingSaleId ? "Update Sale" : "Save Sales Revenue"}
+                  </Button>
+                  <Button onClick={cancelSaleEdit} variant="outline">
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1192,9 +1688,16 @@ const FarmRecordsView = () => {
                           className="border-b hover:bg-gray-50"
                         >
                           <td className="p-2 font-medium">
-                            {record.referral_code?.toUpperCase() ||
-                              record.name ||
-                              "—"}
+                            <div>
+                              {record.referral_code?.toUpperCase() ||
+                                record.name ||
+                                "—"}
+                            </div>
+                            {record.created_by_name && (
+                              <div className="text-[10px] text-gray-400 font-normal">
+                                Logged by: {record.created_by_name}
+                              </div>
+                            )}
                           </td>
                           <td className="p-2">{record.farm_slots}</td>
                           {isMushroomVillage ? (
@@ -1328,6 +1831,141 @@ const FarmRecordsView = () => {
           </Card>
         </motion.div>
 
+        {/* Harvest Produce Sales Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="mt-8"
+        >
+          <Card className="border border-emerald-100">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-emerald-900">
+                  <TrendingUp className="w-5 h-5 text-emerald-700" />
+                  Harvest Produce Sales ({sales.length})
+                </CardTitle>
+                <p className="text-xs text-gray-500 mt-1">
+                  Produce harvest revenue, offtake sales, and commercial trading distributions
+                </p>
+              </div>
+              {canManageExpenses && (
+                <Button
+                  onClick={handleAddSale}
+                  size="sm"
+                  className="bg-emerald-700 hover:bg-emerald-600 text-white no-print"
+                >
+                  <Plus className="w-4 h-4 mr-1" /> Add Sale
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              {sales.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">No produce sales records logged yet.</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Now that harvest has started, record sales revenue to track commercial net profit.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-emerald-50/50">
+                        <th className="text-left p-2">Sale Date</th>
+                        <th className="text-left p-2">Produce</th>
+                        <th className="text-left p-2">Channel</th>
+                        <th className="text-right p-2">Quantity</th>
+                        <th className="text-right p-2">Unit Price</th>
+                        <th className="text-right p-2">Total Revenue</th>
+                        <th className="text-left p-2">Buyer</th>
+                        <th className="text-left p-2">Recorded By</th>
+                        {canManageExpenses && (
+                          <th className="text-center p-2 no-print">Actions</th>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sales.map((sale) => (
+                        <tr key={sale.id} className="border-b hover:bg-gray-50">
+                          <td className="p-2 text-gray-600 whitespace-nowrap">
+                            {formatDateOnly(sale.sale_date)}
+                          </td>
+                          <td className="p-2 font-medium text-gray-900">
+                            {sale.produce_name}
+                            {sale.description && (
+                              <div className="text-[11px] text-gray-400 italic">
+                                {sale.description}
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-2">
+                            <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-100 text-emerald-800">
+                              {sale.sales_channel || "Offtaker"}
+                            </span>
+                          </td>
+                          <td className="p-2 text-right">
+                            {Number(sale.quantity).toLocaleString()} {sale.unit || "kg"}
+                          </td>
+                          <td className="p-2 text-right text-gray-600">
+                            {sale.unit_price > 0 ? `₦${Number(sale.unit_price).toLocaleString()}` : "—"}
+                          </td>
+                          <td className="p-2 text-right font-bold text-emerald-800">
+                            ₦{Number(sale.amount).toLocaleString()}
+                          </td>
+                          <td className="p-2 text-gray-700">
+                            {sale.buyer_name || "—"}
+                          </td>
+                          <td className="p-2 text-xs text-gray-500 whitespace-nowrap">
+                            <div className="font-medium text-gray-700">
+                              {sale.created_by_name || "Coordinator"}
+                            </div>
+                            <div className="text-[10px] text-gray-400">
+                              {formatDateTime(sale.created_at)}
+                            </div>
+                          </td>
+                          {canManageExpenses && (
+                            <td className="p-2 no-print">
+                              <div className="flex justify-center gap-1">
+                                <Button
+                                  onClick={() => handleEditSale(sale)}
+                                  variant="outline"
+                                  size="sm"
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  onClick={() => handleDeleteSale(sale.id)}
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 font-bold bg-emerald-50/60">
+                        <td colSpan={5} className="p-2 text-right uppercase tracking-wider text-emerald-950">
+                          Total Sales Revenue
+                        </td>
+                        <td className="p-2 text-right text-emerald-900 text-base font-black">
+                          ₦{totalSalesRevenue.toLocaleString()}
+                        </td>
+                        <td colSpan={canManageExpenses ? 3 : 2} className="p-2" />
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
         {/* Expenses Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -1336,8 +1974,23 @@ const FarmRecordsView = () => {
           className="mt-8"
         >
           <Card>
-            <CardHeader>
-              <CardTitle>Farm Expenses</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Farm Expenses ({expenses.length})</CardTitle>
+                <p className="text-xs text-gray-500 mt-1">
+                  Operational inputs, labor, infrastructure, and maintenance costs
+                </p>
+              </div>
+              {canManageExpenses && (
+                <Button
+                  onClick={handleAddExpense}
+                  size="sm"
+                  variant="outline"
+                  className="border-green-800 text-green-800 hover:bg-green-50 no-print"
+                >
+                  <Plus className="w-4 h-4 mr-1" /> Add Expense
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               {expenses.length === 0 ? (
@@ -1351,10 +2004,10 @@ const FarmRecordsView = () => {
                       <tr className="border-b bg-gray-50">
                         <th className="text-left p-2">Date</th>
                         <th className="text-left p-2">Category</th>
-                        {/* <th className="text-left p-2">Description</th> */}
                         <th className="text-right p-2">Amount</th>
+                        <th className="text-left p-2">Recorded By</th>
                         {canManageExpenses && (
-                          <th className="text-center p-2">Actions</th>
+                          <th className="text-center p-2 no-print">Actions</th>
                         )}
                       </tr>
                     </thead>
@@ -1364,57 +2017,66 @@ const FarmRecordsView = () => {
                           key={expense.id}
                           className="border-b hover:bg-gray-50"
                         >
-                          <td className="p-2 text-gray-600">
-                            {new Date(expense.created_at).toLocaleDateString()}
+                          <td className="p-2 text-gray-600 whitespace-nowrap">
+                            {formatDateOnly(expense.created_at)}
                           </td>
                           <td className="p-2 font-medium text-gray-900">
                             {expense.category}
+                            {expense.description && (
+                              <div className="text-[11px] text-gray-400 italic">
+                                {expense.description}
+                              </div>
+                            )}
                           </td>
-                          {/* <td className="p-2 text-gray-500 italic">{expense.description || "-"}</td> */}
-                          <td className="p-2 text-right font-semibold">
-                            ₦{expense.amount.toLocaleString()}
+                          <td className="p-2 text-right font-semibold text-gray-900">
+                            ₦{Number(expense.amount).toLocaleString()}
+                          </td>
+                          <td className="p-2 text-xs text-gray-500 whitespace-nowrap">
+                            <div className="font-medium text-gray-700">
+                              {expense.created_by_name || "Coordinator"}
+                            </div>
+                            <div className="text-[10px] text-gray-400">
+                              {formatDateTime(expense.created_at)}
+                            </div>
                           </td>
                           {canManageExpenses && (
-                            <td className="p-2">
+                            <td className="p-2 no-print">
                               <div className="flex justify-center gap-1">
                                 <Button
-                                   onClick={() => handleEditExpense(expense)}
-                                   variant="outline"
-                                   size="sm"
-                                 >
-                                   <Edit className="w-3 h-3" />
-                                 </Button>
-                                 <Button
-                                   onClick={() =>
-                                     handleDeleteExpense(expense.id)
-                                   }
-                                   variant="outline"
-                                   size="sm"
-                                   className="text-red-600 hover:text-red-700"
-                                 >
-                                   <Trash2 className="w-3 h-3" />
-                                 </Button>
-                               </div>
-                             </td>
-                           )}
-                         </tr>
-                       ))}
-                     </tbody>
-                     <tfoot>
-                       <tr className="border-t-2 font-bold bg-gray-100">
-                         <td
-                           colSpan={2}
-                           className="p-2 text-right uppercase tracking-wider"
-                         >
-                           Total Expenses
-                         </td>
-                         <td className="p-2 text-right text-red-700">
-                           ₦
-                           {expenses
-                             .reduce((sum, exp) => sum + exp.amount, 0)
-                             .toLocaleString()}
-                         </td>
-                         {canManageExpenses && <td className="p-2" />}
+                                  onClick={() => handleEditExpense(expense)}
+                                  variant="outline"
+                                  size="sm"
+                                >
+                                  <Edit className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  onClick={() =>
+                                    handleDeleteExpense(expense.id)
+                                  }
+                                  variant="outline"
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </td>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t-2 font-bold bg-gray-100">
+                        <td
+                          colSpan={2}
+                          className="p-2 text-right uppercase tracking-wider"
+                        >
+                          Total Expenses
+                        </td>
+                        <td className="p-2 text-right text-red-700 text-base font-bold">
+                          ₦{totalExpensesValue.toLocaleString()}
+                        </td>
+                        <td colSpan={canManageExpenses ? 2 : 1} className="p-2" />
                       </tr>
                     </tfoot>
                   </table>
@@ -1429,21 +2091,110 @@ const FarmRecordsView = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="mt-8 mb-12"
+          className="mt-8 mb-12 space-y-6"
         >
-          <Card className="border-2 border-green-800/20 overflow-hidden">
-            <CardHeader className="bg-green-800 text-white">
-              <CardTitle className="text-xl">Account Balance Summary</CardTitle>
+          {/* Card 1: Commercial Harvest Operations & Net Profit */}
+          <Card className="border-2 border-emerald-800/30 overflow-hidden shadow-sm">
+            <CardHeader className="bg-emerald-800 text-white py-4">
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
+                <div>
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <TrendingUp className="w-5 h-5 text-emerald-300" />
+                    <span>Commercial Harvest Operations & Net Profit</span>
+                  </CardTitle>
+                  <p className="text-xs text-emerald-100 mt-1">
+                    Produce sales revenue vs. operating expenses for {farm.name}
+                  </p>
+                </div>
+                <div>
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                    harvestNetProfit >= 0 ? "bg-emerald-900 text-emerald-200 border border-emerald-400" : "bg-amber-900 text-amber-200 border border-amber-400"
+                  }`}>
+                    {harvestNetProfit >= 0 ? "Operating Profit" : "Ramping Up (Pre-Profit)"}
+                  </span>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-emerald-50/40">
+                  <div>
+                    <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-emerald-700" />
+                      Total Sales Revenue
+                    </h4>
+                    <p className="text-xs text-gray-500">
+                      (Sum of all recorded produce sales & harvest offtake)
+                    </p>
+                  </div>
+                  <span className="text-xl font-bold text-emerald-800">
+                    ₦{totalSalesRevenue.toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-gray-50/50">
+                  <div>
+                    <h4 className="font-semibold text-gray-900">
+                      Total Farm Operating Expenses
+                    </h4>
+                    <p className="text-xs text-gray-500">
+                      (Sum of all farm inputs, operations, salaries, and maintenance)
+                    </p>
+                  </div>
+                  <span className="text-xl font-bold text-red-600">
+                    ₦{totalExpensesValue.toLocaleString()}
+                  </span>
+                </div>
+
+                <div className={`p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${
+                  harvestNetProfit >= 0 ? "bg-emerald-100/60" : "bg-amber-50"
+                }`}>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      Harvest Net Profit
+                      {totalSalesRevenue > 0 && (
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                          harvestNetProfit >= 0 ? "bg-emerald-200 text-emerald-900" : "bg-amber-200 text-amber-900"
+                        }`}>
+                          Margin: {netProfitMargin.toFixed(1)}%
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Total Sales Revenue minus Total Farm Operating Expenses
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span
+                      className={`text-3xl font-black ${
+                        harvestNetProfit >= 0 ? "text-emerald-800" : "text-amber-800"
+                      }`}
+                    >
+                      {harvestNetProfit < 0 ? "-" : ""}₦{Math.abs(harvestNetProfit).toLocaleString()}
+                    </span>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {harvestNetProfit >= 0 ? "Commercial Net Gain from Harvest Operations" : "Operating Deficit (Expenses exceed produce revenue to date)"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 2: Member Capital & Setup Account */}
+          <Card className="border-2 border-green-800/20 overflow-hidden shadow-sm">
+            <CardHeader className="bg-green-800 text-white py-4">
+              <CardTitle className="text-xl">Member Capital & Setup Account</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y">
                 <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                   <div>
                     <h4 className="font-semibold text-gray-900">
-                      Total Farm Income
+                      Total Member Contributions
                     </h4>
                     <p className="text-xs text-gray-500">
-                      (Total sum of all member payments)
+                      (Total sum of all member setup, support & slot payments)
                     </p>
                   </div>
                   <span className="text-xl font-bold text-green-800">
@@ -1454,7 +2205,7 @@ const FarmRecordsView = () => {
                 <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-gray-50/50">
                   <div>
                     <h4 className="font-semibold text-gray-900">
-                      Agroheal Fees
+                      Agroheal Platform Fees
                     </h4>
                     <p className="text-xs text-gray-500 font-medium">
                       {isMushroomVillage
@@ -1470,13 +2221,13 @@ const FarmRecordsView = () => {
                 <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                   <div>
                     <h4 className="font-semibold text-gray-900">
-                      {farm.name} Gross Balance
+                      {farm.name} Setup Capital
                     </h4>
                     <p className="text-xs text-gray-500">
                       {isMushroomVillage
-                        ? "(Farm Setup)"
+                        ? "(Farm Setup Capital)"
                         : isOrganicFoodNation
-                          ? "((Total Farm Setup)"
+                          ? "(Total Farm Setup)"
                           : "(Farm Setup + Total Absentee Fine)"}
                     </p>
                   </div>
@@ -1485,13 +2236,13 @@ const FarmRecordsView = () => {
                   </span>
                 </div>
 
-                <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <div className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 bg-gray-50/50">
                   <div>
                     <h4 className="font-semibold text-gray-900">
-                      Total Expenses
+                      Capital Deployed into Operations
                     </h4>
                     <p className="text-xs text-gray-500">
-                      (Sum of all recorded farm expenses)
+                      (Sum of recorded expenses funded from setup pool)
                     </p>
                   </div>
                   <span className="text-xl font-bold text-red-600">
@@ -1502,10 +2253,10 @@ const FarmRecordsView = () => {
                 <div className="p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-green-50">
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">
-                      {farm.name} Net Balance
+                      Remaining Setup Capital
                     </h3>
                     <p className="text-sm text-gray-600">
-                      Available funds after expenses
+                      Remaining capital buffer after setup expenses
                     </p>
                   </div>
                   <div className="text-right">
