@@ -39,6 +39,9 @@ interface FarmRecord {
   fine_batches?: string;
   created_by?: string;
   created_by_name?: string;
+  created_at?: string;
+  updated_by?: string;
+  updated_by_name?: string;
   updated_at?: string;
 }
 
@@ -63,6 +66,8 @@ interface FarmExpense {
   created_by?: string;
   created_by_name?: string;
   created_at: string;
+  updated_by?: string;
+  updated_by_name?: string;
   updated_at?: string;
 }
 
@@ -81,6 +86,8 @@ interface FarmSale {
   created_by?: string;
   created_by_name?: string;
   created_at: string;
+  updated_by?: string;
+  updated_by_name?: string;
   updated_at?: string;
 }
 
@@ -195,6 +202,157 @@ const calcSupport = (r: FarmRecord) =>
 const calcFine = (r: FarmRecord) =>
   Math.max(r.fine_paid || 0, Number(r.absentee_fine) || 0);
 
+interface ParsedAudit {
+  role: "Super Admin" | "Admin" | "Coordinator" | "Staff";
+  name: string;
+  email?: string;
+  raw: string;
+}
+
+const parseAuditString = (raw?: string): ParsedAudit => {
+  if (!raw || !raw.trim()) {
+    return { role: "Coordinator", name: "Coordinator", raw: "Coordinator" };
+  }
+  const str = raw.trim();
+
+  let role: "Super Admin" | "Admin" | "Coordinator" | "Staff" = "Coordinator";
+  let name = str;
+  let email: string | undefined = undefined;
+
+  const emailMatch = str.match(/\(([^)]+@[^)]+)\)$/);
+  if (emailMatch) {
+    email = emailMatch[1].trim();
+  }
+
+  const withoutEmail = emailMatch ? str.substring(0, emailMatch.index).trim() : str;
+
+  if (/\[\s*Super\s*Admin\s*\]/i.test(withoutEmail) || /^Super\s*Admin\s*:/i.test(withoutEmail)) {
+    role = "Super Admin";
+    name = withoutEmail.replace(/\[\s*Super\s*Admin\s*\]\s*/i, "").replace(/^Super\s*Admin\s*:\s*/i, "").trim();
+  } else if (/\[\s*Admin\s*\]/i.test(withoutEmail) || /^Admin\s*:/i.test(withoutEmail)) {
+    role = "Admin";
+    name = withoutEmail.replace(/\[\s*Admin\s*\]\s*/i, "").replace(/^Admin\s*:\s*/i, "").trim();
+  } else if (/\[\s*Coordinator\s*\]/i.test(withoutEmail) || /^Coordinator\s*:/i.test(withoutEmail)) {
+    role = "Coordinator";
+    name = withoutEmail.replace(/\[\s*Coordinator\s*\]\s*/i, "").replace(/^Coordinator\s*:\s*/i, "").trim();
+  } else if (withoutEmail.toLowerCase() === "admin") {
+    role = "Admin";
+    name = "Platform Admin";
+  } else if (withoutEmail.toLowerCase() === "coordinator") {
+    role = "Coordinator";
+    name = "Farm Coordinator";
+  } else {
+    name = withoutEmail.trim();
+  }
+
+  if (!name) {
+    name = role;
+  }
+
+  return { role, name, email, raw };
+};
+
+const RoleBadge = ({ role }: { role: string }) => {
+  if (role === "Super Admin") {
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-purple-100 text-purple-800 border border-purple-200">
+        Super Admin
+      </span>
+    );
+  }
+  if (role === "Admin") {
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+        Admin
+      </span>
+    );
+  }
+  if (role === "Coordinator") {
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+        Coordinator
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-gray-100 text-gray-700 border border-gray-200">
+      {role || "Staff"}
+    </span>
+  );
+};
+
+const AuditTrailCell = ({
+  createdByName,
+  createdAt,
+  updatedByName,
+  updatedAt,
+}: {
+  createdByName?: string;
+  createdAt?: string;
+  updatedByName?: string;
+  updatedAt?: string;
+}) => {
+  const creator = parseAuditString(createdByName);
+  const editor = updatedByName ? parseAuditString(updatedByName) : null;
+  const isEdited = !!editor && (!!updatedByName && updatedByName !== createdByName || (!!updatedAt && updatedAt !== createdAt));
+
+  const fullTooltip = [
+    `Created by: [${creator.role}] ${creator.name}${creator.email ? ` (${creator.email})` : ""}${createdAt ? ` on ${formatDateTime(createdAt)}` : ""}`,
+    isEdited && editor
+      ? `Last edited by: [${editor.role}] ${editor.name}${editor.email ? ` (${editor.email})` : ""}${updatedAt ? ` on ${formatDateTime(updatedAt)}` : ""}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  return (
+    <div className="space-y-1 leading-tight" title={fullTooltip}>
+      {/* Creator Info */}
+      <div className="flex flex-col gap-0.5">
+        <div className="flex items-center gap-1 flex-wrap">
+          <RoleBadge role={creator.role} />
+          <span className="font-medium text-gray-800 text-xs">
+            {creator.name}
+          </span>
+        </div>
+        {creator.email && (
+          <div className="text-[10px] text-gray-500 truncate max-w-[170px]" title={creator.email}>
+            {creator.email}
+          </div>
+        )}
+        {createdAt && (
+          <div className="text-[10px] text-gray-400">
+            {formatDateTime(createdAt)}
+          </div>
+        )}
+      </div>
+
+      {/* Editor Info (if modified) */}
+      {isEdited && editor && (
+        <div className="pt-1 mt-1 border-t border-dashed border-gray-200 flex flex-col gap-0.5 bg-amber-50/50 p-1 rounded">
+          <div className="flex items-center gap-1 text-[10px] text-amber-900 flex-wrap">
+            <span className="font-semibold text-amber-700">Edited:</span>
+            <RoleBadge role={editor.role} />
+            <span className="font-medium text-gray-800">
+              {editor.name}
+            </span>
+          </div>
+          {editor.email && (
+            <div className="text-[10px] text-gray-500 truncate max-w-[160px]" title={editor.email}>
+              {editor.email}
+            </div>
+          )}
+          {updatedAt && (
+            <div className="text-[10px] text-amber-700/80">
+              {formatDateTime(updatedAt)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const FarmRecordsView = () => {
   const [farm, setFarm] = useState<{
     id: string;
@@ -231,15 +389,33 @@ const FarmRecordsView = () => {
     authIsSuperAdmin;
   const isAdmin = authIsAdmin || isSuperAdmin;
 
-  // System Audit Lock: When true, only Super Developer can edit. When false, strict Coordinator & Admin RBAC applies.
-  const IS_AUDIT_MODE_LOCKED = true;
-  // Platform Admins + Designated Farm Coordinators can manage member records
-  const canManageRecords = IS_AUDIT_MODE_LOCKED ? isSuperAdmin : (isCoordinator || isAdmin);
-  // Farm Coordinators ALONE manage operating expenses and sales revenue for their assigned farm!
-  const canManageExpenses = IS_AUDIT_MODE_LOCKED ? isSuperAdmin : isCoordinator;
+  // Platform Admins, Super Admins, and Designated Farm Coordinators can manage member records, expenses, and sales
+  const canManageRecords = isSuperAdmin || isAdmin || isCoordinator;
+  const canManageExpenses = isSuperAdmin || isAdmin || isCoordinator;
+  const canManageSales = isSuperAdmin || isAdmin || isCoordinator;
 
-  // Audit attribution context for the current active user
-  const currentUserName = authProfile?.full_name || authProfile?.email || authUser?.email || currentUserEmail || "Coordinator";
+  // Active user audit attribution context
+  const currentUserRoleLabel = isSuperAdmin
+    ? "Super Admin"
+    : isAdmin
+    ? "Admin"
+    : isCoordinator
+    ? "Coordinator"
+    : "Staff";
+
+  const userDisplayName =
+    authProfile?.full_name?.trim() ||
+    authProfile?.email ||
+    authUser?.email ||
+    currentUserEmail ||
+    "User";
+
+  const userDisplayEmail = authUser?.email || authProfile?.email || currentUserEmail || "";
+
+  const currentAuditAttribution = userDisplayEmail
+    ? `[${currentUserRoleLabel}] ${userDisplayName} (${userDisplayEmail})`
+    : `[${currentUserRoleLabel}] ${userDisplayName}`;
+
   const currentUserId = authProfile?.id || authUser?.id;
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -589,10 +765,8 @@ const FarmRecordsView = () => {
     if (!canManageRecords) {
       showToast({
         variant: "error",
-        title: IS_AUDIT_MODE_LOCKED ? "Read-Only Audit Mode" : "Permission Denied",
-        description: IS_AUDIT_MODE_LOCKED
-          ? "Farm records are locked in Read-Only Audit Mode. Modifications are restricted to developerelijah360@gmail.com."
-          : "Only the Farm Coordinator or Platform Administrator can add or edit member records for this farm.",
+        title: "Permission Denied",
+        description: "Only the Farm Coordinator or Platform Administrator can add or edit member records for this farm.",
       });
       return;
     }
@@ -663,29 +837,43 @@ const FarmRecordsView = () => {
       }
     }
 
-    const payload = {
-      name: cleanName(formData.name),
-      email: cleanEmail(formData.email),
-      phone: normalizePhoneNumber(formData.phone),
-      farm_slots: parsePositiveInt(formData.farm_slots, 0),
-      months_farm_setup: String(formData.months_farm_setup || ""),
-      months_farm_support: String(formData.months_farm_support || ""),
-      absentee_fine: isOrganicFoodNation ? "0" : String(formData.absentee_fine || "0"),
-      farm_id: farm.id,
-      project_category: farm.project_category || "Gingertown",
-      created_by: currentUserId,
-      created_by_name: currentUserName,
-      updated_at: new Date().toISOString(),
-    };
-
     let error;
     if (editingId) {
+      const updatePayload = {
+        name: cleanName(formData.name),
+        email: cleanEmail(formData.email),
+        phone: normalizePhoneNumber(formData.phone),
+        farm_slots: parsePositiveInt(formData.farm_slots, 0),
+        months_farm_setup: String(formData.months_farm_setup || ""),
+        months_farm_support: String(formData.months_farm_support || ""),
+        absentee_fine: isOrganicFoodNation ? "0" : String(formData.absentee_fine || "0"),
+        farm_id: farm.id,
+        project_category: farm.project_category || "Gingertown",
+        updated_by: currentUserId,
+        updated_by_name: currentAuditAttribution,
+        updated_at: new Date().toISOString(),
+      };
       ({ error } = await supabase
         .from("farm_records")
-        .update(payload)
+        .update(updatePayload)
         .eq("id", editingId));
     } else {
-      ({ error } = await supabase.from("farm_records").insert(payload));
+      const insertPayload = {
+        name: cleanName(formData.name),
+        email: cleanEmail(formData.email),
+        phone: normalizePhoneNumber(formData.phone),
+        farm_slots: parsePositiveInt(formData.farm_slots, 0),
+        months_farm_setup: String(formData.months_farm_setup || ""),
+        months_farm_support: String(formData.months_farm_support || ""),
+        absentee_fine: isOrganicFoodNation ? "0" : String(formData.absentee_fine || "0"),
+        farm_id: farm.id,
+        project_category: farm.project_category || "Gingertown",
+        created_by: currentUserId,
+        created_by_name: currentAuditAttribution,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      ({ error } = await supabase.from("farm_records").insert(insertPayload));
     }
     if (error) {
       showToast({
@@ -710,10 +898,8 @@ const FarmRecordsView = () => {
     if (!canManageRecords) {
       showToast({
         variant: "error",
-        title: IS_AUDIT_MODE_LOCKED ? "Read-Only Audit Mode" : "Permission Denied",
-        description: IS_AUDIT_MODE_LOCKED
-          ? "Farm records are locked in Read-Only Audit Mode. Deletions are restricted to developerelijah360@gmail.com."
-          : "Only the Farm Coordinator or Platform Administrator can delete member records from this farm.",
+        title: "Permission Denied",
+        description: "Only the Farm Coordinator or Platform Administrator can delete member records from this farm.",
       });
       return;
     }
@@ -748,10 +934,8 @@ const FarmRecordsView = () => {
     if (!canManageExpenses) {
       showToast({
         variant: "error",
-        title: IS_AUDIT_MODE_LOCKED ? "Read-Only Audit Mode" : "Permission Denied",
-        description: IS_AUDIT_MODE_LOCKED
-          ? "Farm expenses are locked in Read-Only Audit Mode. Modifications are restricted to developerelijah360@gmail.com."
-          : "Only the designated Farm Coordinator can log or modify expenses for this farm group.",
+        title: "Permission Denied",
+        description: "Only the Farm Coordinator or Platform Administrator can log or modify expenses for this farm group.",
       });
       return;
     }
@@ -772,21 +956,32 @@ const FarmRecordsView = () => {
       return;
     }
 
-    const data = {
-      ...expenseFormData,
-      farm_id: farm.id,
-      created_by: currentUserId,
-      created_by_name: currentUserName,
-      updated_at: new Date().toISOString(),
-    };
     let error;
     if (editingExpenseId) {
+      const updateData = {
+        category: expenseFormData.category,
+        amount: Number(expenseFormData.amount) || 0,
+        description: expenseFormData.description?.trim() || null,
+        updated_by: currentUserId,
+        updated_by_name: currentAuditAttribution,
+        updated_at: new Date().toISOString(),
+      };
       ({ error } = await supabase
         .from("farm_expenses")
-        .update(data)
+        .update(updateData)
         .eq("id", editingExpenseId));
     } else {
-      ({ error } = await supabase.from("farm_expenses").insert(data));
+      const insertData = {
+        category: expenseFormData.category,
+        amount: Number(expenseFormData.amount) || 0,
+        description: expenseFormData.description?.trim() || null,
+        farm_id: farm.id,
+        created_by: currentUserId,
+        created_by_name: currentAuditAttribution,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      ({ error } = await supabase.from("farm_expenses").insert(insertData));
     }
 
     if (error) {
@@ -811,10 +1006,8 @@ const FarmRecordsView = () => {
     if (!canManageExpenses) {
       showToast({
         variant: "error",
-        title: IS_AUDIT_MODE_LOCKED ? "Read-Only Audit Mode" : "Permission Denied",
-        description: IS_AUDIT_MODE_LOCKED
-          ? "Farm expenses are locked in Read-Only Audit Mode. Deletions are restricted to developerelijah360@gmail.com."
-          : "Only the designated Farm Coordinator can delete expenses from this farm group.",
+        title: "Permission Denied",
+        description: "Only the Farm Coordinator or Platform Administrator can delete expenses from this farm group.",
       });
       return;
     }
@@ -874,13 +1067,11 @@ const FarmRecordsView = () => {
 
   const handleSaveSale = async () => {
     if (!farm) return;
-    if (!canManageExpenses) {
+    if (!canManageSales) {
       showToast({
         variant: "error",
-        title: IS_AUDIT_MODE_LOCKED ? "Read-Only Audit Mode" : "Permission Denied",
-        description: IS_AUDIT_MODE_LOCKED
-          ? "Farm sales are locked in Read-Only Audit Mode. Modifications are restricted to developerelijah360@gmail.com."
-          : "Only the designated Farm Coordinator can log or modify sales for this farm group.",
+        title: "Permission Denied",
+        description: "Only the Farm Coordinator or Platform Administrator can log or modify sales for this farm group.",
       });
       return;
     }
@@ -909,30 +1100,44 @@ const FarmRecordsView = () => {
       return;
     }
 
-    const payload = {
-      farm_id: farm.id,
-      produce_name: finalProduceName,
-      quantity: qty > 0 ? qty : 1,
-      unit: salesFormData.unit || "kg",
-      unit_price: Number(salesFormData.unit_price) || 0,
-      amount: amount > 0 ? amount : (qty * (Number(salesFormData.unit_price) || 0)),
-      buyer_name: salesFormData.buyer_name?.trim() || null,
-      sales_channel: salesFormData.sales_channel || "Offtaker",
-      sale_date: salesFormData.sale_date || new Date().toISOString().split("T")[0],
-      description: salesFormData.description?.trim() || null,
-      created_by: currentUserId,
-      created_by_name: currentUserName,
-      updated_at: new Date().toISOString(),
-    };
-
     let error;
     if (editingSaleId) {
+      const updatePayload = {
+        produce_name: finalProduceName,
+        quantity: qty > 0 ? qty : 1,
+        unit: salesFormData.unit || "kg",
+        unit_price: Number(salesFormData.unit_price) || 0,
+        amount: amount > 0 ? amount : (qty * (Number(salesFormData.unit_price) || 0)),
+        buyer_name: salesFormData.buyer_name?.trim() || null,
+        sales_channel: salesFormData.sales_channel || "Offtaker",
+        sale_date: salesFormData.sale_date || new Date().toISOString().split("T")[0],
+        description: salesFormData.description?.trim() || null,
+        updated_by: currentUserId,
+        updated_by_name: currentAuditAttribution,
+        updated_at: new Date().toISOString(),
+      };
       ({ error } = await supabase
         .from("farm_sales")
-        .update(payload)
+        .update(updatePayload)
         .eq("id", editingSaleId));
     } else {
-      ({ error } = await supabase.from("farm_sales").insert(payload));
+      const insertPayload = {
+        farm_id: farm.id,
+        produce_name: finalProduceName,
+        quantity: qty > 0 ? qty : 1,
+        unit: salesFormData.unit || "kg",
+        unit_price: Number(salesFormData.unit_price) || 0,
+        amount: amount > 0 ? amount : (qty * (Number(salesFormData.unit_price) || 0)),
+        buyer_name: salesFormData.buyer_name?.trim() || null,
+        sales_channel: salesFormData.sales_channel || "Offtaker",
+        sale_date: salesFormData.sale_date || new Date().toISOString().split("T")[0],
+        description: salesFormData.description?.trim() || null,
+        created_by: currentUserId,
+        created_by_name: currentAuditAttribution,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      ({ error } = await supabase.from("farm_sales").insert(insertPayload));
     }
 
     if (error) {
@@ -956,13 +1161,11 @@ const FarmRecordsView = () => {
   };
 
   const handleDeleteSale = async (id: string) => {
-    if (!canManageExpenses) {
+    if (!canManageSales) {
       showToast({
         variant: "error",
-        title: IS_AUDIT_MODE_LOCKED ? "Read-Only Audit Mode" : "Permission Denied",
-        description: IS_AUDIT_MODE_LOCKED
-          ? "Farm sales are locked in Read-Only Audit Mode. Deletions are restricted to developerelijah360@gmail.com."
-          : "Only the designated Farm Coordinator can delete sales from this farm group.",
+        title: "Permission Denied",
+        description: "Only the Farm Coordinator or Platform Administrator can delete sales from this farm group.",
       });
       return;
     }
@@ -1161,19 +1364,19 @@ const FarmRecordsView = () => {
           </Button>
         </motion.div>
 
-        {!isSuperAdmin && (
-          <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900 shadow-sm no-print">
+        {!canManageRecords && !canManageExpenses && !canManageSales && (
+          <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-slate-700 shadow-sm no-print">
             <div className="flex items-center gap-2 font-semibold">
-              <Lock className="w-5 h-5 text-amber-600" />
-              <span>Read-Only Audit Mode Active</span>
+              <Lock className="w-5 h-5 text-slate-500" />
+              <span>Read-Only View</span>
             </div>
-            <p className="mt-1 text-xs text-amber-800">
-              Farm bookkeeping and membership records are locked in read-only mode during our comprehensive financial reconciliation. Record creations, edits, and deletions are temporarily disabled.
+            <p className="mt-1 text-xs text-slate-600">
+              You have read-only access to this farm group. Farm records, operating expenses, and harvest sales can only be created or modified by Farm Coordinators and Platform Administrators.
             </p>
           </div>
         )}
 
-        {(canManageRecords || canManageExpenses) && (
+        {(canManageRecords || canManageExpenses || canManageSales) && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1188,22 +1391,22 @@ const FarmRecordsView = () => {
                 <Plus className="w-4 h-4 mr-2" /> Add Member Record
               </Button>
             )}
+            {canManageSales && (
+              <Button
+                onClick={handleAddSale}
+                className="bg-emerald-700 hover:bg-emerald-600 text-white w-full sm:w-auto shadow-sm"
+              >
+                <TrendingUp className="w-4 h-4 mr-2" /> Add Sales Revenue
+              </Button>
+            )}
             {canManageExpenses && (
-              <>
-                <Button
-                  onClick={handleAddSale}
-                  className="bg-emerald-700 hover:bg-emerald-600 text-white w-full sm:w-auto shadow-sm"
-                >
-                  <TrendingUp className="w-4 h-4 mr-2" /> Add Sales Revenue
-                </Button>
-                <Button
-                  onClick={handleAddExpense}
-                  variant="outline"
-                  className="border-green-800 text-green-800 hover:bg-green-50 w-full sm:w-auto"
-                >
-                  <Plus className="w-4 h-4 mr-2" /> Add Expenses
-                </Button>
-              </>
+              <Button
+                onClick={handleAddExpense}
+                variant="outline"
+                className="border-green-800 text-green-800 hover:bg-green-50 w-full sm:w-auto"
+              >
+                <Plus className="w-4 h-4 mr-2" /> Add Expenses
+              </Button>
             )}
           </motion.div>
         )}
@@ -1221,6 +1424,32 @@ const FarmRecordsView = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {editingId && (formData.created_by_name || formData.updated_by_name) && (
+                  <div className="rounded-md bg-slate-50 border border-slate-200 p-3 text-xs text-slate-700">
+                    <div className="font-semibold text-slate-900 mb-1.5 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />
+                      <span>Audit Trail History</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-gray-500 block text-[11px]">Original Creator</span>
+                        <div className="font-medium text-gray-800">{formData.created_by_name || "Coordinator"}</div>
+                        {formData.created_at && (
+                          <div className="text-[10px] text-gray-400">{formatDateTime(formData.created_at)}</div>
+                        )}
+                      </div>
+                      {formData.updated_by_name && (
+                        <div>
+                          <span className="text-gray-500 block text-[11px]">Last Modified By</span>
+                          <div className="font-medium text-gray-800">{formData.updated_by_name}</div>
+                          {formData.updated_at && (
+                            <div className="text-[10px] text-gray-400">{formatDateTime(formData.updated_at)}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {/* Email — first, triggers auto-lookup */}
                   <div className="md:col-span-2 lg:col-span-3">
@@ -1364,6 +1593,32 @@ const FarmRecordsView = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {editingExpenseId && (expenseFormData.created_by_name || expenseFormData.updated_by_name) && (
+                  <div className="rounded-md bg-slate-50 border border-slate-200 p-3 text-xs text-slate-700">
+                    <div className="font-semibold text-slate-900 mb-1.5 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-blue-600 inline-block" />
+                      <span>Audit Trail History</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-gray-500 block text-[11px]">Original Creator</span>
+                        <div className="font-medium text-gray-800">{expenseFormData.created_by_name || "Coordinator"}</div>
+                        {expenseFormData.created_at && (
+                          <div className="text-[10px] text-gray-400">{formatDateTime(expenseFormData.created_at)}</div>
+                        )}
+                      </div>
+                      {expenseFormData.updated_by_name && (
+                        <div>
+                          <span className="text-gray-500 block text-[11px]">Last Modified By</span>
+                          <div className="font-medium text-gray-800">{expenseFormData.updated_by_name}</div>
+                          {expenseFormData.updated_at && (
+                            <div className="text-[10px] text-gray-400">{formatDateTime(expenseFormData.updated_at)}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label>Category</Label>
@@ -1431,7 +1686,7 @@ const FarmRecordsView = () => {
           </motion.div>
         )}
 
-        {showSalesForm && canManageExpenses && (
+        {showSalesForm && canManageSales && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -1448,6 +1703,32 @@ const FarmRecordsView = () => {
                 </p>
               </CardHeader>
               <CardContent className="space-y-4 pt-4">
+                {editingSaleId && (salesFormData.created_by_name || salesFormData.updated_by_name) && (
+                  <div className="rounded-md bg-emerald-50/70 border border-emerald-200 p-3 text-xs text-emerald-900">
+                    <div className="font-semibold text-emerald-950 mb-1.5 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block" />
+                      <span>Audit Trail History</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-emerald-700/80 block text-[11px]">Original Creator</span>
+                        <div className="font-medium text-gray-900">{salesFormData.created_by_name || "Coordinator"}</div>
+                        {salesFormData.created_at && (
+                          <div className="text-[10px] text-gray-500">{formatDateTime(salesFormData.created_at)}</div>
+                        )}
+                      </div>
+                      {salesFormData.updated_by_name && (
+                        <div>
+                          <span className="text-emerald-700/80 block text-[11px]">Last Modified By</span>
+                          <div className="font-medium text-gray-900">{salesFormData.updated_by_name}</div>
+                          {salesFormData.updated_at && (
+                            <div className="text-[10px] text-gray-500">{formatDateTime(salesFormData.updated_at)}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div>
                     <Label>Produce Name</Label>
@@ -1676,6 +1957,7 @@ const FarmRecordsView = () => {
                         )}
                         <th className="text-left p-2">Total</th>
                         <th className="text-left p-2">Email</th>
+                        <th className="text-left p-2">Recorded By / Audit</th>
                         {canManageRecords && (
                           <th className="text-left p-2">Actions</th>
                         )}
@@ -1693,9 +1975,9 @@ const FarmRecordsView = () => {
                                 record.name ||
                                 "—"}
                             </div>
-                            {record.created_by_name && (
-                              <div className="text-[10px] text-gray-400 font-normal">
-                                Logged by: {record.created_by_name}
+                            {record.name && record.referral_code && (
+                              <div className="text-[11px] text-gray-500 font-normal">
+                                {record.name}
                               </div>
                             )}
                           </td>
@@ -1743,6 +2025,14 @@ const FarmRecordsView = () => {
                             ₦{getRecordTotal(record).toLocaleString()}
                           </td>
                           <td className="p-2 text-gray-600">{record.email}</td>
+                          <td className="p-2 text-xs text-gray-500">
+                            <AuditTrailCell
+                              createdByName={record.created_by_name}
+                              createdAt={record.created_at}
+                              updatedByName={record.updated_by_name}
+                              updatedAt={record.updated_at}
+                            />
+                          </td>
                           {canManageRecords && (
                             <td className="p-2">
                               <div className="flex gap-1">
@@ -1820,8 +2110,8 @@ const FarmRecordsView = () => {
                             .toLocaleString()}
                         </td>
                         <td className="p-2" />
-                        {isCoordinator && <td className="p-2" />}
-                        {isCoordinator && <td className="p-2" />}
+                        <td className="p-2" />
+                        {canManageRecords && <td className="p-2" />}
                       </tr>
                     </tfoot>
                   </table>
@@ -1849,7 +2139,7 @@ const FarmRecordsView = () => {
                   Produce harvest revenue, offtake sales, and commercial trading distributions
                 </p>
               </div>
-              {canManageExpenses && (
+              {canManageSales && (
                 <Button
                   onClick={handleAddSale}
                   size="sm"
@@ -1879,8 +2169,8 @@ const FarmRecordsView = () => {
                         <th className="text-right p-2">Unit Price</th>
                         <th className="text-right p-2">Total Revenue</th>
                         <th className="text-left p-2">Buyer</th>
-                        <th className="text-left p-2">Recorded By</th>
-                        {canManageExpenses && (
+                        <th className="text-left p-2">Recorded By / Audit</th>
+                        {canManageSales && (
                           <th className="text-center p-2 no-print">Actions</th>
                         )}
                       </tr>
@@ -1917,14 +2207,14 @@ const FarmRecordsView = () => {
                             {sale.buyer_name || "—"}
                           </td>
                           <td className="p-2 text-xs text-gray-500 whitespace-nowrap">
-                            <div className="font-medium text-gray-700">
-                              {sale.created_by_name || "Coordinator"}
-                            </div>
-                            <div className="text-[10px] text-gray-400">
-                              {formatDateTime(sale.created_at)}
-                            </div>
+                            <AuditTrailCell
+                              createdByName={sale.created_by_name}
+                              createdAt={sale.created_at}
+                              updatedByName={sale.updated_by_name}
+                              updatedAt={sale.updated_at}
+                            />
                           </td>
-                          {canManageExpenses && (
+                          {canManageSales && (
                             <td className="p-2 no-print">
                               <div className="flex justify-center gap-1">
                                 <Button
@@ -1956,7 +2246,7 @@ const FarmRecordsView = () => {
                         <td className="p-2 text-right text-emerald-900 text-base font-black">
                           ₦{totalSalesRevenue.toLocaleString()}
                         </td>
-                        <td colSpan={canManageExpenses ? 3 : 2} className="p-2" />
+                        <td colSpan={canManageSales ? 3 : 2} className="p-2" />
                       </tr>
                     </tfoot>
                   </table>
@@ -2005,7 +2295,7 @@ const FarmRecordsView = () => {
                         <th className="text-left p-2">Date</th>
                         <th className="text-left p-2">Category</th>
                         <th className="text-right p-2">Amount</th>
-                        <th className="text-left p-2">Recorded By</th>
+                        <th className="text-left p-2">Recorded By / Audit</th>
                         {canManageExpenses && (
                           <th className="text-center p-2 no-print">Actions</th>
                         )}
@@ -2032,12 +2322,12 @@ const FarmRecordsView = () => {
                             ₦{Number(expense.amount).toLocaleString()}
                           </td>
                           <td className="p-2 text-xs text-gray-500 whitespace-nowrap">
-                            <div className="font-medium text-gray-700">
-                              {expense.created_by_name || "Coordinator"}
-                            </div>
-                            <div className="text-[10px] text-gray-400">
-                              {formatDateTime(expense.created_at)}
-                            </div>
+                            <AuditTrailCell
+                              createdByName={expense.created_by_name}
+                              createdAt={expense.created_at}
+                              updatedByName={expense.updated_by_name}
+                              updatedAt={expense.updated_at}
+                            />
                           </td>
                           {canManageExpenses && (
                             <td className="p-2 no-print">

@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS public.farm_sales (
   description TEXT,
   created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_by_name TEXT,
+  updated_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  updated_by_name TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
@@ -59,9 +61,14 @@ CREATE POLICY "Admins can manage farm sales"
 ALTER TABLE public.farm_expenses 
   ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS created_by_name TEXT,
+  ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS updated_by_name TEXT,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now());
 
 -- 3. Add audit attribution to farm_records
 ALTER TABLE public.farm_records
   ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
-  ADD COLUMN IF NOT EXISTS created_by_name TEXT;
+  ADD COLUMN IF NOT EXISTS created_by_name TEXT,
+  ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS updated_by_name TEXT,
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now());

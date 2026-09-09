@@ -38,17 +38,6 @@ const CreateFarmGroup = () => {
       return;
     }
 
-    const IS_AUDIT_MODE_LOCKED = true;
-    if (IS_AUDIT_MODE_LOCKED && !isSuperAdmin) {
-      showToast({
-        variant: "error",
-        title: "Read-Only Audit Mode",
-        description: "Farm group creation is temporarily restricted to super developer during system reconciliation.",
-      });
-      setLoading(false);
-      return;
-    }
-
     if (!isAdmin) {
       showToast({
         variant: "error",
