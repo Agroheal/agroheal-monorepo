@@ -30,3 +30,4 @@ supabase/.temp/linked-project.json
 supabase/backups/
 *.sql.dump
 *.xlsx
+scratch/
