@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
+import { apiClient } from "@/lib/apiClient";
 import GreenCardImage from "@/components/webComponents/GreenCardImage";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import { SITE_URL } from "@/config/Index";
@@ -45,7 +46,48 @@ export const VerifyCard: React.FC = () => {
       const rawNumber = formattedId.replace(/[^0-9]/g, "");
 
       try {
-        // Query profile by formatted member_id or loose match
+        // 1. Attempt verification via Express API v1 (/api/v1/member/verify-card/:memberId)
+        try {
+          const apiData = await apiClient.member.verifyCard(formattedId);
+          if (apiData && apiData.memberId) {
+            const formattedDate = apiData.issueDate
+              ? new Date(apiData.issueDate).toLocaleDateString("en-US", {
+                  month: "long",
+                  year: "numeric",
+                }).toUpperCase()
+              : "AUGUST 2026";
+
+            setData({
+              valid: Boolean(apiData.isVerified),
+              memberId: formatAgcId(apiData.memberId),
+              fullName: apiData.fullName || "AgroHeal Member",
+              memberSince: formattedDate,
+              status: apiData.isVerified ? "active" : "inactive",
+              tier: "AgroHeal Green Card Pioneer",
+              verifiedAt: new Date().toISOString(),
+            });
+            setLoading(false);
+            return;
+          }
+        } catch (apiErr: any) {
+          // If 404 from API, it genuinely does not exist
+          if (apiErr.statusCode === 404) {
+            setData({
+              valid: false,
+              memberId: formattedId,
+              fullName: "Unknown Member",
+              memberSince: "N/A",
+              status: "not_found",
+              tier: "Unregistered",
+              verifiedAt: new Date().toISOString(),
+            });
+            setLoading(false);
+            return;
+          }
+          console.info("[VerifyCard] Express API unavailable, falling back to direct database query:", apiErr.message);
+        }
+
+        // 2. Database Fallback
         let query = supabase
           .from("profiles")
           .select("id, full_name, member_id, created_at");

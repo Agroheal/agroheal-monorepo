@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
 import { supabase } from "@/lib/supabaseClient";
+import { apiClient } from "@/lib/apiClient";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 
 interface LedgerItem {
@@ -69,6 +70,39 @@ export default function TransactionLedger() {
       } = await supabase.auth.getUser();
       if (!user) return;
 
+      // 1. Attempt to fetch dual wallet summary & ledger from Express API v1 (/api/v1/wallet/...)
+      let apiSummary: any = null;
+      let apiLedgerEntries: any[] = [];
+      try {
+        const [summaryRes, ledgerRes] = await Promise.allSettled([
+          apiClient.wallet.getSummary(),
+          apiClient.wallet.getLedger(),
+        ]);
+
+        if (summaryRes.status === "fulfilled" && summaryRes.value) {
+          apiSummary = summaryRes.value;
+          if (apiSummary.directReferralWallet) {
+            setDirectReferralEarnings(Number(apiSummary.directReferralWallet.balance) || 0);
+          }
+          if (apiSummary.matrixSpilloverWallet) {
+            setMatrixEarnings(Number(apiSummary.matrixSpilloverWallet.balance) || 0);
+            if (apiSummary.matrixSpilloverWallet.activePqv30d !== undefined) {
+              setActivePqv30d(Number(apiSummary.matrixSpilloverWallet.activePqv30d) || 0);
+            }
+            if (apiSummary.matrixSpilloverWallet.directReferralsCount !== undefined) {
+              setDirectReferralsCount(Number(apiSummary.matrixSpilloverWallet.directReferralsCount) || 0);
+            }
+          }
+        }
+
+        if (ledgerRes.status === "fulfilled" && Array.isArray(ledgerRes.value)) {
+          apiLedgerEntries = ledgerRes.value;
+        }
+      } catch (apiErr: any) {
+        console.info("[TransactionLedger] Express Wallet API unavailable, continuing with database records:", apiErr.message);
+      }
+
+      // 2. Database query for profile, subscriptions, and receipts
       const [
         { data: profile },
         { data: referrals },
@@ -78,7 +112,7 @@ export default function TransactionLedger() {
       ] = await Promise.all([
         supabase
           .from("profiles")
-          .select("member_id, referral_earnings, total_referrals, created_at")
+          .select("member_id, referral_earnings, slot_bonus, total_referrals, created_at")
           .eq("id", user.id)
           .maybeSingle(),
         supabase
@@ -101,8 +135,14 @@ export default function TransactionLedger() {
       ]);
 
       setMemberId(formatAgcId(profile?.member_id));
-      const refEarnings = Number(profile?.referral_earnings || 0);
+      const refEarnings = apiSummary?.directReferralWallet?.balance !== undefined
+        ? Number(apiSummary.directReferralWallet.balance)
+        : Number(profile?.referral_earnings || 0);
       setDirectReferralEarnings(refEarnings);
+
+      if (apiSummary?.matrixSpilloverWallet?.balance === undefined && profile?.slot_bonus) {
+        setMatrixEarnings(Number(profile.slot_bonus || 0));
+      }
 
       const hasActiveSub = Boolean(
         (subscriptions && subscriptions.some((s: any) => s.status === 'active' && (!s.expires_at || new Date(s.expires_at) > new Date()))) ||
@@ -110,23 +150,43 @@ export default function TransactionLedger() {
       );
       setIsProjectSubscribed(hasActiveSub);
 
-      const refCount = referrals ? referrals.length : (profile?.total_referrals || 0);
+      const refCount = apiSummary?.matrixSpilloverWallet?.directReferralsCount !== undefined
+        ? Number(apiSummary.matrixSpilloverWallet.directReferralsCount)
+        : (referrals ? referrals.length : (profile?.total_referrals || 0));
       setDirectReferralsCount(refCount);
 
       // Compute 30-day PQV from slot subscriptions and monthly payments
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      if (apiSummary?.matrixSpilloverWallet?.activePqv30d === undefined) {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-      let calculatedPqv = 0;
-      (otherPayments || []).forEach((p) => {
-        if (new Date(p.created_at) >= thirtyDaysAgo) {
-          calculatedPqv += Number(p.amount || 0);
-        }
-      });
-      setActivePqv30d(calculatedPqv);
+        let calculatedPqv = 0;
+        (otherPayments || []).forEach((p) => {
+          if (new Date(p.created_at) >= thirtyDaysAgo) {
+            calculatedPqv += Number(p.amount || 0);
+          }
+        });
+        setActivePqv30d(calculatedPqv);
+      }
 
       // Build unified ledger list
       const items: LedgerItem[] = [];
+
+      // If official wallet_ledger entries returned from API, map them first
+      if (apiLedgerEntries.length > 0) {
+        apiLedgerEntries.forEach((entry: any) => {
+          items.push({
+            id: entry.id || `ledger-${entry.reference_id || Math.random()}`,
+            date: entry.created_at || new Date().toISOString(),
+            type: entry.entry_type === "DEBIT" ? "DEBIT" : "CREDIT",
+            category: entry.category || "REFERRAL_BONUS",
+            amount: Number(entry.amount) || 0,
+            description: entry.description || "Wallet Transaction",
+            status: entry.status === "FAILED" ? "FAILED" : entry.status === "PENDING" ? "PENDING" : "COMPLETED",
+            reference: entry.reference_id || entry.id || "N/A",
+          });
+        });
+      }
 
       // 1. Direct referral earnings entries (synthetic aggregation or records)
       if (refEarnings > 0) {

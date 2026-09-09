@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
+import { apiClient } from "@/lib/apiClient";
 import { SITE_URL } from "@/config/Index";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 
@@ -148,7 +149,29 @@ const CompoundReferrals: React.FC = () => {
       const authId = user.id;
       setCurrentUserId(authId);
 
-      // 1. Fetch Profile
+      // 1. Attempt to fetch qualifications & schedule from Express API v1 (/api/v1/genealogy/qualifications)
+      let apiQuals: any = null;
+      try {
+        apiQuals = await apiClient.genealogy.getQualifications();
+        if (apiQuals?.matrixSpilloverWallet) {
+          if (apiQuals.matrixSpilloverWallet.directReferralsCount !== undefined) {
+            setDirectReferralsCount(Number(apiQuals.matrixSpilloverWallet.directReferralsCount));
+          }
+          if (apiQuals.matrixSpilloverWallet.activePqv30d !== undefined) {
+            setActivePqv30d(Number(apiQuals.matrixSpilloverWallet.activePqv30d));
+          }
+          if (apiQuals.matrixSpilloverWallet.daysRemaining !== undefined) {
+            setPqvDaysRemaining(Number(apiQuals.matrixSpilloverWallet.daysRemaining));
+          }
+        }
+        if (apiQuals?.directReferralWallet?.currentBalance !== undefined) {
+          setDirectReferralEarnings(Number(apiQuals.directReferralWallet.currentBalance));
+        }
+      } catch (apiErr: any) {
+        console.info("[CompoundReferrals] Express Genealogy API unavailable, relying on database records:", apiErr.message);
+      }
+
+      // 2. Fetch Profile from Database
       const { data: profile } = await supabase
         .from("profiles")
         .select("*")
@@ -158,7 +181,9 @@ const CompoundReferrals: React.FC = () => {
       if (profile) {
         setCurrentUserProfile(profile);
         setReferralCode(profile.referral_code || profile.member_id || "");
-        setDirectReferralEarnings(Number(profile.referral_earnings || 0));
+        if (apiQuals?.directReferralWallet?.currentBalance === undefined) {
+          setDirectReferralEarnings(Number(profile.referral_earnings || 0));
+        }
         setMatrixSpilloverEarnings(Number(profile.slot_bonus || 0));
       }
 

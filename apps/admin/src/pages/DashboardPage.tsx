@@ -1,15 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CreditCard, ShieldCheck, Sprout, Users } from "lucide-react";
 import { useAdminMembers } from "@/hooks/useAdminMembers";
 import { StatCard } from "@/components/admin/StatCard";
 import { SlotCreditorForm } from "@/components/admin/SlotCreditorForm";
 import { OfflineRegistrationForm } from "@/components/admin/OfflineRegistrationForm";
 import { StatusBanner } from "@/components/admin/StatusBanner";
+import { adminApiClient } from "@/lib/apiClient";
 
 export default function DashboardPage() {
   const { members, paymentLogs, refetch } = useAdminMembers();
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [serverStats, setServerStats] = useState<{
+    totalMembers: number;
+    activeSlots: number;
+    activeGreenCards: number;
+    farmGroupsCount: number;
+  } | null>(null);
+
+  useEffect(() => {
+    adminApiClient.admin
+      .getStats()
+      .then((data) => setServerStats(data))
+      .catch((err) =>
+        console.info(
+          "[DashboardPage] Express Admin API not reached, using direct database stats:",
+          err.message
+        )
+      );
+  }, []);
 
   const flash = (fn: (v: string) => void, text: string) => {
     fn(text);
@@ -26,14 +45,24 @@ export default function DashboardPage() {
       <StatusBanner variant="error" message={errorMessage} />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Registered Members" value={members.length} footer="Total member profiles" icon={Users} />
+        <StatCard
+          label="Registered Members"
+          value={serverStats ? serverStats.totalMembers : members.length}
+          footer="Total member profiles"
+          icon={Users}
+        />
         <StatCard
           label="Green Card Holders"
-          value={members.filter((m) => m.has_green_card).length}
-          footer={`${members.filter((m) => !m.has_green_card).length} unpaid / pending`}
+          value={serverStats ? serverStats.activeGreenCards : members.filter((m) => m.has_green_card).length}
+          footer={`${(serverStats ? serverStats.totalMembers : members.length) - (serverStats ? serverStats.activeGreenCards : members.filter((m) => m.has_green_card).length)} unpaid / pending`}
           icon={ShieldCheck}
         />
-        <StatCard label="Active Farm Slots" value={activeSlots} footer="Total active leased slots" icon={Sprout} />
+        <StatCard
+          label="Active Farm Slots"
+          value={serverStats ? serverStats.activeSlots : activeSlots}
+          footer="Total active leased slots"
+          icon={Sprout}
+        />
         <StatCard
           label="Total Operations Logs"
           value={paymentLogs.length}

@@ -21,3 +21,7 @@ export const SERVER_API_URL =
   (import.meta.env.MODE === "production"
     ? "https://agroheal-server-prod.up.railway.app"
     : "https://agroheal-server-dev.up.railway.app");
+
+// API v1 Base URL — all Express routes use the /api/v1 prefix
+export const API_BASE_URL = `${SERVER_API_URL.replace(/\/+$/, "")}/api/v1`;
+

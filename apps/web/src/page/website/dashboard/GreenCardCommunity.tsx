@@ -6,6 +6,7 @@ import { Sprout, Users, Copy, PartyPopper, IdCard, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
 import { supabase } from "@/lib/supabaseClient";
+import { apiClient } from "@/lib/apiClient";
 import { SITE_URL } from "@/config/Index";
 import DigitalGreenCard, { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 
@@ -122,15 +123,29 @@ const GreenCardCommunity = () => {
       if (profile?.member_id) {
         setMemberId(profile.member_id);
       } else {
-        const { data: newMemberId, error: memberIdError } =
-          await supabase.rpc("get_or_create_green_card_member_id", {
-            p_user_id: user.id,
-            p_join_year: new Date(greenCard.started_at).getFullYear(),
-          });
-        if (memberIdError) {
-          console.error("Member ID assignment failed", memberIdError);
-        } else if (typeof newMemberId === "string") {
-          setMemberId(newMemberId);
+        // Attempt to fetch from Express API v1 (/api/v1/member/digital-card)
+        let resolvedMemberId = "";
+        try {
+          const cardData = await apiClient.member.getDigitalCard();
+          if (cardData && cardData.memberId && cardData.memberId !== "PENDING") {
+            resolvedMemberId = cardData.memberId;
+            setMemberId(resolvedMemberId);
+          }
+        } catch (apiErr: any) {
+          console.info("[GreenCardCommunity] Express Member API unavailable, using RPC fallback:", apiErr.message);
+        }
+
+        if (!resolvedMemberId) {
+          const { data: newMemberId, error: memberIdError } =
+            await supabase.rpc("get_or_create_green_card_member_id", {
+              p_user_id: user.id,
+              p_join_year: new Date(greenCard.started_at).getFullYear(),
+            });
+          if (memberIdError) {
+            console.error("Member ID assignment failed", memberIdError);
+          } else if (typeof newMemberId === "string") {
+            setMemberId(newMemberId);
+          }
         }
       }
 
