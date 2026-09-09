@@ -879,25 +879,22 @@ const FarmRecordsView = () => {
       return;
     }
 
-    // On new record only: validate email uniqueness within the SAME CATEGORY
+    // On new record only: validate that the member is not already in THIS specific farm group
     if (!editingId && formData.email) {
       const sanitizedEmail = cleanEmail(formData.email);
       const { data: existingRecords } = await supabase
         .from("farm_records")
-        .select("farm_id, farm_groups!inner(project_category)")
+        .select("farm_id, farm_groups!inner(name, project_category)")
         .eq("email", sanitizedEmail);
 
       if (existingRecords && existingRecords.length > 0) {
-        const inSameCategory = existingRecords.some((r) => {
-          const fg = r.farm_groups as unknown as { project_category?: string } | null;
-          return (fg?.project_category || "Gingertown") === farm.project_category;
-        });
+        const inSameFarm = existingRecords.some((r) => r.farm_id === farm.id);
 
-        if (inSameCategory) {
+        if (inSameFarm) {
           showToast({
             variant: "error",
-            title: "Member already exists",
-            description: `This member is already registered in a farm group within the ${farm.project_category} category.`,
+            title: "Member already in this farm",
+            description: `This member is already registered in ${farm.name}. Please edit their existing record instead of creating a duplicate.`,
           });
           return;
         }
