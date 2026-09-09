@@ -59,7 +59,7 @@ export function canAccessAdminPortal(role?: string | null, email?: string | null
  * Checks if a user has permission to manage (add, edit) farm member records.
  * Rules:
  * - In Audit Mode: strictly super developer
- * - In Normal Mode: Platform Admins (admin, super_admin) OR the designated Farm Coordinator
+ * - In Normal Mode: Platform Admins (admin, super_admin), Support, OR designated Farm Coordinators
  */
 export function canManageFarmMemberRecords(params: {
   role?: string | null;
@@ -72,15 +72,15 @@ export function canManageFarmMemberRecords(params: {
   if (isAuditLocked) {
     return isSuper;
   }
-  return isPlatformAdmin(role, email) || isFarmCoordinator;
+  const parsed = parseUserRole(role);
+  return isPlatformAdmin(role, email) || parsed === UserRole.SUPPORT || isFarmCoordinator;
 }
 
 /**
  * Checks if a user has permission to add, edit, or delete farm operating expenses.
  * Rules:
- * - Farm Coordinators ALONE manage operating expenses on their assigned farm
- * - Platform Admins CANNOT manage farm operating expenses
- * - Super Admin retains emergency/audit oversight
+ * - In Audit Mode: strictly super developer
+ * - In Normal Mode: Platform Admins, Support, and designated Farm Coordinators
  */
 export function canManageFarmExpenses(params: {
   role?: string | null;
@@ -93,8 +93,29 @@ export function canManageFarmExpenses(params: {
   if (isAuditLocked) {
     return isSuper;
   }
-  // Farm coordinator ALONE has write access to expenses for their farm (super_admin can also override if needed)
-  return isFarmCoordinator || isSuper;
+  const parsed = parseUserRole(role);
+  return isPlatformAdmin(role, email) || parsed === UserRole.SUPPORT || isFarmCoordinator;
+}
+
+/**
+ * Checks if a user has permission to add, edit, or delete farm produce sales.
+ * Rules:
+ * - In Audit Mode: strictly super developer
+ * - In Normal Mode: Platform Admins, Support, and designated Farm Coordinators
+ */
+export function canManageFarmSales(params: {
+  role?: string | null;
+  email?: string | null;
+  isFarmCoordinator: boolean;
+  isAuditLocked?: boolean;
+}): boolean {
+  const { role, email, isFarmCoordinator, isAuditLocked = false } = params;
+  const isSuper = email?.trim().toLowerCase() === SUPER_DEV_EMAIL.toLowerCase() || parseUserRole(role) === UserRole.SUPER_ADMIN;
+  if (isAuditLocked) {
+    return isSuper;
+  }
+  const parsed = parseUserRole(role);
+  return isPlatformAdmin(role, email) || parsed === UserRole.SUPPORT || isFarmCoordinator;
 }
 
 /**

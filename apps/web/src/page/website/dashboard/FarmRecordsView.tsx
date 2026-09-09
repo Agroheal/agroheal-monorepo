@@ -203,7 +203,7 @@ const calcFine = (r: FarmRecord) =>
   Math.max(r.fine_paid || 0, Number(r.absentee_fine) || 0);
 
 interface ParsedAudit {
-  role: "Super Admin" | "Admin" | "Coordinator" | "Staff";
+  role: "Super Admin" | "Admin" | "Support" | "Coordinator" | "Staff";
   name: string;
   email?: string;
   raw: string;
@@ -211,11 +211,11 @@ interface ParsedAudit {
 
 const parseAuditString = (raw?: string): ParsedAudit => {
   if (!raw || !raw.trim()) {
-    return { role: "Coordinator", name: "Coordinator", raw: "Coordinator" };
+    return { role: "Coordinator", name: "Farm Coordinator", raw: "Coordinator" };
   }
   const str = raw.trim();
 
-  let role: "Super Admin" | "Admin" | "Coordinator" | "Staff" = "Coordinator";
+  let role: "Super Admin" | "Admin" | "Support" | "Coordinator" | "Staff" = "Coordinator";
   let name = str;
   let email: string | undefined = undefined;
 
@@ -232,13 +232,19 @@ const parseAuditString = (raw?: string): ParsedAudit => {
   } else if (/\[\s*Admin\s*\]/i.test(withoutEmail) || /^Admin\s*:/i.test(withoutEmail)) {
     role = "Admin";
     name = withoutEmail.replace(/\[\s*Admin\s*\]\s*/i, "").replace(/^Admin\s*:\s*/i, "").trim();
-  } else if (/\[\s*Coordinator\s*\]/i.test(withoutEmail) || /^Coordinator\s*:/i.test(withoutEmail)) {
+  } else if (/\[\s*(?:Customer\s*)?Support\s*\]/i.test(withoutEmail) || /^(?:Customer\s*)?Support\s*:/i.test(withoutEmail)) {
+    role = "Support";
+    name = withoutEmail.replace(/\[\s*(?:Customer\s*)?Support\s*\]\s*/i, "").replace(/^(?:Customer\s*)?Support\s*:\s*/i, "").trim();
+  } else if (/\[\s*(?:Farm\s*)?Coordinator\s*\]/i.test(withoutEmail) || /^(?:Farm\s*)?Coordinator\s*:/i.test(withoutEmail)) {
     role = "Coordinator";
-    name = withoutEmail.replace(/\[\s*Coordinator\s*\]\s*/i, "").replace(/^Coordinator\s*:\s*/i, "").trim();
+    name = withoutEmail.replace(/\[\s*(?:Farm\s*)?Coordinator\s*\]\s*/i, "").replace(/^(?:Farm\s*)?Coordinator\s*:/i, "").trim();
   } else if (withoutEmail.toLowerCase() === "admin") {
     role = "Admin";
     name = "Platform Admin";
-  } else if (withoutEmail.toLowerCase() === "coordinator") {
+  } else if (withoutEmail.toLowerCase() === "support") {
+    role = "Support";
+    name = "Customer Support";
+  } else if (withoutEmail.toLowerCase() === "coordinator" || withoutEmail.toLowerCase() === "farm coordinator") {
     role = "Coordinator";
     name = "Farm Coordinator";
   } else {
@@ -246,7 +252,7 @@ const parseAuditString = (raw?: string): ParsedAudit => {
   }
 
   if (!name) {
-    name = role;
+    name = role === "Coordinator" ? "Farm Coordinator" : role === "Support" ? "Customer Support" : role;
   }
 
   return { role, name, email, raw };
@@ -267,10 +273,17 @@ const RoleBadge = ({ role }: { role: string }) => {
       </span>
     );
   }
-  if (role === "Coordinator") {
+  if (role === "Support" || role === "Customer Support") {
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-cyan-100 text-cyan-800 border border-cyan-200">
+        Support
+      </span>
+    );
+  }
+  if (role === "Coordinator" || role === "Farm Coordinator") {
     return (
       <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
-        Coordinator
+        Farm Coordinator
       </span>
     );
   }
@@ -296,10 +309,12 @@ const AuditTrailCell = ({
   const editor = updatedByName ? parseAuditString(updatedByName) : null;
   const isEdited = !!editor && (!!updatedByName && updatedByName !== createdByName || (!!updatedAt && updatedAt !== createdAt));
 
+  const roleLabel = (r: string) => (r === "Coordinator" ? "Farm Coordinator" : r);
+
   const fullTooltip = [
-    `Created by: [${creator.role}] ${creator.name}${creator.email ? ` (${creator.email})` : ""}${createdAt ? ` on ${formatDateTime(createdAt)}` : ""}`,
+    `Created by: [${roleLabel(creator.role)}] ${creator.name}${creator.email ? ` (${creator.email})` : ""}${createdAt ? ` on ${formatDateTime(createdAt)}` : ""}`,
     isEdited && editor
-      ? `Last edited by: [${editor.role}] ${editor.name}${editor.email ? ` (${editor.email})` : ""}${updatedAt ? ` on ${formatDateTime(updatedAt)}` : ""}`
+      ? `Last edited by: [${roleLabel(editor.role)}] ${editor.name}${editor.email ? ` (${editor.email})` : ""}${updatedAt ? ` on ${formatDateTime(updatedAt)}` : ""}`
       : "",
   ]
     .filter(Boolean)
@@ -381,26 +396,38 @@ const FarmRecordsView = () => {
     calcSupport(r) +
     calcSlotFee(r) +
     (isOrganicFoodNation ? 0 : calcFine(r));
-  const { user: authUser, profile: authProfile, isAdmin: authIsAdmin, isSuperAdmin: authIsSuperAdmin } = useAuth();
+  const {
+    user: authUser,
+    profile: authProfile,
+    isAdmin: authIsAdmin,
+    isSuperAdmin: authIsSuperAdmin,
+    isCoordinator: authIsCoordinator,
+    isSupport: authIsSupport,
+  } = useAuth();
   const [isCoordinator, setIsCoordinator] = useState(false);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
   const isSuperAdmin =
     currentUserEmail?.toLowerCase() === "developerelijah360@gmail.com" ||
     authIsSuperAdmin;
   const isAdmin = authIsAdmin || isSuperAdmin;
+  const isSupport = authIsSupport || authProfile?.role === "support";
+  const isFarmCoordinator =
+    isCoordinator || authIsCoordinator || authProfile?.role === "coordinator";
 
-  // Platform Admins, Super Admins, and Designated Farm Coordinators can manage member records, expenses, and sales
-  const canManageRecords = isSuperAdmin || isAdmin || isCoordinator;
-  const canManageExpenses = isSuperAdmin || isAdmin || isCoordinator;
-  const canManageSales = isSuperAdmin || isAdmin || isCoordinator;
+  // Platform Admins, Super Admins, Support, and Designated Farm Coordinators can manage member records, expenses, and sales
+  const canManageRecords = isSuperAdmin || isAdmin || isSupport || isFarmCoordinator;
+  const canManageExpenses = isSuperAdmin || isAdmin || isSupport || isFarmCoordinator;
+  const canManageSales = isSuperAdmin || isAdmin || isSupport || isFarmCoordinator;
 
   // Active user audit attribution context
   const currentUserRoleLabel = isSuperAdmin
     ? "Super Admin"
     : isAdmin
     ? "Admin"
-    : isCoordinator
-    ? "Coordinator"
+    : isSupport
+    ? "Support"
+    : isFarmCoordinator
+    ? "Farm Coordinator"
     : "Staff";
 
   const userDisplayName =
@@ -553,15 +580,15 @@ const FarmRecordsView = () => {
         (r) => r.farm_groups as unknown as FarmRecord["farm_groups"],
       ) || [];
 
-    // 3. If admin or super_admin, also fetch all farm groups across the platform
-    let adminFarms: FarmRecord["farm_groups"][] = [];
-    if (isAdmin) {
+    // 3. If admin, super_admin, or support, also fetch all farm groups across the platform
+    let platformFarms: FarmRecord["farm_groups"][] = [];
+    if (isAdmin || isSupport) {
       const { data: allFarms } = await supabase.from("farm_groups").select("*");
-      adminFarms = (allFarms || []) as unknown as FarmRecord["farm_groups"][];
+      platformFarms = (allFarms || []) as unknown as FarmRecord["farm_groups"][];
     }
 
     // Combine and deduplicate
-    const combinedFarms = [...(coordFarms || []), ...memberFarms, ...adminFarms];
+    const combinedFarms = [...(coordFarms || []), ...memberFarms, ...platformFarms];
     const uniqueFarms = Array.from(
       new Map(combinedFarms.map((f) => [f.id, f])).values(),
     );
@@ -1371,7 +1398,7 @@ const FarmRecordsView = () => {
               <span>Read-Only View</span>
             </div>
             <p className="mt-1 text-xs text-slate-600">
-              You have read-only access to this farm group. Farm records, operating expenses, and harvest sales can only be created or modified by Farm Coordinators and Platform Administrators.
+              You have read-only access to this farm group. Farm records, operating expenses, and harvest sales can only be created or modified by Farm Coordinators, Customer Support, and Platform Administrators.
             </p>
           </div>
         )}
@@ -1432,19 +1459,45 @@ const FarmRecordsView = () => {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       <div>
-                        <span className="text-gray-500 block text-[11px]">Original Creator</span>
-                        <div className="font-medium text-gray-800">{formData.created_by_name || "Coordinator"}</div>
-                        {formData.created_at && (
-                          <div className="text-[10px] text-gray-400">{formatDateTime(formData.created_at)}</div>
-                        )}
+                        <span className="text-gray-500 block text-[11px] mb-0.5">Original Creator</span>
+                        {(() => {
+                          const audit = parseAuditString(formData.created_by_name);
+                          return (
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <RoleBadge role={audit.role} />
+                                <span className="font-medium text-gray-800">{audit.name}</span>
+                              </div>
+                              {audit.email && (
+                                <div className="text-[11px] text-gray-500 mt-0.5">{audit.email}</div>
+                              )}
+                              {formData.created_at && (
+                                <div className="text-[10px] text-gray-400 mt-0.5">{formatDateTime(formData.created_at)}</div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                       {formData.updated_by_name && (
                         <div>
-                          <span className="text-gray-500 block text-[11px]">Last Modified By</span>
-                          <div className="font-medium text-gray-800">{formData.updated_by_name}</div>
-                          {formData.updated_at && (
-                            <div className="text-[10px] text-gray-400">{formatDateTime(formData.updated_at)}</div>
-                          )}
+                          <span className="text-gray-500 block text-[11px] mb-0.5">Last Modified By</span>
+                          {(() => {
+                            const audit = parseAuditString(formData.updated_by_name);
+                            return (
+                              <div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <RoleBadge role={audit.role} />
+                                  <span className="font-medium text-gray-800">{audit.name}</span>
+                                </div>
+                                {audit.email && (
+                                  <div className="text-[11px] text-gray-500 mt-0.5">{audit.email}</div>
+                                )}
+                                {formData.updated_at && (
+                                  <div className="text-[10px] text-gray-400 mt-0.5">{formatDateTime(formData.updated_at)}</div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>
@@ -1601,19 +1654,45 @@ const FarmRecordsView = () => {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       <div>
-                        <span className="text-gray-500 block text-[11px]">Original Creator</span>
-                        <div className="font-medium text-gray-800">{expenseFormData.created_by_name || "Coordinator"}</div>
-                        {expenseFormData.created_at && (
-                          <div className="text-[10px] text-gray-400">{formatDateTime(expenseFormData.created_at)}</div>
-                        )}
+                        <span className="text-gray-500 block text-[11px] mb-0.5">Original Creator</span>
+                        {(() => {
+                          const audit = parseAuditString(expenseFormData.created_by_name);
+                          return (
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <RoleBadge role={audit.role} />
+                                <span className="font-medium text-gray-800">{audit.name}</span>
+                              </div>
+                              {audit.email && (
+                                <div className="text-[11px] text-gray-500 mt-0.5">{audit.email}</div>
+                              )}
+                              {expenseFormData.created_at && (
+                                <div className="text-[10px] text-gray-400 mt-0.5">{formatDateTime(expenseFormData.created_at)}</div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                       {expenseFormData.updated_by_name && (
                         <div>
-                          <span className="text-gray-500 block text-[11px]">Last Modified By</span>
-                          <div className="font-medium text-gray-800">{expenseFormData.updated_by_name}</div>
-                          {expenseFormData.updated_at && (
-                            <div className="text-[10px] text-gray-400">{formatDateTime(expenseFormData.updated_at)}</div>
-                          )}
+                          <span className="text-gray-500 block text-[11px] mb-0.5">Last Modified By</span>
+                          {(() => {
+                            const audit = parseAuditString(expenseFormData.updated_by_name);
+                            return (
+                              <div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <RoleBadge role={audit.role} />
+                                  <span className="font-medium text-gray-800">{audit.name}</span>
+                                </div>
+                                {audit.email && (
+                                  <div className="text-[11px] text-gray-500 mt-0.5">{audit.email}</div>
+                                )}
+                                {expenseFormData.updated_at && (
+                                  <div className="text-[10px] text-gray-400 mt-0.5">{formatDateTime(expenseFormData.updated_at)}</div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>
@@ -1711,19 +1790,45 @@ const FarmRecordsView = () => {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                       <div>
-                        <span className="text-emerald-700/80 block text-[11px]">Original Creator</span>
-                        <div className="font-medium text-gray-900">{salesFormData.created_by_name || "Coordinator"}</div>
-                        {salesFormData.created_at && (
-                          <div className="text-[10px] text-gray-500">{formatDateTime(salesFormData.created_at)}</div>
-                        )}
+                        <span className="text-emerald-700/80 block text-[11px] mb-0.5">Original Creator</span>
+                        {(() => {
+                          const audit = parseAuditString(salesFormData.created_by_name);
+                          return (
+                            <div>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <RoleBadge role={audit.role} />
+                                <span className="font-medium text-gray-900">{audit.name}</span>
+                              </div>
+                              {audit.email && (
+                                <div className="text-[11px] text-gray-600 mt-0.5">{audit.email}</div>
+                              )}
+                              {salesFormData.created_at && (
+                                <div className="text-[10px] text-gray-500 mt-0.5">{formatDateTime(salesFormData.created_at)}</div>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                       {salesFormData.updated_by_name && (
                         <div>
-                          <span className="text-emerald-700/80 block text-[11px]">Last Modified By</span>
-                          <div className="font-medium text-gray-900">{salesFormData.updated_by_name}</div>
-                          {salesFormData.updated_at && (
-                            <div className="text-[10px] text-gray-500">{formatDateTime(salesFormData.updated_at)}</div>
-                          )}
+                          <span className="text-emerald-700/80 block text-[11px] mb-0.5">Last Modified By</span>
+                          {(() => {
+                            const audit = parseAuditString(salesFormData.updated_by_name);
+                            return (
+                              <div>
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <RoleBadge role={audit.role} />
+                                  <span className="font-medium text-gray-900">{audit.name}</span>
+                                </div>
+                                {audit.email && (
+                                  <div className="text-[11px] text-gray-600 mt-0.5">{audit.email}</div>
+                                )}
+                                {salesFormData.updated_at && (
+                                  <div className="text-[10px] text-gray-500 mt-0.5">{formatDateTime(salesFormData.updated_at)}</div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>

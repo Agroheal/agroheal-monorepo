@@ -59,6 +59,10 @@ export async function assignSlotsToFarmGroup(input: {
 
   if (lookupErr) throw new Error(`Farm assignment lookup failed: ${lookupErr.message}`);
 
+  const auditString = user?.email
+    ? `[Super Admin] Developer Elijah (${user.email})`
+    : `[Super Admin] Admin`;
+
   if (existing) {
     const newTotal = existing.farm_slots + slots;
     const { error: updateErr } = await supabase
@@ -67,6 +71,9 @@ export async function assignSlotsToFarmGroup(input: {
         farm_slots: newTotal,
         months_farm_setup: String(newTotal * SETUP_FEE),
         months_farm_support: String(newTotal * SUPPORT_FEE),
+        updated_by: user?.id,
+        updated_by_name: auditString,
+        updated_at: new Date().toISOString(),
       })
       .eq("id", existing.id);
     if (updateErr) throw new Error(`Updating the farm record failed: ${updateErr.message}`);
@@ -83,6 +90,10 @@ export async function assignSlotsToFarmGroup(input: {
     months_farm_setup: String(slots * SETUP_FEE),
     months_farm_support: String(slots * SUPPORT_FEE),
     absentee_fine: "0",
+    created_by: user?.id,
+    created_by_name: auditString,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   });
   if (insertErr) throw new Error(`Creating the farm record failed: ${insertErr.message}`);
 }

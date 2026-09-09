@@ -72,3 +72,20 @@ ALTER TABLE public.farm_records
   ADD COLUMN IF NOT EXISTS updated_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS updated_by_name TEXT,
   ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now());
+
+-- 4. Unified is_admin function recognizing super_admin, admin, and support
+CREATE OR REPLACE FUNCTION public.is_admin(p_user_id uuid DEFAULT auth.uid())
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = p_user_id AND role IN ('admin', 'super_admin', 'support')
+  ) OR EXISTS (
+    SELECT 1 FROM auth.users
+    WHERE id = p_user_id AND email = 'developerelijah360@gmail.com'
+  );
+$function$;
+
