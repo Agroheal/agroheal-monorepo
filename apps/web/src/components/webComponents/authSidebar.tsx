@@ -15,7 +15,7 @@ const AuthSidebar = () => {
   });
 
   return (
-    <div className="hidden lg:flex lg:w-[52%] relative bg-[#1a3c28] overflow-hidden flex-col justify-between p-12">
+    <div className="hidden lg:flex lg:w-[48%] xl:w-[50%] h-full max-h-screen relative bg-[#1a3c28] overflow-hidden flex-col justify-between p-8 xl:p-10">
       {/* Texture layer */}
       <div
         className="absolute inset-0 opacity-[0.04]"
@@ -34,35 +34,39 @@ const AuthSidebar = () => {
         {...fadeUp(0.1)}
         className="relative z-10 flex items-center gap-2.5"
       >
-        <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center">
-          <Leaf className="w-4.5 h-4.5 text-white" />
+        <div className="w-8 h-8 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center">
+          <Leaf className="w-4 h-4 text-white" />
         </div>
-        <span className="text-white font-semibold text-lg tracking-tight">
+        <span className="text-white font-semibold text-base tracking-tight">
           Agroheal
         </span>
       </motion.div>
 
       {/* Center content */}
-      <div className="relative z-10 flex-1 flex flex-col justify-center py-16">
+      <div className="relative z-10 flex-1 flex flex-col justify-center py-4 my-auto">
         <motion.div
           {...fadeUp(0.2)}
           className="w-full flex justify-center items-center mb-4"
         >
-          <img src={AgrohealImages?.authImage} alt="" />
+          <img
+            src={AgrohealImages?.authImage}
+            alt=""
+            className="max-h-[160px] xl:max-h-[210px] w-auto object-contain"
+          />
         </motion.div>
 
         <motion.h2
           {...fadeUp(0.3)}
-          className="w-full text-center text-2xl xl:text-4xl font-bold text-white leading-[1.15] mb-6"
+          className="w-full text-center text-xl xl:text-3xl font-bold text-white leading-tight mb-3"
           style={{ fontFamily: "'Georgia', serif" }}
         >
           Grow smarter,
-          <span className="text-emerald-400">earn more.</span>
+          <span className="text-emerald-400"> earn more.</span>
         </motion.h2>
 
         <motion.p
           {...fadeUp(0.4)}
-          className="w-full text-green-200/80 text-center text-base leading-relaxed"
+          className="w-full text-green-200/80 text-center text-xs xl:text-sm leading-relaxed max-w-sm mx-auto"
         >
           Join thousands of Nigerian farmers managing their slots, tracking
           payments, and growing their agricultural income with Agroheal.
@@ -72,9 +76,9 @@ const AuthSidebar = () => {
       {/* Bottom quote */}
       <motion.div
         {...fadeUp(0.6)}
-        className="relative z-10 border-t border-white/10 pt-6"
+        className="relative z-10 border-t border-white/10 pt-4"
       >
-        <p className="text-green-200/60 text-sm italic leading-relaxed">
+        <p className="text-green-200/60 text-xs italic leading-relaxed text-center">
           Join agroheal learn to earn agribusiness platform, Learn, Practice and
           Earn.
         </p>

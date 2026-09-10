@@ -105,44 +105,55 @@ const legalSections: LegalSectionItem[] = [
       },
       {
         number: "2.2",
-        heading: "One-Time Slot Setup Fee & Capital Allocation",
+        heading: "Farm Slot Capital Allocation & Operational Cost Architecture",
         body: [
-          "Each practical farm slot requires a one-time setup contribution of ₦5,000. Setup contributions are allocated transparently as follows:",
-          "a. 70% (₦3,500) is deployed directly into physical biological assets and infrastructure: two (2) mature starter fruiting bags, sterile agricultural substrate, spore inoculation, irrigation fittings, and disease management.",
-          "b. 10% (₦500) is designated as a direct sponsor honorarium to the introducing community leader.",
-          "c. 20% (₦1,000) is dedicated to operational cluster administration, logistics, and expert agronomic oversight.",
-          "Zero Recurring Monthly Maintenance Fees: Unlike legacy models, modern LEAP cluster slots require NO ongoing monthly maintenance fee. Ongoing operational costs are sustained directly through harvest off-take.",
+          "Each practical farm slot represents a ₦5,000 production unit allocated transparently as follows:",
+          "a. 28% (₦1,400) is deployed directly into biological assets: two (2) mature starter fruiting bags, sterile agricultural substrate, and spore inoculation.",
+          "b. 42% (₦2,100) is deployed into fruiting house infrastructure, climate control, cold-chain logistics, and farm labor/HR.",
+          "c. 10% (₦500) is designated as a flat direct sponsor referral honorarium to the introducing member.",
+          "d. 20% (₦1,000) is allocated to central company administration, compliance, and agronomic oversight.",
+          "Zero Recurring Monthly Dues: Practical cluster slots require NO ongoing monthly maintenance fee. Ongoing operational costs are sustained directly through harvest off-take.",
         ],
         highlights: [
-          "₦5,000 One-Time Setup Fee",
-          "70% Biological Assets (2 Starter Bags)",
-          "Zero Recurring Monthly Dues",
+          "₦5,000 Production Slot Allocation",
+          "28% Fruiting Bags (₦1,400) + 42% Infrastructure (₦2,100)",
+          "10% Direct Sponsor (₦500) + 20% Company Admin (₦1,000)",
+          "Zero Recurring Monthly Maintenance Fees",
         ],
       },
       {
         number: "2.3",
-        heading: "Cycle 1 (Months 1–6): Biological Capacity Doubling",
+        heading: "Cycle 1 (Months 1–3): Biological Capacity Doubling (Capacity Building)",
         body: [
-          "The initial 6-month operational season (Cycle 1) is dedicated to biological establishment and farm estate expansion.",
-          "All harvest proceeds generated during Cycle 1 are automatically reinvested into spore multiplication and substrate expansion, successfully doubling the member's physical production capacity from two (2) starter bags to four (4) mature fruiting bags per slot.",
-          "By entering into this agreement, participants authorize this biological doubling mechanism as a foundation for long-term sustainable harvest yields.",
+          "The initial 3-month operational cycle (Cycle 1) is dedicated to biological capacity building and estate infrastructure development.",
+          "Projected harvest yield is 2kg of fresh organic mushrooms per slot (projected gross revenue ₦5,000/slot).",
+          "Revenue allocation during Cycle 1 is strictly: 90% (₦4,500) reinvested into doubling biological capacity from two (2) starter bags to four (4) mature fruiting bags plus facility expansion, and 10% (₦500) company administration.",
+          "Slot owners receive ₦0 cash payout in Cycle 1. This capacity-building reinvestment establishes the high-volume fruiting foundation for subsequent quarterly cash dividends.",
         ],
         highlights: [
-          "Capacity Doubling: 2 Bags ➔ 4 Bags",
-          "Foundational Establishment Cycle",
+          "Months 1–3 Capacity Doubling: 2 Bags ➔ 4 Bags",
+          "90% Reinvested into Doubling Fruiting Capacity",
+          "₦0 Cash Payout in Cycle 1 (Builds Biological Equity)",
         ],
       },
       {
         number: "2.4",
-        heading: "Cycle 2+ (Month 7 Onward): 40% Quarterly Harvest Distributions",
+        heading: "Cycle 2+ (Quarterly Harvesting): Distributable Balance Allocations",
         body: [
-          "Commencing in Cycle 2 (Month 7 onward), mature flushes and off-take produce sales are aggregated quarterly.",
-          "Forty Percent (40%) of net harvest sales proceeds are credited directly to the slot owner's wallet on a quarterly distribution calendar.",
-          "The remaining Sixty Percent (60%) is retained for cluster operational continuity: substrate replenishment, cold-chain off-taker logistics, on-site farm supervisor compensation, and pest/environmental controls.",
+          "Commencing in Cycle 2 (quarterly ongoing), 4 mature bags produce projected gross quarterly revenue of ₦10,000 per slot.",
+          "Deducting the ₦4,000 input continuation and replenishment cost leaves a ₦6,000 net Distributable Balance split as follows:",
+          "a. 40% (₦2,400) is credited directly to Farm Owners, distributed proportionally by eligible slots held.",
+          "b. 20% (₦1,200) is allocated to the Gingertown expansion capital reserve.",
+          "c. 20% (₦1,200) is allocated to the Organic FoodNation expansion capital reserve.",
+          "d. 10% (₦600) is allocated to central company administrative support.",
+          "e. 10% (₦600) is allocated to the cluster farm coordinator and on-site oversight.",
+          "Mature Three-Farm Model: Once Gingertown and Organic FoodNation are declared fully established by the founders, the consolidated actual profit pool transitions prospectively to 80% Farm Owners, 10% Coordinator, and 10% Company.",
         ],
         highlights: [
-          "40% Net Harvest Credited Quarterly",
-          "60% Retained for Ongoing Cluster Upkeep",
+          "Quarterly Distributable Balance: ₦6,000 per 4-bag unit",
+          "40% (₦2,400) Credited Directly to Farm Slot Owners",
+          "20% Gingertown + 20% Organic FoodNation Reserves",
+          "10% Company + 10% Cluster Coordinator",
         ],
       },
       {
@@ -157,60 +168,80 @@ const legalSections: LegalSectionItem[] = [
   },
   {
     id: "affiliate",
-    title: "Community Affiliate & 5x7 Matrix Compensation Terms",
-    shortTitle: "Affiliate & 5x7 Matrix",
+    title: "Community Affiliate & 7-Level Product Commission Terms",
+    shortTitle: "Affiliate & Product Network",
     icon: Users,
     badge: "Reward Architecture",
     summary:
-      "Guidelines for the ₦2,000 Green Card, ₦1,000 direct referral rewards, 5x7 spillover tree, and the ₦10,000 wallet threshold for unsubscribed members.",
+      "Operational charter for the ₦2,000 Green Card, ₦10,000 Wealth Creation Activation, 7-level product commission engine (40% ceiling), and flat ₦500 slot referrals.",
     clauses: [
       {
         number: "3.1",
-        heading: "The Digital Green Card Lifetime Membership",
+        heading: "The Digital Green Card Lifetime Membership (₦2,000)",
         body: [
           "The Agroheal Green Card is an optional, permanent digital credential secured via a one-time ₦2,000 registration fee.",
-          "Green Card holders unlock unrestricted lifetime access to the LEAP educational course curriculum, community organogram visualization, and entitlement to earn matrix commissions.",
+          "Fee split: ₦1,000 to the direct introducing referrer, and ₦1,000 to company administration.",
+          "Green Card members unlock unrestricted access to the LEAP educational training library, WhatsApp/Telegram community links, personal affiliate referral link, and the link to activate the ₦10,000 Wealth Creation path.",
+          "A Green Card alone does NOT unlock the 5×7 marketing matrix or farm slot ownership.",
+        ],
+        highlights: [
+          "₦2,000 One-Time Lifetime Registration",
+          "₦1,000 Direct Referrer + ₦1,000 Company Operations",
+          "Unlocks Training, Community, and Affiliate Links",
         ],
       },
       {
         number: "3.2",
-        heading: "Direct Referral Honorarium",
+        heading: "Wealth Creation Team Activation (₦10,000)",
         body: [
-          "Any verified member who directly introduces a new participant who activates a Green Card receives an instant ₦1,000 direct referral bonus credited to their wallet balance.",
+          "Members join the Wealth Creation Team through a one-time ₦10,000 minimum activation package itemised as follows:",
+          "a. ₦5,000 for the Welcome Product — Mushroom Power: Feeds into the 7-level product commission engine.",
+          "b. ₦5,000 for the Compulsory First Mushroom Farm Slot: Feeds into the biological farm-slot allocation engine (2 starter fruiting bags).",
+          "Optional additional farm slots (₦5,000 each) feed exclusively into biological farm allocation.",
+          "Recruitment alone never generates a multilevel commission; commissions fire strictly upon verified product purchases.",
         ],
-        highlights: ["₦1,000 Direct Sponsor Bonus"],
+        highlights: [
+          "₦10,000 Wealth Creation Activation",
+          "₦5,000 Mushroom Power (Feeds Product Commission Engine)",
+          "₦5,000 Compulsory First Farm Slot (Feeds Farm Allocation)",
+          "Commissions Fire Strictly on Product Sales",
+        ],
       },
       {
         number: "3.3",
-        heading: "The 5x7 Farm Matrix Placement Gate",
+        heading: "7-Level Product Commission Engine & 5×7 Matrix Rules",
         body: [
-          "The Agroheal Producer-Consumer network operates a structured 5x7 organizational matrix (5 direct frontline positions expanding across 7 vertical levels).",
-          "Operational Farm Slot Requirement: Participation in the 5x7 matrix placement tree is strictly reserved for members who have subscribed to at least one (1) practical farm slot under a registered group farm cluster.",
-          "Members who have solely paid the ₦2,000 Green Card registration (or are registered learners) participate in the Direct Referral Program (earning ₦1,000 per direct enroller) but do not occupy a 5x7 matrix node or collect 7-level spillover dividends until they acquire an active farm slot.",
-          "Upon purchasing a farm slot, the member is assigned to their group farm cluster's 5x7 matrix, unlocking automated spillover and multi-level harvest dividends.",
+          "Applies to the ₦5,000 Mushroom Power welcome product and every subsequent retail product sold on the platform, subject to a strict 40% maximum payout ceiling (₦2,000 on a ₦5,000 sale):",
+          "a. 12.0% (₦600) to the Direct Retail Seller.",
+          "b. 21.5% distributed across 7 upline tiers in the 5×7 matrix: Level 1 (5.0%, ₦250), Level 2 (3.5%, ₦175), Level 3 (3.0%, ₦150), Level 4 (2.5%, ₦125), Level 5 (2.5%, ₦125), Level 6 (2.5%, ₦125), Level 7 (2.5%, ₦125).",
+          "c. 4.0% (₦200) to the Platform Leadership Pool.",
+          "d. 2.0% (₦100) to the Sustainability Reserve.",
+          "e. 0.5% (₦25) unallocated balance retained as company operating margin.",
+          "Farm Slot Exclusion: Farm slot allocations (₦5,000/ea) do NOT generate multilevel commissions — they pay only a flat 10% (₦500) direct sponsor referral bonus.",
+          "Auto-Placement & Spillover: When a sponsor's 5 frontline positions are filled, subsequent referrals auto-place into the next available downline position. The direct sponsor retains all direct referral bonuses, while the placement parent collects upline product level commissions.",
         ],
         highlights: [
-          "5x7 Matrix Exclusively for Farm Slot Holders",
-          "₦2,000 Green Card Qualifies for Direct Referrals",
-          "Spillover Requires Farm Cluster Placement",
+          "40% Maximum Product Commission Ceiling",
+          "12% Retail Seller + 21.5% Across 7 Upline Levels",
+          "4% Leadership Pool + 2% Sustainability Reserve",
+          "Farm Slots Pay Flat 10% (₦500) Direct Bonus Only",
         ],
       },
       {
         number: "3.4",
-        heading: "Referral Bonus Accrual, Balance Reinvestment & Bank Settlement",
+        heading: "Monthly Qualification (PQV) & Withdrawal Entitlement",
         body: [
-          "Unconditional Referral Accrual: Any registered member, regardless of project subscription status, is entitled to share their unique referral link. Earned direct referral bonuses (₦1,000 per Green Card enroller) are credited in full to their wallet ledger immediately without expiration.",
-          "Reinvestment Autonomy: Unsubscribed members maintain the complete and unrestricted right to deploy their accrued wallet credit toward purchasing farm slots, activating project subscriptions, or enrolling in practicals directly at checkout.",
-          "Commercial Bank Settlement Protocol: Because Agroheal operates as a closed-loop cooperative agricultural production enterprise, direct cash extraction to external commercial bank accounts requires participant project verification. To request a bank withdrawal, an unsubscribed member must either:",
-          "a. Subscribe to an active agricultural project or practical farm slot, OR",
-          "b. Accumulate at least ₦10,000 in wallet credit, which can then be converted directly from the dashboard into a lifetime project subscription without out-of-pocket payment.",
-          "Upon active project verification, commercial bank withdrawals are unlocked permanently for all current and future earnings meeting the standard ₦2,000 minimum settlement threshold.",
+          "Monthly PQV: Members must maintain ₦5,000 Personal Qualifying Volume (PQV) per calendar month through personal product purchases and/or verified retail customer sales.",
+          "Earnings Protection: Missing PQV in any given month does not forfeit earnings or alter matrix placement. Unqualified earnings are securely held in the member's wallet until qualification is satisfied.",
+          "Multilevel Withdrawal Criteria: Within a rolling 30-day window, a member must have: (a) 5 direct referrals filled, and (b) ₦5,000 monthly PQV to withdraw multilevel network commissions.",
+          "Direct Referral Liquidity: Direct referral bonuses (₦1,000 Green Card, ₦500 Slot, 12% retail sales) are exempt from matrix gating and withdrawable independently once the wallet balance reaches the ₦2,000 minimum threshold.",
+          "Refunds & Reversals: Any returned or refunded product commissions are posted as linked reversal entries and deducted from the recipient's subsequent future earnings.",
         ],
         highlights: [
-          "100% Guaranteed Earnings Accrual",
-          "Reinvest Freely into Farm Slots",
-          "₦10k Balance Converts to Lifetime Subscription",
-          "Bank Disbursal Unlocks Upon Project Verification",
+          "₦5,000 Monthly PQV (Purchases + Retail Sales)",
+          "Unqualified Earnings Held Indefinitely (Never Forfeited)",
+          "Direct Bonuses Withdrawable at ₦2,000 Minimum",
+          "5 Directs + PQV Required for Multilevel Withdrawals",
         ],
       },
     ],
@@ -385,9 +416,9 @@ const Legal = () => {
 
   return (
     <div className="min-h-screen bg-[#f8faf8]">
-      {/* Header Banner */}
+      {/* Header Banner — pt-28 md:pt-36 ensures content clears fixed Header */}
       <div className="bg-gradient-to-b from-[#032313] to-[#04331c] text-white">
-        <div className="max-w-5xl mx-auto px-4 py-16 text-center">
+        <div className="max-w-5xl mx-auto px-4 pt-28 pb-14 md:pt-36 md:pb-16 text-center">
           <motion.div
             initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -411,29 +442,52 @@ const Legal = () => {
         </div>
       </div>
 
-      {/* Sticky Section Navigation Pills */}
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-green-800/10 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 py-3">
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
-            {legalSections.map((sec) => {
-              const Icon = sec.icon;
-              const isActive = activeSectionId === sec.id;
-              return (
-                <button
-                  key={sec.id}
-                  onClick={() => scrollToSection(sec.id)}
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                    isActive
-                      ? "bg-green-800 text-white shadow-sm scale-[1.02]"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  <Icon className="w-3.5 h-3.5" />
-                  <span>#{sec.id}</span>
-                  <span className="hidden sm:inline">· {sec.shortTitle}</span>
-                </button>
-              );
-            })}
+      {/* Sticky Section Navigation Pills — Docks seamlessly below fixed Header */}
+      <div className="sticky top-16 md:top-20 z-30 bg-white/95 backdrop-blur-md border-b border-gray-200/80 shadow-xs">
+        <div className="max-w-5xl mx-auto px-4 py-2.5">
+          {/* Mobile quick-jump select */}
+          <div className="sm:hidden mb-2">
+            <select
+              value={activeSectionId}
+              onChange={(e) => scrollToSection(e.target.value)}
+              aria-label="Select legal section"
+              className="w-full text-xs font-semibold bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-750"
+            >
+              {legalSections.map((sec) => (
+                <option key={sec.id} value={sec.id}>
+                  #{sec.id} — {sec.shortTitle}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Modern Pills Track with Edge Fades & Zero OS Scrollbar */}
+          <div className="relative">
+            {/* Subtle left/right fade masks on mobile */}
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-white to-transparent z-10 sm:hidden" />
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-white to-transparent z-10 sm:hidden" />
+
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1 sm:flex-wrap sm:justify-center lg:justify-between">
+              {legalSections.map((sec) => {
+                const Icon = sec.icon;
+                const isActive = activeSectionId === sec.id;
+                return (
+                  <button
+                    key={sec.id}
+                    onClick={() => scrollToSection(sec.id)}
+                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 ${
+                      isActive
+                        ? "bg-green-800 text-white shadow-xs scale-[1.02]"
+                        : "bg-gray-100 text-gray-750 hover:bg-gray-200/80 hover:text-gray-900"
+                    }`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span>#{sec.id}</span>
+                    <span className="hidden md:inline">· {sec.shortTitle}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
@@ -451,7 +505,7 @@ const Legal = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.4, delay: sIdx * 0.05 }}
-                className="scroll-mt-20 bg-white rounded-3xl border border-green-800/15 p-6 md:p-10 shadow-sm relative overflow-hidden"
+                className="scroll-mt-36 md:scroll-mt-40 bg-white rounded-3xl border border-green-800/15 p-6 md:p-10 shadow-sm relative overflow-hidden"
               >
                 {/* Decorative background accent */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-green-50/50 rounded-bl-full pointer-events-none -z-0" />

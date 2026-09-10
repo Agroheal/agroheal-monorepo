@@ -3,9 +3,10 @@ import { Leaf, Mail, Phone, MapPin } from "lucide-react";
 
 const footerLinks = {
   platform: [
-    { name: "Courses", href: "/dashboard/courses" },
-    { name: "Farm Slots", href: "/dashboard/slots" },
-    { name: "Affiliate Program", href: "/dashboard" },
+    { name: "How It Works", href: "/how-it-works" },
+    { name: "Farm Slots", href: "/farm-slots" },
+    { name: "Courses", href: "/courses" },
+    { name: "Affiliate Program", href: "/affiliate" },
   ],
   company: [
     { name: "About Us", href: "/about" },

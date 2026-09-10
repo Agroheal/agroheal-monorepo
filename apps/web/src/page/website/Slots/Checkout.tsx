@@ -26,14 +26,28 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [slotQuantity, setSlotQuantity] = useState(1);
   const [category, setCategory] = useState("");
-  const slotPrice = 2000;
-  const totalPrice = slotPrice * slotQuantity;
+
+  // Economic Architecture:
+  // - Unit price per slot: ₦5,000
+  // - First-time Cluster Setup & Onboarding fee: ₦5,000 (making 1st slot ₦10,000 total)
+  // - Subsequent slots in this or future orders: ₦5,000 each
+  // - Green Card Lifetime Pass: ₦2,000 (Required for farm dividends & verified ID; auto-bundled if user lacks active card)
+  const SLOT_UNIT_PRICE = 5000;
+  const CLUSTER_SETUP_FEE = 5000;
+  const GREEN_CARD_FEE = 2000;
+
+  const [hasGreenCard, setHasGreenCard] = useState<boolean>(true); // assume true while loading
+  const [hasPriorSlots, setHasPriorSlots] = useState<boolean>(false);
+
+  const isFirstSlotPurchase = !hasPriorSlots;
+  const slotsSubtotal = isFirstSlotPurchase
+    ? SLOT_UNIT_PRICE + CLUSTER_SETUP_FEE + (slotQuantity - 1) * SLOT_UNIT_PRICE
+    : slotQuantity * SLOT_UNIT_PRICE;
+
+  const greenCardFee = hasGreenCard ? 0 : GREEN_CARD_FEE;
+  const totalPrice = slotsSubtotal + greenCardFee;
   const isOrganicFoodNation =
     category === "Organic FoodNation (1 Million Hectares against Hunger)";
-  const farmSetupFee = isOrganicFoodNation ? 10000 : 5000 * slotQuantity;
-  const farmSupportFee = isOrganicFoodNation
-    ? 200 * slotQuantity
-    : 500 * slotQuantity;
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"flutterwave" | "wallet">("flutterwave");
   const [walletBalance, setWalletBalance] = useState<number>(0);
@@ -56,7 +70,7 @@ const Checkout = () => {
     document.body.appendChild(script);
   }, []);
 
-  // ── Auto-prefill logged in member details & fetch wallet balance ──────────
+  // ── Auto-prefill logged in member details & check subscriptions ──────────
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -65,6 +79,7 @@ const Checkout = () => {
         } = await supabase.auth.getUser();
         if (!user) return;
 
+        // Fetch profile
         const { data: profile } = await supabase
           .from("profiles")
           .select("first_name, last_name, phone, email, referral_earnings, wallet_balance")
@@ -81,6 +96,29 @@ const Checkout = () => {
           const bal = Number(profile.referral_earnings ?? profile.wallet_balance ?? 0);
           setWalletBalance(bal);
         }
+
+        // Check active Green Card subscription
+        const { data: sub } = await supabase
+          .from("subscriptions")
+          .select("expires_at, status")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .order("expires_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const userHasGreenCard =
+          !!sub && (!sub.expires_at || new Date(sub.expires_at) > new Date());
+        setHasGreenCard(userHasGreenCard);
+
+        // Check if user already owns any slots
+        const { count } = await supabase
+          .from("slot_subscriptions")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("status", "active");
+
+        setHasPriorSlots((count ?? 0) > 0);
       } catch (err) {
         console.error("Error loading profile in checkout:", err);
       } finally {
@@ -208,7 +246,7 @@ const Checkout = () => {
           p_checkout_id: order.id,
           p_amount: totalPrice,
           p_slots: slotQuantity,
-          p_slot_price: slotPrice,
+          p_slot_price: SLOT_UNIT_PRICE,
           p_category: category,
         }
       );
@@ -219,6 +257,24 @@ const Checkout = () => {
 
       if (!rpcRes?.success) {
         throw new Error(rpcRes?.message || "Failed to process wallet payment.");
+      }
+
+      // If user did not previously hold a Green Card, activate it now as bundled
+      if (!hasGreenCard) {
+        const expiresAt = new Date();
+        expiresAt.setFullYear(expiresAt.getFullYear() + 100);
+        await supabase.from("subscriptions").upsert(
+          [
+            {
+              user_id: user.id,
+              plan: "green_card",
+              status: "active",
+              started_at: new Date().toISOString(),
+              expires_at: expiresAt.toISOString(),
+            },
+          ],
+          { onConflict: "user_id" },
+        );
       }
 
       Sentry.metrics.count("wallet_reinvestment_success", 1);
@@ -374,7 +430,7 @@ const Checkout = () => {
 
                 // 2. Create the subscription
                 const nextPaymentDate = new Date();
-                nextPaymentDate.setDate(nextPaymentDate.getDate() + 30);
+                nextPaymentDate.setDate(nextPaymentDate.getDate() + 365);
 
                 const { error: subErr } = await supabase
                   .from("slot_subscriptions")
@@ -383,7 +439,7 @@ const Checkout = () => {
                       user_id: order.user_id,
                       checkout_id: order.id,
                       amount: totalPrice,
-                      slotprice: slotPrice,
+                      slotprice: SLOT_UNIT_PRICE,
                       status: "active",
                       slots: slotQuantity,
                       last_payment_date: new Date().toISOString(),
@@ -393,6 +449,24 @@ const Checkout = () => {
                   ]);
 
                 if (subErr) throw subErr;
+
+                // 3. If user did not previously hold a Green Card, activate it now
+                if (!hasGreenCard) {
+                  const expiresAt = new Date();
+                  expiresAt.setFullYear(expiresAt.getFullYear() + 100);
+                  await supabase.from("subscriptions").upsert(
+                    [
+                      {
+                        user_id: order.user_id,
+                        plan: "green_card",
+                        status: "active",
+                        started_at: new Date().toISOString(),
+                        expires_at: expiresAt.toISOString(),
+                      },
+                    ],
+                    { onConflict: "user_id" },
+                  );
+                }
 
                 toast({
                   title: "Payment successful",
@@ -622,26 +696,56 @@ const Checkout = () => {
                     <motion.div
                       initial={{ opacity: 0, y: -4 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="space-y-4 mt-2"
+                      className="space-y-3 mt-3"
                     >
-                      <div className="flex items-center justify-between bg-green-50 border border-green-100 rounded-xl px-4 py-3">
-                        <span className="text-sm text-green-700 font-medium">
-                          {slotQuantity} × ₦{slotPrice.toLocaleString()}
-                        </span>
-                        <span className="text-sm font-bold text-green-800">
-                          = ₦{totalPrice.toLocaleString()}
-                        </span>
+                      <div className="bg-green-50/80 border border-green-200/80 rounded-xl p-3.5 space-y-2 text-xs">
+                        <div className="flex items-center justify-between text-green-900 font-semibold text-sm">
+                          <span>
+                            {isFirstSlotPurchase
+                              ? "First Slot & Cluster Setup"
+                              : `${slotQuantity} Farm Slot${slotQuantity > 1 ? "s" : ""}`}
+                          </span>
+                          <span>
+                            ₦{(isFirstSlotPurchase ? 10000 : slotQuantity * SLOT_UNIT_PRICE).toLocaleString()}
+                          </span>
+                        </div>
+
+                        {isFirstSlotPurchase && (
+                          <div className="text-[11px] text-green-700 space-y-0.5">
+                            <p>• ₦5,000 Farm Slot (Biological asset allocation)</p>
+                            <p>• ₦5,000 Cooperative Cluster Setup & Onboarding</p>
+                          </div>
+                        )}
+
+                        {isFirstSlotPurchase && slotQuantity > 1 && (
+                          <div className="flex items-center justify-between text-green-800 pt-1 border-t border-green-200/60 font-medium">
+                            <span>+ {slotQuantity - 1} Additional slot{slotQuantity > 2 ? "s" : ""} (@ ₦5,000)</span>
+                            <span>₦{((slotQuantity - 1) * SLOT_UNIT_PRICE).toLocaleString()}</span>
+                          </div>
+                        )}
+
+                        {!hasGreenCard && (
+                          <div className="flex items-center justify-between text-amber-900 pt-1.5 border-t border-green-200/60 font-semibold">
+                            <span className="flex items-center gap-1">
+                              <Shield className="w-3.5 h-3.5 text-amber-700" />
+                              Green Card Lifetime Pass (Auto-bundled)
+                            </span>
+                            <span>₦{GREEN_CARD_FEE.toLocaleString()}</span>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="space-y-3 bg-muted/30 rounded-xl p-4 border border-border/50">
+                      <div className="space-y-2 bg-muted/30 rounded-xl p-3.5 border border-border/50">
                         <div className="flex items-center gap-2">
                           <Sprout className="w-4 h-4 text-green-700 shrink-0" />
                           <span className="text-xs font-bold text-green-900 uppercase tracking-wider">
-                            LEAP Practical Cluster Setup
+                            LEAP Practical Cluster Model
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed">
-                          Each slot includes physical biological starter materials and hands-on supervision. Operating expenses are sustained via harvest yields with <span className="font-semibold text-foreground">zero recurring monthly fees</span>.
+                          {isFirstSlotPurchase
+                            ? "Your starter slot package covers biological materials, physical cluster preparation, and resident supervision (₦10,000). Subsequent slots scale at ₦5,000 each with zero recurring monthly fees."
+                            : "Subsequent slots scale at ₦5,000 each with zero recurring monthly fees. Ongoing operations are sustained via harvest yields."}
                         </p>
                       </div>
                     </motion.div>
@@ -844,34 +948,75 @@ const Checkout = () => {
                 </div>
 
                 <div className="p-6 space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Farm Slot</span>
-                    <span className="text-foreground">
-                      ₦{slotPrice.toLocaleString()}
-                    </span>
-                  </div>
+                  {isFirstSlotPurchase ? (
+                    <>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Starter Slot & Cluster Setup</span>
+                        <span className="text-foreground font-semibold">₦10,000</span>
+                      </div>
+                      {slotQuantity > 1 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {slotQuantity - 1} Additional Slot{slotQuantity > 2 ? "s" : ""}
+                          </span>
+                          <span className="text-foreground font-semibold">
+                            ₦{((slotQuantity - 1) * SLOT_UNIT_PRICE).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {slotQuantity} Farm Slot{slotQuantity > 1 ? "s" : ""}
+                      </span>
+                      <span className="text-foreground font-semibold">
+                        ₦{(slotQuantity * SLOT_UNIT_PRICE).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+
+                  {!hasGreenCard && (
+                    <div className="flex justify-between items-start text-xs bg-amber-50 border border-amber-200/80 p-3 rounded-xl">
+                      <div>
+                        <span className="text-amber-950 font-bold block">
+                          Green Card Lifetime Pass
+                        </span>
+                        <span className="text-[11px] text-amber-800">
+                          Auto-bundled (Required for payouts & ID)
+                        </span>
+                      </div>
+                      <span className="text-amber-950 font-bold">
+                        ₦{GREEN_CARD_FEE.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
 
                   <div className="border-t border-border pt-4">
                     <div className="flex justify-between font-semibold">
                       <span className="text-foreground">Total</span>
-                      <span className="text-foreground text-xl">
+                      <span className="text-foreground text-xl font-bold">
                         ₦{totalPrice.toLocaleString()}
                       </span>
                     </div>
                   </div>
 
-                  <ul className="text-sm text-muted-foreground space-y-2 pt-4 border-t border-border">
+                  <ul className="text-xs text-muted-foreground space-y-2 pt-4 border-t border-border">
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      Practice slot in a group farm
+                      Practice slot in shared commercial cluster
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      Expert guidance throughout
+                      Resident agronomist supervision
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      WhatsApp group access
+                      40% quarterly harvest distributions
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                      Zero recurring monthly maintenance fees
                     </li>
                   </ul>
                 </div>

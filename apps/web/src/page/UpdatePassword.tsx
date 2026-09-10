@@ -38,7 +38,7 @@ export default function UpdatePasswordForm({
       if (error) throw error;
       setSuccess(true);
       setTimeout(() => {
-        router("/login");
+        router("/signin");
       }, 2000);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
@@ -105,7 +105,7 @@ export default function UpdatePasswordForm({
                 </p>
 
                 <Link
-                  to="/login"
+                  to="/signin"
                   className="inline-flex items-center gap-2 h-11 px-6 bg-green-800 hover:bg-green-700 text-white text-sm font-semibold rounded-xl transition-colors"
                 >
                   Go to sign in
@@ -225,7 +225,7 @@ export default function UpdatePasswordForm({
                 >
                   Remember your password?{" "}
                   <Link
-                    to="/login"
+                    to="/signin"
                     className="text-green-800 font-semibold hover:text-green-700 transition-colors"
                   >
                     Sign in

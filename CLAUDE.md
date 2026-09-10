@@ -46,13 +46,13 @@ Supabase Edge Functions need their own server-side secrets set via `supabase sec
 
 Single `createBrowserRouter` tree with three branches:
 
-1. **Public** — wrapped in `Layout` (`src/components/layout/Layout.tsx`, Header+Footer): `/`, `/about`, `/login`, `/signup`, `/legal`, `/forgot-password`, `/reset-password`. Signup does not require email verification — `supabase.auth.signUp()` succeeds and the user is routed straight to `/dashboard`.
+1. **Public** — wrapped in `Layout` (`src/components/layout/Layout.tsx`, Header+Footer): `/`, `/about`, `/signin`, `/signup`, `/legal`, `/forgot-password`, `/reset-password`. Signup does not require email verification — `supabase.auth.signUp()` succeeds and the user is routed straight to `/dashboard`.
 2. **Group farm** — `/:farmSlug` renders `FarmManagement` directly (no shared layout). Looks up a `farm_groups` row by `slug`, gates edit rights on `coordinator_id === auth.uid()`. This route is currently registered **twice** in `main.tsx` — harmless duplication but worth cleaning up if touching that file.
 3. **Authenticated** — wrapped in `ProtectedRoute` (`src/routes/ProtectedRoutes.tsx`) + `DashboardLayout` (`src/components/layout/DashboardLayout.tsx`, sidebar nav):
    - `/subscribe` — only requires a session (no active subscription yet).
    - `/dashboard/*` — additionally wrapped in `RequireSubscription` (`src/page/website/dashboard/RequireSubscription.tsx`), which queries `subscriptions` for a row with `status === "active"` and `expires_at` in the future, else redirects to `/subscribe`.
 
-Two-tier auth guarding: **session** (`ProtectedRoute` → `useAuth`, redirects to `/login`) is separate from **entitlement** (`RequireSubscription`, redirects to `/subscribe`). New gated pages must be added under the `/dashboard` route's `children` to inherit both guards — adding a top-level route bypasses subscription gating.
+Two-tier auth guarding: **session** (`ProtectedRoute` → `useAuth`, redirects to `/signin`) is separate from **entitlement** (`RequireSubscription`, redirects to `/subscribe`). New gated pages must be added under the `/dashboard` route's `children` to inherit both guards — adding a top-level route bypasses subscription gating.
 
 `DashboardLayout`'s `navItems` array is the source of truth for the sidebar; a route can exist without a nav entry (e.g. `withdrawals` is routed-but-commented-out / hidden).
 
@@ -104,3 +104,7 @@ Sentry (`@sentry/react`) is initialized in `src/main.tsx` with browser tracing +
 Production (`agroheal.solutions`) is actually served from **Render** (confirmed via the `rndr-id` response header), behind Cloudflare — not Vercel, despite the repo also containing a `vercel.json` (present but apparently unused by the current deployment; treat it as stale unless you confirm otherwise).
 
 Render's static-site hosting does **not** read a `public/_redirects` file (that's a Netlify convention — confirmed by testing: it gets served back as a literal downloadable file, not consumed as routing config). SPA fallback is currently active via a **Rewrite rule configured directly in the Render dashboard** for this service (Settings → Redirects/Rewrites: source `/*` → destination `/index.html` → type **Rewrite**, not Redirect — Redirect would change the browser's URL to `/index.html` and break client-side routing, which is what happened before the type was corrected). Verified working: direct-loading `/signup?ref=CODE` and other client-side routes now returns the real `index.html` shell (HTTP 200) instead of a 404, and legitimate static assets are unaffected. A `render.yaml` also exists at the repo root with the equivalent config as a version-controlled reference, but it's the dashboard rule that's confirmed active — treat `render.yaml` as unverified unless this service is confirmed to be Blueprint-synced.
+
+## Critical Memory & Content Boundaries
+
+- **NEVER ADD NEW CONTENT OR FEATURES WITHOUT EXPLICIT USER APPROVAL**: Do not invent, fabricate, or add dummy/speculative job postings, pricing packages, business copy, mockups, or new features without explicit user instruction. If details are not provided, ask the user or keep the UI in a clean, minimal neutral state (e.g. "not actively hiring", "contact us").

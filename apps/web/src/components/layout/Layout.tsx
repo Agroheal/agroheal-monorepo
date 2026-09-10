@@ -1,4 +1,4 @@
-import { Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, useLocation, useNavigate, ScrollRestoration } from "react-router-dom";
 import Header from "./Header";
 import Footer from "./Footer";
 import { useEffect } from "react";
@@ -18,8 +18,13 @@ const Layout = () => {
     }
   }, [pathname, normalizedPath, navigate]);
 
+  // Ensure window scrolls to top on navigation to any page (e.g. from footer links)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
   const HIDDENROURES = [
-    "/login",
+    "/signin",
     "/signup",
     "/forgot-password",
     "/reset-password",
@@ -29,6 +34,7 @@ const Layout = () => {
 
   return (
     <>
+      <ScrollRestoration />
       {!hiddenPath && <Header />}
       <Outlet />
       {!hiddenPath && <Footer />}

@@ -39,7 +39,7 @@ const GreenCardCommunity = () => {
       } = await supabase.auth.getUser();
 
       if (!user) {
-        navigate("/login");
+        navigate("/signin");
         return;
       }
 

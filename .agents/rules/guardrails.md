@@ -28,3 +28,12 @@
    - Hosting: Frontend on Render (Static Sites, 100% free), DB & Auth on Supabase, Express Server on Railway (unified env variables for dev and staging).
    - Ingest clean financial records from farm coordinators to replace historical dirty data.
    - Reconcile orphaned / no-referral accounts and audit remainder of database prior to launch.
+   - **FOUNDER REVIEW TODO**: Founders must thoroughly review all customer-facing website copy across marketing and dashboard pages, with highest priority on the legal governance suite (`/legal`, `/privacy`, `/terms`, LEAP Group Farming Agreement, 5x7 matrix rules, and biological risk disclosures) prior to public launch.
+
+7. **Strict Content & Feature Boundary (User Approval Required):**
+   - **NEVER** invent, fabricate, assume, or add new business content, dummy job postings, pricing packages, feature mockups, or speculative functionality without explicit prior user approval.
+   - If content or specifications are missing or unspecified, present a clean, neutral state (e.g. "not actively hiring", "coming soon", or contact inquiry) and ask the user for the actual copy or requirement rather than making up details.
+
+8. **Authoritative Business Logic Source of Truth:**
+   - [docs/BUSINESS_LOGIC.md](file:///c:/Users/Elijah/Desktop/AgroHeal/agroheal-fe/docs/BUSINESS_LOGIC.md) is the single authoritative source of truth for all compensation calculations, 7-level product commission engine (40% ceiling), farm slot allocations (₦500 direct referral only, no multilevel MLM), farm production cycles (Cycle 1 ₦0 cash payout doubling 2->4 bags, Cycle 2+ ₦6k distributable split), monthly PQV (₦5,000), and policy resolutions. All code and documentation must strictly conform to this file.
+

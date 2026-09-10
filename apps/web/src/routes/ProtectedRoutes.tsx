@@ -1,9 +1,10 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Spinner } from "@/components/ui/spinner";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { session, loading } = useAuth();
+  const location = useLocation();
 
   if (loading)
     return (
@@ -17,7 +18,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   // sessions
   if (!session) {
-    return <Navigate to="/login" replace />;
+    const redirectTarget = location.pathname + location.search;
+    return <Navigate to={`/signin?redirect=${encodeURIComponent(redirectTarget)}`} replace />;
   }
 
   return <>{children}</>;

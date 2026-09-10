@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,14 +7,20 @@ import { AgrohealImages } from "@/constant/Image";
 
 const navLinks = [
   { name: "Home", href: "/" },
-  { name: "Courses", href: "/dashboard/courses" },
-  { name: "Farm Slots", href: "/dashboard/slots" },
-  { name: "About", href: "/about" },
+  { name: "How It Works", href: "/how-it-works" },
+  { name: "Courses", href: "/courses" },
+  { name: "Farm Slots", href: "/farm-slots" },
+  { name: "Affiliate", href: "/affiliate" },
 ];
 
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const { pathname } = useLocation();
+
+  const isHome = pathname === "/";
+  // Only the home page hero is dark; all other pages have light backgrounds and need dark navbar text
+  const isDarkHeader = isHome && !isScrolled;
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 8);
@@ -26,12 +32,12 @@ export default function Header() {
   const navClassName = useMemo(
     () =>
       [
-        "fixed top-0 left-0 right-0 z-50 transition-colors duration-300",
-        isScrolled
-          ? "bg-background text-green-800 border-b border-border"
-          : "bg-black/10 text-white border-b border-transparent",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
+        isDarkHeader
+          ? "bg-black/15 text-white border-b border-transparent backdrop-blur-xs"
+          : "bg-white/95 text-green-950 border-b border-gray-200/80 shadow-xs backdrop-blur-md",
       ].join(" "),
-    [isScrolled],
+    [isDarkHeader],
   );
 
   return (
@@ -40,13 +46,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
-            {/* <div className="w-10 h-10 rounded-full bg-green-800 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Leaf className="w-5 h-5 text-white" />
-            </div>
-            <span className=" text-xl font-semibold text-foreground">
-              Agroheal
-            </span> */}
-            <img src={AgrohealImages.HeaderLogo} alt="" className="w-40" />
+            <img src={AgrohealImages.HeaderLogo} alt="Agroheal" className="w-36 md:w-40" />
           </Link>
 
           {/* Desktop Navigation */}
@@ -55,7 +55,11 @@ export default function Header() {
               <Link
                 key={link.name}
                 to={link.href}
-                className="relative group px-3 py-2 -mx-3 rounded-full font-medium transition-colors motion-reduce:transition-none"
+                className={`relative group px-3 py-2 -mx-3 rounded-full font-medium transition-colors motion-reduce:transition-none ${
+                  isDarkHeader
+                    ? "text-white/90 hover:text-white"
+                    : "text-gray-700 hover:text-green-800"
+                }`}
               >
                 {/* Cinematic hover pill */}
                 <span
@@ -70,23 +74,36 @@ export default function Header() {
                     </span>
                   )}
                 </span>
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full motion-reduce:transition-none" />
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-green-700 transition-all duration-300 group-hover:w-full motion-reduce:transition-none" />
               </Link>
             ))}
           </div>
 
-          <div className="hidden md:flex items-center gap-4">
-            <Link to="/login">
-              <Button className="bg-green-800 text-white">Login</Button>
+          <div className="hidden md:flex items-center gap-3">
+            <Link to="/signin">
+              <Button
+                variant={isDarkHeader ? "outline" : "ghost"}
+                className={
+                  isDarkHeader
+                    ? "border-white/30 text-white hover:bg-white/10"
+                    : "text-green-900 hover:bg-green-50"
+                }
+              >
+                Sign In
+              </Button>
             </Link>
             <Link to="/signup">
-              <Button className="bg-green-800 text-white">Get started</Button>
+              <Button className="bg-green-800 text-white hover:bg-green-900">Sign Up</Button>
             </Link>
           </div>
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2"
+            className={`md:hidden p-2 rounded-lg transition-colors ${
+              isDarkHeader
+                ? "text-white hover:bg-white/10"
+                : "text-gray-800 hover:bg-gray-100"
+            }`}
             onClick={() => setIsOpen(!isOpen)}
             aria-label="Toggle menu"
           >
@@ -116,14 +133,14 @@ export default function Header() {
                 ))}
 
                 <div className="pt-4 flex flex-col gap-3">
-                  <Link to="/login" className="w-full">
+                  <Link to="/signin" className="w-full">
                     <Button className="w-full bg-green-800 text-white">
-                      Login
+                      Sign In
                     </Button>
                   </Link>
                   <Link to="/signup" className="w-full">
                     <Button className="w-full bg-green-800 text-white">
-                      Get started
+                      Sign Up
                     </Button>
                   </Link>
                 </div>

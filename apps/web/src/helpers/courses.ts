@@ -151,7 +151,8 @@ export const COURSESDATA: Course[] = [
     Image: AgrohealImages?.Biofertilizers,
     slug: "biofertilizer-production",
     title: "Biofertilizer Production",
-    description: "Learn more about Biofertilizer Production",
+    description:
+      "Formulate indigenous microorganisms, lactic acid bacteria, and mycorrhiza to supercharge soil biology.",
     duration: "0h 56m",
     lessons: [
       {
@@ -194,7 +195,8 @@ export const COURSESDATA: Course[] = [
     Image: AgrohealImages?.Composting,
     slug: "Composting",
     title: "Composting",
-    description: "Learn more about composing.",
+    description:
+      "Master aerated bucket composting, garden beds, and thermophilic organic decomposition.",
     duration: "1h 40m",
     lessons: [
       {
@@ -225,7 +227,8 @@ export const COURSESDATA: Course[] = [
     Image: AgrohealImages?.BSFL,
     slug: "bkack-soldier-fly-larvae",
     title: "Black Soldier Fly Larvae",
-    description: "Black soldier fly larvae.",
+    description:
+      "Breed black soldier fly larvae for sustainable high-protein animal feed and rich frass fertilizer.",
     duration: "1h 05m",
     lessons: [
       {
@@ -265,7 +268,8 @@ export const COURSESDATA: Course[] = [
     Image: AgrohealImages?.OrganicFertilizer,
     slug: "organic-fertilizer-production",
     title: "Organic Fertilizer Production",
-    description: "How to produce organic fertilizers.",
+    description:
+      "Produce liquid compost tea, fermented fruit attractants, and multivitamin soil enhancers.",
     duration: "0h 44m",
     lessons: [
       {
@@ -305,7 +309,8 @@ export const COURSESDATA: Course[] = [
     Image: AgrohealImages?.BiocarImages,
     slug: "biochar-production",
     title: "Biochar Production",
-    description: "How to produce biochar.",
+    description:
+      "Utilize biomass pyrolysis to produce high-grade biochar for moisture and soil nutrient retention.",
     duration: "0h 26m",
     lessons: [
       {

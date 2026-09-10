@@ -42,7 +42,7 @@ const FarmLogin = () => {
   const fetchFarmAndRecords = async () => {
     if (!farmSlug) return;
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/login"); return; }
+    if (!user) { navigate("/signin"); return; }
 
     const { data: farmData, error: farmError } = await supabase
       .from("farm_groups").select("id, name, coordinator_id")

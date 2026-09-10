@@ -18,6 +18,7 @@ import { cleanName, cleanEmail, normalizePhoneNumber, cleanReferralCode } from "
 
 const Signup = () => {
   const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || "/dashboard";
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [name, setName] = useState<string>("");
@@ -147,7 +148,7 @@ const Signup = () => {
 
     Sentry.metrics.count("signup_completed", 1);
     setTimeout(() => {
-      navigate("/dashboard");
+      navigate(redirectUrl);
     }, 1000);
   };
 
@@ -162,128 +163,140 @@ const Signup = () => {
   });
 
   return (
-    <div className="min-h-screen flex">
+    <div className="h-screen max-h-screen overflow-hidden flex">
       <Toaster />
-      <div className="flex-1 flex flex-col justify-center items-center px-6 py-12 bg-[#f8f7f4] relative">
+      <div className="flex-1 h-full flex flex-col justify-center items-center px-6 py-4 sm:py-6 bg-[#f8f7f4] relative overflow-y-auto lg:overflow-hidden">
         <motion.div
           {...fadeUp(0)}
-          className="lg:hidden flex items-center gap-2 mb-10"
+          className="lg:hidden flex items-center gap-2 mb-4"
         >
-          <div className="w-9 h-9 rounded-xl bg-green-800 flex items-center justify-center">
-            <Leaf className="w-4.5 h-4.5 text-white" />
+          <div className="w-8 h-8 rounded-xl bg-green-800 flex items-center justify-center">
+            <Leaf className="w-4 h-4 text-white" />
           </div>
-          <span className="text-green-900 font-semibold text-lg">Agroheal</span>
+          <span className="text-green-900 font-semibold text-base">Agroheal</span>
         </motion.div>
 
-        <div className="w-full max-w-[400px]">
+        <div className="w-full max-w-[440px]">
           {/* Heading */}
-          <motion.div {...fadeUp(0.1)} className="mb-8">
+          <motion.div {...fadeUp(0.1)} className="mb-4">
             <h1
-              className="text-3xl font-bold text-gray-900 mb-2"
+              className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1"
               style={{ fontFamily: "'Georgia', serif" }}
             >
               Create your Account
             </h1>
-            <p className="text-gray-500 text-sm">
+            <p className="text-gray-500 text-xs sm:text-sm">
               Start your organic farming journey today
             </p>
           </motion.div>
 
           <motion.form
             {...fadeUp(0.2)}
-            className="space-y-5"
+            className="space-y-3"
             onSubmit={handleSignup}
           >
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  type="text"
-                  placeholder="John Doe"
-                  className="pl-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
-                  required
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Full Name */}
+              <div className="space-y-1">
+                <Label htmlFor="name" className="text-xs font-semibold text-gray-600">Full Name</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    type="text"
+                    placeholder="John Doe"
+                    className="pl-9 h-10 bg-white border-gray-200 rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Phone Number */}
+              <div className="space-y-1">
+                <Label htmlFor="phone" className="text-xs font-semibold text-gray-600">Phone Number</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    type="tel"
+                    placeholder="08012345678"
+                    className="pl-9 h-10 bg-white border-gray-200 rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
+                    required
+                  />
+                </div>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+
+            {/* Email */}
+            <div className="space-y-1">
+              <Label htmlFor="email" className="text-xs font-semibold text-gray-600">Email Address</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
                   placeholder="you@example.com"
-                  className="pl-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
+                  className="pl-9 h-10 bg-white border-gray-200 rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
                   required
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
-              <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Password */}
+              <div className="space-y-1">
+                <Label htmlFor="password" className="text-xs font-semibold text-gray-600">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    className="pl-9 pr-8 h-10 bg-white border-gray-200 rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
+                    minLength={8}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Referral Code */}
+              <div className="space-y-1">
+                <Label htmlFor="referral" className="text-xs font-semibold text-gray-600 truncate block">
+                  Referral {hasQueryRef ? "(Applied)" : "(Optional)"}
+                </Label>
                 <Input
-                  id="phone"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  type="tel"
-                  placeholder="08012345678"
-                  className="pl-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
-                  required
+                  id="referral"
+                  value={referral}
+                  onChange={(e) => setReferral(e.target.value)}
+                  type="text"
+                  disabled={hasQueryRef}
+                  placeholder="Sponsor code"
+                  className="px-3 h-10 bg-white border-gray-200 rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all uppercase"
                 />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  className="pl-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
-                  minLength={8}
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-5 h-5" />
-                  ) : (
-                    <Eye className="w-5 h-5" />
-                  )}
-                </button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="referral">
-                Referral Code {hasQueryRef ? "(Applied)" : "(Optional)"}
-              </Label>
-              <Input
-                id="referral"
-                value={referral}
-                onChange={(e) => setReferral(e.target.value)}
-                type="text"
-                disabled={hasQueryRef}
-                placeholder="Enter sponsor code (if any)"
-                className="pl-4 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all uppercase"
-              />
-            </div>
-
-            <div className="flex items-start gap-3">
+            {/* Terms checkbox */}
+            <div className="flex items-start gap-2.5 pt-0.5">
               <Checkbox
                 id="terms"
                 required
@@ -291,41 +304,61 @@ const Signup = () => {
               />
               <label
                 htmlFor="terms"
-                className="text-xs text-gray-500 leading-relaxed cursor-pointer"
+                className="text-xs text-gray-500 leading-tight cursor-pointer"
               >
                 I agree to Agroheal's{" "}
                 <Link
-                  to="/terms"
+                  to="/legal#terms"
                   className="text-green-800 hover:text-green-700 font-semibold transition-colors underline-offset-2 hover:underline"
                 >
                   Terms of Service
                 </Link>{" "}
                 and{" "}
                 <Link
-                  to="/privacy"
+                  to="/legal#privacy"
                   className="text-green-800 hover:text-green-700 font-semibold transition-colors underline-offset-2 hover:underline"
                 >
                   Privacy Policy
                 </Link>
               </label>
             </div>
+
+            {/* Submit Button */}
             <Button
               type="submit"
               size="lg"
               disabled={loading}
-              className="w-full bg-green-800 hover:bg-green-800/90 text-white"
+              className="w-full h-10.5 bg-green-800 hover:bg-green-700 text-white font-semibold rounded-xl text-sm transition-all shadow-sm"
             >
-              {loading ? "Creating Account..." : "Create Account"}
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  Creating Account...
+                </span>
+              ) : (
+                "Sign Up"
+              )}
             </Button>
           </motion.form>
 
-          <div className="mt-8 text-center text-sm">
+          {/* Already have account */}
+          <div className="mt-4 text-center text-xs sm:text-sm text-gray-500">
             Already have an account?{" "}
             <Link
-              to="/login"
-              className="text-green-800 font-medium hover:underline"
+              to={redirectUrl !== "/dashboard" ? `/signin?redirect=${encodeURIComponent(redirectUrl)}` : "/signin"}
+              className="text-green-800 font-semibold hover:underline"
             >
-              Sign in
+              Sign In
+            </Link>
+          </div>
+
+          {/* Back to home */}
+          <div className="text-center mt-3">
+            <Link
+              to="/"
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              ← Back to home
             </Link>
           </div>
         </div>

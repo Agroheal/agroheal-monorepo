@@ -5,6 +5,7 @@ import Home from "@/page/website/Home";
 import Layout from "@/components/layout/Layout";
 import Error from "@/page/error/Error";
 import About from "@/page/website/About";
+import HowItWorks from "@/page/website/HowItWorks";
 import Careers from "@/page/website/Careers";
 import Login from "@/page/website/Login";
 import Signup from "@/page/website/Signup";
@@ -35,6 +36,10 @@ import GreenCardCommunity from "@/page/website/dashboard/GreenCardCommunity";
 import VerifyCard from "@/page/website/VerifyCard";
 import TransactionLedger from "@/page/website/dashboard/TransactionLedger";
 
+import CoursesBridge from "@/page/website/CoursesBridge";
+import FarmSlotsBridge from "@/page/website/FarmSlotsBridge";
+import AffiliateBridge from "@/page/website/AffiliateBridge";
+
 export const appRouter = createBrowserRouter([
   // Public Marketing & Informational Routes
   {
@@ -44,11 +49,16 @@ export const appRouter = createBrowserRouter([
     children: [
       { index: true, element: <Home /> },
       { path: "about", element: <About /> },
+      { path: "how-it-works", element: <HowItWorks /> },
+      { path: "courses", element: <CoursesBridge /> },
+      { path: "farm-slots", element: <FarmSlotsBridge /> },
+      { path: "slots", element: <FarmSlotsBridge /> },
+      { path: "affiliate", element: <AffiliateBridge /> },
       { path: "careers", element: <Careers /> },
       { path: "legal", element: <Legal /> },
       { path: "privacy", element: <Legal /> },
       { path: "terms", element: <Legal /> },
-      { path: "login", element: <Login /> },
+      { path: "signin", element: <Login /> },
       { path: "signup", element: <Signup /> },
       { path: "forgot-password", element: <ForgotPasswordForm /> },
       { path: "reset-password", element: <UpdatePasswordForm /> },

@@ -21,12 +21,12 @@ export default function AdminProtectedRoute() {
   }
 
   if (!session) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/signin" replace />;
   }
 
   if (!canAccessAdmin) {
     supabase.auth.signOut();
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/signin" replace />;
   }
 
 

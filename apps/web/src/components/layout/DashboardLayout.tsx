@@ -66,7 +66,7 @@ const navItems = [
   { label: "Next of Kin", path: "/dashboard/kin", icon: Users },
 ];
 
-const HIDDEN_ROUTES = ["/login", "/signup"];
+const HIDDEN_ROUTES = ["/signin", "/signup"];
 
 // Extracted so both desktop + mobile sidebars share the same nav markup
 const SidebarContent = ({

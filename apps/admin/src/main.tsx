@@ -14,7 +14,7 @@ import FarmAssignmentsPage from "@/pages/FarmAssignmentsPage";
 import SettingsPage from "@/pages/SettingsPage";
 
 const router = createBrowserRouter([
-  { path: "/login", element: <LoginPage /> },
+  { path: "/signin", element: <LoginPage /> },
   {
     element: <AdminProtectedRoute />,
     errorElement: <AdminError />,

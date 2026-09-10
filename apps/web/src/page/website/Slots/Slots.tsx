@@ -17,7 +17,7 @@ import { useState } from "react";
 import PaymentGuidancePopup from "@/components/webComponents/PaymentGuidancePopup";
 
 const Slots = () => {
-  const slotPrice = "₦2,000";
+  const slotPrice = "₦5,000";
   const [showPopup, setShowPopup] = useState(false);
   const [scenario, setScenario] = useState<"referred" | "independent">(
     "referred",
@@ -74,7 +74,9 @@ const Slots = () => {
                 <div className="text-4xl font-bold text-green-900">
                   {slotPrice}
                 </div>
-                <p className="text-gray-400 text-sm mt-0.5">per slot</p>
+                <p className="text-gray-500 text-xs mt-1 font-medium">
+                  per slot · ₦10,000 first slot (includes cluster setup)
+                </p>
               </div>
 
               {/* Features */}

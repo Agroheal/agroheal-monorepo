@@ -180,6 +180,15 @@
   .shadow-glow {
     box-shadow: var(--shadow-glow);
   }
+
+  /* Modern scrollbar-hiding utilities across all browsers */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
 }
 
 @layer base {

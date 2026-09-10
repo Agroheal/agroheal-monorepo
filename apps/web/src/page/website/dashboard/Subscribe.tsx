@@ -32,7 +32,7 @@ const Subscribe = () => {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        navigate("/login");
+        navigate("/signin");
         return;
       }
       setUser(user);
@@ -51,7 +51,7 @@ const Subscribe = () => {
 
   const handleFlutterwavePayment = () => {
     if (!user) {
-      navigate("/login");
+      navigate("/signin");
       return;
     }
 
@@ -286,7 +286,7 @@ const Subscribe = () => {
   //       data: { session },
   //     } = await supabase.auth.getSession();
   //     if (!session) {
-  //       navigate("/login");
+  //       navigate("/signin");
   //       return;
   //     }
 
@@ -335,7 +335,7 @@ const Subscribe = () => {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) {
-        navigate("/login");
+        navigate("/signin");
         return;
       }
 

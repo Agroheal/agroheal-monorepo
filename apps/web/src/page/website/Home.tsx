@@ -166,7 +166,7 @@ export default function Home() {
     },
     {
       q: "How do farm ownership slots work?",
-      a: "Each slot represents a structured slice of a larger production hub. By paying a moderate admin fee and monthly upkeep, you are assigned a managed portion of land where crops or livestock are produced, processed, and brought to market.",
+      a: "Each slot represents a structured slice of a commercial production cluster. Your starter slot covers cluster setup and biological inputs with zero recurring monthly fees. You are assigned a managed portion of land where crops or livestock are produced, processed, and sold to guaranteed off-takers.",
     },
     {
       q: "What support does Agroheal provide?",
@@ -260,18 +260,18 @@ export default function Home() {
               className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-4 pt-4"
             >
               <Link
-                to="/subscribe"
+                to="/signup"
                 className="inline-flex items-center justify-center gap-2 bg-[#2e7d32] hover:bg-[#1b5e20] text-white font-bold px-8 py-4 rounded-xl transition-all duration-300 group text-sm md:text-base shadow-lg shadow-green-950/20"
               >
-                <span>Join Now</span>
+                <span>Sign Up</span>
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </Link>
 
               <Link
-                to="/dashboard"
+                to="/signin"
                 className="inline-flex items-center justify-center bg-transparent border-2 border-white text-white hover:bg-white hover:text-green-950 font-bold px-8 py-4 rounded-xl transition-all duration-300 text-sm md:text-base"
               >
-                <span>Login</span>
+                <span>Sign In</span>
               </Link>
 
               <a
@@ -437,7 +437,7 @@ export default function Home() {
       </section>
 
       {/* 9. HOW IT WORKS SECTION */}
-      <section className="relative pt-16 md:pt-28 pb-28 bg-[#f9fafb] text-[#072412] overflow-hidden z-10 border-t border-gray-100">
+      <section id="how-it-works" className="relative pt-16 md:pt-28 pb-28 bg-[#f9fafb] text-[#072412] overflow-hidden z-10 border-t border-gray-100">
         <div className="container mx-auto px-6 max-w-7xl relative z-10">
           {/* Header Title */}
           <div className="text-center max-w-3xl mx-auto mb-16">

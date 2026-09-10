@@ -69,13 +69,13 @@ export const PQV_WINDOW_DAYS = 30;
 export const MIN_DIRECT_REFERRAL_WITHDRAWAL = 2000;
 
 export const MATRIX_COMMISSIONS = [
-  { level: 1, percentage: 10, amount: 500, maxMembers: 5, potential: 2500, requiredDirects: 5 },
-  { level: 2, percentage: 7, amount: 350, maxMembers: 25, potential: 8750, requiredDirects: 10 },
-  { level: 3, percentage: 6, amount: 300, maxMembers: 125, potential: 37500, requiredDirects: 15 },
-  { level: 4, percentage: 5, amount: 250, maxMembers: 625, potential: 156250, requiredDirects: 20 },
-  { level: 5, percentage: 5, amount: 250, maxMembers: 3125, potential: 781250, requiredDirects: 25 },
-  { level: 6, percentage: 4, amount: 200, maxMembers: 15625, potential: 3125000, requiredDirects: 30 },
-  { level: 7, percentage: 3, amount: 150, maxMembers: 78125, potential: 11718750, requiredDirects: 35 },
+  { level: 1, percentage: 5.0, amount: 250, maxMembers: 5, potential: 1250, requiredDirects: 5 },
+  { level: 2, percentage: 3.5, amount: 175, maxMembers: 25, potential: 4375, requiredDirects: 10 },
+  { level: 3, percentage: 3.0, amount: 150, maxMembers: 125, potential: 18750, requiredDirects: 15 },
+  { level: 4, percentage: 2.5, amount: 125, maxMembers: 625, potential: 78125, requiredDirects: 20 },
+  { level: 5, percentage: 2.5, amount: 125, maxMembers: 3125, potential: 390625, requiredDirects: 25 },
+  { level: 6, percentage: 2.5, amount: 125, maxMembers: 15625, potential: 1953125, requiredDirects: 30 },
+  { level: 7, percentage: 2.5, amount: 125, maxMembers: 78125, potential: 9765625, requiredDirects: 35 },
 ];
 
 export const getUnlockedMatrixLevel = (directCount: number): number => {
@@ -1395,18 +1395,16 @@ const CompoundReferrals: React.FC = () => {
             <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200 space-y-6">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="bg-amber-100 text-amber-900 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                    Sustainable MLM Math
+                  <span className="bg-emerald-100 text-emerald-900 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                    Product Commission Engine
                   </span>
-                  <span className="text-xs text-gray-400">• PRD §9 &amp; SRS §6 Authoritative Reference</span>
+                  <span className="text-xs text-gray-400">• Formal Programmer Brief &amp; Signed-Off Logic</span>
                 </div>
                 <h3 className="text-xl font-black text-gray-900 mt-2">
-                  7-Level Matrix Commission Schedule (40% Maximum Payout Cap)
+                  7-Level Product Commission Engine (40% Maximum Payout Ceiling)
                 </h3>
                 <p className="text-xs text-gray-500 mt-1 max-w-3xl leading-relaxed">
-                  Every ₦5,000 farm slot purchase distributes exactly <strong>₦2,000 (40%)</strong> in multilevel matrix
-                  commissions up 7 levels to qualified uplines. The remaining ₦3,000 is safely allocated to production capex (₦3,500)
-                  and company farm management.
+                  Applies to the ₦5,000 Mushroom Power welcome product (included in the ₦10,000 Wealth Creation Activation) and every retail product sold across the platform. Multilevel commissions distribute across 7 upline tiers (21.5% subtotal, up to ₦1,075 per sale). 
                 </p>
               </div>
 
@@ -1416,8 +1414,8 @@ const CompoundReferrals: React.FC = () => {
                     <tr>
                       <th className="py-3 px-4 rounded-l-xl">Level Depth</th>
                       <th className="py-3 px-4">Commission %</th>
-                      <th className="py-3 px-4">Payout Per ₦5k Slot</th>
-                      <th className="py-3 px-4">Max Capacity ($5^L$)</th>
+                      <th className="py-3 px-4">Payout Per ₦5k Product</th>
+                      <th className="py-3 px-4">Max Capacity (5^L)</th>
                       <th className="py-3 px-4">Directs to Unlock</th>
                       <th className="py-3 px-4">Your Status</th>
                       <th className="py-3 px-4 rounded-r-xl">Potential Earnings</th>
@@ -1429,7 +1427,7 @@ const CompoundReferrals: React.FC = () => {
                       return (
                         <tr key={tier.level} className="hover:bg-emerald-50/40 transition-colors">
                           <td className="py-3 px-4 font-bold text-gray-900">Level {tier.level}</td>
-                          <td className="py-3 px-4 font-semibold text-emerald-800">{tier.percentage}%</td>
+                          <td className="py-3 px-4 font-semibold text-emerald-800">{tier.percentage.toFixed(1)}%</td>
                           <td className="py-3 px-4 font-bold text-gray-900">₦{tier.amount.toLocaleString()}</td>
                           <td className="py-3 px-4 font-mono">{tier.maxMembers.toLocaleString()} members</td>
                           <td className="py-3 px-4 font-semibold text-gray-800">
@@ -1453,18 +1451,76 @@ const CompoundReferrals: React.FC = () => {
                       );
                     })}
                     <tr className="bg-emerald-50/80 font-black text-emerald-950">
-                      <td className="py-3 px-4">TOTALS (7 Levels)</td>
-                      <td className="py-3 px-4">40.0%</td>
-                      <td className="py-3 px-4">₦2,000.00</td>
+                      <td className="py-3 px-4">UPLINE TOTALS (7 Levels)</td>
+                      <td className="py-3 px-4">21.5%</td>
+                      <td className="py-3 px-4">₦1,075.00</td>
                       <td className="py-3 px-4">97,655 members</td>
                       <td className="py-3 px-4">35 Directs</td>
                       <td className="py-3 px-4">
                         {unlockedLevel >= 7 ? "✓ All Unlocked" : `Level ${unlockedLevel}/7 Active`}
                       </td>
-                      <td className="py-3 px-4 text-emerald-900">₦15,830,000.00</td>
+                      <td className="py-3 px-4 text-emerald-900">₦12,212,500.00</td>
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              {/* Complete 40% Ceiling Allocation Breakdown */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 text-xs text-slate-800 space-y-2">
+                  <span className="font-bold text-slate-900 block uppercase text-[11px] tracking-wider">
+                    Full 40% Product Commission Allocation (Per ₦5,000 Sale)
+                  </span>
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div className="bg-white p-2 rounded-lg border border-slate-100">
+                      <span className="text-gray-500 block">Direct Retail Seller</span>
+                      <strong className="text-emerald-700">12.0% (₦600)</strong>
+                    </div>
+                    <div className="bg-white p-2 rounded-lg border border-slate-100">
+                      <span className="text-gray-500 block">7-Level Upline Network</span>
+                      <strong className="text-emerald-700">21.5% (₦1,075)</strong>
+                    </div>
+                    <div className="bg-white p-2 rounded-lg border border-slate-100">
+                      <span className="text-gray-500 block">Leadership Pool</span>
+                      <strong className="text-emerald-700">4.0% (₦200)</strong>
+                    </div>
+                    <div className="bg-white p-2 rounded-lg border border-slate-100">
+                      <span className="text-gray-500 block">Sustainability Reserve</span>
+                      <strong className="text-emerald-700">2.0% (₦100)</strong>
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-gray-500 pt-1 border-t border-slate-200 flex justify-between">
+                    <span>Allocated: 39.5% (₦1,975)</span>
+                    <span>Company Retained Margin: 0.5% (₦25)</span>
+                  </div>
+                </div>
+
+                <div className="bg-emerald-50/70 rounded-2xl p-4 border border-emerald-200/70 text-xs text-emerald-950 space-y-2">
+                  <span className="font-bold text-emerald-900 block uppercase text-[11px] tracking-wider">
+                    Farm-Slot Allocation (₦5,000/Slot — No Multilevel MLM)
+                  </span>
+                  <p className="text-[11px] text-emerald-800/90 leading-relaxed">
+                    Purchasing a farm slot creates a physical agricultural production asset and does <strong>not</strong> enter the 7-level commission engine.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-[11px]">
+                    <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                      <span className="text-gray-500 block">Direct Referrer</span>
+                      <strong className="text-emerald-800">10% (₦500)</strong>
+                    </div>
+                    <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                      <span className="text-gray-500 block">Company Admin</span>
+                      <strong className="text-emerald-800">20% (₦1,000)</strong>
+                    </div>
+                    <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                      <span className="text-gray-500 block">Two Fruiting Bags</span>
+                      <strong className="text-emerald-800">28% (₦1,400)</strong>
+                    </div>
+                    <div className="bg-white/80 p-2 rounded-lg border border-emerald-100">
+                      <span className="text-gray-500 block">Fruiting House & Logistics</span>
+                      <strong className="text-emerald-800">42% (₦2,100)</strong>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* 5-per-Level Rule Explainer */}
@@ -1473,7 +1529,7 @@ const CompoundReferrals: React.FC = () => {
                 <div className="space-y-1">
                   <strong className="text-emerald-900 block font-bold">Progressive Depth Gating (5 Directs per Level):</strong>
                   <p className="text-emerald-800/90 leading-relaxed">
-                    To prevent passive freeloading and encourage personal network expansion, each batch of <strong>5 direct recruits unlocks 1 deeper level</strong> of matrix harvest dividends. Commissions generated at deeper levels before you qualify are <strong>safely escrowed as locked dividends</strong> and automatically release once you recruit the required direct partners.
+                    To maintain sustainable community growth, each batch of <strong>5 direct recruits unlocks 1 deeper tier</strong> of matrix product commissions. Commissions generated at deeper levels before qualification are <strong>safely escrowed as locked earnings</strong> and automatically unlock once you meet the required direct partners and monthly ₦5,000 PQV.
                   </p>
                 </div>
               </div>
@@ -1488,12 +1544,12 @@ const CompoundReferrals: React.FC = () => {
                   </span>
                   <h4 className="text-xl font-black">Interactive Matrix Income Forecaster</h4>
                   <p className="text-xs text-emerald-100/80 max-w-xl leading-relaxed">
-                    Estimate your cumulative multilevel harvest dividends when your 5 legs duplicate downline slots.
+                    Estimate your cumulative multilevel product commissions when your downline purchases eligible products (like the ₦5,000 Mushroom Power welcome product).
                   </p>
                 </div>
 
                 <div className="flex items-center gap-3 bg-white/10 p-3 rounded-2xl border border-white/10">
-                  <label className="text-xs font-semibold">Average Slots per Member:</label>
+                  <label className="text-xs font-semibold">Average ₦5k Orders / Member:</label>
                   <select
                     value={calcSlotsPerMember}
                     onChange={(e) => setCalcSlotsPerMember(Number(e.target.value))}
@@ -1501,7 +1557,7 @@ const CompoundReferrals: React.FC = () => {
                   >
                     {[1, 2, 3, 4, 5, 10, 20].map((num) => (
                       <option key={num} value={num}>
-                        {num} {num === 1 ? "Slot" : "Slots"} (₦{(num * 5000).toLocaleString()})
+                        {num} {num === 1 ? "Product" : "Products"} (₦{(num * 5000).toLocaleString()})
                       </option>
                     ))}
                   </select>
@@ -1512,25 +1568,25 @@ const CompoundReferrals: React.FC = () => {
                 <div className="bg-white/5 p-3.5 rounded-xl border border-white/10">
                   <span className="text-[10px] text-emerald-300 block">Level 1 (5 Members)</span>
                   <span className="text-lg font-black text-white">
-                    ₦{(2500 * calcSlotsPerMember).toLocaleString()}
+                    ₦{(1250 * calcSlotsPerMember).toLocaleString()}
                   </span>
                 </div>
                 <div className="bg-white/5 p-3.5 rounded-xl border border-white/10">
                   <span className="text-[10px] text-emerald-300 block">Level 2 (25 Members)</span>
                   <span className="text-lg font-black text-white">
-                    ₦{(8750 * calcSlotsPerMember).toLocaleString()}
+                    ₦{(4375 * calcSlotsPerMember).toLocaleString()}
                   </span>
                 </div>
                 <div className="bg-white/5 p-3.5 rounded-xl border border-white/10">
                   <span className="text-[10px] text-emerald-300 block">Level 3 (125 Members)</span>
                   <span className="text-lg font-black text-white">
-                    ₦{(37500 * calcSlotsPerMember).toLocaleString()}
+                    ₦{(18750 * calcSlotsPerMember).toLocaleString()}
                   </span>
                 </div>
                 <div className="bg-emerald-500/20 p-3.5 rounded-xl border border-emerald-400/40">
                   <span className="text-[10px] text-amber-300 font-bold block">Levels 1–3 Cumulative</span>
                   <span className="text-lg font-black text-amber-300">
-                    ₦{((2500 + 8750 + 37500) * calcSlotsPerMember).toLocaleString()}
+                    ₦{((1250 + 4375 + 18750) * calcSlotsPerMember).toLocaleString()}
                   </span>
                 </div>
               </div>

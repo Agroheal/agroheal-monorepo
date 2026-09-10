@@ -58,7 +58,7 @@ const FarmManagement = () => {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) {
-      navigate("/login");
+      navigate("/signin");
       return;
     }
     setUserEmail(user.email || "");
