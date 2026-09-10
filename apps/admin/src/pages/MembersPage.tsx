@@ -15,6 +15,7 @@ import { IssuedGreenCardSuccessDialog } from "@/components/admin/IssuedGreenCard
 import { StatusBanner } from "@/components/admin/StatusBanner";
 import type { Member } from "@/types/admin";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { exportToExcel } from "@shared/excelExport";
 
 function openWhatsApp(text: string) {
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
@@ -56,6 +57,55 @@ export default function MembersPage() {
   const flash = (fn: (v: string) => void, text: string, ms = 4000) => {
     fn(text);
     setTimeout(() => fn(""), ms);
+  };
+
+  const handleExportExcel = () => {
+    const dateStamp = new Date().toISOString().split("T")[0];
+    const filename = `Agroheal_Members_Master_${dateStamp}.xlsx`;
+
+    const memberRows = filteredMembers.map((m, idx) => {
+      const mushroomSlots = m.slots_by_program?.find((p) => p.category?.toLowerCase().includes("mushroom"))?.slots || 0;
+      const gingerSlots = m.slots_by_program?.find((p) => p.category?.toLowerCase().includes("ginger"))?.slots || 0;
+      const foodNationSlots = m.slots_by_program?.find((p) => p.category?.toLowerCase().includes("foodnation"))?.slots || 0;
+
+      return {
+        "S/N": idx + 1,
+        "AGC Member ID": m.member_id || "-",
+        "Full Name": m.full_name || "",
+        "Email": m.email || "",
+        "Phone Number": m.phone || "",
+        "Role": m.role || "Member",
+        "Green Card Status": m.has_green_card ? "ACTIVE" : "INACTIVE",
+        "Green Card Expiry": m.green_card_expires_at ? new Date(m.green_card_expires_at).toLocaleDateString() : "-",
+        "Total Slots": m.total_slots || 0,
+        "Mushroom Village Slots": mushroomSlots,
+        "Gingertown Slots": gingerSlots,
+        "Organic FoodNation Slots": foodNationSlots,
+        "Referral Code": m.referral_code || "-",
+        "Referred By": m.referred_by || "-",
+        "Joined Date": m.created_at ? new Date(m.created_at).toLocaleDateString() : "",
+      };
+    });
+
+    const summaryRows = [
+      { "Metric": "Total Exported Members", "Value": filteredMembers.length },
+      { "Metric": "Total System Members", "Value": members.length },
+      { "Metric": "Total Slots Held (Exported)", "Value": filteredMembers.reduce((sum, m) => sum + m.total_slots, 0) },
+      { "Metric": "Active Green Card Holders (Exported)", "Value": filteredMembers.filter((m) => m.has_green_card).length },
+      { "Metric": "Active Program Filter", "Value": programFilter },
+      { "Metric": "Active Green Card Filter", "Value": greenCardFilter },
+      { "Metric": "Search Query", "Value": searchQuery || "None" },
+    ];
+
+    exportToExcel({
+      filename,
+      sheets: [
+        { sheetName: "Members Directory", data: memberRows },
+        { sheetName: "Directory Summary", data: summaryRows },
+      ],
+    });
+
+    flash(setSuccessMessage, `Exported ${filteredMembers.length} member records to ${filename}`);
   };
 
   const handleActivateGreenCard = async (member: Member, skipConfirm = false) => {
@@ -158,6 +208,7 @@ export default function MembersPage() {
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         onIssueGreenCard={() => setIsIssueModalOpen(true)}
+        onExportExcel={handleExportExcel}
       />
 
       {loading && members.length === 0 ? (

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Search, Filter, IdCard, LayoutGrid, Table as TableIcon } from "lucide-react";
+import { Search, Filter, IdCard, LayoutGrid, Table as TableIcon, FileSpreadsheet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -17,6 +17,7 @@ interface Props {
   viewMode: MemberViewMode;
   onViewModeChange: (v: MemberViewMode) => void;
   onIssueGreenCard: () => void;
+  onExportExcel?: () => void;
 }
 
 export function MembersToolbar({
@@ -28,6 +29,7 @@ export function MembersToolbar({
   viewMode,
   onViewModeChange,
   onIssueGreenCard,
+  onExportExcel,
 }: Props) {
   const hasSlots = members.filter((m) => m.total_slots > 0).length;
   const noSlots = members.length - hasSlots;
@@ -76,6 +78,16 @@ export function MembersToolbar({
             <span className="px-1 text-xs">Auto</span>
           </ToggleBtn>
         </div>
+        {onExportExcel && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onExportExcel}
+            className="gap-1.5 whitespace-nowrap text-xs border-emerald-600/30 text-emerald-600 hover:bg-emerald-500/10 font-semibold"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> Export Excel
+          </Button>
+        )}
         <Button type="button" onClick={onIssueGreenCard} className="gap-2 whitespace-nowrap">
           <IdCard className="h-4 w-4" /> Issue Green Card
         </Button>

@@ -7,9 +7,10 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { showToast } from "@/components/ui/ToastComponent";
 import { Toaster } from "react-hot-toast";
-import { Plus, Edit, Trash2, Save, X, Lock } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Lock, FileSpreadsheet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cleanName, cleanEmail, normalizePhoneNumber, parsePositiveInt } from "@shared/dataSanitizers";
+import { exportToExcel } from "@shared/excelExport";
 
 const FARM_SETUP_RATE = 5000;
 const FARM_SUPPORT_RATE = 500;
@@ -208,6 +209,55 @@ const FarmManagement = () => {
 
   const set = (field: keyof FarmRecord, val: string | number) =>
     setFormData((prev) => ({ ...prev, [field]: val }));
+
+  const handleExportExcel = () => {
+    if (!farm) return;
+    const dateStamp = new Date().toISOString().split("T")[0];
+    const filename = `${farm.name.replace(/\s+/g, "_")}_Members_${dateStamp}.xlsx`;
+
+    const memberRows = records.map((r, idx) => ({
+      "S/N": idx + 1,
+      "Member Name": r.name || "",
+      "Email": r.email || "",
+      "Phone Number": r.phone || "",
+      "Farm Slots": r.farm_slots || 0,
+      "Setup Months": r.months_farm_setup || 0,
+      "Setup Amount (₦)": calcSetup(r),
+      "Support Months": r.months_farm_support || 0,
+      "Support Amount (₦)": calcSupport(r),
+      "Absentee Fine (₦)": r.absentee_fine || 0,
+      "Total Amount (₦)": calcTotal(r),
+    }));
+
+    const totalSlots = records.reduce((s, r) => s + r.farm_slots, 0);
+    const totalSetup = records.reduce((s, r) => s + calcSetup(r), 0);
+    const totalSupport = records.reduce((s, r) => s + calcSupport(r), 0);
+    const totalFine = records.reduce((s, r) => s + r.absentee_fine, 0);
+    const grandTotal = records.reduce((s, r) => s + calcTotal(r), 0);
+
+    const summaryRows = [
+      { "Metric": "Total Members", "Value": records.length },
+      { "Metric": "Total Farm Slots", "Value": totalSlots },
+      { "Metric": "Total Farm Setup (₦)", "Value": totalSetup },
+      { "Metric": "Total Farm Support (₦)", "Value": totalSupport },
+      { "Metric": "Total Absentee Fines (₦)", "Value": totalFine },
+      { "Metric": "Grand Total Contributions (₦)", "Value": grandTotal },
+    ];
+
+    exportToExcel({
+      filename,
+      sheets: [
+        { sheetName: "Member Roster", data: memberRows },
+        { sheetName: "Summary", data: summaryRows },
+      ],
+    });
+
+    showToast({
+      variant: "success",
+      title: "Excel Export Generated",
+      description: `Downloaded ${filename}`,
+    });
+  };
 
   if (loading)
     return (
@@ -427,8 +477,18 @@ const FarmManagement = () => {
         transition={{ delay: 0.2 }}
       >
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
             <CardTitle>Member Records ({records.length})</CardTitle>
+            {records.length > 0 && (
+              <Button
+                onClick={handleExportExcel}
+                variant="outline"
+                size="sm"
+                className="border-emerald-700 text-emerald-800 hover:bg-emerald-50 font-semibold"
+              >
+                <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-700" /> Export to Excel
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {records.length === 0 ? (

@@ -20,12 +20,14 @@ import {
   CreditCard,
   Sparkles,
   Lock,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
 import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
+import { exportToExcel } from "@shared/excelExport";
 
 interface LedgerItem {
   id: string;
@@ -370,6 +372,47 @@ export default function TransactionLedger() {
     return true;
   });
 
+  const handleExportExcel = () => {
+    const dateStamp = new Date().toISOString().split("T")[0];
+    const cleanId = (memberId || "AGC").replace(/[^a-zA-Z0-9_-]/g, "_");
+    const filename = `Agroheal_Transactions_${cleanId}_${dateStamp}.xlsx`;
+
+    const txRows = filteredTransactions.map((t, idx) => ({
+      "S/N": idx + 1,
+      "Date": new Date(t.date).toLocaleString(),
+      "Type": t.type,
+      "Category": t.category.replace(/_/g, " "),
+      "Reference": t.reference,
+      "Amount (₦)": t.amount,
+      "Status": t.status,
+      "Description": t.description,
+    }));
+
+    const overviewRows = [
+      { "Metric": "Member ID", "Value": memberId },
+      { "Metric": "Direct Referral Wallet (₦)", "Value": directReferralEarnings },
+      { "Metric": "5x7 Matrix Spillover Wallet (₦)", "Value": matrixEarnings },
+      { "Metric": "Direct Referrals Count", "Value": directReferralsCount },
+      { "Metric": "Active 30-Day PQV (₦)", "Value": activePqv30d },
+      { "Metric": "Matrix Qualification Status", "Value": isMatrixQualified ? "QUALIFIED" : "QUALIFICATION REQUIRED" },
+      { "Metric": "Total Filtered Transactions", "Value": filteredTransactions.length },
+    ];
+
+    exportToExcel({
+      filename,
+      sheets: [
+        { sheetName: "Transactions", data: txRows },
+        { sheetName: "Wallet Overview", data: overviewRows },
+      ],
+    });
+
+    showToast({
+      variant: "success",
+      title: "Ledger Exported",
+      description: `Downloaded ${filename}`,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[#faf9f6] py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -634,6 +677,15 @@ export default function TransactionLedger() {
                 <option value="CREDIT">Credits Only</option>
                 <option value="DEBIT">Debits Only</option>
               </select>
+
+              <Button
+                onClick={handleExportExcel}
+                variant="outline"
+                size="sm"
+                className="h-9 px-3 rounded-xl border-emerald-700 text-emerald-800 hover:bg-emerald-50 text-xs font-semibold shadow-xs"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5 text-emerald-700" /> Export Excel
+              </Button>
             </div>
           </div>
 

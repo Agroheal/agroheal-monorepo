@@ -6,13 +6,14 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { showToast } from "@/components/ui/ToastComponent";
 import { Toaster } from "react-hot-toast";
-import { Plus, Edit, Trash2, Save, X, Printer, Lock, TrendingUp } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Printer, Lock, TrendingUp, FileSpreadsheet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PROJECT_CATEGORIES,
   DEFAULT_CATEGORY,
 } from "@/constant/projectCategories";
 import { cleanName, cleanEmail, normalizePhoneNumber, parsePositiveInt } from "@shared/dataSanitizers";
+import { exportToExcel } from "@shared/excelExport";
 import { useAuth } from "@/hooks/useAuth";
 
 interface FarmRecord {
@@ -1363,6 +1364,136 @@ const FarmRecordsView = () => {
     window.print();
   };
 
+  const handleExportExcel = () => {
+    if (!farm) return;
+
+    const dateStamp = new Date().toISOString().split("T")[0];
+    const filename = `${farm.name.replace(/\s+/g, "_")}_${(farm.project_category || "Gingertown").replace(/\s+/g, "_")}_Report_${dateStamp}.xlsx`;
+
+    // 1. Member Records Sheet
+    const memberRows = records.map((r, idx) => {
+      const creator = parseAuditString(r.created_by_name);
+      const editor = r.updated_by_name ? parseAuditString(r.updated_by_name) : null;
+      return {
+        "S/N": idx + 1,
+        "Member Name": r.name || "",
+        "Email": r.email || "",
+        "Phone Number": r.phone || "",
+        "Farm Slots": r.farm_slots || 0,
+        "Setup Months": r.months_farm_setup || "",
+        "Setup Paid (₦)": calcSetup(r),
+        "Support Months": r.months_farm_support || "",
+        "Support Paid (₦)": calcSupport(r),
+        "Absentee Fine (₦)": isOrganicFoodNation ? 0 : calcFine(r),
+        "Total Contributions (₦)": getRecordTotal(r),
+        "Setup Batches": r.setup_batches || "",
+        "Support Batches": r.support_batches || "",
+        "Fine Batches": r.fine_batches || "",
+        "Referral Code": r.referral_code || "",
+        "Created By": `[${creator.role}] ${creator.name}${creator.email ? ` (${creator.email})` : ""}`,
+        "Created At": r.created_at ? formatDateTime(r.created_at) : "",
+        "Last Edited By": editor ? `[${editor.role}] ${editor.name}${editor.email ? ` (${editor.email})` : ""}` : "",
+        "Last Edited At": r.updated_at ? formatDateTime(r.updated_at) : "",
+      };
+    });
+
+    // 2. Farm Expenses Sheet
+    const expenseRows = expenses.map((exp, idx) => {
+      const creator = parseAuditString(exp.created_by_name);
+      const editor = exp.updated_by_name ? parseAuditString(exp.updated_by_name) : null;
+      return {
+        "S/N": idx + 1,
+        "Expense Date": exp.created_at ? new Date(exp.created_at).toLocaleDateString() : "",
+        "Category": exp.category || "",
+        "Amount (₦)": Number(exp.amount) || 0,
+        "Description": exp.description || "-",
+        "Recorded By": `[${creator.role}] ${creator.name}${creator.email ? ` (${creator.email})` : ""}`,
+        "Recorded At": exp.created_at ? formatDateTime(exp.created_at) : "",
+        "Last Edited By": editor ? `[${editor.role}] ${editor.name}${editor.email ? ` (${editor.email})` : ""}` : "",
+        "Last Edited At": exp.updated_at ? formatDateTime(exp.updated_at) : "",
+      };
+    });
+
+    // 3. Produce Sales Sheet
+    const salesRows = sales.map((sale, idx) => {
+      const creator = parseAuditString(sale.created_by_name);
+      return {
+        "S/N": idx + 1,
+        "Sale Date": sale.sale_date ? new Date(sale.sale_date).toLocaleDateString() : "",
+        "Produce Name": sale.produce_name || "",
+        "Quantity": sale.quantity || 0,
+        "Unit": sale.unit || "",
+        "Unit Price (₦)": Number(sale.unit_price) || 0,
+        "Total Revenue (₦)": Number(sale.amount) || 0,
+        "Buyer / Off-Taker": sale.buyer_name || "-",
+        "Sales Channel": sale.sales_channel || "-",
+        "Description": sale.description || "-",
+        "Recorded By": `[${creator.role}] ${creator.name}${creator.email ? ` (${creator.email})` : ""}`,
+        "Recorded At": sale.created_at ? formatDateTime(sale.created_at) : "",
+      };
+    });
+
+    // 4. Financial Summary Sheet
+    const summaryRows = [
+      {
+        "Financial Metric": "Total Member Contributions",
+        "Amount (₦)": totalFarmIncome,
+        "Description / Formula": "Total sum of all member setup, support, and fine payments",
+      },
+      {
+        "Financial Metric": "Agroheal Platform Fees",
+        "Amount (₦)": agrohealBalance,
+        "Description / Formula": isMushroomVillage ? "Slot & Admin Marketing" : "Slot Admin/Marketing + Support Fee",
+      },
+      {
+        "Financial Metric": `${farm.name} Gross Operating Balance`,
+        "Amount (₦)": grossBalance,
+        "Description / Formula": "Farm Setup capital reserve + Absentee Fines",
+      },
+      {
+        "Financial Metric": "Total Farm Expenses",
+        "Amount (₦)": totalExpensesValue,
+        "Description / Formula": "Total sum of all recorded farm operational expenses",
+      },
+      {
+        "Financial Metric": `${farm.name} Net Operating Balance`,
+        "Amount (₦)": netBalance,
+        "Description / Formula": "Gross Balance minus Total Expenses",
+      },
+      {
+        "Financial Metric": "Total Harvest Produce Sales",
+        "Amount (₦)": totalSalesRevenue,
+        "Description / Formula": "Total revenue generated from crop/produce harvest sales",
+      },
+      {
+        "Financial Metric": "Harvest Net Profit",
+        "Amount (₦)": harvestNetProfit,
+        "Description / Formula": "Total Produce Sales Revenue minus Total Farm Expenses",
+      },
+      {
+        "Financial Metric": "Harvest Profit Margin",
+        "Amount (₦)": `${netProfitMargin.toFixed(1)}%`,
+        "Description / Formula": "Net Profit as a percentage of Total Sales Revenue",
+      },
+    ];
+
+    exportToExcel({
+      filename,
+      sheets: [
+        { sheetName: "Member Records", data: memberRows },
+        { sheetName: "Farm Expenses", data: expenseRows },
+        { sheetName: "Produce Sales", data: salesRows },
+        { sheetName: "Financial Summary", data: summaryRows },
+      ],
+    });
+
+    showToast({
+      variant: "success",
+      title: "Excel Export Generated",
+      description: `Downloaded ${filename}`,
+    });
+  };
+
   return (
     <div className="p-4 md:p-6 print:p-0">
       <style>{`
@@ -1504,13 +1635,22 @@ const FarmRecordsView = () => {
               </div>
             )}
           </div>
-          <Button
-            onClick={handleDownloadPDF}
-            variant="outline"
-            className="no-print border-green-800 text-green-800 hover:bg-green-50 w-full sm:w-auto"
-          >
-            <Printer className="w-4 h-4 mr-2" /> Download PDF
-          </Button>
+          <div className="flex items-center gap-2 no-print flex-wrap w-full sm:w-auto">
+            <Button
+              onClick={handleExportExcel}
+              variant="outline"
+              className="border-emerald-700 text-emerald-800 hover:bg-emerald-50 w-full sm:w-auto font-semibold shadow-xs"
+            >
+              <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-700" /> Export Excel
+            </Button>
+            <Button
+              onClick={handleDownloadPDF}
+              variant="outline"
+              className="border-green-800 text-green-800 hover:bg-green-50 w-full sm:w-auto font-medium"
+            >
+              <Printer className="w-4 h-4 mr-2" /> Download PDF
+            </Button>
+          </div>
         </motion.div>
 
         {!canManageRecords && !canManageExpenses && !canManageSales && (

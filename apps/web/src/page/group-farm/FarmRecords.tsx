@@ -7,8 +7,9 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { showToast } from "@/components/ui/ToastComponent";
 import { Toaster } from "react-hot-toast";
-import { Plus, Edit, Trash2, Save, X } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, FileSpreadsheet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { exportToExcel } from "@shared/excelExport";
 
 const FARM_SETUP_RATE = 5000;
 const FARM_SUPPORT_RATE = 500;
@@ -166,6 +167,37 @@ const FarmRecords = () => {
   };
   const set = (field: keyof FarmRecord, val: string | number) =>
     setFormData((prev) => ({ ...prev, [field]: val }));
+
+  const handleExportExcel = () => {
+    if (!farm) return;
+    const dateStamp = new Date().toISOString().split("T")[0];
+    const filename = `${farm.name.replace(/\s+/g, "_")}_Records_${dateStamp}.xlsx`;
+
+    const memberRows = records.map((r, idx) => ({
+      "S/N": idx + 1,
+      "Name": r.name || "",
+      "Email": r.email || "",
+      ...(isCoordinator ? { "Phone": r.phone || "" } : {}),
+      "Farm Slots": r.farm_slots || 0,
+      "Setup Months": r.months_farm_setup || 0,
+      "Setup Amount (₦)": calcSetup(r),
+      "Support Months": r.months_farm_support || 0,
+      "Support Amount (₦)": calcSupport(r),
+      "Absentee Fine (₦)": r.absentee_fine || 0,
+      "Total Amount (₦)": calcTotal(r),
+    }));
+
+    exportToExcel({
+      filename,
+      sheets: [{ sheetName: "Member Records", data: memberRows }],
+    });
+
+    showToast({
+      variant: "success",
+      title: "Excel Export Generated",
+      description: `Downloaded ${filename}`,
+    });
+  };
 
   if (loading)
     return (
@@ -339,8 +371,18 @@ const FarmRecords = () => {
         transition={{ delay: 0.2 }}
       >
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between gap-4 flex-wrap">
             <CardTitle>Member Records</CardTitle>
+            {records.length > 0 && (
+              <Button
+                onClick={handleExportExcel}
+                variant="outline"
+                size="sm"
+                className="border-emerald-700 text-emerald-800 hover:bg-emerald-50 font-semibold"
+              >
+                <FileSpreadsheet className="w-4 h-4 mr-2 text-emerald-700" /> Export to Excel
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {records.length === 0 ? (

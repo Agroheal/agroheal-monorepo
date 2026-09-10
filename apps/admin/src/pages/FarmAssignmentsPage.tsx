@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { Loader2, AlertTriangle, CheckCircle2, Lock } from "lucide-react";
+import { Loader2, AlertTriangle, CheckCircle2, Lock, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBanner } from "@/components/admin/StatusBanner";
 import { useFarmAssignmentGaps, type FarmAssignmentGap } from "@/hooks/useFarmAssignmentGaps";
 import { fetchFarmGroups, assignSlotsToFarmGroup, type FarmGroup } from "@/lib/farmAssignment";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { exportToExcel } from "@shared/excelExport";
 
 function gapKey(gap: FarmAssignmentGap) {
   return `${gap.memberId}::${gap.category}`;
@@ -58,10 +59,48 @@ export default function FarmAssignmentsPage() {
       flash(setSuccessMessage, `Assigned ${gap.shortfall} ${gap.category} slot(s) for ${gap.fullName}.`);
       await refetch();
     } catch (err) {
-      flash(setErrorMessage, err instanceof Error ? err.message : "Failed to assign farm slots.");
+      flash(setErrorMessage, err instanceof Error ? err.message : "Assignment failed.");
     } finally {
       setAssigningKey(null);
     }
+  };
+
+  const handleExportExcel = () => {
+    const dateStamp = new Date().toISOString().split("T")[0];
+    const filename = `Agroheal_Farm_Assignment_Gaps_${dateStamp}.xlsx`;
+
+    const gapRows = gaps.map((gap, idx) => ({
+      "S/N": idx + 1,
+      "Member Name": gap.fullName,
+      "Email": gap.email,
+      "Phone": gap.phone,
+      "Project Category": gap.category,
+      "Slots Purchased": gap.slotsPurchased,
+      "Slots Assigned": gap.slotsAssigned,
+      "Shortfall (Unassigned)": gap.shortfall,
+    }));
+
+    const totalPurchased = gaps.reduce((sum, g) => sum + g.slotsPurchased, 0);
+    const totalAssigned = gaps.reduce((sum, g) => sum + g.slotsAssigned, 0);
+    const totalShortfall = gaps.reduce((sum, g) => sum + g.shortfall, 0);
+
+    const summaryRows = [
+      { "Metric": "Total Members with Gaps", "Value": gaps.length },
+      { "Metric": "Total Purchased Slots", "Value": totalPurchased },
+      { "Metric": "Total Assigned Slots", "Value": totalAssigned },
+      { "Metric": "Total Unassigned Shortfall", "Value": totalShortfall },
+      { "Metric": "Generated Date", "Value": new Date().toLocaleString() },
+    ];
+
+    exportToExcel({
+      filename,
+      sheets: [
+        { sheetName: "Assignment Gaps", data: gapRows },
+        { sheetName: "Gaps Summary", data: summaryRows },
+      ],
+    });
+
+    flash(setSuccessMessage, `Exported ${gaps.length} gap records to ${filename}`);
   };
 
   return (
@@ -69,13 +108,26 @@ export default function FarmAssignmentsPage() {
       <StatusBanner variant="success" message={successMessage} />
       <StatusBanner variant="error" message={errorMessage} />
 
-      <div>
-        <h2 className="text-sm font-semibold text-foreground">Farm Assignment Gaps</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Members whose purchased slots (slot_subscriptions) exceed what's actually recorded on a coordinator's farm
-          (farm_records), per category. Nothing links the two automatically — this is what catches the gap instead of
-          a customer complaint.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Farm Assignment Gaps</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Members whose purchased slots (slot_subscriptions) exceed what's actually recorded on a coordinator's farm
+            (farm_records), per category. Nothing links the two automatically — this is what catches the gap instead of
+            a customer complaint.
+          </p>
+        </div>
+        {gaps.length > 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleExportExcel}
+            className="gap-1.5 whitespace-nowrap text-xs border-emerald-600/30 text-emerald-600 hover:bg-emerald-500/10 font-semibold self-start sm:self-auto"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> Export Gaps Report
+          </Button>
+        )}
       </div>
 
       {loading && gaps.length === 0 ? (

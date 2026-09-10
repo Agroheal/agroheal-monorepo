@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, FileSpreadsheet } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { exportToExcel } from "@shared/excelExport";
 import {
   Pagination,
   PaginationContent,
@@ -39,23 +41,69 @@ export function PaymentsLogTable({ logs }: { logs: PaymentLog[] }) {
 
   const changePage = (p: number) => setPage(Math.min(Math.max(1, p), totalPages));
 
+  const handleExportExcel = () => {
+    const dateStamp = new Date().toISOString().split("T")[0];
+    const filename = `Agroheal_Payment_Logs_${dateStamp}.xlsx`;
+
+    const logRows = filtered.map((p, idx) => ({
+      "S/N": idx + 1,
+      "User Email": p.user_email || "",
+      "Project Category": p.project_category || "",
+      "Payment Type": p.type === "slot_subscription" ? "Slot Subscription" : "Other Payment",
+      "Slots": p.slots || 0,
+      "Amount (₦)": p.amount || 0,
+      "Status": (p.status || "").toUpperCase(),
+      "Date": p.created_at ? new Date(p.created_at).toLocaleString() : "",
+      "Log ID": p.id,
+    }));
+
+    const totalAmount = filtered.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const totalSlots = filtered.reduce((sum, p) => sum + (p.slots || 0), 0);
+
+    const summaryRows = [
+      { "Metric": "Total Log Entries", "Value": filtered.length },
+      { "Metric": "Total Amount (₦)", "Value": totalAmount },
+      { "Metric": "Total Slots Counted", "Value": totalSlots },
+      { "Metric": "Search Query", "Value": search || "None" },
+    ];
+
+    exportToExcel({
+      filename,
+      sheets: [
+        { sheetName: "Payment Logs", data: logRows },
+        { sheetName: "Log Summary", data: summaryRows },
+      ],
+    });
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <span className="text-sm text-muted-foreground">
           All Operations &amp; Payment Logs (<strong className="text-foreground">{filtered.length}</strong>)
         </span>
-        <div className="relative sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-            placeholder="Search by email or category..."
-            className="pl-9"
-          />
+        <div className="flex items-center gap-2 sm:max-w-md w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search by email or category..."
+              className="pl-9"
+            />
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleExportExcel}
+            className="gap-1.5 whitespace-nowrap text-xs border-emerald-600/30 text-emerald-600 hover:bg-emerald-500/10 font-semibold"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> Export Excel
+          </Button>
         </div>
       </div>
 
