@@ -18,16 +18,16 @@
     "@types/react-dom": "19.2.3"
   },
   "scripts": {
-    "dev": "concurrently -n \"web,admin\" -c \"cyan,magenta\" \"yarn web:dev\" \"yarn admin:dev\"",
-    "build": "yarn web:build && yarn admin:build",
-    "web:dev": "yarn workspace web dev",
-    "web:build": "yarn workspace web build",
-    "web:typecheck": "yarn workspace web typecheck",
-    "web:lint": "yarn workspace web lint",
-    "admin:dev": "yarn workspace admin dev",
-    "admin:build": "yarn workspace admin build",
-    "admin:typecheck": "yarn workspace admin typecheck",
-    "admin:lint": "yarn workspace admin lint"
+    "dev": "concurrently -n \"web,admin\" -c \"cyan,magenta\" \"npm run web:dev\" \"npm run admin:dev\"",
+    "build": "npm run web:build && npm run admin:build",
+    "web:dev": "npm --workspace=web run dev",
+    "web:build": "npm --workspace=web run build",
+    "web:typecheck": "npm --workspace=web run typecheck",
+    "web:lint": "npm --workspace=web run lint",
+    "admin:dev": "npm --workspace=admin run dev",
+    "admin:build": "npm --workspace=admin run build",
+    "admin:typecheck": "npm --workspace=admin run typecheck",
+    "admin:lint": "npm --workspace=admin run lint"
   },
   "devDependencies": {
     "concurrently": "^10.0.5"
