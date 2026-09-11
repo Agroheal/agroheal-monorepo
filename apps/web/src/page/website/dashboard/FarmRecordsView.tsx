@@ -425,10 +425,21 @@ const FarmRecordsView = () => {
   const isFarmCoordinator =
     isCoordinator || authIsCoordinator || authProfile?.role === "coordinator";
 
-  // Platform Admins, Super Admins, Support, and Designated Farm Coordinators can manage member records, expenses, and sales
-  const canManageRecords = isSuperAdmin || isAdmin || isSupport || isFarmCoordinator;
-  const canManageExpenses = isSuperAdmin || isAdmin || isSupport || isFarmCoordinator;
-  const canManageSales = isSuperAdmin || isAdmin || isSupport || isFarmCoordinator;
+  const currentUserId = authProfile?.id || authUser?.id;
+
+  // STRICT PRIVILEGE SEPARATION (Personal Member Dashboard vs. Admin Portal):
+  // Admins, Super Admins, and Support staff must NOT edit records in their personal dashboard (apps/web).
+  // Platform staff must perform system-wide edits and audits through the dedicated Admin Portal (apps/admin).
+  // In apps/web, ONLY the designated Farm Coordinator assigned to this specific farm can edit/manage records.
+  const isAssignedCoordinatorOfThisFarm = Boolean(
+    farm && currentUserId && farm.coordinator_id === currentUserId
+  );
+  const canManageRecords = isAssignedCoordinatorOfThisFarm;
+  const canManageExpenses = isAssignedCoordinatorOfThisFarm;
+  const canManageSales = isAssignedCoordinatorOfThisFarm;
+  const isPlatformStaffInPersonalDashboard = Boolean(
+    (isAdmin || isSuperAdmin || isSupport) && !isAssignedCoordinatorOfThisFarm
+  );
 
   // Active user audit attribution context
   const currentUserRoleLabel = isSuperAdmin
@@ -453,8 +464,6 @@ const FarmRecordsView = () => {
   const currentAuditAttribution = userDisplayEmail
     ? `[${currentUserRoleLabel}] ${userDisplayName} (${userDisplayEmail})`
     : `[${currentUserRoleLabel}] ${userDisplayName}`;
-
-  const currentUserId = authProfile?.id || authUser?.id;
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
@@ -1647,6 +1656,27 @@ const FarmRecordsView = () => {
             </Button>
           </div>
         </motion.div>
+
+        {isPlatformStaffInPersonalDashboard && (
+          <div className="mb-6 rounded-2xl border border-amber-200/90 bg-amber-50/90 p-4 sm:p-5 text-amber-950 shadow-xs flex items-start gap-3.5 no-print">
+            <div className="w-10 h-10 rounded-xl bg-amber-200/70 border border-amber-300 flex items-center justify-center shrink-0 text-amber-800 shadow-xs">
+              <Lock className="w-5 h-5 text-amber-800" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="font-bold text-sm sm:text-base text-amber-950">
+                  Personal Dashboard · Read-Only Mode ({currentUserRoleLabel})
+                </h4>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-200 text-amber-900 border border-amber-300">
+                  Audit Separation
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-amber-800/90 leading-relaxed">
+                You are viewing this farm group within your personal member portal. To maintain strict cooperative audit separation and ledger integrity, adding or editing member contributions, expenses, and sales from the member portal is reserved exclusively for the assigned Farm Coordinator. Platform administrators and staff should manage records and perform system-wide audits via the <strong>Admin Portal</strong>.
+              </p>
+            </div>
+          </div>
+        )}
 
         {(selectedCategory === "Gingertown" || selectedCategory === "Pioneers Gingertown") && (
           <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 sm:p-5 text-amber-900 shadow-xs flex items-start gap-3.5 no-print">

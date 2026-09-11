@@ -132,6 +132,8 @@ const CompoundReferrals: React.FC = () => {
   const [calcProducerSlotsPerDirect, setCalcProducerSlotsPerDirect] = useState<number>(2);
   const [copiedLink, setCopiedLink] = useState(false);
   const [isProjectSubscribed, setIsProjectSubscribed] = useState<boolean>(false);
+  const [userFarms, setUserFarms] = useState<Array<{ id: string; name: string; project_category?: string }>>([]);
+  const [selectedFarmId, setSelectedFarmId] = useState<string>("all");
 
   // Load member and initial tree
   useEffect(() => {
@@ -265,7 +267,36 @@ const CompoundReferrals: React.FC = () => {
 
       setIsProjectSubscribed(Boolean((subData && subData.length > 0) || (coData && coData.length > 0)));
 
-      // 5. Build Organogram Subtree for target root
+      // 5. Fetch user-associated farms for referral link targeting
+      try {
+        const { data: coordFarms } = await supabase
+          .from("farm_groups")
+          .select("id, name, project_category")
+          .eq("coordinator_id", authId);
+
+        const memberEmail = user.email || profile?.email;
+        let memberFarms: any[] = [];
+        if (memberEmail) {
+          const { data: mRecords } = await supabase
+            .from("farm_records")
+            .select("farm_id, farm_groups!inner(id, name, project_category)")
+            .eq("email", memberEmail);
+          memberFarms = (mRecords || []).map((r: any) => r.farm_groups).filter(Boolean);
+        }
+
+        const { data: publicFarms } = await supabase
+          .from("farm_groups")
+          .select("id, name, project_category")
+          .limit(10);
+
+        const allFarms = [...(coordFarms || []), ...memberFarms, ...(publicFarms || [])];
+        const uniqueFarms = Array.from(new Map(allFarms.map((f: any) => [f.id, f])).values());
+        setUserFarms(uniqueFarms as Array<{ id: string; name: string; project_category?: string }>);
+      } catch (fErr) {
+        console.info("[CompoundReferrals] Farm groups fetch fallback", fErr);
+      }
+
+      // 6. Build Organogram Subtree for target root
       const rootToLoad = customRootUserId || authId;
       await buildSubtree(rootToLoad, authId === rootToLoad);
     } catch (err: any) {
@@ -575,12 +606,22 @@ const CompoundReferrals: React.FC = () => {
     }
   };
 
+  // Active Referral Link & Multi-Farm Resolution
+  const activeReferralCode = referralCode || currentUserProfile?.referral_code || currentUserProfile?.member_id || currentUserId;
+
+  const activeReferralLink = useMemo(() => {
+    if (selectedFarmId && selectedFarmId !== "all") {
+      const targetFarm = userFarms.find((f) => f.id === selectedFarmId);
+      const farmSlug = targetFarm ? encodeURIComponent(targetFarm.name.toLowerCase().replace(/\s+/g, "-")) : selectedFarmId;
+      return `${SITE_URL}/signup?ref=${activeReferralCode}&farm=${farmSlug}`;
+    }
+    return `${SITE_URL}/signup?ref=${activeReferralCode}`;
+  }, [selectedFarmId, userFarms, activeReferralCode]);
+
   // Copy Referral Link
   const handleCopyReferralLink = async () => {
-    const code = referralCode || currentUserProfile?.referral_code || currentUserId;
-    const link = `${SITE_URL}/signup?ref=${code}`;
     try {
-      await navigator.clipboard.writeText(link);
+      await navigator.clipboard.writeText(activeReferralLink);
       setCopiedLink(true);
       toast.success("Affiliate link copied to clipboard!");
       setTimeout(() => setCopiedLink(false), 3000);
@@ -591,9 +632,9 @@ const CompoundReferrals: React.FC = () => {
 
   // WhatsApp Share
   const handleShareWhatsApp = () => {
-    const code = referralCode || currentUserProfile?.referral_code || currentUserId;
-    const link = `${SITE_URL}/signup?ref=${code}`;
-    const text = `Join me on AgroHeal! Secure your Digital Green Card, activate your 5x7 Producer-Consumer network, and build sustainable agro-wealth. Sign up here: ${link}`;
+    const selectedFarm = userFarms.find((f) => f.id === selectedFarmId);
+    const farmNote = selectedFarm ? ` to participate in ${selectedFarm.name}` : "";
+    const text = `Join me on AgroHeal${farmNote}! Secure your Digital Green Card, activate your 5×7 Producer-Consumer network, and build sustainable agro-wealth. Sign up here: ${activeReferralLink}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
@@ -686,6 +727,116 @@ const CompoundReferrals: React.FC = () => {
               >
                 Apex Root (Esther)
               </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── POTENTIAL LOCKED COMMISSION BANNER ── */}
+        <div className="bg-gradient-to-r from-amber-950 via-emerald-950 to-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-amber-500/30 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
+              <Lock className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-sm sm:text-base text-amber-200">
+                  Potential ₦12,212,500 in Community Commissions Waiting to be Unlocked
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                  7 Matrix Tiers
+                </span>
+              </div>
+              <p className="text-xs text-emerald-100/80 mt-0.5 max-w-3xl leading-relaxed">
+                You have up to 7 matrix tiers waiting to be unlocked. Refer 5 active members per tier and maintain ₦5,000 rolling 30-day PQV to unlock full matrix depth withdrawal. See Wallet page for details.
+              </p>
+            </div>
+          </div>
+          <Button
+            asChild
+            size="sm"
+            className="shrink-0 bg-amber-500 hover:bg-amber-600 text-gray-950 font-bold text-xs px-4 py-2 rounded-xl shadow-xs"
+          >
+            <Link to="/dashboard/transactions">View Wallet &amp; Ledger</Link>
+          </Button>
+        </div>
+
+        {/* ── MULTI-FARM REFERRAL CODE & AFFILIATE SHARING TOOL ── */}
+        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-emerald-100">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">
+                  <Share2 className="w-4 h-4" />
+                </span>
+                <h2 className="text-base font-bold text-gray-900">
+                  Affiliate Referral Link &amp; Farm Specific Codes
+                </h2>
+                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]">
+                  5×7 Linked
+                </Badge>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Share your personal affiliate link to enrol members into your 5×7 organogram matrix. If you manage or participate in multiple farms, select a specific farm below to generate an auto-assigned invite link.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Your Sponsor / MLM Code</span>
+                <span className="font-mono text-sm font-extrabold text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                  {referralCode || currentUserProfile?.referral_code || currentUserProfile?.member_id || "AGC-PENDING"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+            {/* Farm Selector Dropdown */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Assign to Specific Farm (Optional)
+              </label>
+              <select
+                value={selectedFarmId}
+                onChange={(e) => setSelectedFarmId(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition-all"
+              >
+                <option value="all">General Platform Enrolment (No Specific Farm)</option>
+                {userFarms.map((farm) => (
+                  <option key={farm.id} value={farm.id}>
+                    {farm.name} {farm.project_category ? `(${farm.project_category})` : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Link Preview & Copy */}
+            <div className="md:col-span-2 space-y-1.5">
+              <label className="block text-xs font-semibold text-gray-700">
+                Generated Invite Link
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={activeReferralLink}
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-700 select-all"
+                />
+                <Button
+                  onClick={handleCopyReferralLink}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 transition-all flex items-center gap-1.5 shadow-xs"
+                >
+                  {copiedLink ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+                  {copiedLink ? "Copied" : "Copy Link"}
+                </Button>
+                <Button
+                  onClick={handleShareWhatsApp}
+                  className="bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 transition-all flex items-center gap-1.5 shadow-xs"
+                >
+                  <Share2 className="w-4 h-4" />
+                  WhatsApp
+                </Button>
+              </div>
             </div>
           </div>
         </div>
@@ -1521,7 +1672,6 @@ const CompoundReferrals: React.FC = () => {
                   subtext: `${calcProducerDirects * calcProducerSlotsPerDirect} Active Slots`,
                 },
               ]}
-              complianceNotice="AgroHeal is an agricultural cooperative, not an investment platform. Direct cashflow simulations represent active direct sponsorship bonuses (₦1,000 Green Card / ₦500 slot setup incentives) and physical biological fruiting bag allocations, not fixed financial interest or guaranteed investment yields."
             />
 
             {/* Handover Banner to Consumer Network */}

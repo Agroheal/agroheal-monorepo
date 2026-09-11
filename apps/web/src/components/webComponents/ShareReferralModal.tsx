@@ -1,8 +1,9 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Copy, Check, X, Sprout, Sparkles } from "lucide-react";
+import { Copy, Check, X, Sprout, Share2, MessageCircle, Send } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { SITE_URL } from "@/config/Index";
+import { Button } from "@/components/ui/button";
 
 interface ShareReferralModalProps {
   isOpen: boolean;
@@ -15,50 +16,52 @@ export const ShareReferralModal = ({
   onClose,
   referralCode,
 }: ShareReferralModalProps) => {
-  const [copied, setCopied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedMessage, setCopiedMessage] = useState(false);
 
-  const textCopy = `Join me on AgroHeal and secure your Green Card:
+  const referralUrl = `${SITE_URL}/signup?ref=${referralCode}`;
 
-${SITE_URL}/signup?ref=${referralCode}
+  const textCopy = `Join me on AgroHeal and secure your Digital Green Card:
 
-🌱 What's the AgroHeal Green Card?
+${referralUrl}
 
-For a one-time ₦2,000 fee, you get verified cooperative membership:
-• Lifetime access to organic farming & mushroom cultivation courses in the Learning Academy
-• Earn ₦1,000 direct sponsor rewards for every member you refer
-• Immediate eligibility for our 5×7 Organogram matrix and physical Mushroom Farm Slots
+🌱 AgroHeal Cooperative Benefits:
+• Lifetime access to Organic Farming & Mushroom Cultivation Academy
+• Verified Digital Green Card (AGC) credential
+• Earn ₦1,000 instant direct sponsor reward per enrolled member
+• 5×7 community matrix spillover & quarterly harvest returns!`;
 
-Sign up with my link above and let's grow wealth through sustainable agriculture together!`;
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(referralUrl);
+      setCopiedLink(true);
+      toast.success("Affiliate link copied to clipboard!");
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  };
 
-  const handleCopy = async () => {
+  const handleCopyMessage = async () => {
     try {
       await navigator.clipboard.writeText(textCopy);
-      setCopied(true);
-      toast.success(`Referral message copied!`, {
-        duration: 3000,
-        position: "top-right",
-        style: {
-          background: "green",
-          color: "#fff",
-          borderRadius: "10px",
-          padding: "12px 16px",
-          fontSize: "14px",
-        },
-      });
-      setTimeout(() => setCopied(false), 3000);
+      setCopiedMessage(true);
+      toast.success("Referral invitation message copied!");
+      setTimeout(() => setCopiedMessage(false), 2500);
     } catch {
-      toast.error("Failed to copy", {
-        duration: 3000,
-        position: "top-right",
-        style: {
-          background: "crimson",
-          color: "#fff",
-          borderRadius: "10px",
-          padding: "12px 16px",
-          fontSize: "14px",
-        },
-      });
+      toast.error("Failed to copy message");
     }
+  };
+
+  const handleShareWhatsApp = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(textCopy)}`, "_blank");
+  };
+
+  const handleShareTelegram = () => {
+    window.open(
+      `https://t.me/share/url?url=${encodeURIComponent(referralUrl)}&text=${encodeURIComponent("Join me on AgroHeal Cooperative!")}`,
+      "_blank"
+    );
   };
 
   return (
@@ -71,140 +74,126 @@ Sign up with my link above and let's grow wealth through sustainable agriculture
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs"
           />
 
-          {/* Modal */}
+          {/* Modal Container */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.85, y: 40 }}
+            initial={{ opacity: 0, scale: 0.94, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            exit={{ opacity: 0, scale: 0.94, y: 15 }}
+            transition={{ type: "spring", stiffness: 320, damping: 26 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
           >
-            <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden">
-              {/* Close button */}
-              <button
-                onClick={onClose}
-                className="absolute top-4 right-4 z-10 w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-              >
-                <X className="w-4 h-4 text-white" />
-              </button>
-
-              {/* Top green band */}
-              <div className="relative bg-green-800 px-8 pt-10 pb-16 text-center overflow-hidden">
-                {/* Background decoration */}
-                <div className="absolute inset-0 overflow-hidden">
-                  <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/5" />
-                  <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-white/5" />
-                  <div className="absolute top-4 left-1/3 w-2 h-2 rounded-full bg-white/20" />
-                  <div className="absolute bottom-8 right-1/4 w-1.5 h-1.5 rounded-full bg-white/20" />
-                </div>
-
-                {/* Sparkles */}
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="flex justify-center gap-2 mb-4"
-                >
-                  <Sparkles className="w-4 h-4 text-yellow-300" />
-                  <Sparkles className="w-3 h-3 text-yellow-200 mt-1" />
-                  <Sparkles className="w-4 h-4 text-yellow-300" />
-                </motion.div>
-
-                {/* Icon */}
-                <motion.div
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 260,
-                    damping: 20,
-                    delay: 0.15,
-                  }}
-                  className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg"
-                >
-                  <Sprout className="w-10 h-10 text-green-700" />
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35 }}
-                >
-                  <h2 className="text-2xl font-bold text-white mb-1">
-                    Share & Earn!
-                  </h2>
-                  <p className="text-green-200 text-sm">
-                    Invite friends and earn ₦1,000 per referral
-                  </p>
-                </motion.div>
-              </div>
-
-              {/* Referral code card — overlaps green band */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.45 }}
-                className="relative -mt-8 mx-4 bg-white rounded-2xl border border-gray-100 shadow-md p-4 mb-4"
-              >
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-2">
-                  Your Referral Code
-                </p>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 px-3 py-2.5 bg-green-50 border border-green-100 rounded-xl text-green-800 font-mono text-sm font-bold tracking-widest text-center">
-                    {referralCode}
+            <div className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100 pointer-events-auto flex flex-col">
+              {/* Header */}
+              <div className="relative bg-gradient-to-r from-emerald-950 via-green-900 to-emerald-900 px-6 py-5 text-white flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 shrink-0">
+                    <Sprout className="w-5 h-5 text-emerald-300" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white leading-tight">
+                      Share &amp; Earn ₦1,000
+                    </h3>
+                    <p className="text-xs text-emerald-200/80">
+                      Invite members to your 5×7 organogram matrix
+                    </p>
                   </div>
                 </div>
-              </motion.div>
-
-              {/* Message preview */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="mx-4 mb-4 bg-gray-50 rounded-2xl border border-gray-100 p-4 max-h-36 overflow-y-auto"
-              >
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-2">
-                  Message Preview
-                </p>
-                <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line text-justify">
-                  {textCopy}
-                </p>
-              </motion.div>
-
-              {/* Footer actions */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.55 }}
-                className="px-4 pb-6 space-y-3"
-              >
-                <button
-                  onClick={handleCopy}
-                  className="w-full flex items-center justify-center gap-2 bg-green-800 hover:bg-green-900 text-white font-semibold py-3.5 rounded-2xl transition-all active:scale-95"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-4 h-4" />
-                      Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-4 h-4" />
-                      Copy Referral Message
-                    </>
-                  )}
-                </button>
 
                 <button
+                  type="button"
                   onClick={onClose}
-                  className="w-full text-center text-sm font-medium text-gray-400 hover:text-gray-600 py-2 transition-colors"
+                  className="p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-white/10 transition-colors"
+                  aria-label="Close"
                 >
-                  Close
+                  <X className="w-5 h-5" />
                 </button>
-              </motion.div>
+              </div>
+
+              {/* Body */}
+              <div className="p-5 sm:p-6 space-y-4">
+                {/* Sponsor Code & Link */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-gray-700">
+                      Your Affiliate Referral Link
+                    </label>
+                    <span className="text-[11px] font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      Code: {referralCode}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={referralUrl}
+                      className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-mono text-gray-700 select-all focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                    />
+                    <Button
+                      onClick={handleCopyLink}
+                      className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl shrink-0 transition-all flex items-center gap-1.5 shadow-xs"
+                    >
+                      {copiedLink ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+                      {copiedLink ? "Copied" : "Copy"}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Social Share Shortcuts */}
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleShareWhatsApp}
+                    className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold transition-all shadow-xs"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Share WhatsApp
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleShareTelegram}
+                    className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#229ED9] hover:bg-[#1e8ec3] text-white text-xs font-bold transition-all shadow-xs"
+                  >
+                    <Send className="w-4 h-4" />
+                    Share Telegram
+                  </button>
+                </div>
+
+                {/* Message preview block */}
+                <div className="bg-gray-50 rounded-2xl border border-gray-200/80 p-3.5 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                      Ready-to-Send Invitation Message
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleCopyMessage}
+                      className="text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 flex items-center gap-1"
+                    >
+                      {copiedMessage ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                      {copiedMessage ? "Copied" : "Copy Text"}
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-600 leading-relaxed max-h-28 overflow-y-auto whitespace-pre-line select-all scrollbar-thin">
+                    {textCopy}
+                  </p>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 pb-5 pt-1 flex justify-end">
+                <Button
+                  variant="outline"
+                  onClick={onClose}
+                  className="rounded-xl border-gray-200 text-xs font-semibold px-5 h-9"
+                >
+                  Done
+                </Button>
+              </div>
             </div>
           </motion.div>
         </>

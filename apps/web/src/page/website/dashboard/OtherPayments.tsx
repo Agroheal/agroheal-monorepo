@@ -388,7 +388,6 @@ const OtherPayments = () => {
                       Select payment type
                     </option>
                     <option value="farm_setup">Farm Setup Fee</option>
-                    <option value="farm_support">Farm Support Fee</option>
                     {category !==
                       "Organic FoodNation (1 Million Hectares against Hunger)" && (
                       <option value="absentee_fine">Absentee Fine</option>

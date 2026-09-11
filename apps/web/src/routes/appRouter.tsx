@@ -36,6 +36,7 @@ import GreenCardCommunity from "@/page/website/dashboard/GreenCardCommunity";
 import VerifyCard from "@/page/website/VerifyCard";
 import TransactionLedger from "@/page/website/dashboard/TransactionLedger";
 import ConsumerNetwork from "@/page/website/dashboard/ConsumerNetwork";
+import ProducerNetwork from "@/page/website/dashboard/ProducerNetwork";
 import KnowledgeBase from "@/page/website/dashboard/KnowledgeBase";
 import CustomerService from "@/page/website/dashboard/CustomerService";
 
@@ -142,8 +143,10 @@ export const appRouter = createBrowserRouter([
           { path: "how-it-works", element: <RoadmapGuide /> },
           { path: "other-payments", element: <OtherPayments /> },
           { path: "mushroom-village", element: <MushroomVillage /> },
-          { path: "compound-referrals", element: <CompoundReferrals /> },
+          { path: "my-network", element: <CompoundReferrals /> },
+          { path: "producer-network", element: <ProducerNetwork /> },
           { path: "consumer-network", element: <ConsumerNetwork /> },
+          { path: "compound-referrals", element: <CompoundReferrals /> },
           { path: "organogram", element: <CompoundReferrals /> },
           { path: "kin", element: <KinDetails /> },
           { path: "legal", element: <Legal /> },

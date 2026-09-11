@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
-  ShoppingBag,
+  Sprout,
   Calculator,
   ShieldCheck,
   TrendingUp,
@@ -12,14 +12,16 @@ import {
   Info,
   CheckCircle2,
   Clock,
-  Sprout,
   Users,
-  ExternalLink,
   Store,
   Tag,
   ChevronRight,
   ChevronDown,
   Lock,
+  PlusCircle,
+  Award,
+  AlertCircle,
+  FileCheck,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -44,63 +46,21 @@ export const getUnlockedMatrixLevel = (directCount: number): number => {
   return Math.min(7, Math.floor(directCount / 5));
 };
 
-const UPCOMING_PRODUCTS = [
-  {
-    id: "prod-1",
-    name: "AgroHeal Mushroom Break",
-    subtitle: "Mushroom-Enriched Sweet-Corn Flakes",
-    tagline: "Break Fast. Break Better.",
-    category: "Functional Breakfast Cereals",
-    image: "/products/mushroom-break.jpg",
-    price: 4500,
-    directCommission: 540,
-    uplinePool: 967.5,
-    tag: "Enriched Breakfast",
-    desc: "Crispy sweet-corn flakes fortified with organically grown oyster mushroom extract. A nourishing, nutrient-dense breakfast for home, school, and work.",
-    inStock: "Coming Soon",
-  },
-  {
-    id: "prod-2",
-    name: "AgroHeal Mushroom Power (100g)",
-    subtitle: "100% Pure Oyster Mushroom Powder",
-    tagline: "Nourish Every Meal",
-    category: "Functional Superfood Nutrition",
-    image: "/products/mushroom-power.jpg",
-    price: 5000,
-    directCommission: 600,
-    uplinePool: 1075,
-    tag: "Flagship Superfood",
-    desc: "Pure, natural 100% oyster mushroom powder rich in essential beta-glucans, plant proteins, and immune-supporting antioxidants. Perfect for meals and smoothies.",
-    inStock: "Welcome Product",
-  },
-  {
-    id: "prod-3",
-    name: "Fortified Ginger & Mushroom Elixir Tea",
-    subtitle: "Synergistic Immune Defense Blend",
-    tagline: "For Daily Immune Defense",
-    category: "Wellness Herbal Infusions",
-    image: "/products/ginger-mushroom-tea.jpg",
-    price: 3500,
-    directCommission: 420,
-    uplinePool: 752.5,
-    tag: "Herbal Synergy",
-    desc: "Synergistic blend of organically harvested gingertown root extract and vitality oyster mushrooms for daily immune defense and vitality.",
-    inStock: "Coming Soon",
-  },
-];
-
-export const ConsumerNetwork: React.FC = () => {
+export const ProducerNetwork: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [directReferralsCount, setDirectReferralsCount] = useState<number>(0);
   const [unlockedLevel, setUnlockedLevel] = useState<number>(0);
-  const [calcOrdersPerMember, setCalcOrdersPerMember] = useState<number>(1);
+  const [slotsHeld, setSlotsHeld] = useState<number>(0);
+  const [approvedProductions, setApprovedProductions] = useState<any[]>([]);
   const [commissionTableOpen, setCommissionTableOpen] = useState(false);
+  const [calcDirects, setCalcDirects] = useState<number>(5);
+  const [calcSlotsPerDirect, setCalcSlotsPerDirect] = useState<number>(2);
 
   useEffect(() => {
-    loadUserQualification();
+    loadProducerData();
   }, []);
 
-  const loadUserQualification = async () => {
+  const loadProducerData = async () => {
     try {
       setLoading(true);
       const {
@@ -112,38 +72,59 @@ export const ConsumerNetwork: React.FC = () => {
         return;
       }
 
-      // 1. Check API qualifications if available
+      // 1. Fetch user qualifications
       try {
         const apiQuals = await apiClient.genealogy.getQualifications();
         if (apiQuals?.matrixSpilloverWallet?.directReferralsCount !== undefined) {
           const cnt = Number(apiQuals.matrixSpilloverWallet.directReferralsCount);
           setDirectReferralsCount(cnt);
           setUnlockedLevel(getUnlockedMatrixLevel(cnt));
-          setLoading(false);
-          return;
         }
       } catch {
-        // Fallback to database
+        const { data: directRefs } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("referred_by", user.id);
+        const cnt = directRefs ? directRefs.length : 0;
+        setDirectReferralsCount(cnt);
+        setUnlockedLevel(getUnlockedMatrixLevel(cnt));
       }
 
-      // 2. Fetch direct referrals count from profiles
-      const { data: directRefs } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("referred_by", user.id);
+      // 2. Fetch slots held by user
+      const { data: subs } = await supabase
+        .from("subscriptions")
+        .select("slots, status")
+        .eq("user_id", user.id);
 
-      const cnt = directRefs ? directRefs.length : 0;
-      setDirectReferralsCount(cnt);
-      setUnlockedLevel(getUnlockedMatrixLevel(cnt));
+      const totalSlots = (subs || []).reduce((acc: number, curr: any) => {
+        if (curr.status === "active" || curr.status === "paid" || curr.status === "completed") {
+          return acc + (Number(curr.slots) || 0);
+        }
+        return acc;
+      }, 0);
+      setSlotsHeld(totalSlots);
+
+      // 3. Fetch approved productions / harvest batches if any
+      try {
+        const { data: productions } = await supabase
+          .from("farm_records")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("status", "approved")
+          .limit(10);
+        setApprovedProductions(productions || []);
+      } catch {
+        setApprovedProductions([]);
+      }
     } catch (err) {
-      console.error("[ConsumerNetwork] Failed to load user qualifications:", err);
+      console.error("[ProducerNetwork] Failed to load producer data:", err);
     } finally {
       setLoading(false);
     }
   };
 
   if (loading) {
-    return <LoadingSpinner message="Loading Consumer Network & Commission Engine..." />;
+    return <LoadingSpinner message="Loading Producer Network & Production Engine..." />;
   }
 
   return (
@@ -157,19 +138,19 @@ export const ConsumerNetwork: React.FC = () => {
           <div className="space-y-3 max-w-2xl">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 backdrop-blur-md">
-                <Store className="w-3.5 h-3.5" /> Consumer Marketplace &amp; Retail Engine
+                <Sprout className="w-3.5 h-3.5" /> Producer Network &amp; Cooperative Production
               </span>
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
-                <Sparkles className="w-3.5 h-3.5" /> 40% Commission Ceiling
+                <ShieldCheck className="w-3.5 h-3.5" /> Physical Biological Assets
               </span>
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
-              Consumer Network &amp; Retail Commissions
+              Producer Network &amp; Harvest Pipelines
             </h1>
 
             <p className="text-sm sm:text-base text-emerald-100/90 leading-relaxed">
-              Distribute value-added agricultural produce to verified consumers. Earn up to <strong>12% direct retail margins</strong> plus recurring <strong>21.5% multilevel upline bonuses across 7 network tiers</strong> on every retail purchase.
+              Participate directly in smallholder mushroom cluster production. Secure commercial farm slots, track biological fruiting batches, earn <strong>10% direct sponsor bounties</strong>, and unlock <strong>7-level community production commissions</strong>.
             </p>
           </div>
 
@@ -213,7 +194,7 @@ export const ConsumerNetwork: React.FC = () => {
               </span>
             </div>
             <p className="text-xs sm:text-sm text-gray-700 mt-0.5 leading-relaxed">
-              Up to <strong>₦12,212,500 in potential community commissions</strong> are accessible across your 7 matrix tiers. Unlocked tiers credit directly into your Member Wallet. Sponsor direct partners to expand your payout depth.
+              Up to <strong>₦12,212,500 in potential community commissions</strong> are accessible across your 7 matrix tiers. Unlocked dividends credit directly into your Member Wallet. Sponsor direct partners to expand your payout depth.
             </p>
           </div>
         </div>
@@ -226,120 +207,129 @@ export const ConsumerNetwork: React.FC = () => {
         </Link>
       </div>
 
-      {/* ── SECTION 1: RETAIL PRODUCE MARKETPLACE PREVIEW (NOW FIRST SECTION!) ── */}
+      {/* ── CARD TO BUY SLOTS (FIRST CARD / ACTION) ── */}
+      <div className="bg-gradient-to-br from-emerald-50 via-white to-green-50 rounded-3xl p-6 sm:p-8 border border-emerald-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="space-y-2 max-w-xl">
+          <div className="flex items-center gap-2">
+            <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs px-2.5 py-0.5">
+              {slotsHeld > 0 ? `${slotsHeld} Active Farm Slots Held` : "No Farm Slots Yet"}
+            </Badge>
+            <span className="text-xs text-gray-500 font-medium">• Commercial Mushroom Production</span>
+          </div>
+          <h3 className="text-xl sm:text-2xl font-black text-gray-900">
+            {slotsHeld > 0 ? "Secure Additional Production Slots" : "Secure Your First Commercial Farm Slot"}
+          </h3>
+          <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+            Each <strong>₦5,000 slot</strong> creates 2 verified biological oyster mushroom fruiting bags managed within our cooperative community farms. Earn projected harvest yields from Cycle 2 onward.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full sm:w-auto">
+          <Button
+            asChild
+            className="w-full sm:w-auto h-11 px-6 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
+          >
+            <Link to="/dashboard/slots">
+              <PlusCircle className="w-4 h-4" />
+              <span>{slotsHeld > 0 ? "Buy More Slots (₦5,000)" : "Buy First Slot (₦5,000)"}</span>
+            </Link>
+          </Button>
+
+          <Button
+            asChild
+            variant="outline"
+            className="w-full sm:w-auto h-11 px-5 rounded-xl border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs transition-all"
+          >
+            <Link to="/dashboard/slots-subscription">
+              <span>View Slot Management</span>
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      {/* ── APPROVED PRODUCTION SECTION ── */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200/90 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
           <div>
             <div className="flex items-center gap-2">
-              <span className="bg-amber-100 text-amber-900 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                <Clock className="w-3 h-3" /> Coming Soon
+              <span className="bg-emerald-100 text-emerald-900 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                <FileCheck className="w-3.5 h-3.5" /> Certified Harvests
               </span>
-              <span className="text-xs text-gray-500 font-medium">• Consumer Produce Catalog</span>
+              <span className="text-xs text-gray-500 font-medium">• Verified Biological Records</span>
             </div>
             <h3 className="text-xl font-black text-gray-900 mt-2">
-              Retail Produce Marketplace Preview
+              Approved Production Batches
             </h3>
             <p className="text-xs sm:text-sm text-gray-600 mt-1">
-              Direct-to-consumer store where public buyers order authentic mushroom and ginger health products.
+              Live batch logs of fruiting bags, weight measurements, and quality inspections audited by farm coordinators.
             </p>
           </div>
 
           <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200 text-xs px-3 py-1 self-start sm:self-auto">
-            40% Payout Ceiling Enabled
+            {approvedProductions.length} Approved Batches
           </Badge>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {UPCOMING_PRODUCTS.map((prod) => (
-            <div
-              key={prod.id}
-              className="rounded-2xl border border-gray-200/80 bg-gradient-to-b from-white to-gray-50/50 hover:border-emerald-300 hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group"
-            >
-              {/* Product Packaging Image */}
-              <div className="relative aspect-4/3 w-full overflow-hidden bg-emerald-950/5 border-b border-gray-100">
-                <img
-                  src={prod.image}
-                  alt={prod.name}
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
-                />
-                <span className="absolute top-3 left-3 bg-emerald-950/80 backdrop-blur-md text-emerald-200 text-[10px] font-bold px-2.5 py-0.5 rounded-md border border-emerald-500/30">
-                  {prod.tag}
-                </span>
-                <span className="absolute top-3 right-3 bg-white/90 backdrop-blur-md text-gray-700 text-[10px] font-semibold px-2 py-0.5 rounded-md shadow-xs">
-                  {prod.inStock}
-                </span>
-              </div>
-
-              <div className="p-5 space-y-3 flex-1 flex flex-col justify-between">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wide">
-                      {prod.category}
-                    </span>
-                  </div>
-
-                  <div>
-                    <h4 className="font-extrabold text-gray-900 text-base leading-snug">
-                      {prod.name}
-                    </h4>
-                    {prod.subtitle && (
-                      <p className="text-xs font-medium text-emerald-700 mt-0.5">
-                        {prod.subtitle}
-                      </p>
-                    )}
-                    <p className="text-xs text-gray-600 mt-2 leading-relaxed">
-                      {prod.desc}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-3 pt-3 border-t border-gray-100">
-                  <div className="flex items-baseline justify-between">
-                    <span className="text-xs text-gray-500">Retail Price</span>
-                    <span className="text-lg font-black text-gray-900">
-                      ₦{prod.price.toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-[11px] bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-100">
-                    <div>
-                      <span className="text-gray-500 block text-[10px]">Direct Seller</span>
-                      <strong className="text-emerald-800">₦{prod.directCommission.toLocaleString()}</strong>
-                    </div>
-                    <div>
-                      <span className="text-gray-500 block text-[10px]">7-Tier Upline</span>
-                      <strong className="text-emerald-800">₦{prod.uplinePool.toLocaleString()}</strong>
-                    </div>
-                  </div>
-
-                  <Button
-                    disabled
-                    className="w-full h-9 bg-gray-100 text-gray-400 font-semibold text-xs rounded-xl cursor-not-allowed"
-                  >
-                    Marketplace Launching Soon
-                  </Button>
-                </div>
-              </div>
+        {approvedProductions.length === 0 ? (
+          <div className="rounded-2xl border-2 border-dashed border-emerald-200/80 bg-emerald-50/30 p-8 sm:p-12 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-xs">
+              <Sprout className="w-6 h-6" />
             </div>
-          ))}
-        </div>
+            <h4 className="text-base font-bold text-gray-900">
+              No Approved Productions Yet
+            </h4>
+            <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+              Your approved productions will feature here when approved by AgroHeal admin and your farm coordinator.
+            </p>
+            {slotsHeld === 0 && (
+              <Button
+                asChild
+                size="sm"
+                className="mt-2 bg-emerald-800 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl"
+              >
+                <Link to="/dashboard/slots">Secure a Farm Slot to Begin</Link>
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {approvedProductions.map((prod) => (
+              <div
+                key={prod.id}
+                className="p-4 rounded-2xl border border-emerald-100 bg-emerald-50/40 space-y-2"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-gray-900">{prod.crop_type || "Oyster Mushroom"}</span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                    Approved
+                  </span>
+                </div>
+                <p className="text-xs text-gray-600">{prod.notes || "Cooperative Verified Harvest Batch"}</p>
+                <div className="pt-2 border-t border-emerald-200/60 flex justify-between text-[11px]">
+                  <span className="text-gray-500">Yield: {prod.weight_kg || 0} kg</span>
+                  <span className="text-gray-500 font-mono">{new Date(prod.created_at).toLocaleDateString()}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* ── SECTION 2: 7-LEVEL COMMISSION ENGINE (FOLDABLE, FOLDED BY DEFAULT) ── */}
+      {/* ── SECTION: 7-LEVEL PRODUCTION MATRIX STRUCTURE (FOLDABLE, FOLDED BY DEFAULT) ── */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200/90 space-y-5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2">
               <span className="bg-emerald-100 text-emerald-900 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                7-Level Product Commission Engine
+                7-Level Production Matrix Engine
               </span>
-              <span className="text-xs text-gray-500 font-medium">• 40% Maximum Payout Ceiling</span>
+              <span className="text-xs text-gray-500 font-medium">• 5×7 Spillover Capacity</span>
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-gray-900 mt-2">
-              Multilevel Product Commission Structure
+              Multilevel Producer Matrix Distribution
             </h2>
             <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-3xl leading-relaxed">
-              Applies to the <strong>₦5,000 Mushroom Power welcome product</strong> (included in the ₦10,000 Wealth Creation Activation) and every retail product sold across the platform. Multilevel commissions distribute across 7 upline tiers (<strong>21.5% subtotal, up to ₦1,075 per sale</strong>).
+              Earn direct sponsor bounties and route 7-level community spillovers through your matrix tree. Qualified producers unlock deeper dividend channels down to 7 depths.
             </p>
           </div>
 
@@ -350,7 +340,7 @@ export const ConsumerNetwork: React.FC = () => {
               onClick={() => setCommissionTableOpen(!commissionTableOpen)}
               className="border-emerald-200 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs rounded-xl gap-1.5 h-9"
             >
-              <span>{commissionTableOpen ? "Hide Commission Structure" : "Show Commission Structure"}</span>
+              <span>{commissionTableOpen ? "Hide Matrix Structure" : "Show Matrix Structure"}</span>
               <ChevronDown
                 className={`w-4 h-4 text-emerald-700 transition-transform duration-200 ${
                   commissionTableOpen ? "rotate-180" : ""
@@ -359,11 +349,11 @@ export const ConsumerNetwork: React.FC = () => {
             </Button>
 
             <Link
-              to="/dashboard/compound-referrals"
+              to="/dashboard/my-network"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-2 rounded-xl border border-emerald-200 transition-colors h-9"
             >
               <Users className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Producer Matrix</span>
+              <span>Genealogy Tree</span>
             </Link>
           </div>
         </div>
@@ -385,7 +375,7 @@ export const ConsumerNetwork: React.FC = () => {
                     <tr>
                       <th className="py-3.5 px-4 rounded-tl-xl">Level Depth</th>
                       <th className="py-3.5 px-4">Commission %</th>
-                      <th className="py-3.5 px-4">Payout Per ₦5k Product</th>
+                      <th className="py-3.5 px-4">Payout Per ₦5k Product/Slot</th>
                       <th className="py-3.5 px-4">Max Capacity (5^L)</th>
                       <th className="py-3.5 px-4">Directs to Unlock</th>
                       <th className="py-3.5 px-4">Your Status</th>
@@ -438,53 +428,15 @@ export const ConsumerNetwork: React.FC = () => {
 
               {/* Allocation Architecture Cards */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-                {/* Card A: Full 40% Product Commission Allocation */}
-                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 text-xs text-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-slate-900 block uppercase text-[11px] tracking-wider">
-                      Full 40% Product Commission Allocation (Per ₦5,000 Sale)
-                    </span>
-                    <Badge className="bg-slate-200 text-slate-800 border-slate-300 text-[10px]">
-                      Retail Engine
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2.5 text-[11px]">
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Direct Retail Seller</span>
-                      <strong className="text-emerald-700 text-xs">12.0% (₦600)</strong>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">7-Level Upline Network</span>
-                      <strong className="text-emerald-700 text-xs">21.5% (₦1,075)</strong>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Leadership Pool</span>
-                      <strong className="text-emerald-700 text-xs">4.0% (₦200)</strong>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Sustainability Reserve</span>
-                      <strong className="text-emerald-700 text-xs">2.0% (₦100)</strong>
-                    </div>
-                  </div>
-                  <div className="text-[11px] text-gray-600 pt-2 border-t border-slate-200 flex justify-between font-medium">
-                    <span>Allocated Subtotal: <strong>39.5% (₦1,975)</strong></span>
-                    <span>Company Retained Margin: <strong>0.5% (₦25)</strong></span>
-                  </div>
-                </div>
-
-                {/* Card B: Physical Farm-Slot Allocation Distinction */}
                 <div className="bg-emerald-50/70 rounded-2xl p-5 border border-emerald-200/80 text-xs text-emerald-950 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-extrabold text-emerald-900 block uppercase text-[11px] tracking-wider">
-                      Farm-Slot Allocation (₦5,000/Slot — No Multilevel MLM)
+                      Farm-Slot Allocation (₦5,000/Slot — Physical Production)
                     </span>
                     <Badge className="bg-emerald-200 text-emerald-900 border-emerald-300 text-[10px]">
-                      Physical Production Asset
+                      Biological Asset
                     </Badge>
                   </div>
-                  <p className="text-[11px] text-emerald-800/90 leading-relaxed">
-                    Purchasing a farm slot creates a physical agricultural production asset and does <strong>not</strong> enter the 7-level multilevel commission engine.
-                  </p>
                   <div className="grid grid-cols-2 gap-2.5 text-[11px]">
                     <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-200/70 shadow-xs">
                       <span className="text-gray-500 block text-[10px]">Direct Referrer</span>
@@ -504,55 +456,95 @@ export const ConsumerNetwork: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 text-xs text-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-slate-900 block uppercase text-[11px] tracking-wider">
+                      Green Card Membership Key (₦2,000 One-Time)
+                    </span>
+                    <Badge className="bg-slate-200 text-slate-800 border-slate-300 text-[10px]">
+                      Identity & Curricula
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2.5 text-[11px]">
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-xs">
+                      <span className="text-gray-500 block text-[10px]">Direct Sponsor Bounty</span>
+                      <strong className="text-emerald-700 text-xs">50% (₦1,000)</strong>
+                    </div>
+                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-xs">
+                      <span className="text-gray-500 block text-[10px]">Academy Curricula & System</span>
+                      <strong className="text-emerald-700 text-xs">50% (₦1,000)</strong>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-gray-500 pt-2 border-t border-slate-200">
+                    Unlocks permanent verified cooperative identity, QR credential, and lifelong curriculum access.
+                  </p>
+                </div>
               </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* ── SECTION 3: INTERACTIVE EARNINGS CALCULATOR ── */}
+      {/* ── SECTION: INTERACTIVE PRODUCTION HARVEST FORECASTER ── */}
       <NetworkCalculatorCard
         eyebrowIcon={Calculator}
-        eyebrowText="Consumer Earnings Forecaster"
-        title="Interactive Multilevel Retail Forecaster"
-        description="Estimate your monthly recurring harvest bonuses when your consumer community purchases eligible retail packages (such as Mushroom Power 500g)."
+        eyebrowText="Producer Harvest Forecaster"
+        title="Interactive Producer Direct & Slot Forecaster"
+        description="Simulate your direct sponsorship bonuses and biological fruiting bag allocations based on active direct producer partners."
         controls={
-          <div className="space-y-1">
-            <label className="text-[10px] text-emerald-200 font-semibold block">Orders / Member:</label>
-            <select
-              value={calcOrdersPerMember}
-              onChange={(e) => setCalcOrdersPerMember(Number(e.target.value))}
-              className="bg-emerald-950 text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-emerald-500/40 cursor-pointer w-full"
-            >
-              {[1, 2, 3, 4, 5, 10, 20].map((num) => (
-                <option key={num} value={num}>
-                  {num} {num === 1 ? "Product" : "Products"} (₦{(num * 5000).toLocaleString()})
-                </option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-2 w-full">
+            <div className="space-y-1">
+              <label className="text-[10px] text-emerald-200 font-semibold block">Direct Partners:</label>
+              <select
+                value={calcDirects}
+                onChange={(e) => setCalcDirects(Number(e.target.value))}
+                className="bg-emerald-950 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl border border-emerald-500/40 cursor-pointer w-full"
+              >
+                {[1, 2, 5, 10, 15, 20, 35].map((num) => (
+                  <option key={num} value={num}>
+                    {num} Directs
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] text-emerald-200 font-semibold block">Slots / Partner:</label>
+              <select
+                value={calcSlotsPerDirect}
+                onChange={(e) => setCalcSlotsPerDirect(Number(e.target.value))}
+                className="bg-emerald-950 text-white text-xs font-bold px-2.5 py-1.5 rounded-xl border border-emerald-500/40 cursor-pointer w-full"
+              >
+                {[1, 2, 5, 10, 20].map((num) => (
+                  <option key={num} value={num}>
+                    {num} Slots (₦{(num * 5000).toLocaleString()})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         }
         metrics={[
           {
-            label: "Level 1 (5 Members)",
-            value: `₦${(1250 * calcOrdersPerMember).toLocaleString()}`,
-            subtext: "₦250/product",
+            label: "Green Card Bounty",
+            value: `₦${(calcDirects * 1000).toLocaleString()}`,
+            subtext: `₦1,000 × ${calcDirects} Directs`,
           },
           {
-            label: "Level 2 (25 Members)",
-            value: `₦${(4375 * calcOrdersPerMember).toLocaleString()}`,
-            subtext: "₦175/product",
+            label: "Farm-Slot Bounties",
+            value: `₦${(calcDirects * calcSlotsPerDirect * 500).toLocaleString()}`,
+            subtext: "10% (₦500) per slot",
           },
           {
-            label: "Level 3 (125 Members)",
-            value: `₦${(18750 * calcOrdersPerMember).toLocaleString()}`,
-            subtext: "₦150/product",
-          },
-          {
-            label: "Levels 1–3 Cumulative",
-            value: `₦${((1250 + 4375 + 18750) * calcOrdersPerMember).toLocaleString()}`,
-            subtext: "Across 155 members",
+            label: "Total Direct Cashflow",
+            value: `₦${(calcDirects * 1000 + calcDirects * calcSlotsPerDirect * 500).toLocaleString()}`,
+            subtext: "Immediate Referral Payout",
             isHighlight: true,
+          },
+          {
+            label: "Cluster Production",
+            value: `${calcDirects * calcSlotsPerDirect * 2} Bags`,
+            subtext: `${calcDirects * calcSlotsPerDirect} Active Slots`,
           },
         ]}
       />
@@ -563,4 +555,4 @@ export const ConsumerNetwork: React.FC = () => {
   );
 };
 
-export default ConsumerNetwork;
+export default ProducerNetwork;
