@@ -918,7 +918,7 @@ export default function TransactionLedger() {
 
                 <div className="text-right shrink-0">
                   <span className="text-[9px] text-emerald-200/50 uppercase tracking-widest font-mono block">
-                    COOPERATIVE LEDGER
+                    PLATFORM TRANSACTION LEDGER
                   </span>
                   <span className="text-[10px] font-mono font-bold text-emerald-300/80 uppercase">
                     IMMUTABLE • AUDITED

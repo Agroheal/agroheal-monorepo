@@ -17,6 +17,8 @@ import {
   Sparkles,
   GitBranch,
   Share2,
+  MessageCircle,
+  Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -317,7 +319,7 @@ const Dashboard = () => {
               Welcome, {profile?.full_name?.split(" ")[0]}
             </h1>
             <p className="text-xs sm:text-sm text-green-200 mt-0.5">
-              Organic Farming & Wealth Cooperative Dashboard
+              Organic Farming & Wealth Platform Dashboard
             </p>
           </div>
 
@@ -326,7 +328,7 @@ const Dashboard = () => {
               type="button"
               onClick={() => setForceOpenNextStep(true)}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-400/20 hover:bg-emerald-400/30 text-emerald-200 border border-emerald-400/35 text-xs sm:text-sm font-semibold backdrop-blur-sm transition-all shadow-xs cursor-pointer"
-              title="View Next Cooperative Milestone"
+              title="View Next Member Milestone"
             >
               <Sparkles className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
               <span>Next Milestone</span>
@@ -449,14 +451,15 @@ const Dashboard = () => {
                     <Button
                       asChild
                       variant="outline"
-                      className="w-full rounded-xl border border-emerald-800 bg-emerald-800 hover:bg-emerald-700 text-white px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer"
+                      className="w-full rounded-xl border border-emerald-800 bg-emerald-800 hover:bg-emerald-700 text-white px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5"
                     >
                       <a
                         href={stat.actionHref}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Join Telegram
+                        <Send className="w-3.5 h-3.5 shrink-0" />
+                        <span>Join Telegram</span>
                       </a>
                     </Button>
                   )}
@@ -465,14 +468,15 @@ const Dashboard = () => {
                     <Button
                       asChild
                       variant="outline"
-                      className="w-full rounded-xl border border-emerald-700 bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer"
+                      className="w-full rounded-xl border border-emerald-700 bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5"
                     >
                       <a
                         href={stat.whatsappHref}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Join WhatsApp
+                        <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                        <span>Join WhatsApp</span>
                       </a>
                     </Button>
                   )}
@@ -653,7 +657,7 @@ const Dashboard = () => {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-gray-900">
-                    Cooperative Farm Slots
+                    Commercial Farm Slots
                   </h2>
                   <p className="text-xs text-gray-500">
                     Active agricultural production units & harvest cycle tracking
@@ -672,7 +676,7 @@ const Dashboard = () => {
             </div>
 
             <div className="flex-1 flex flex-col min-h-0 gap-4">
-              {totalSlotsPurchased > 0 ? (
+              {totalSlotsPurchased > 0 && (
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-emerald-50/70 border border-emerald-200/80 hover:border-emerald-300 transition-colors shrink-0 gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-emerald-700/10 border border-emerald-700/20 flex items-center justify-center shrink-0">
@@ -702,34 +706,6 @@ const Dashboard = () => {
                     </Button>
                   </div>
                 </div>
-              ) : (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-amber-50/70 border border-amber-200/80 hover:border-amber-300 transition-colors shrink-0 gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                      <Sprout className="w-5 h-5 text-amber-800" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-bold text-gray-900 text-sm truncate">
-                        Mushroom Farm Slot
-                      </h3>
-                      <p className="text-xs text-gray-600 truncate mt-0.5">
-                        ₦5,000 / Slot · Up to 40% projected quarterly harvest returns from Cycle 2 onward
-                      </p>
-                      <p className="text-[10px] text-gray-400 truncate">
-                        AgroHeal is an agricultural cooperative, not an investment platform.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 self-start sm:self-auto">
-                    <Button
-                      asChild
-                      size="sm"
-                      className="h-8 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold px-3 rounded-lg shadow-xs cursor-pointer"
-                    >
-                      <Link to="/dashboard/slots">Secure Slot</Link>
-                    </Button>
-                  </div>
-                </div>
               )}
 
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden shrink-0">
@@ -739,7 +715,7 @@ const Dashboard = () => {
                       Slot & Payment History
                     </h3>
                     <p className="text-[11px] text-emerald-100/80">
-                      Transactions synchronized with cooperative ledger
+                      Transactions synchronized with platform ledger
                     </p>
                   </div>
                   <Button
@@ -836,7 +812,7 @@ const Dashboard = () => {
                         to: "/dashboard/slots",
                         icon: Sprout,
                         label: "Become a Producer",
-                        desc: "Secure cooperative farm slot",
+                        desc: "Secure commercial farm slot",
                         iconBg: "bg-emerald-50",
                         iconColor: "text-emerald-800",
                       },
@@ -876,7 +852,7 @@ const Dashboard = () => {
           >
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-base font-bold text-gray-900">My Network & Affiliates</h2>
+                <h2 className="text-base font-bold text-gray-900">Affiliate & Community Hub</h2>
                 <p className="text-xs text-gray-500">5×7 Community & Referral Hub</p>
               </div>
               <span className="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full border border-emerald-200">
@@ -895,26 +871,9 @@ const Dashboard = () => {
                   </div>
                   <button
                     type="button"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(
-                          `${SITE_URL}/signup?ref=${profile?.referral_code ?? ""}`,
-                        );
-                        toast.success("Referral link copied!");
-                      } catch {
-                        toast.error("Failed to copy link");
-                      }
-                    }}
-                    title="Copy Link"
-                    className="w-10 h-10 rounded-xl bg-emerald-800 hover:bg-emerald-700 flex items-center justify-center text-white transition-colors cursor-pointer shrink-0 shadow-xs"
-                  >
-                    <Copy className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => setShowShareModal(true)}
                     title="Share Referral"
-                    className="px-3 h-10 rounded-xl bg-emerald-700 hover:bg-emerald-600 flex items-center gap-1.5 text-white text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-xs"
+                    className="px-4 h-10 rounded-xl bg-emerald-700 hover:bg-emerald-600 flex items-center gap-1.5 text-white text-xs font-bold transition-colors cursor-pointer shrink-0 shadow-xs"
                   >
                     <Share2 className="w-3.5 h-3.5" />
                     <span>Share</span>
@@ -938,7 +897,7 @@ const Dashboard = () => {
 
                 <div>
                   <p className="text-xs text-emerald-100/90 leading-relaxed">
-                    Potential <strong className="text-white font-mono">₦12,212,500</strong> in Community Commissions across 7 tiers. Refer 5 active members per tier to unlock full depth withdrawal.
+                    Potential <strong className="text-white font-mono">₦12,212,500</strong> community commissions across 7 tiers. Sponsor 5 active direct partners to unlock full depth.
                   </p>
                 </div>
 
@@ -946,17 +905,17 @@ const Dashboard = () => {
                   <Button
                     asChild
                     size="sm"
-                    className="h-8 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-xs cursor-pointer shadow-xs"
+                    className="h-8 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-xs cursor-pointer shadow-xs whitespace-nowrap justify-center px-2"
                   >
                     <Link to="/dashboard/my-network">
-                      Genealogy Tree
+                      My Network
                     </Link>
                   </Button>
                   <Button
                     asChild
                     size="sm"
                     variant="outline"
-                    className="h-8 rounded-lg border-emerald-400/40 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs cursor-pointer"
+                    className="h-8 rounded-lg border-emerald-400/40 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs cursor-pointer whitespace-nowrap justify-center px-2"
                   >
                     <Link to="/dashboard/producer-network">
                       Producer Matrix

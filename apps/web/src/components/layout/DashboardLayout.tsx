@@ -47,8 +47,8 @@ interface NavGroup {
 // ── Consolidated Information Hierarchy ──
 // 1. Overview (#1)
 // 2. Learning Academy (#2)
-// 3. My Network (Genealogy Tree, Producer Network, Consumer Network) - alwaysExpanded
-// 4. Farm Operations (Slot Management, Practice Slots, Farm Accounts)
+// 3. Farm Operations (Slot Management, Practice Slots, Farm Accounts)
+// 4. My Network (Producer Network, Consumer Network) - alwaysExpanded
 // 5. Wallet & Ledger (Penultimate)
 // 6. Profile & Settings (My Green Card)
 // 7. Help & Support (Knowledge Base, Customer Service)
@@ -67,18 +67,6 @@ const navGroups: NavGroup[] = [
     icon: BookOpen,
   },
   {
-    id: "network",
-    label: "My Network",
-    path: "/dashboard/my-network",
-    icon: GitBranch,
-    alwaysExpanded: true,
-    subItems: [
-      { label: "Genealogy Tree", path: "/dashboard/my-network" },
-      { label: "Producer Network", path: "/dashboard/producer-network" },
-      { label: "Consumer Network", path: "/dashboard/consumer-network" },
-    ],
-  },
-  {
     id: "farm-operations",
     label: "Farm Operations",
     path: "/dashboard/slots-subscription",
@@ -87,6 +75,17 @@ const navGroups: NavGroup[] = [
       { label: "Slot Management", path: "/dashboard/slots-subscription" },
       { label: "Practice Slots", path: "/dashboard/slots" },
       { label: "Farm Accounts", path: "/dashboard/group-farm-accounts" },
+    ],
+  },
+  {
+    id: "network",
+    label: "My Network",
+    path: "/dashboard/my-network",
+    icon: GitBranch,
+    alwaysExpanded: true,
+    subItems: [
+      { label: "Producer Network", path: "/dashboard/producer-network" },
+      { label: "Consumer Network", path: "/dashboard/consumer-network" },
     ],
   },
   {
@@ -304,6 +303,7 @@ const SidebarContent = ({
                   to={group.path}
                   onClick={() => {
                     setOpenGroups((prev) => ({ ...prev, [group.id]: true }));
+                    handleClose();
                   }}
                   className="flex items-center gap-3 flex-1 min-w-0"
                 >

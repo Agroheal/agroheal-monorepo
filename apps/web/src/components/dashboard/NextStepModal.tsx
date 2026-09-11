@@ -275,7 +275,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
           {/* Roadmap Step Indicator */}
           <div className="mb-6 pb-5 border-b border-white/10">
             <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-300 mb-3 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" /> Cooperative Progression Roadmap
+              <Sparkles className="w-3.5 h-3.5" /> Member Progression Roadmap
             </p>
 
             <div className="grid grid-cols-3 gap-2 relative">

@@ -39,8 +39,8 @@ const PhoneModal = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs px-4">
+      <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-sm p-6 sm:p-7">
         <div className="flex flex-col items-center text-center mb-6">
           <div className="w-14 h-14 rounded-2xl bg-green-50 flex items-center justify-center mb-3">
             <Phone className="w-6 h-6 text-green-800" />

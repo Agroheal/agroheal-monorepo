@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Copy, Check, X, Sprout, Share2, MessageCircle, Send } from "lucide-react";
+import { Copy, Check, X, Sprout, MessageCircle, Instagram } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { SITE_URL } from "@/config/Index";
@@ -25,11 +25,11 @@ export const ShareReferralModal = ({
 
 ${referralUrl}
 
-🌱 AgroHeal Cooperative Benefits:
+🌱 AgroHeal Member Benefits:
 • Lifetime access to Organic Farming & Mushroom Cultivation Academy
 • Verified Digital Green Card (AGC) credential
 • Earn ₦1,000 instant direct sponsor reward per enrolled member
-• 5×7 community matrix spillover & quarterly harvest returns!`;
+• 5×7 community matrix spillover & quarterly harvest yields!`;
 
   const handleCopyLink = async () => {
     try {
@@ -57,11 +57,14 @@ ${referralUrl}
     window.open(`https://wa.me/?text=${encodeURIComponent(textCopy)}`, "_blank");
   };
 
-  const handleShareTelegram = () => {
-    window.open(
-      `https://t.me/share/url?url=${encodeURIComponent(referralUrl)}&text=${encodeURIComponent("Join me on AgroHeal Cooperative!")}`,
-      "_blank"
-    );
+  const handleShareInstagram = async () => {
+    try {
+      await navigator.clipboard.writeText(textCopy);
+      toast.success("Invitation message copied! Opening Instagram...");
+    } catch {
+      // Fallback
+    }
+    window.open("https://www.instagram.com/", "_blank");
   };
 
   return (
@@ -147,19 +150,19 @@ ${referralUrl}
                   <button
                     type="button"
                     onClick={handleShareWhatsApp}
-                    className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold transition-all shadow-xs"
+                    className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
                   >
-                    <MessageCircle className="w-4 h-4" />
-                    Share WhatsApp
+                    <MessageCircle className="w-4 h-4 shrink-0" />
+                    <span>Share to WhatsApp</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={handleShareTelegram}
-                    className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#229ED9] hover:bg-[#1e8ec3] text-white text-xs font-bold transition-all shadow-xs"
+                    onClick={handleShareInstagram}
+                    className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] hover:opacity-90 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
                   >
-                    <Send className="w-4 h-4" />
-                    Share Telegram
+                    <Instagram className="w-4 h-4 shrink-0" />
+                    <span>Share to Instagram</span>
                   </button>
                 </div>
 
