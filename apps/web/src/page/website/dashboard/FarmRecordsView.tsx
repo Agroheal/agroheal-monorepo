@@ -15,6 +15,7 @@ import {
 import { cleanName, cleanEmail, normalizePhoneNumber, parsePositiveInt } from "@shared/dataSanitizers";
 import { exportToExcel } from "@shared/excelExport";
 import { useAuth } from "@/hooks/useAuth";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface FarmRecord {
   id: string;
@@ -1265,15 +1266,9 @@ const FarmRecordsView = () => {
   const set = (field: keyof FarmRecord, val: string | number) =>
     setFormData((prev) => ({ ...prev, [field]: val }));
 
-  if (loading)
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-green-200 border-t-green-800 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading farm records...</p>
-        </div>
-      </div>
-    );
+  if (loading) {
+    return <LoadingSpinner message="Loading farm records..." />;
+  }
 
   if (!farm)
     return (

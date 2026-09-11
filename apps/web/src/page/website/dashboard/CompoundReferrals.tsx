@@ -37,6 +37,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import { SITE_URL } from "@/config/Index";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 export interface OrganogramNode {
   id: string;
@@ -621,17 +622,7 @@ const CompoundReferrals: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-emerald-50/30 p-4 md:p-8 flex flex-col items-center justify-center">
-        <div className="flex flex-col items-center gap-4 bg-white p-8 rounded-2xl shadow-sm border border-emerald-100 max-w-sm w-full text-center">
-          <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center animate-spin">
-            <RefreshCw className="w-6 h-6" />
-          </div>
-          <div>
-            <h3 className="font-bold text-gray-900 text-lg">Loading 5×7 Organogram</h3>
-            <p className="text-xs text-gray-500 mt-1">Retrieving matrix nodes, BFS spillover legs, and qualifications...</p>
-          </div>
-        </div>
-      </div>
+      <LoadingSpinner message="Loading 5×7 Organogram matrix & qualifications..." />
     );
   }
 

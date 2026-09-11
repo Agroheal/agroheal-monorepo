@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   User,
@@ -14,6 +14,9 @@ import {
   Sprout,
   ArrowRight,
   ExternalLink,
+  Camera,
+  LoaderCircle,
+  Trash2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
@@ -24,6 +27,8 @@ import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import PhoneModal from "./PhoneModal";
 import KinModal from "./KinModal";
 import toast, { Toaster } from "react-hot-toast";
+import UserAvatar from "@/components/ui/UserAvatar";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface UserProfile {
   id: string;
@@ -35,6 +40,7 @@ interface UserProfile {
   created_at?: string;
   total_referrals?: number;
   referral_earnings?: number;
+  avatar_url?: string | null;
 }
 
 interface KinData {
@@ -50,6 +56,8 @@ export const ProfileComponent: React.FC = () => {
   const [copiedLink, setCopiedLink] = useState(false);
   const [showPhoneModal, setShowPhoneModal] = useState(false);
   const [showKinModal, setShowKinModal] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchProfile = async () => {
     try {
@@ -104,12 +112,78 @@ export const ProfileComponent: React.FC = () => {
     }
   };
 
+  const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile?.id) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file (PNG, JPG, or WebP)");
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("Image file size must be less than 3MB");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const filePath = `${profile.id}/avatar_${Date.now()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData.publicUrl;
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: publicUrl })
+        .eq("id", profile.id);
+
+      if (updateError) throw updateError;
+
+      setProfile((prev) => (prev ? { ...prev, avatar_url: publicUrl } : null));
+      toast.success("Display picture updated!");
+    } catch (err: any) {
+      console.error("Avatar upload failed:", err);
+      toast.error(err.message || "Failed to upload profile picture");
+    } finally {
+      setUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!profile?.id) return;
+    setUploadingAvatar(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ avatar_url: null })
+        .eq("id", profile.id);
+
+      if (error) throw error;
+
+      setProfile((prev) => (prev ? { ...prev, avatar_url: null } : null));
+      toast.success("Display picture removed, reverted to default initials");
+    } catch (err: any) {
+      console.error("Avatar removal failed:", err);
+      toast.error("Failed to remove display picture");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center p-6">
-        <div className="w-10 h-10 rounded-full border-4 border-emerald-600 border-t-transparent animate-spin" />
-      </div>
-    );
+    return <LoadingSpinner message="Loading your profile..." />;
   }
 
   const agcIdFormatted = formatAgcId(profile?.member_id);
@@ -128,21 +202,72 @@ export const ProfileComponent: React.FC = () => {
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-950 via-green-900 to-emerald-900 text-white p-6 sm:p-8 shadow-xl border border-emerald-700/30">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-2xl sm:text-3xl font-black text-emerald-200 shadow-inner">
-              {profile?.full_name?.charAt(0).toUpperCase() || <User className="w-8 h-8" />}
+          {/* Top-Left DP Avatar with Upload Trigger */}
+          <div className="flex items-center gap-5">
+            <div className="relative group shrink-0">
+              <UserAvatar
+                src={profile?.avatar_url}
+                name={profile?.full_name}
+                email={profile?.email}
+                sizeClassName="w-20 h-20 sm:w-24 sm:h-24"
+                textClassName="text-2xl sm:text-3xl font-black"
+                roundedClassName="rounded-3xl"
+                className="ring-4 ring-emerald-400/30 shadow-2xl"
+              />
+
+              {/* Upload trigger button overlay */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute -bottom-1 -right-1 p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg border-2 border-emerald-950 transition-all hover:scale-105 disabled:opacity-50 cursor-pointer"
+                title="Change display picture"
+                aria-label="Upload display picture"
+              >
+                {uploadingAvatar ? (
+                  <LoaderCircle className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4" />
+                )}
+              </button>
+
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/png,image/jpeg,image/webp,image/jpg"
+                onChange={handleAvatarSelect}
+                className="hidden"
+              />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black">{profile?.full_name || "AgroHeal Member"}</h1>
+
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-2xl font-black truncate">
+                  {profile?.full_name || "AgroHeal Member"}
+                </h1>
                 <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-400/30 text-[10px] font-mono">
                   {agcIdFormatted}
                 </Badge>
               </div>
-              <p className="text-xs sm:text-sm text-emerald-100/80 mt-0.5">{profile?.email}</p>
-              <div className="flex items-center gap-2 text-[11px] text-emerald-300/80 mt-2">
-                <Calendar className="w-3 h-3" />
-                <span>Enrolled {joinDate}</span>
+              <p className="text-xs sm:text-sm text-emerald-100/80 mt-0.5 truncate">
+                {profile?.email}
+              </p>
+
+              <div className="flex flex-wrap items-center gap-3 mt-2">
+                <div className="flex items-center gap-1.5 text-[11px] text-emerald-300/80">
+                  <Calendar className="w-3 h-3" />
+                  <span>Enrolled {joinDate}</span>
+                </div>
+
+                {profile?.avatar_url && (
+                  <button
+                    onClick={handleRemoveAvatar}
+                    disabled={uploadingAvatar}
+                    className="text-[11px] text-rose-300 hover:text-rose-200 underline underline-offset-2 transition-colors cursor-pointer"
+                  >
+                    Remove photo
+                  </button>
+                )}
               </div>
             </div>
           </div>

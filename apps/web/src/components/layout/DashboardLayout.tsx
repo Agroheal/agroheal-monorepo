@@ -16,12 +16,14 @@ import {
   Lock,
   HelpCircle,
   Sparkles,
+  Users,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "./NotificationBell";
 import HowItWorksContent from "@/components/webComponents/HowItWorksContent";
+import UserAvatar from "@/components/ui/UserAvatar";
 
 const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
 
@@ -37,23 +39,31 @@ interface NavGroup {
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
   subItems?: SubNavItem[];
+  badge?: string;
+  disabled?: boolean;
 }
 
-// ── 6-Menu Grouped Information Hierarchy ──
-// Strategic Placement: Learning Academy is placed FIRST to lead with the education funnel
+// ── Consolidated Information Hierarchy ──
+// 1. Overview (#1)
+// 2. Learning Academy (#2)
+// 3. Farm Operations (Mushroom Village integrated in farming clusters)
+// 4. Wallet & Ledger
+// 5. Producer Network
+// 6. Consumer Network (Coming Soon)
+// 7. Account & Identity (Next of Kin consolidated into Profile & Settings)
 const navGroups: NavGroup[] = [
+  {
+    id: "overview",
+    label: "Overview",
+    path: "/dashboard",
+    icon: LayoutDashboard,
+    exact: true,
+  },
   {
     id: "academy",
     label: "Learning Academy",
     path: "/dashboard/courses",
     icon: BookOpen,
-  },
-  {
-    id: "dashboard",
-    label: "Dashboard",
-    path: "/dashboard",
-    icon: LayoutDashboard,
-    exact: true,
   },
   {
     id: "farm-operations",
@@ -64,7 +74,6 @@ const navGroups: NavGroup[] = [
       { label: "Slot Management", path: "/dashboard/slots-subscription" },
       { label: "Practice Slots", path: "/dashboard/slots" },
       { label: "Farm Accounts", path: "/dashboard/group-farm-accounts" },
-      { label: "Mushroom Village", path: "/dashboard/mushroom-village" },
     ],
   },
   {
@@ -87,14 +96,21 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    id: "consumer-network",
+    label: "Consumer Network",
+    path: "#",
+    icon: Users,
+    badge: "Coming Soon",
+    disabled: true,
+  },
+  {
     id: "account",
     label: "Account & Identity",
     path: "/dashboard/green-card",
     icon: IdCard,
     subItems: [
       { label: "Green Card Community", path: "/dashboard/green-card" },
-      { label: "Profile Settings", path: "/dashboard/profile" },
-      { label: "Next of Kin", path: "/dashboard/kin" },
+      { label: "Profile & Settings", path: "/dashboard/profile" },
       { label: "Legal Agreement", path: "/dashboard/legal" },
     ],
   },
@@ -104,7 +120,7 @@ const HIDDEN_ROUTES = ["/signin", "/signup"];
 
 const getPageTitle = (currentPath: string): string => {
   if (currentPath === "/dashboard" || currentPath === "/dashboard/") {
-    return "Dashboard Overview";
+    return "Overview";
   }
 
   if (
@@ -136,12 +152,14 @@ const SidebarContent = ({
   handleClose,
   userName,
   userEmail,
+  avatarUrl,
 }: {
   normalizedPath: string;
   onLogout: () => void;
   handleClose: () => void;
   userName?: string;
   userEmail?: string;
+  avatarUrl?: string | null;
 }) => {
   // Determine which group contains the active path
   const activeGroupId = useMemo(() => {
@@ -186,26 +204,40 @@ const SidebarContent = ({
     }));
   }, []);
 
-  const initials = (userName || userEmail || "U").slice(0, 2).toUpperCase();
-
   return (
     <div className="flex flex-col h-full select-none text-emerald-100">
-      {/* Brand Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-emerald-800/50 bg-[#0a1e12]/60 shrink-0">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-green-700 shadow-md shadow-emerald-950/40 flex items-center justify-center shrink-0">
-          <Leaf className="w-5 h-5 text-white" />
-        </div>
+      {/* User DP & Brand Header in Top-Left Corner */}
+      <div className="flex items-center gap-3 px-4 py-3.5 border-b border-emerald-800/50 bg-[#0a1e12]/60 shrink-0">
+        <NavLink
+          to="/dashboard/profile"
+          onClick={handleClose}
+          title="My Profile & Settings"
+          className="relative group transition-transform hover:scale-105 shrink-0"
+        >
+          <UserAvatar
+            src={avatarUrl}
+            name={userName}
+            email={userEmail}
+            sizeClassName="w-10 h-10"
+            textClassName="text-xs font-bold"
+            roundedClassName="rounded-xl"
+            className="ring-2 ring-emerald-400/40 shadow-md group-hover:ring-emerald-300 transition-all"
+          />
+          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-[#0a1e12] rounded-full" />
+        </NavLink>
         <div className="min-w-0 flex-1">
-          <span className="text-white font-bold text-base tracking-tight block leading-tight">
-            Agroheal
-          </span>
-          <span className="text-[10px] uppercase font-semibold text-emerald-400/90 tracking-wider block">
-            Member Portal
-          </span>
+          <NavLink to="/dashboard/profile" onClick={handleClose} className="block group">
+            <span className="text-white font-bold text-sm tracking-tight block leading-tight truncate group-hover:text-emerald-300 transition-colors">
+              {userName || "Agroheal Member"}
+            </span>
+            <span className="text-[10px] font-semibold text-emerald-400/80 tracking-wide block truncate">
+              {userEmail ? "Member Portal" : "Active"}
+            </span>
+          </NavLink>
         </div>
       </div>
 
-      {/* Navigation Groups (compact, 6 groups, scrollbar completely hidden) */}
+      {/* Navigation Groups (compact, scrollbar completely hidden) */}
       <nav className="flex-1 px-3 py-3 space-y-1.5 overflow-y-auto no-scrollbar">
         {navGroups.map((group) => {
           const Icon = group.icon;
@@ -213,7 +245,28 @@ const SidebarContent = ({
           const isGroupActive = activeGroupId === group.id;
           const isOpen = Boolean(openGroups[group.id]);
 
-          // Exact single link (Dashboard or direct Learning Academy)
+          // Disabled / Coming Soon items (e.g. Consumer Network)
+          if (group.disabled) {
+            return (
+              <div
+                key={group.id}
+                className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-emerald-300/40 cursor-not-allowed select-none bg-emerald-950/20 border border-emerald-900/30 transition-colors"
+                title={`${group.label} (Coming Soon)`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <Icon className="w-4 h-4 shrink-0 text-emerald-400/30" />
+                  <span className="truncate">{group.label}</span>
+                </div>
+                {group.badge && (
+                  <span className="text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-emerald-900/90 text-emerald-300 border border-emerald-700/60 shrink-0">
+                    {group.badge}
+                  </span>
+                )}
+              </div>
+            );
+          }
+
+          // Exact single link (Overview or direct Learning Academy)
           if (!hasChildren) {
             return (
               <NavLink
@@ -330,19 +383,29 @@ const SidebarContent = ({
 
       {/* User Profile & Logout Footer */}
       <div className="p-3 border-t border-emerald-800/50 bg-[#0a1e12]/70 shrink-0 space-y-2">
-        <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-emerald-900/30 border border-emerald-800/40">
-          <div className="w-8 h-8 rounded-full bg-emerald-700/60 border border-emerald-500/40 flex items-center justify-center text-xs font-bold text-white shrink-0">
-            {initials}
-          </div>
+        <NavLink
+          to="/dashboard/profile"
+          onClick={handleClose}
+          className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-emerald-900/30 border border-emerald-800/40 hover:bg-emerald-800/50 transition-colors group"
+        >
+          <UserAvatar
+            src={avatarUrl}
+            name={userName}
+            email={userEmail}
+            sizeClassName="w-8 h-8"
+            textClassName="text-xs font-bold"
+            roundedClassName="rounded-full"
+            className="border border-emerald-500/40"
+          />
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-white truncate leading-tight">
+            <p className="text-xs font-semibold text-white truncate leading-tight group-hover:text-emerald-300 transition-colors">
               {userName || "Agroheal Member"}
             </p>
-            <p className="text-[11px] text-emerald-300/75 truncate leading-tight">
-              {userEmail || "Active"}
+            <p className="text-[10px] text-emerald-300/75 truncate leading-tight">
+              Profile & Settings
             </p>
           </div>
-        </div>
+        </NavLink>
 
         <button
           onClick={onLogout}
@@ -417,6 +480,7 @@ const DashboardLayout = () => {
           handleClose={handleClose}
           userName={profile?.full_name}
           userEmail={profile?.email || session?.user?.email}
+          avatarUrl={profile?.avatar_url}
         />
       </aside>
 
@@ -457,6 +521,7 @@ const DashboardLayout = () => {
                 handleClose={handleClose}
                 userName={profile?.full_name}
                 userEmail={profile?.email || session?.user?.email}
+                avatarUrl={profile?.avatar_url}
               />
             </motion.aside>
           </>
@@ -525,7 +590,7 @@ const DashboardLayout = () => {
       {/* ── MAIN CONTENT AREA ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
-        <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 z-20 shrink-0">
+        <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4 z-20 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             {/* Hamburger for mobile/tablet */}
             <button
@@ -535,6 +600,23 @@ const DashboardLayout = () => {
             >
               <Menu className="w-5 h-5" />
             </button>
+
+            {/* Mobile Quick User DP in top-left */}
+            <NavLink
+              to="/dashboard/profile"
+              className="lg:hidden shrink-0"
+              title="View Profile"
+            >
+              <UserAvatar
+                src={profile?.avatar_url}
+                name={profile?.full_name}
+                email={profile?.email || session?.user?.email}
+                sizeClassName="w-8 h-8"
+                textClassName="text-[11px] font-bold"
+                roundedClassName="rounded-lg"
+                className="ring-1 ring-emerald-600/30"
+              />
+            </NavLink>
 
             {/* Page title */}
             <div className="min-w-0">
@@ -558,15 +640,30 @@ const DashboardLayout = () => {
             {/* Notification Bell */}
             <NotificationBell />
 
-            {/* Mobile Logo Brand */}
-            <div className="flex items-center gap-2 lg:hidden pl-2 border-l border-gray-200">
-              <div className="w-7 h-7 rounded-lg bg-emerald-800 flex items-center justify-center shrink-0 shadow-xs">
-                <Leaf className="w-4 h-4 text-white" />
+            {/* Desktop User DP Profile Badge */}
+            <NavLink
+              to="/dashboard/profile"
+              className="hidden sm:flex items-center gap-2.5 pl-2.5 py-1 border-l border-gray-200 hover:opacity-85 transition-opacity"
+              title="Manage Profile & Settings"
+            >
+              <UserAvatar
+                src={profile?.avatar_url}
+                name={profile?.full_name}
+                email={profile?.email || session?.user?.email}
+                sizeClassName="w-8 h-8"
+                textClassName="text-[11px] font-bold"
+                roundedClassName="rounded-xl"
+                className="ring-2 ring-emerald-500/25 shadow-xs"
+              />
+              <div className="text-left hidden md:block">
+                <p className="text-xs font-semibold text-gray-800 leading-tight truncate max-w-[130px]">
+                  {profile?.full_name || "Member Account"}
+                </p>
+                <p className="text-[10px] text-emerald-600 font-semibold leading-tight">
+                  View Profile
+                </p>
               </div>
-              <span className="text-emerald-900 font-bold text-sm hidden sm:inline">
-                Agroheal
-              </span>
-            </div>
+            </NavLink>
           </div>
         </header>
 

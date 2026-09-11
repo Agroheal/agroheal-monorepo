@@ -4,6 +4,7 @@ import { LoaderCircle } from "lucide-react";
 import { Toaster, toast } from "react-hot-toast";
 import { supabase } from "@/lib/supabaseClient";
 import KinModal from "./KinModal";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 const KinDetails = () => {
   const [loading, setLoading] = useState(true);
@@ -65,16 +66,7 @@ const KinDetails = () => {
   }, [navigate]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-        <div className="flex items-center gap-3 rounded-3xl bg-white px-6 py-5 shadow-lg">
-          <LoaderCircle className="h-5 w-5 animate-spin text-green-700" />
-          <span className="text-sm font-medium text-gray-700">
-            Loading Kin or POD details...
-          </span>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading Kin or POD details..." />;
   }
 
   if (!userId) {

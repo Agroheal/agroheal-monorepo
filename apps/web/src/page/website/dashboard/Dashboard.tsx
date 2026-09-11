@@ -26,6 +26,7 @@ import ShareReferralModal from "@/components/webComponents/shareModal";
 import PhoneModal from "./PhoneModal";
 import KinModal from "./KinModal";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface ReferralProps {
   id: string;
@@ -294,19 +295,7 @@ const Dashboard = () => {
   }
 
   if (!profile) {
-    return (
-      <div className="min-h-screen flex justify-center items-center bg-gray-50">
-        <Toaster />
-        <div className="flex flex-col items-center justify-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-green-800/10 flex items-center justify-center">
-            <LoaderCircle className="animate-spin text-green-800" size={32} />
-          </div>
-          <p className="text-gray-500 text-sm font-medium">
-            Loading your dashboard...
-          </p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Loading your overview..." />;
   }
 
   const stats = [

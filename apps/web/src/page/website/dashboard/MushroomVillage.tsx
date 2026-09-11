@@ -10,6 +10,7 @@ import * as Sentry from "@sentry/react";
 import { Toaster } from "react-hot-toast";
 import type { User } from "@supabase/supabase-js";
 import { parsePositiveInt } from "@shared/dataSanitizers";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 const MushroomVillage = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -231,18 +232,7 @@ const MushroomVillage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-green-800/10 flex items-center justify-center animate-pulse">
-            <LoaderCircle className="w-6 h-6 text-green-800" />
-          </div>
-          <p className="text-sm text-gray-500 font-medium">
-            Preparing Mushroom Village payment...
-          </p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Preparing Mushroom Village..." />;
   }
 
   return (

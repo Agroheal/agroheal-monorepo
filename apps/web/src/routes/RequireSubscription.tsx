@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
-import { Spinner } from "@/components/ui/spinner";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 /**
  * Gates access on an active Green Card subscription, separately from
@@ -41,14 +41,7 @@ const RequireSubscription = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div>
-          <Spinner color="green.800" />
-          <div className="text-green-800">Checking subscription...</div>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner message="Verifying member subscription..." />;
   }
 
   if (!hasActiveSubscription) {

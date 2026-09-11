@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
 import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
-import { SITE_URL } from "@/config/Index";
 import DigitalGreenCard, { formatAgcId } from "@/components/greencard/DigitalGreenCard";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 const TIER_SIZE = 50;
 
@@ -190,11 +190,7 @@ const GreenCardCommunity = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500 text-sm">Loading your community...</p>
-      </div>
-    );
+    return <LoadingSpinner message="Loading your Green Card community..." />;
   }
 
   if (!hasGreenCard) {

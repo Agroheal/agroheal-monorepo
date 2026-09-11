@@ -28,6 +28,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import { exportToExcel } from "@shared/excelExport";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface LedgerItem {
   id: string;
@@ -705,8 +706,8 @@ export default function TransactionLedger() {
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-gray-400">
-                      Loading financial ledger...
+                    <td colSpan={6} className="py-12">
+                      <LoadingSpinner message="Loading financial ledger..." />
                     </td>
                   </tr>
                 ) : filteredTransactions.length === 0 ? (

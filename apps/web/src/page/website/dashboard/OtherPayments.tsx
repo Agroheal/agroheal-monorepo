@@ -17,10 +17,10 @@ import { supabase } from "@/lib/supabaseClient";
 import { FLUTTERWAVE_KEYS } from "@/config/Index";
 import * as Sentry from "@sentry/react";
 import { Toaster } from "react-hot-toast";
-import PaymentGuidancePopup from "@/components/webComponents/PaymentGuidancePopup";
 import { PROJECT_CATEGORIES } from "@/constant/projectCategories";
 import type { User } from "@supabase/supabase-js";
 import { parsePositiveInt } from "@shared/dataSanitizers";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 type PaymentType = "farm_setup" | "farm_support" | "absentee_fine" | "";
 
@@ -286,11 +286,7 @@ const OtherPayments = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="w-8 h-8 border-4 border-green-200 border-t-green-800 rounded-full animate-spin" />
-      </div>
-    );
+    return <LoadingSpinner message="Loading payment details..." />;
   }
 
   return (

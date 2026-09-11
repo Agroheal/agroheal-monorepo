@@ -15,6 +15,7 @@ export interface UserProfile {
   role?: string;
   phone?: string;
   wallet_balance?: number;
+  avatar_url?: string | null;
 }
 
 export const useAuth = () => {
@@ -32,7 +33,7 @@ export const useAuth = () => {
       }
       const { data } = await supabase
         .from("profiles")
-        .select("id, email, full_name, role, phone, wallet_balance")
+        .select("id, email, full_name, role, phone, wallet_balance, avatar_url")
         .eq("id", currentSession.user.id)
         .maybeSingle();
 
