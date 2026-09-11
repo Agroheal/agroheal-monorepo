@@ -173,57 +173,70 @@ export const ConsumerNetwork: React.FC = () => {
             </p>
           </div>
 
-          {/* Qualification Summary Card */}
-          <div className="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/15 min-w-[240px] text-center shrink-0">
-            <span className="text-[11px] uppercase tracking-wider text-emerald-300 font-bold block mb-1">
-              Your Matrix Tier Qualification
-            </span>
-            <div className="text-3xl font-black text-white">
-              Level {unlockedLevel} of 7
-            </div>
-            <p className="text-xs text-emerald-200 mt-1">
-              {directReferralsCount} Direct Partners Sponsored
-            </p>
-            <div className="mt-3 pt-3 border-t border-white/10 text-[11px] text-emerald-100/80">
-              {unlockedLevel < 7 ? (
-                <span>
-                  Sponsor <strong>{5 - (directReferralsCount % 5)} more</strong> to unlock Level {unlockedLevel + 1}
+          {/* Qualification & Potential Matrix Dividends Card */}
+          <div className="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 w-full lg:max-w-md shrink-0 shadow-lg text-white space-y-3.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-amber-300" />
+                <span className="text-[11px] uppercase tracking-wider text-emerald-300 font-bold">
+                  Your Matrix Tier Qualification
                 </span>
-              ) : (
-                <span className="text-amber-300 font-bold">★ All 7 Matrix Levels Unlocked!</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── LOCKED POTENTIAL COMMISSIONS SUB-CARD ── */}
-      <div className="bg-gradient-to-r from-amber-500/10 via-emerald-500/10 to-emerald-600/10 rounded-2xl p-4 sm:p-5 border border-amber-300/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-900 flex items-center justify-center font-bold shrink-0">
-            <Lock className="w-5 h-5 text-amber-700" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-900">
-                Potential Matrix Dividends Notice
-              </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/25 text-amber-200 border border-amber-400/40">
                 Level {unlockedLevel}/7 Active
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-gray-700 mt-0.5 leading-relaxed">
-              Up to <strong>₦12,212,500 in potential community commissions</strong> are accessible across your 7 matrix tiers. Unlocked tiers credit directly into your Member Wallet. Sponsor direct partners to expand your payout depth.
-            </p>
+
+            <div className="flex items-baseline justify-between gap-4 border-b border-white/15 pb-2.5">
+              <div>
+                <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  Level {unlockedLevel} <span className="text-sm font-semibold text-emerald-200">of 7</span>
+                </div>
+                <p className="text-xs text-emerald-200/90 mt-0.5">
+                  {directReferralsCount} Direct Partners Sponsored
+                </p>
+              </div>
+
+              <div className="text-right">
+                <span className="text-[10px] uppercase font-bold text-emerald-300 tracking-wider block">
+                  Potential Matrix Pool
+                </span>
+                <span className="text-base sm:text-lg font-mono font-black text-amber-300">
+                  ₦12,212,500
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-xs font-bold text-amber-200">
+                Potential Matrix Dividends Notice
+              </p>
+              <p className="text-[11px] sm:text-xs text-emerald-100/90 leading-relaxed">
+                Up to <strong className="text-white font-semibold">₦12,212,500</strong> in potential community commissions are accessible across your 7 matrix tiers. Unlocked tiers credit directly into your Member Wallet. Sponsor direct partners to expand your payout depth.
+              </p>
+            </div>
+
+            <div className="pt-2.5 border-t border-white/15 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="text-[11px] text-emerald-100/90">
+                {unlockedLevel < 7 ? (
+                  <span>
+                    Sponsor <strong className="text-amber-300">{5 - (directReferralsCount % 5)} more</strong> to unlock Level {unlockedLevel + 1}
+                  </span>
+                ) : (
+                  <span className="text-amber-300 font-bold">★ All 7 Matrix Levels Unlocked!</span>
+                )}
+              </div>
+
+              <Link
+                to="/dashboard/transactions"
+                className="inline-flex items-center gap-1 text-xs font-bold text-amber-300 hover:text-white underline underline-offset-2 transition-colors shrink-0"
+              >
+                <span>View Wallet Details</span>
+                <ArrowUpRight className="w-3 h-3" />
+              </Link>
+            </div>
           </div>
         </div>
-        <Link
-          to="/dashboard/transactions"
-          className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-semibold text-xs transition-colors shadow-xs"
-        >
-          <span>View Wallet Details</span>
-          <ArrowUpRight className="w-3.5 h-3.5" />
-        </Link>
       </div>
 
       {/* ── SECTION 1: RETAIL PRODUCE MARKETPLACE PREVIEW (NOW FIRST SECTION!) ── */}
