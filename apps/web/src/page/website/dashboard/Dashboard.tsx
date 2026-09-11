@@ -369,15 +369,27 @@ const Dashboard = () => {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             </button>
 
-            <Link
-              to="/dashboard/green-card"
-              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold backdrop-blur-sm border border-white/20 transition-colors shadow-xs"
-              title="View Official Green Card"
-            >
-              <Award className="w-4 h-4 text-emerald-300" />
-              <span className="font-mono">{formatAgcId(profile?.member_id as string)}</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            </Link>
+            {profile?.member_id ? (
+              <Link
+                to="/dashboard/green-card"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold backdrop-blur-sm border border-white/20 transition-colors shadow-xs"
+                title="View Official Green Card"
+              >
+                <Award className="w-4 h-4 text-emerald-300" />
+                <span className="font-mono">{formatAgcId(profile?.member_id as string)}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              </Link>
+            ) : (
+              <Link
+                to="/subscribe"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/25 hover:bg-amber-500/35 text-amber-200 text-xs sm:text-sm font-bold backdrop-blur-sm border border-amber-400/40 transition-colors shadow-xs"
+                title="Get your AgroHeal Green Card"
+              >
+                <Award className="w-4 h-4 text-amber-300" />
+                <span>NO GREENCARD YET</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              </Link>
+            )}
           </div>
         </motion.div>
       </div>
@@ -542,7 +554,19 @@ const Dashboard = () => {
                 </span>
               </div>
               <p className="text-xs text-emerald-100/80 mt-0.5">
-                Member ID: <span className="font-mono font-bold text-white">{formatAgcId(profile?.member_id as string)}</span> · Qualifies for 5×7 community matrix upon securing a farm slot.
+                Member ID:{" "}
+                {profile?.member_id ? (
+                  <span className="font-mono font-bold text-white">{formatAgcId(profile?.member_id as string)}</span>
+                ) : (
+                  <Link
+                    to="/subscribe"
+                    className="font-bold text-amber-300 hover:text-white underline underline-offset-2"
+                    title="Click to activate your Green Card"
+                  >
+                    NO GREENCARD YET
+                  </Link>
+                )}{" "}
+                · Qualifies for 5×7 community matrix upon securing a farm slot.
               </p>
             </div>
           </div>

@@ -21,6 +21,7 @@ import {
   Sparkles,
   Lock,
   FileSpreadsheet,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
@@ -43,7 +44,7 @@ interface LedgerItem {
 
 export default function TransactionLedger() {
   const [loading, setLoading] = useState<boolean>(true);
-  const [memberId, setMemberId] = useState<string>("AGC-PENDING");
+  const [memberId, setMemberId] = useState<string>("NO GREENCARD YET");
   const [directReferralEarnings, setDirectReferralEarnings] = useState<number>(0);
   const [matrixEarnings, setMatrixEarnings] = useState<number>(0);
   const [directReferralsCount, setDirectReferralsCount] = useState<number>(0);
@@ -54,6 +55,7 @@ export default function TransactionLedger() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [requeryRef, setRequeryRef] = useState<string>("");
   const [requeryLoading, setRequeryLoading] = useState<boolean>(false);
+  const [activeRequeryRef, setActiveRequeryRef] = useState<string | null>(null);
   const [showRequeryModal, setShowRequeryModal] = useState<boolean>(false);
   const [isProjectSubscribed, setIsProjectSubscribed] = useState<boolean>(false);
   const [subscribingWithWallet, setSubscribingWithWallet] = useState<boolean>(false);
@@ -271,8 +273,9 @@ export default function TransactionLedger() {
     loadLedger();
   }, []);
 
-  const handleRequery = async () => {
-    if (!requeryRef.trim()) {
+  const handleRequery = async (overrideRef?: string) => {
+    const targetRef = (overrideRef || requeryRef).trim();
+    if (!targetRef) {
       showToast({
         variant: "error",
         title: "Reference Required",
@@ -282,29 +285,58 @@ export default function TransactionLedger() {
     }
 
     setRequeryLoading(true);
+    setActiveRequeryRef(targetRef);
     try {
-      // Requery against Paystack or Supabase verify payment
-      const { data, error } = await supabase
+      // 1. Check in checkout table
+      const { data: checkoutData } = await supabase
         .from("checkout")
         .select("*")
-        .eq("payment_reference", requeryRef.trim())
+        .eq("payment_reference", targetRef)
         .maybeSingle();
 
-      if (error || !data) {
+      // 2. Check in other_payments if not in checkout
+      let paymentRecord = checkoutData;
+      if (!paymentRecord) {
+        const { data: opData } = await supabase
+          .from("other_payments")
+          .select("*")
+          .eq("reference", targetRef)
+          .maybeSingle();
+        paymentRecord = opData;
+      }
+
+      // 3. Check by id prefix if reference is formatted like PAY- or CHK- or SUB-
+      if (!paymentRecord) {
+        const rawId = targetRef.replace(/^(CHK-|PAY-|SUB-)/i, "");
+        if (rawId.length >= 8) {
+          const { data: opById } = await supabase
+            .from("other_payments")
+            .select("*")
+            .ilike("id", `${rawId}%`)
+            .maybeSingle();
+          if (opById) paymentRecord = opById;
+        }
+      }
+
+      if (!paymentRecord) {
         showToast({
           variant: "error",
           title: "Payment Not Found",
-          description: "No pending transaction found for this reference. Please check and try again.",
+          description: `No record matching reference "${targetRef}" was found in our system. Please check and try again.`,
         });
       } else {
+        const statusStr = (paymentRecord.status || "UNKNOWN").toUpperCase();
         showToast({
-          variant: "success",
+          variant:
+            statusStr === "COMPLETED" || statusStr === "PAID" || statusStr === "SUCCESS" || statusStr === "CONFIRMED"
+              ? "success"
+              : "info",
           title: "Transaction Requeried",
-          description: `Transaction status: ${data.status.toUpperCase()}. Your records have been updated.`,
+          description: `Current transaction status: ${statusStr}. Your ledger has been synchronized.`,
         });
         setShowRequeryModal(false);
         setRequeryRef("");
-        loadLedger();
+        await loadLedger();
       }
     } catch {
       showToast({
@@ -314,6 +346,7 @@ export default function TransactionLedger() {
       });
     } finally {
       setRequeryLoading(false);
+      setActiveRequeryRef(null);
     }
   };
 
@@ -359,7 +392,9 @@ export default function TransactionLedger() {
   };
 
   const filteredTransactions = transactions.filter((t) => {
-    if (filterType !== "ALL" && t.category !== filterType && t.type !== filterType) {
+    if (filterType === "PENDING") {
+      if (t.status !== "PENDING") return false;
+    } else if (filterType !== "ALL" && t.category !== filterType && t.type !== filterType) {
       return false;
     }
     if (searchQuery.trim()) {
@@ -421,9 +456,21 @@ export default function TransactionLedger() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="px-3 py-1 bg-emerald-50 text-emerald-800 font-mono font-bold text-xs rounded-full border border-emerald-200">
-                {memberId}
-              </span>
+              {memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING") ? (
+                <span className="px-3 py-1 bg-emerald-50 text-emerald-800 font-mono font-bold text-xs rounded-full border border-emerald-200">
+                  {memberId}
+                </span>
+              ) : (
+                <Link
+                  to="/subscribe"
+                  className="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs rounded-full border border-amber-200 inline-flex items-center gap-1.5 transition-colors underline underline-offset-2 uppercase"
+                  title="Click to activate your AgroHeal Green Card"
+                >
+                  <Award className="w-3.5 h-3.5 text-amber-600" />
+                  <span>NO GREENCARD YET</span>
+                  <ArrowRight className="w-3 h-3 text-amber-600" />
+                </Link>
+              )}
               <span className="text-xs text-gray-400">•</span>
               <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 Audited Member Ledger
@@ -439,21 +486,12 @@ export default function TransactionLedger() {
 
           <div className="flex items-center gap-3">
             <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowRequeryModal(true)}
-              className="border-gray-200 text-gray-700 hover:bg-gray-50 rounded-xl gap-2 font-semibold text-xs h-10"
-            >
-              <RefreshCw className="w-3.5 h-3.5 text-gray-500" />
-              Requery Payment
-            </Button>
-            <Button
               size="sm"
               onClick={loadLedger}
               className="bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl gap-2 font-semibold text-xs h-10 shadow-sm"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              Refresh
+              Refresh Ledger
             </Button>
           </div>
         </div>
@@ -647,14 +685,25 @@ export default function TransactionLedger() {
         <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
           {/* Table Header & Search Filter */}
           <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <CreditCard className="w-5 h-5 text-gray-500" />
               <h2 className="text-base font-bold text-gray-900">Unified Transaction History</h2>
+              {transactions.some((t) => t.status === "PENDING") && (
+                <button
+                  type="button"
+                  onClick={() => setFilterType("PENDING")}
+                  className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                  title="Filter to view pending transactions"
+                >
+                  <Clock className="w-3 h-3 text-amber-700 animate-pulse" />
+                  <span>{transactions.filter((t) => t.status === "PENDING").length} Pending</span>
+                </button>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               {/* Search */}
-              <div className="relative flex-1 sm:w-64">
+              <div className="relative flex-1 sm:w-56">
                 <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-gray-400" />
                 <input
                   type="text"
@@ -672,6 +721,9 @@ export default function TransactionLedger() {
                 className="h-9 px-3 rounded-xl border border-gray-200 bg-gray-50 text-xs text-gray-700 font-medium focus:outline-none"
               >
                 <option value="ALL">All Categories</option>
+                <option value="PENDING">
+                  Pending Transactions {transactions.some((t) => t.status === "PENDING") ? `(${transactions.filter((t) => t.status === "PENDING").length})` : ""}
+                </option>
                 <option value="REFERRAL_BONUS">Referral Bonuses</option>
                 <option value="SLOT_PURCHASE">Slot Purchases</option>
                 <option value="SUBSCRIPTION">Subscriptions</option>
@@ -679,13 +731,28 @@ export default function TransactionLedger() {
                 <option value="DEBIT">Debits Only</option>
               </select>
 
+              {/* Requery Payment button around Transaction History */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setRequeryRef("");
+                  setShowRequeryModal(true);
+                }}
+                className="h-9 px-3 rounded-xl border-emerald-700 text-emerald-800 hover:bg-emerald-50 text-xs font-semibold shadow-xs flex items-center gap-1.5"
+                title="Requery or sync an uncredited payment reference"
+              >
+                <RefreshCw className="w-3.5 h-3.5 text-emerald-700" />
+                <span>Requery Ref</span>
+              </Button>
+
               <Button
                 onClick={handleExportExcel}
                 variant="outline"
                 size="sm"
-                className="h-9 px-3 rounded-xl border-emerald-700 text-emerald-800 hover:bg-emerald-50 text-xs font-semibold shadow-xs"
+                className="h-9 px-3 rounded-xl border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-semibold shadow-xs"
               >
-                <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5 text-emerald-700" /> Export Excel
+                <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5 text-gray-600" /> Export Excel
               </Button>
             </div>
           </div>
@@ -745,20 +812,49 @@ export default function TransactionLedger() {
                         {t.type === "CREDIT" ? "+" : "-"}₦{t.amount.toLocaleString()}
                       </td>
                       <td className="py-4 px-5 whitespace-nowrap text-center">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                            t.status === "COMPLETED"
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                              : "bg-amber-50 text-amber-700 border border-amber-200"
-                          }`}
-                        >
-                          {t.status === "COMPLETED" ? (
-                            <CheckCircle2 className="w-3 h-3" />
-                          ) : (
-                            <Clock className="w-3 h-3" />
+                        <div className="inline-flex items-center justify-center gap-2">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                              t.status === "COMPLETED"
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : t.status === "FAILED"
+                                ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                : "bg-amber-50 text-amber-700 border border-amber-200"
+                            }`}
+                          >
+                            {t.status === "COMPLETED" ? (
+                              <CheckCircle2 className="w-3 h-3" />
+                            ) : t.status === "FAILED" ? (
+                              <AlertCircle className="w-3 h-3 text-rose-600" />
+                            ) : (
+                              <Clock className="w-3 h-3 text-amber-600" />
+                            )}
+                            {t.status.toUpperCase()}
+                          </span>
+
+                          {t.status === "PENDING" && (
+                            <button
+                              type="button"
+                              onClick={() => handleRequery(t.reference)}
+                              disabled={requeryLoading && activeRequeryRef === t.reference}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+                              title={`Requery payment for reference ${t.reference}`}
+                            >
+                              <RefreshCw
+                                className={`w-2.5 h-2.5 ${
+                                  requeryLoading && activeRequeryRef === t.reference
+                                    ? "animate-spin text-emerald-600"
+                                    : "text-emerald-700"
+                                }`}
+                              />
+                              <span>
+                                {requeryLoading && activeRequeryRef === t.reference
+                                  ? "Checking..."
+                                  : "Requery"}
+                              </span>
+                            </button>
                           )}
-                          {t.status.toUpperCase()}
-                        </span>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -810,7 +906,7 @@ export default function TransactionLedger() {
                   Cancel
                 </Button>
                 <Button
-                  onClick={handleRequery}
+                  onClick={() => handleRequery()}
                   disabled={requeryLoading}
                   className="h-10 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold px-5"
                 >

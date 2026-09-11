@@ -28,7 +28,7 @@ export interface DigitalGreenCardProps {
 }
 
 export function formatAgcId(id?: string): string {
-  if (!id) return "AGC-PENDING";
+  if (!id) return "NO GREENCARD YET";
   const trimmed = id.trim().toUpperCase();
   if (trimmed.startsWith("AGC-")) return trimmed;
   if (trimmed.startsWith("AGC")) return `AGC-${trimmed.replace(/^AGC/i, "").replace(/^-*/, "")}`;

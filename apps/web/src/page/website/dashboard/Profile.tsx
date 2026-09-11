@@ -244,9 +244,20 @@ export const ProfileComponent: React.FC = () => {
                 <h1 className="text-xl sm:text-2xl font-black truncate">
                   {profile?.full_name || "AgroHeal Member"}
                 </h1>
-                <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-400/30 text-[10px] font-mono">
-                  {agcIdFormatted}
-                </Badge>
+                {profile?.member_id ? (
+                  <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-400/30 text-[10px] font-mono">
+                    {agcIdFormatted}
+                  </Badge>
+                ) : (
+                  <Link
+                    to="/subscribe"
+                    className="inline-flex items-center gap-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 text-[10px] font-bold px-2.5 py-0.5 rounded-full transition-colors uppercase tracking-wider hover:underline"
+                    title="Click to activate your AgroHeal Green Card"
+                  >
+                    <IdCard className="w-3 h-3 text-amber-300" />
+                    <span>NO GREENCARD YET</span>
+                  </Link>
+                )}
               </div>
               <p className="text-xs sm:text-sm text-emerald-100/80 mt-0.5 truncate">
                 {profile?.email}
@@ -329,9 +340,20 @@ export const ProfileComponent: React.FC = () => {
             </div>
             <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
               <span className="text-gray-500 font-medium">AGC Member ID</span>
-              <span className="font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-lg">
-                {agcIdFormatted}
-              </span>
+              {profile?.member_id ? (
+                <span className="font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-lg">
+                  {agcIdFormatted}
+                </span>
+              ) : (
+                <Link
+                  to="/subscribe"
+                  className="inline-flex items-center gap-1 font-bold text-[11px] text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 px-2.5 py-0.5 rounded-lg transition-colors underline underline-offset-2 uppercase"
+                  title="Click to activate your AgroHeal Green Card"
+                >
+                  <span>NO GREENCARD YET</span>
+                  <ArrowRight className="w-3 h-3 text-amber-600" />
+                </Link>
+              )}
             </div>
             <div className="flex justify-between items-center py-1.5">
               <span className="text-gray-500 font-medium">Affiliate Referral Code</span>
@@ -358,7 +380,7 @@ export const ProfileComponent: React.FC = () => {
               onClick={() => setShowKinModal(true)}
               className="text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 transition-colors"
             >
-              {kin?.kin_name ? "Update Kin" : "Add Kin"}
+              {kin?.kin_name ? "Update Next of Kin" : "Add Next of Kin"}
             </button>
           </div>
 
