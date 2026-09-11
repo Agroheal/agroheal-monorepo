@@ -1,201 +1,236 @@
-# AgroHeal / Green Card Ecosystem — Consolidated Business Logic
+# AgroHeal Green Card Ecosystem — Consolidated Business Logic & System KB
 
-*Source of truth: `Green_Card_Ecosystem_Complete_Plain_Language_Version.pptx` (the formal programmer brief) reconciled against the WhatsApp chat and signed off by the Agroheal leadership.*
+*Authoritative Source of Truth for all business rules, mathematical formulas, compensation splits, network topology, and system architecture across the AgroHeal Green Card Ecosystem.*
 
 ---
 
-## 1. Three Participation Statuses
+## 1. Executive Summary & Ecosystem Model
 
-One member profile, three cumulative states:
+AgroHeal is a cooperative agricultural technology platform combining practical agribusiness education, collaborative group farming, and a producer-consumer product distribution network under the **LEAP Framework**: **Learn, Practice, Earn**.
 
-| Status | Trigger | Privileges |
+### Three Participation Statuses
+
+Every participant profile maintains a progressive, cumulative status:
+
+| Status | Qualification / Trigger | Entitlements & Capabilities |
 |---|---|---|
-| **Green Card Member** | Paid ₦2,000 (one-time). | Can access training academy, join community groups (WhatsApp/Telegram), and refer new Green Card members (₦1,000 bonus) and farm slots (₦500 bonus). |
-| **Wealth Creation Member** | Paid the ₦10,000 activation fee. | Owns ≥1 compulsory mushroom farm slot, receives Mushroom Power welcome product, unlocks 7-level product commission engine & 5×7 marketing matrix. |
-| **Multiple-Slot Farm Owner** | Bought additional ₦5,000 slots beyond the compulsory first one. | Farm allocations and quarterly harvest payouts multiply by total eligible slots owned. |
+| **Green Card Member** | Paid ₦2,000 registration fee. | Named digital Green Card + verified ID, lifetime LMS course library access, WhatsApp/Telegram community access, personal affiliate referral link, direct referral commission rights (₦1,000 GC / ₦500 slot). |
+| **Wealth Creation Member** | Paid ₦10,000 activation fee (or activated via ₦10,000 wallet balance). | Receives Mushroom Power health beverage welcome pack (₦6,000 retail value), owns 1st compulsory practical farm slot (2 fruiting bags), enters 5×7 marketing matrix, earns 7-level product sales commissions. |
+| **Multiple-Slot Farm Owner** | Bought additional ₦5,000 slots beyond the compulsory first slot. | Farm harvest allocations multiply by total eligible slots owned across active group farm clusters. Zero ongoing monthly maintenance dues. |
 
-Status changes are automatic on verified payment — no admin action required.
-
----
-
-## 2. Green Card Registration — ₦2,000 (one-time)
-
-**Unlocks:** Member dashboard, named digital Green Card + unique verification number, on-demand training library, WhatsApp/Telegram community links, affiliate link + referrer/referral ledger, and the link to activate the ₦10,000 wealth-creation path. **Does not unlock the 5×7 marketing network or farm ownership.**
-
-**Fee Split:**
-- **₦1,000** → Direct Referrer (Instant affiliate bonus)
-- **₦1,000** → Company Admin (Platform operations)
-
-*System sequence:* `member.created → green_card.issued → referral_bonus.posted → access_grants.created`
-
-*(Note on Core Drivers: A fixed ~6-person founding/leadership tier is funded by 15% / ₦300 from the registration pool per founder sign-off).*
+Status upgrades occur automatically upon verified payment via automated webhook or atomic stored procedure — zero manual admin action required.
 
 ---
 
-## 3. Wealth Creation Activation — ₦10,000 (minimum)
+## 2. Membership & Registration Financial Flows
 
-**CTA:** "Join the Green Card Wealth Creation Team."  
-One payment activates **both** the product commission account and the compulsory first farm slot — itemised clearly before checkout:
+### 2.1. Green Card Registration — ₦2,000 (One-Time, Lifetime)
+- **Output:** Verified digital Green Card generated with unique identifier (`GC-YYYY-XXXXX`).
+- **Validity:** Permanent lifetime pass — zero annual renewal fees, zero recurring membership charges.
+- **Split Breakdown:**
+  - **₦1,000 (50%)** → Direct Sponsor / Referrer (credited immediately to withdrawable wallet ledger).
+  - **₦1,000 (50%)** → AgroHeal Company Operating Margin.
+  
+> [!NOTE]
+> **Core Drivers Pool Distinction:**  
+> The formal PowerPoint brief allocates the ₦2,000 fee strictly as ₦1,000 Referrer / ₦1,000 Company Admin. The founders' operational chat described an alternative 15% (₦300) Core Drivers pool (₦50 each for 6 core drivers). Both models are documented in [docs/ROADMAP_AND_TRACKER.md](file:///c:/Users/Elijah/Desktop/AgroHeal/agroheal-fe/docs/ROADMAP_AND_TRACKER.md) pending final founder sign-off.
+- **Corporate Treasury Recognition (Option A — FinTech SaaS Model):** Company admin revenue is recognized directly as **Platform Retained Operating Margin** (platform equity) rather than sitting in a personal user wallet, avoiding internal liquidity dilution.
 
-| Item | Amount | Destination Engine |
-|---|---|---|
-| **Welcome product — Mushroom Power** | ₦5,000 | 7-Level Product Commission Engine (§4) |
-| **Compulsory first mushroom farm slot** | ₦5,000 | Farm-Slot Allocation Engine (§5) — **not** the multilevel commission engine |
-| **Optional additional slots** | ₦5,000 each | Farm-Slot Allocation Engine only |
+### 2.2. Wealth Creation Team Activation — ₦10,000 (One-Time)
+- **Output:** Activates commercial producer-consumer network membership.
+- **Package Components:**
+  1. **₦5,000 Mushroom Power Welcome Pack:** Physical bottle of Mushroom Power health beverage (₦6,000 retail value) provided upon activation. Activates eligibility for the 7-level product commission engine.
+  2. **₦5,000 Compulsory First Farm Slot:** 2 starter fruiting bags in a designated physical group farm cluster, professionally managed by on-site resident agronomists.
 
-> **Critical Rule:** Recruitment alone never creates a multilevel commission — a commission only fires once an eligible **product** is bought and paid.
-
----
-
-## 4. Product Commission Engine (7-Level + Direct)
-
-Applies to the ₦5,000 Mushroom Power welcome product, and — via the same admin-configurable percentage mechanism — to every other retail product sold on the platform going forward.  
-**Hard Ceiling: 40% of verified sale value (₦2,000 on a ₦5,000 sale).**
-
-| Beneficiary / Destination | Rate (%) | On a ₦5,000 Sale | Level Cap (5×7) | Total Tier Potential |
-|---|---|---|---|---|
-| **Direct retail seller** | 12.0% | ₦600 | Personal | Unlimited |
-| **Level 1 upline** | 5.0% | ₦250 | 5 members | ₦1,250 |
-| **Level 2 upline** | 3.5% | ₦175 | 25 members | ₦4,375 |
-| **Level 3 upline** | 3.0% | ₦150 | 125 members | ₦18,750 |
-| **Level 4 upline** | 2.5% | ₦125 | 625 members | ₦78,125 |
-| **Level 5 upline** | 2.5% | ₦125 | 3,125 members | ₦390,625 |
-| **Level 6 upline** | 2.5% | ₦125 | 15,625 members | ₦1,953,125 |
-| **Level 7 upline** | 2.5% | ₦125 | 78,125 members | ₦9,765,625 |
-| **Leadership pool** | 4.0% | ₦200 | Platform-wide | — |
-| **Sustainability reserve** | 2.0% | ₦100 | Platform-wide | — |
-| **Allocated Subtotal** | **39.5%** | **₦1,975** | — | — |
-| **Unallocated Company Balance** | **0.5%** | **₦25** | Retained by Company | — |
-| **Ceiling Total** | **40.0%** | **₦2,000** | 97,655 members | **₦12,212,500** |
-
-### Execution Rules:
-1. **Commission Trigger:** A commission fires only when: (a) payment is verified, (b) the beneficiary is found at the correct upline level, and (c) the beneficiary's monthly qualification (§7) is satisfied.
-2. **Reversals / Refunds:** Returned/refunded product commissions are deducted from the recipient's subsequent future earnings as linked reversal entries.
-3. **Unallocated 0.5% (₦25):** Retained by the company as operational margin.
-4. **Rate Versioning:** Commission rates are versioned and apply prospectively only to future transactions.
+### 2.3. Full Cooperative Onboarding Package — ₦12,000 (Per Member)
+- **Description:** Standard institutional package for Agricultural Cooperatives, Faith-Based Organizations, and Community Associations:
+  - ₦2,000 Green Card Lifetime Registration
+  - ₦5,000 Compulsory First Farm Slot
+  - ₦5,000 Mushroom Power Welcome Pack
+- **Cooperative Processing:** Bulk payments made to company accounts auto-provision group farm records and individually instantiate each member's personal 5×7 account.
 
 ---
 
-## 5. Farm-Slot Allocation — ₦5,000 per Slot
+## 3. Practical Farm Slots Subsystem (₦5,000 Per Slot)
 
-Purchasing a slot creates a physical production **and** accounting record.  
-**No multilevel commission is generated by a slot purchase — only a flat direct-referral payment.**
+Farm participation is **collaborative group production**, not a passive investment, security, or lease.
 
-| Destination | Rate | Amount | Purpose |
+### 3.1. Capital Allocation per ₦5,000 Slot Setup
+Every ₦5,000 slot purchased (first compulsory slot or additional slots) is allocated across four specific cost centers:
+
+| Component | Share % | Amount | Purpose & Accounting |
 |---|---|---|---|
-| **Direct Referrer** | 10% | ₦500 | Flat referral reward to the inviter |
-| **Company Admin** | 20% | ₦1,000 | Platform overhead & project oversight |
-| **Two Mushroom Fruiting Bags** | 28% | ₦1,400 | Direct biological inputs |
-| **Fruiting House / Logistics / HR** | 42% | ₦2,100 | Facility construction, climate control, labor |
-| **Total** | **100%** | **₦5,000** | 1 Production Slot |
+| **Starter Fruiting Bags** | 28% | ₦1,400 | Purchase of 2 starter substrate bags, premium spawn, sterilization, and nursery staging. |
+| **Fruiting House & Operations** | 42% | ₦2,100 | Farm infrastructure, humidity management, farm attendants, security, water, and insurance. |
+| **Direct Sponsor Honorarium** | 10% | ₦500 | Flat direct referral bonus paid to the sponsor. **Farm slots do NOT pay multilevel commissions.** |
+| **Company Administration** | 20% | ₦1,000 | Cooperative administration, technical agronomist supervision, logistics, and quality assurance. |
+| **Total** | **100%** | **₦5,000** | **1 Complete Production Slot** |
 
-> **Qualification to Refer:** A member only needs to have registered their Green Card (₦2,000) to earn the ₦500 direct slot bonus and ₦1,000 registration bonus. They do not need to have paid the ₦10,000 activation fee themselves. Referral earnings accumulate in their wallet and can be used to self-fund activation or project participation.
+### 3.2. Critical Farm Slot Policies
+1. **Zero Recurring Dues:** There are NO monthly maintenance dues, recurring setup fees, or utility levies. A farm slot is funded once per cycle.
+2. **Referral Qualification:** Any registered Green Card holder (₦2,000) earns the flat ₦500 direct slot bonus when someone purchases a slot using their referral link. Sponsoring members do not need to own a slot themselves to receive referral bonuses.
+3. **Direct-Only Bonus:** Sponsoring a farm slot pays strictly a flat 10% (₦500) direct bonus to the direct sponsor only. It never enters or pays into the multilevel 5×7 matrix.
 
 ---
 
-## 6. 5×7 Marketing Matrix (Genealogy)
+## 4. 7-Level Product Commission Engine (40% Total Payout)
 
-- **Structure:** 5-wide per level, 7 levels deep.
-- **Level Caps:**
-  - Level 1: ≤ 5 members
-  - Level 2: ≤ 25 members
-  - Level 3: ≤ 125 members
-  - Level 4: ≤ 625 members
-  - Level 5: ≤ 3,125 members
-  - Level 6: ≤ 15,625 members
-  - Level 7: ≤ 78,125 members
-- **Sponsor vs. Placement Parent:** Stored as distinct fields.
-- **Auto-Placement (Spillover):** When a sponsor's 5 direct Level 1 slots are full, subsequent referrals auto-place into the next available open position in the sponsor's downline tree:
-  - The **original sponsor keeps the direct bonuses** (₦1,000 Green Card referral / ₦500 slot referral / 12% retail sale bonus).
-  - The member the referral is **placed under** earns the indirect/upline level commission when products are purchased.
-- **Matrix Immutability:** Once commission activity is recorded, tree placement cannot be shifted except via audited admin correction.
+Multilevel marketing commissions apply **exclusively to physical product sales** (Mushroom Power, organic produce, branded wellness formulations), never to membership fees or farm slot purchases.
 
+### 4.1. Commission Distribution Schedule (40% Ceiling)
+Based on a standard ₦5,000 retail product order:
+
+| Level / Beneficiary | Commission % | On ₦5,000 Product | Description & Qualification |
+|---|---|---|---|
+| **Direct Retail Seller** | **12.0%** | **₦600.00** | Person who made the direct retail sale. |
+| **Level 1 (Direct Sponsor)** | **5.0%** | **₦250.00** | First immediate upline in placement tree. |
+| **Level 2** | **3.5%** | **₦175.00** | Second upline. |
+| **Level 3** | **3.0%** | **₦150.00** | Third upline. |
+| **Level 4** | **2.5%** | **₦125.00** | Fourth upline. |
+| **Level 5** | **2.5%** | **₦125.00** | Fifth upline. |
+| **Level 6** | **2.5%** | **₦125.00** | Sixth upline. |
+| **Level 7** | **2.5%** | **₦125.00** | Seventh upline. |
+| **Leadership Development Pool** | **4.0%** | **₦200.00** | Retained in sub-ledger for top community leaders & farm coordinators. |
+| **Network Sustainability Reserve**| **2.0%** | **₦100.00** | Reserve pool for platform liquidity and ecosystem stabilization. |
+| **Company Retained Margin** | **0.5%** | **₦25.00** | Platform network operating fee. |
+| **Total Distributed** | **40.0%** | **₦2,000.00** | **Exact 40% statutory commission ceiling.** |
+
+*Remaining 60% (₦3,000 on ₦5,000 product) covers raw material costs, manufacturing COGS, packaging, logistics, and company gross profit.*
+
+---
+
+## 5. 5×7 Marketing Matrix & Genealogy Rules
+
+### 5.1. Dual Hierarchy Architecture
+Every member possesses two distinct upline links:
+1. `sponsor_id`: The individual whose direct affiliate link was used. Receives **100% of direct bonuses** (₦1,000 Green Card referral, ₦500 slot referral, 12% retail sale bonus).
+2. `placement_parent_id`: The physical node directly above the member in the 5×7 genealogy tree. Governs **multilevel matrix commissions** on product sales.
+- **Un-Referred / Organic Signups (Master Root Lineage):** If a user registers without a sponsor referral code, the system assigns **Adetola Esther (Co-founder, code `356FV1`)** as root sponsor.
+
+### 5.2. Matrix Topology & Auto-Placement (Spillover)
+- **Width:** 5 legs per node.
+- **Depth:** 7 levels deep.
+- **Auto-Placement Algorithm (Breadth-First Search):** When a sponsor's 5 direct Level 1 positions are occupied, subsequent enrollees spill over into the next available, shallowest, leftmost open node within that sponsor's downline tree.
+- **Bonus Integrity:** The original sponsor retains all direct bonuses regardless of where the new member is placed down the tree.
+
+> [!IMPORTANT]
 > **Founders Confirmation Pending (Matrix Tier Sizing):**  
-> Pending final confirmation from founders whether the downline matrix is:
-> 1. **Option A (Exponential Geometric 5×7):** 5 → 25 → 125 → 625 → 3,125 → 15,625 → 78,125 (total 97,655 members across 7 levels).
-> 2. **Option B (Linear / Fixed 5 Per Level):** 5 → 5 → 5 → 5 → 5 → 5 → 5 (total 35 members across 7 levels).  
-> *Currently implemented as Option A in affiliate bridge simulations and organogram downline views.*
+> Tracking formal sign-off between two matrix sizing models:
+> 1. **Option A (Exponential Geometric 5×7):** 5 → 25 → 125 → 625 → 3,125 → 15,625 → 78,125 (total 97,655 members across 7 levels). Standard network matrix where every downline member has up to 5 legs.
+> 2. **Option B (Linear / Fixed 5 Per Level):** 5 → 5 → 5 → 5 → 5 → 5 → 5 (total 35 members across 7 levels). A fixed queue where each level accounts for up to 5 qualified generation team members.  
+> *Currently implemented as Option A in simulations and organogram views.*
+
+### 5.3. The "5-Direct Unlock" & Monthly PQV Rules
+- **5-Direct Withdrawal Gate:** To withdraw multilevel/indirect network commissions, a member must have personally registered at least **5 direct active members** (`COUNT(*) WHERE sponsor_id = member_id >= 5`).
+- **Monthly PQV (₦5,000):** Members maintain ₦5,000 Personal Qualifying Volume per calendar month through personal product purchases and/or verified retail sales.
+- **Non-Forfeiture Rule:** Unqualified commissions are **NEVER deleted or forfeited**. Unqualified funds remain held safely in the member's wallet ledger with status `LOCKED`. As soon as qualification is verified, held earnings transition to `AVAILABLE`.
+- **Direct Referral Exemption:** Flat direct referral bonuses (₦1,000 Green Card, ₦500 Slot, 12% retail) are exempt from the 5-direct rule and withdrawable once the wallet balance reaches ₦2,000.
 
 ---
 
-## 7. Monthly Qualification — ₦5,000 PQV
+## 6. Farm Production Cycles & Harvest Waterfall Math
 
-- **PQV (Personal Qualifying Volume):** ₦5,000 per calendar month, satisfied by personal purchases and/or verified retail customer sales in any combination.
-- **Unqualified Member Policy:** Missing PQV in a given month does **not** forfeit earnings or cancel matrix placement. Unqualified earnings remain **locked/held in the wallet** until qualification is verified.
-- **Withdrawal Qualification (Multilevel):** To withdraw multilevel/network commissions, a member must have (within a rolling 30-day window):
-  1. Their own 5 direct referrals filled, and
-  2. Met the ₦5,000 monthly PQV requirement.
-- **Direct Referral Earnings:** Flat direct referral bonuses (₦1,000 Green Card, ₦500 Slot, 12% retail) are exempt from the 5-direct matrix rule and withdrawable once wallet balance reaches the ₦2,000 minimum threshold.
+### 6.1. Group Farm Boundaries
+- **Target Size:** 1,000 slots per Group Farm cluster.
+- **Minimum Mobilization:** 250 slots required before an operational cluster begins production.
 
----
+### 6.2. Cycle 1: Capacity Building & Biological Doubling (Months 1–3)
+- **Duration:** 90 days (bag inoculation, colonization, initial fruiting).
+- **Yield Baseline:** 2kg fresh Oyster Mushrooms per slot (1kg per bag) @ ₦2,500/kg = ₦5,000 gross revenue.
+- **Revenue Reinvestment Waterfall:**
+  - **90% (₦4,500)** → Reinvested into biological multiplication (doubles bags from 2 to 4 per slot), fruiting house expansion, and operational logistics.
+  - **10% (₦500)** → AgroHeal company administration and agronomist supervision.
+- **Cash Payout:** **₦0.00** (Capacity-building cycle only; member biological equity doubles).
 
-## 8. Farm Production Cycles
+### 6.3. Cycle 2+ Quarterly Waterfall: Continuous Commercial Production
+Starting Month 4, every slot operates with 4 mature bags producing 4kg fresh mushrooms per quarter:
+- **Projected Quarterly Revenue:** 4kg @ ₦2,500/kg = **₦10,000 gross per slot**.
+- **Continuation / Input Cost:** **₦4,000 per slot** deducted first (substrate replenishment, bagging, humidity, labor).
+- **Distributable Balance:** **₦6,000 per slot** (100% of net margin).
 
-### Cycle 1 (Months 1–3, per slot) — Capacity Building
-- **Projected Yield:** 2kg fresh organic mushrooms per slot → ₦5,000 gross revenue.
-- **Revenue Allocation:**
-  - **10% (₦500)** → Company admin/support
-  - **90% (₦4,500)** → Reinvestment (doubling biological bags from 2 → 4, house expansion, logistics)
-- **Cash Payout:** **₦0** (Capacity-building cycle only; biological equity doubles).
-
-### Cycle 2+ (Quarterly Harvesting Cycles)
-Based on 4 mature fruiting bags producing 4kg fresh mushrooms @ ₦2,500/kg:
-
-| Step | Amount |
-|---|---|
-| Projected quarterly revenue | ₦10,000 |
-| Less: Continuation / input replenishment cost | -₦4,000 |
-| **Distributable Balance** | **₦6,000** |
-
-**Distributable Balance Split (₦6,000):**
-
-| Destination | Rate | Amount | Notes |
+#### Quarterly Distribution Split (From ₦6,000 Distributable Balance):
+| Beneficiary / Fund | Percentage | Amount / Slot | 1,000-Slot Cluster Total |
 |---|---|---|---|
-| **Farm Owners (Slot Holders)** | **40%** | **₦2,400** | Distributed proportionally by eligible slots held |
-| **Gingertown Expansion** | **20%** | **₦1,200** | Capital reserve for ginger cluster development |
-| **Organic FoodNation Expansion**| **20%** | **₦1,200** | Capital reserve for national food initiative |
-| **Company Support** | **10%** | **₦600** | Central administrative overhead |
-| **Cluster Coordinator** | **10%** | **₦600** | Local agronomist/manager oversight |
+| **Farm Slot Owners** | **40%** | **₦2,400.00** | ₦2,400,000.00 |
+| **Gingertown Expansion Fund** | **20%** | **₦1,200.00** | ₦1,200,000.00 |
+| **Organic FoodNation Fund** | **20%** | **₦1,200.00** | ₦1,200,000.00 |
+| **AgroHeal Operating Company** | **10%** | **₦600.00** | ₦600,000.00 |
+| **Resident Farm Coordinator** | **10%** | **₦600.00** | ₦600,000.00 |
+| **Total** | **100%** | **₦6,000.00** | **₦6,000,000.00** |
 
-**Farm Scale:** Full cluster target is 1,000 slots. A farm begins physical operations once it reaches the scale threshold of ≥250 slots.
-
-### Mature Three-Farm Model (Future Transition)
-Once Gingertown and Organic FoodNation are fully established (declared by founders):
-- **Consolidated Profit Pool:** 80% Farm Owners / 10% Cluster Coordinator / 10% Company.
-
----
-
-## 9. Wallets & Withdrawals
-
-- **Wallet States:** `Pending` → `Available` → `Held` → `Withdrawn`.
-- **Minimum Withdrawal:** **₦2,000** (Strict threshold).
-- **Ledger Invariant:** Append-only, double-entry immutable ledger. Reversals must be linked reversal records, never in-place edits or deletions.
-- **Wallet Entry Types:**
-  - `green_card_referral` (₦1,000)
-  - `farm_slot_referral` (₦500)
-  - `direct_product_sale` (12%)
-  - `level_commission` (Levels 1–7)
-  - `farm_owner_harvest_allocation` (Cycle 2+)
-  - `withdrawal` (Debit)
-  - `reversal` (Linked adjustment)
+### 6.4. Mature 3-Farm Model (Future Phase)
+Once Gingertown and Organic FoodNation achieve self-sustaining commercial yields:
+- **80% of net profits** distributed directly to Farm Slot Owners across the 3 farms.
+- **10%** to Resident Farm Coordinators.
+- **10%** to AgroHeal Operating Company.
 
 ---
 
-## 10. Automatic Group-Farm Onboarding
+## 7. Wallet, Ledger & Withdrawal Engine
 
-1. Payment verified → Slot(s) instantiated.
-2. Member placed into the **same group-farm cluster as their direct referrer** by default.
-3. If referrer has no active farm, member is placed into the central holding queue for manual operations assignment. No orphan slots are created.
-4. Member and Coordinator receive automated notifications; Coordinator integrates member into farm WhatsApp group.
+### 7.1. Double-Entry Immutable Ledger Rule
+Direct updates to balance columns (`UPDATE profiles SET balance = balance + X`) are strictly prohibited. Every credit, debit, hold, and payout is recorded as a discrete row in `public.wallet_ledger`:
+
+```sql
+CREATE TABLE public.wallet_ledger (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id),
+  amount NUMERIC(14, 2) NOT NULL,
+  entry_type VARCHAR(50) NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'available',
+  reference_id VARCHAR(100) UNIQUE,
+  source_order_id UUID,
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+### 7.2. Real-Time Balance Derivation
+```sql
+SELECT 
+  COALESCE(SUM(CASE WHEN status = 'available' THEN amount ELSE 0 END), 0) AS withdrawable_balance,
+  COALESCE(SUM(CASE WHEN status = 'locked' THEN amount ELSE 0 END), 0) AS locked_balance,
+  COALESCE(SUM(CASE WHEN status = 'pending_payout' THEN amount ELSE 0 END), 0) AS pending_balance
+FROM public.wallet_ledger
+WHERE user_id = $1;
+```
+
+### 7.3. Option A Corporate Treasury & Solvency Shield
+1. **Separation of Platform Margin:** Company shares (₦1,000 registration admin share, ₦1,000 slot setup fee, 10% harvest company share) are recognized as **Retained Operating Margin**, never mixed into member wallet liabilities.
+2. **Pre-Payout Solvency Verification:** The payout engine verifies that Gateway Available Liquidity ≥ Total Batch Payouts prior to initiating NUBAN bank transfers.
+3. **Product Return / Clawback Math:** Refunds insert negative ledger entries (`entry_type = 'reversal'`). Negative balances are automatically settled from subsequent earnings before funds become withdrawable.
+
+### 7.4. Webhooks & Idempotency
+- **Paystack Webhook:** Verified via SHA-512 HMAC of raw request body matching `x-paystack-signature`.
+- **Flutterwave Webhook:** Verified via `verif-hash` header against `FLW_SECRET_HASH`.
+- **Idempotency Key:** Every webhook processing handler verifies `reference_id` against `wallet_ledger` and `checkout` before posting transactions, guaranteeing zero duplicate ledger entries.
 
 ---
 
-## 11. Policy Decisions Log
+## 8. Role-Based Access Control (6 Canonical Roles)
 
-1. **Unallocated 0.5% on Product Sales:** Retained by the company.
-2. **Unqualified Member Earnings:** Locked in wallet until PQV qualification is verified.
-3. **Matrix Placement When L1 Is Full:** Automatic spillover placement into next available position in downline tree; direct sponsor keeps direct bonuses.
-4. **Refunds / Returns:** Commission clawbacks deducted from recipient's subsequent future earnings.
-5. **Farm Transfers:** Retained for future operational policy.
-6. **Cycle Approval:** Admin and Farm Manager approval required before posting to wallets; visible to all farm owners on dashboard upon sign-off.
-7. **Three-Farm Transition:** Triggered by founder declaration upon maturity.
+| Role | Permissions & Operational Scope |
+|---|---|
+| **Member** | Access personal dashboard, course library, affiliate link, wallet ledger, farm slot status, order history. |
+| **Coordinator** | Draft farm cycle harvest reports, view assigned group farm records, log daily farm observations. |
+| **Farm Accountant (Reviewer)**| Validate and approve cycle production reports under maker-checker enforcement. Cannot draft reports they approve. |
+| **Admin** | Manage courses, review membership verifications, inspect farm performance, review support tickets. |
+| **Super Admin** | Execute batch payouts, configure system pricing, manage administrative roles, view corporate financial HUD. |
+| **Support** | View member profiles, resend activation credentials, assist with onboarding inquiries. |
+
+---
+
+## 9. Founder Policy Resolutions & Open Items
+
+Summary of operational policy questions answered from founder briefs:
+
+| # | Question | Policy Resolution | Status |
+|---|---|---|---|
+| 1 | **Unsubscribed Registered Users** | Referral earnings accumulate in wallet safely. Bank withdrawals lock until member purchases a project or activates Wealth Creation via ₦10,000 wallet balance. | **Implemented** |
+| 2 | **Core Drivers 15% Pool** | Documented alongside the formal 50/50 brief in [docs/ROADMAP_AND_TRACKER.md](file:///c:/Users/Elijah/Desktop/AgroHeal/agroheal-fe/docs/ROADMAP_AND_TRACKER.md) pending founder sign-off. | **Tracked** |
+| 3 | **Matrix Placement on 5-Direct Full** | BFS left-to-right auto-placement. Original sponsor keeps 100% direct bonuses; placement parent earns downline product MLM. | **Implemented** |
+| 4 | **Refunds & Commission Reversals** | Deducted as negative ledger entry from recipient's wallet balance; deficit recouped from future earnings. | **Implemented** |
+| 5 | **Farm Slot Transfers** | Retained as a future enhancement once initial farm clusters reach full 1,000-slot maturity. | **Deferred** |
+| 6 | **Cycle Harvest Approval** | Requires dual approval (Resident Farm Coordinator drafts, Farm Accountant validates/approves). | **Implemented** |
+| 7 | **Withdrawal Thresholds** | Minimum ₦2,000 withdrawal via automated NUBAN transfer with KYC name match. | **Implemented** |
+| 8 | **Declaration of Full Establishment** | Founders formally declare Gingertown / Organic FoodNation maturity, triggering the 80/10/10 mature model. | **Tracked** |
