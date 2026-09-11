@@ -1,23 +1,19 @@
 import { Outlet, useLocation, useNavigate, NavLink } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import {
   LayoutDashboard,
   Sprout,
-  CreditCard,
-  ScrollText,
-  FileText,
-  Route,
+  Wallet,
+  GitBranch,
+  IdCard,
+  BookOpen,
   LogOut,
   Menu,
   X,
   Leaf,
   ChevronRight,
-  BookOpen,
-  Users,
-  IdCard,
+  ChevronDown,
   Lock,
-  Wallet,
-  GitBranch,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,103 +22,329 @@ import NotificationBell from "./NotificationBell";
 
 const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
 
-const navItems = [
-  { label: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-  { label: "Green Card Community", path: "/dashboard/green-card", icon: IdCard },
-  { label: "Wallet & Ledger", path: "/dashboard/transactions", icon: Wallet },
-  { label: "Courses", path: "/dashboard/courses", icon: ScrollText },
-  { label: "Secure Practice Slot", path: "/dashboard/slots", icon: Sprout },
+interface SubNavItem {
+  label: string;
+  path: string;
+}
+
+interface NavGroup {
+  id: string;
+  label: string;
+  path: string;
+  icon: React.ComponentType<{ className?: string }>;
+  exact?: boolean;
+  subItems?: SubNavItem[];
+}
+
+// ── 6-Menu Grouped Information Hierarchy ──
+const navGroups: NavGroup[] = [
   {
-    label: "Slot Management",
+    id: "dashboard",
+    label: "Dashboard",
+    path: "/dashboard",
+    icon: LayoutDashboard,
+    exact: true,
+  },
+  {
+    id: "farm-operations",
+    label: "Farm Operations",
     path: "/dashboard/slots-subscription",
-    icon: CreditCard,
+    icon: Sprout,
+    subItems: [
+      { label: "Slot Management", path: "/dashboard/slots-subscription" },
+      { label: "Practice Slots", path: "/dashboard/slots" },
+      { label: "Farm Accounts", path: "/dashboard/group-farm-accounts" },
+      { label: "Mushroom Village", path: "/dashboard/mushroom-village" },
+    ],
   },
   {
-    label: "Group Farm Accounts",
-    path: "/dashboard/group-farm-accounts",
-    icon: BookOpen,
+    id: "finances",
+    label: "Wallet & Ledger",
+    path: "/dashboard/transactions",
+    icon: Wallet,
+    subItems: [
+      { label: "Transaction Ledger", path: "/dashboard/transactions" },
+      { label: "Other Payments", path: "/dashboard/other-payments" },
+    ],
   },
   {
-    label: "Other Payments",
-    path: "/dashboard/other-payments",
-    icon: CreditCard,
-  },
-  {
-    label: "5×7 Matrix Organogram",
+    id: "network",
+    label: "Producer Network",
     path: "/dashboard/compound-referrals",
     icon: GitBranch,
+    subItems: [
+      { label: "5×7 Matrix Organogram", path: "/dashboard/compound-referrals" },
+    ],
   },
   {
-    label: "Mushroom Village",
-    path: "/dashboard/mushroom-village",
-    icon: Leaf,
+    id: "account",
+    label: "Account & Identity",
+    path: "/dashboard/green-card",
+    icon: IdCard,
+    subItems: [
+      { label: "Green Card Community", path: "/dashboard/green-card" },
+      { label: "Profile Settings", path: "/dashboard/profile" },
+      { label: "Next of Kin", path: "/dashboard/kin" },
+      { label: "Legal Agreement", path: "/dashboard/legal" },
+    ],
   },
   {
-    label: "Step-by-Step Guide",
-    path: "/dashboard/roadmap-guide",
-    icon: Route,
+    id: "academy",
+    label: "Learning Academy",
+    path: "/dashboard/courses",
+    icon: BookOpen,
+    subItems: [
+      { label: "LEAP Courses", path: "/dashboard/courses" },
+      { label: "Step-by-Step Guide", path: "/dashboard/roadmap-guide" },
+    ],
   },
-  { label: "Legal Agreement", path: "/dashboard/legal", icon: FileText },
-  { label: "Next of Kin", path: "/dashboard/kin", icon: Users },
 ];
 
 const HIDDEN_ROUTES = ["/signin", "/signup"];
 
-// Extracted so both desktop + mobile sidebars share the same nav markup
+const getPageTitle = (currentPath: string): string => {
+  if (currentPath === "/dashboard" || currentPath === "/dashboard/") {
+    return "Dashboard Overview";
+  }
+
+  for (const group of navGroups) {
+    if (group.subItems) {
+      const match = group.subItems.find(
+        (sub) =>
+          currentPath === sub.path || currentPath.startsWith(sub.path + "/"),
+      );
+      if (match) return match.label;
+    }
+    if (currentPath === group.path || currentPath.startsWith(group.path + "/")) {
+      return group.label;
+    }
+  }
+  return "Dashboard";
+};
+
+// ── Shared Sidebar Navigation Component ──
 const SidebarContent = ({
+  normalizedPath,
   onLogout,
   handleClose,
+  userName,
+  userEmail,
 }: {
+  normalizedPath: string;
   onLogout: () => void;
   handleClose: () => void;
+  userName?: string;
+  userEmail?: string;
 }) => {
+  // Determine which group contains the active path
+  const activeGroupId = useMemo(() => {
+    for (const group of navGroups) {
+      if (group.exact) {
+        if (normalizedPath === group.path) return group.id;
+      } else {
+        if (
+          normalizedPath === group.path ||
+          normalizedPath.startsWith(group.path + "/")
+        ) {
+          return group.id;
+        }
+        if (
+          group.subItems?.some(
+            (sub) =>
+              normalizedPath === sub.path ||
+              normalizedPath.startsWith(sub.path + "/"),
+          )
+        ) {
+          return group.id;
+        }
+      }
+    }
+    return null;
+  }, [normalizedPath]);
+
+  // Track accordion expand/collapse state per group
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+
+  // Auto-expand the active group when route changes
+  useEffect(() => {
+    if (activeGroupId) {
+      setOpenGroups((prev) => ({ ...prev, [activeGroupId]: true }));
+    }
+  }, [activeGroupId]);
+
+  const toggleGroup = useCallback((groupId: string) => {
+    setOpenGroups((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId],
+    }));
+  }, []);
+
+  const initials = (userName || userEmail || "U").slice(0, 2).toUpperCase();
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Logo */}
-      <div className="flex items-center gap-2 px-5 py-5 border-b border-green-700">
-        <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-          <Leaf className="w-4 h-4 text-white" />
+    <div className="flex flex-col h-full select-none text-emerald-100">
+      {/* Brand Header */}
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-emerald-800/50 bg-[#0a1e12]/60 shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-green-700 shadow-md shadow-emerald-950/40 flex items-center justify-center shrink-0">
+          <Leaf className="w-5 h-5 text-white" />
         </div>
-        <span className="text-white font-bold text-lg">Agroheal</span>
+        <div className="min-w-0 flex-1">
+          <span className="text-white font-bold text-base tracking-tight block leading-tight">
+            Agroheal
+          </span>
+          <span className="text-[10px] uppercase font-semibold text-emerald-400/90 tracking-wider block">
+            Member Portal
+          </span>
+        </div>
       </div>
 
-      {/* Nav Links */}
-      <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
-        {navItems.map(({ label, path, icon: Icon }) => (
-          <NavLink
-            key={path}
-            to={path}
-            end={path === "/dashboard"}
-            onClick={handleClose}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                isActive
-                  ? "bg-white text-green-800"
-                  : "text-green-100 hover:bg-green-700 hover:text-white"
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                <span className="flex-1">{label}</span>
-                {isActive && (
-                  <ChevronRight className="w-4 h-4 text-green-600" />
+      {/* Navigation Groups (compact, 6 groups, scrollbar completely hidden) */}
+      <nav className="flex-1 px-3 py-3 space-y-1.5 overflow-y-auto no-scrollbar">
+        {navGroups.map((group) => {
+          const Icon = group.icon;
+          const hasChildren = Boolean(group.subItems && group.subItems.length > 0);
+          const isGroupActive = activeGroupId === group.id;
+          const isOpen = Boolean(openGroups[group.id]);
+
+          // Exact single link (like Dashboard overview)
+          if (!hasChildren) {
+            return (
+              <NavLink
+                key={group.id}
+                to={group.path}
+                end={group.exact}
+                onClick={handleClose}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-150 ${
+                    isActive
+                      ? "bg-white text-emerald-950 shadow-sm font-semibold"
+                      : "text-emerald-100/90 hover:bg-emerald-800/40 hover:text-white"
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon
+                      className={`w-4 h-4 shrink-0 ${
+                        isActive ? "text-emerald-700" : "text-emerald-300/80"
+                      }`}
+                    />
+                    <span className="flex-1 truncate">{group.label}</span>
+                    {isActive && (
+                      <ChevronRight className="w-4 h-4 text-emerald-700 shrink-0" />
+                    )}
+                  </>
                 )}
-              </>
-            )}
-          </NavLink>
-        ))}
+              </NavLink>
+            );
+          }
+
+          // Group with Sub-items (Accordion)
+          return (
+            <div key={group.id} className="space-y-0.5">
+              <div
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium cursor-pointer transition-all duration-150 ${
+                  isGroupActive
+                    ? "bg-emerald-800/60 text-white border border-emerald-700/40"
+                    : "text-emerald-100/90 hover:bg-emerald-800/30 hover:text-white"
+                }`}
+                onClick={() => toggleGroup(group.id)}
+              >
+                <NavLink
+                  to={group.path}
+                  onClick={(e) => {
+                    // Navigate to primary route but also ensure group is opened
+                    setOpenGroups((prev) => ({ ...prev, [group.id]: true }));
+                    // Only close drawer if on mobile and no children need inspection
+                  }}
+                  className="flex items-center gap-3 flex-1 min-w-0"
+                >
+                  <Icon
+                    className={`w-4 h-4 shrink-0 ${
+                      isGroupActive ? "text-emerald-300" : "text-emerald-300/80"
+                    }`}
+                  />
+                  <span className="truncate">{group.label}</span>
+                </NavLink>
+
+                {/* Accordion toggle trigger */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleGroup(group.id);
+                  }}
+                  className="p-1 rounded-md text-emerald-300/70 hover:text-white hover:bg-emerald-700/40 transition-colors ml-1"
+                  aria-label={`Toggle ${group.label} sub-items`}
+                >
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                      isOpen ? "rotate-180 text-emerald-200" : "text-emerald-400/60"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Sub-items accordion */}
+              <AnimatePresence initial={false}>
+                {isOpen && group.subItems && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    className="overflow-hidden pl-7 pr-1 py-1 space-y-1"
+                  >
+                    {group.subItems.map((sub) => {
+                      const isSubActive =
+                        normalizedPath === sub.path ||
+                        normalizedPath.startsWith(sub.path + "/");
+                      return (
+                        <NavLink
+                          key={sub.path}
+                          to={sub.path}
+                          onClick={handleClose}
+                          className={`block px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            isSubActive
+                              ? "bg-emerald-500/25 text-white font-semibold border-l-2 border-emerald-400 pl-2.5 shadow-xs"
+                              : "text-emerald-200/75 hover:bg-emerald-800/40 hover:text-white border-l-2 border-transparent pl-2.5"
+                          }`}
+                        >
+                          <span className="truncate block">{sub.label}</span>
+                        </NavLink>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
       </nav>
 
-      {/* Logout */}
-      <div className="px-3 py-4 border-t border-green-700">
+      {/* User Profile & Logout Footer */}
+      <div className="p-3 border-t border-emerald-800/50 bg-[#0a1e12]/70 shrink-0 space-y-2">
+        <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-emerald-900/30 border border-emerald-800/40">
+          <div className="w-8 h-8 rounded-full bg-emerald-700/60 border border-emerald-500/40 flex items-center justify-center text-xs font-bold text-white shrink-0">
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-white truncate leading-tight">
+              {userName || "Agroheal Member"}
+            </p>
+            <p className="text-[11px] text-emerald-300/75 truncate leading-tight">
+              {userEmail || "Active"}
+            </p>
+          </div>
+        </div>
+
         <button
           onClick={onLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-green-100 hover:bg-red-500/20 hover:text-red-200 transition-all"
+          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-emerald-200/90 hover:bg-rose-500/15 hover:text-rose-200 hover:border-rose-500/20 border border-transparent transition-all"
         >
-          <LogOut className="w-4 h-4" />
-          <span>Logout</span>
+          <LogOut className="w-4 h-4 shrink-0 text-emerald-300/80" />
+          <span>Sign Out</span>
         </button>
       </div>
     </div>
@@ -133,9 +355,10 @@ const DashboardLayout = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
 
-  const isSuperDeveloper = session?.user?.email?.toLowerCase() === "developerelijah360@gmail.com";
+  const isSuperDeveloper =
+    session?.user?.email?.toLowerCase() === "developerelijah360@gmail.com";
   const isReadOnly = !isSuperDeveloper;
 
   const normalizedPath = normalizePath(pathname);
@@ -146,9 +369,20 @@ const DashboardLayout = () => {
     }
   }, [pathname, normalizedPath, navigate]);
 
-  function handleClose() {
+  // Close mobile drawer on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && mobileSidebarOpen) {
+        setMobileSidebarOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mobileSidebarOpen]);
+
+  const handleClose = useCallback(() => {
     setMobileSidebarOpen(false);
-  }
+  }, []);
 
   const hiddenPath = HIDDEN_ROUTES.includes(normalizedPath);
 
@@ -164,14 +398,22 @@ const DashboardLayout = () => {
 
   if (hiddenPath) return <Outlet />;
 
+  const currentTitle = getPageTitle(normalizedPath);
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* ── DESKTOP SIDEBAR — always visible on lg+ ── */}
-      <aside className="hidden lg:flex flex-col w-64 bg-green-900 flex-shrink-0">
-        <SidebarContent onLogout={handleLogout} handleClose={handleClose} />
+      {/* ── DESKTOP SIDEBAR — visible on lg+ (256px - 288px width, zero scrollbar) ── */}
+      <aside className="hidden lg:flex flex-col w-64 xl:w-72 bg-[#0c2415] border-r border-emerald-900/60 shadow-xl shrink-0 h-full overflow-hidden">
+        <SidebarContent
+          normalizedPath={normalizedPath}
+          onLogout={handleLogout}
+          handleClose={handleClose}
+          userName={profile?.full_name}
+          userEmail={profile?.email || session?.user?.email}
+        />
       </aside>
 
-      {/* ── MOBILE SIDEBAR — drawer on small screens only ── */}
+      {/* ── MOBILE DRAWER — drawer on small screens only ── */}
       <AnimatePresence>
         {mobileSidebarOpen && (
           <>
@@ -181,76 +423,83 @@ const DashboardLayout = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 lg:hidden"
               onClick={() => setMobileSidebarOpen(false)}
             />
 
             {/* Drawer */}
             <motion.aside
-              initial={{ x: -280 }}
+              initial={{ x: -300 }}
               animate={{ x: 0 }}
-              exit={{ x: -280 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="fixed left-0 top-0 h-full w-64 bg-green-800 z-40 shadow-2xl lg:hidden"
+              exit={{ x: -300 }}
+              transition={{ duration: 0.25, ease: "easeInOut" }}
+              className="fixed left-0 top-0 h-full w-72 max-w-[85vw] bg-[#0c2415] z-50 shadow-2xl border-r border-emerald-900/60 lg:hidden flex flex-col overflow-hidden"
             >
-              {/* Close button — mobile only */}
+              {/* Close button */}
               <button
                 onClick={() => setMobileSidebarOpen(false)}
-                className="absolute top-4 right-4 text-green-300 hover:text-white transition-colors z-50"
+                className="absolute top-4 right-4 p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/50 transition-colors z-50"
+                aria-label="Close navigation"
               >
                 <X className="w-5 h-5" />
               </button>
+
               <SidebarContent
+                normalizedPath={normalizedPath}
                 onLogout={handleLogout}
                 handleClose={handleClose}
+                userName={profile?.full_name}
+                userEmail={profile?.email || session?.user?.email}
               />
             </motion.aside>
           </>
         )}
       </AnimatePresence>
 
-      {/* ── MAIN CONTENT ── */}
+      {/* ── MAIN CONTENT AREA ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top bar — hamburger only shows on mobile */}
-        <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-4 z-20 flex-shrink-0">
-          {/* Hamburger — hidden on desktop since sidebar is always visible */}
-          <button
-            onClick={() => setMobileSidebarOpen(true)}
-            className="p-2 rounded-lg hover:bg-gray-100 transition-colors text-gray-600 lg:hidden"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
+        {/* Top bar */}
+        <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 z-20 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Hamburger for mobile/tablet */}
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="p-2 -ml-1 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors text-gray-700 lg:hidden shrink-0"
+              aria-label="Open navigation menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
 
-          {/* Page title */}
-          <div className="flex-1">
-            <h1 className="text-sm font-semibold text-gray-900 capitalize">
-              {navItems.find((item) =>
-                item.path === "/dashboard"
-                  ? normalizedPath === "/dashboard"
-                  : normalizedPath.startsWith(item.path),
-              )?.label ?? "Dashboard"}
-            </h1>
+            {/* Page title */}
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base font-bold text-gray-900 truncate">
+                {currentTitle}
+              </h1>
+            </div>
           </div>
 
-          {/* Notification Bell */}
-          <NotificationBell />
+          <div className="flex items-center gap-3 shrink-0">
+            {/* Notification Bell */}
+            <NotificationBell />
 
-          {/* Logo — shown in top bar on mobile since sidebar is hidden */}
-          <div className="flex items-center gap-2 lg:hidden">
-            <div className="w-7 h-7 rounded-full bg-green-800 flex items-center justify-center">
-              <Leaf className="w-3.5 h-3.5 text-white" />
+            {/* Mobile Logo Brand */}
+            <div className="flex items-center gap-2 lg:hidden pl-2 border-l border-gray-200">
+              <div className="w-7 h-7 rounded-lg bg-emerald-800 flex items-center justify-center shrink-0 shadow-xs">
+                <Leaf className="w-4 h-4 text-white" />
+              </div>
+              <span className="text-emerald-900 font-bold text-sm hidden sm:inline">
+                Agroheal
+              </span>
             </div>
-            <span className="text-green-800 font-bold text-sm hidden sm:block">
-              Agroheal
-            </span>
           </div>
         </header>
 
+        {/* Read-only Audit Banner */}
         {isReadOnly && (
           <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 text-xs sm:text-sm text-amber-800 flex items-center justify-between gap-3 shadow-xs shrink-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <Lock className="w-4 h-4 shrink-0 text-amber-600" />
-              <span>
+              <span className="truncate sm:whitespace-normal">
                 <strong>Read-Only Audit Mode:</strong> The platform is currently undergoing financial reconciliation & audit. Data modifications and new slot subscriptions are temporarily in view-only mode.
               </span>
             </div>
@@ -260,8 +509,8 @@ const DashboardLayout = () => {
           </div>
         )}
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        {/* Page Content Viewport */}
+        <main className="flex-1 overflow-y-auto bg-gray-50/60">
           <Outlet />
         </main>
       </div>
