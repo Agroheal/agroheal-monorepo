@@ -75,7 +75,7 @@ const FarmingInitiativePopup = () => {
                   Real-time harvest updates, production cycles & live webinars
                 </p>
 
-                {/* ROI badges */}
+                {/* Yield badges */}
                 <div className="hidden gap-2 mt-4 relative z-10">
                   <div className="bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-center">
                     <p className="text-white font-bold text-base">300%+</p>
@@ -83,7 +83,7 @@ const FarmingInitiativePopup = () => {
                   </div>
                   <div className="bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-center">
                     <p className="text-white font-bold text-base">200%+</p>
-                    <p className="text-green-300 text-xs">Ginger ROI</p>
+                    <p className="text-green-300 text-xs">Ginger Yield</p>
                   </div>
                   <div className="hidden bg-[#e8b130]/20 border border-[#e8b130]/40 rounded-xl px-3 py-2 text-center">
                     <p className="text-[#e8b130] font-bold text-base">₦2,000</p>

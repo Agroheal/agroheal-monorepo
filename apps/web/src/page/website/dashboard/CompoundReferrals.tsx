@@ -1539,6 +1539,14 @@ const CompoundReferrals: React.FC = () => {
                   <span className="text-[10px] text-emerald-200/70 mt-0.5 block">{calcProducerDirects * calcProducerSlotsPerDirect} Active Slots</span>
                 </div>
               </div>
+
+              {/* Statutory Non-Investment Notice */}
+              <div className="mt-5 p-3.5 rounded-xl bg-black/25 border border-emerald-500/20 flex items-start gap-2.5 text-left">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-emerald-200/80 leading-relaxed">
+                  <strong className="text-emerald-100 font-semibold">Cooperative Notice:</strong> AgroHeal is an agricultural cooperative, not an investment platform. Direct cashflow simulations represent active direct sponsorship bonuses (₦1,000 Green Card / ₦500 slot setup incentives) and physical biological fruiting bag allocations, not fixed financial interest or guaranteed investment yields.
+                </p>
+              </div>
             </div>
 
             {/* Handover Banner to Consumer Network */}

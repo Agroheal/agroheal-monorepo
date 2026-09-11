@@ -124,7 +124,17 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-green-950 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+        {/* Statutory Regulatory & Non-Investment Notice */}
+        <div className="border-t border-green-950 mt-12 pt-8 text-xs text-gray-400 font-light font-sans space-y-2">
+          <p className="font-bold text-gray-300 text-xs uppercase tracking-wider">
+            Regulatory Notice — We Are Not An Investment Platform
+          </p>
+          <p className="leading-relaxed text-gray-400 max-w-5xl">
+            AgroHeal Solutions Ltd (RC 8231879) is a cooperative agribusiness education and participatory farming platform. <strong>AgroHeal is not an investment company, financial institution, broker, or collective investment scheme (CIS).</strong> Slot contributions directly fund biological agricultural assets (commercial fruiting substrate bags, grow-houses, automated humidification racks, and farm labor). Any reference to earnings, harvest shares, or percentages (e.g. <em>&quot;earn up to 40%&quot;</em>) represents estimated, projected surplus proceeds derived strictly from realized agricultural harvests and commercial commodity off-taker sales, not guaranteed fixed financial interest or deposit yields. Agriculture carries inherent biological, weather, and commodity market risks.
+          </p>
+        </div>
+
+        <div className="border-t border-green-950 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-gray-500 text-xs md:text-sm font-light font-sans">
             © {new Date().getFullYear()} AgroHeal Solutions Ltd., duly
             incorporated with Nigeria’s Corporate Affairs Commission (RC

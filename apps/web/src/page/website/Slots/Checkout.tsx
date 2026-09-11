@@ -1010,13 +1010,18 @@ const Checkout = () => {
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      40% quarterly harvest distributions
+                      Up to 40% projected quarterly harvest distributions
                     </li>
                     <li className="flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                       Zero recurring monthly maintenance fees
                     </li>
                   </ul>
+
+                  <div className="mt-5 p-3.5 rounded-xl bg-muted/60 border border-border/60 text-[11px] text-muted-foreground leading-relaxed">
+                    <strong className="text-foreground block mb-0.5 font-semibold">Cooperative Notice:</strong>
+                    AgroHeal is an agricultural cooperative, not an investment platform. Slot contributions finance physical biological inputs and farm grow-houses. Projected surplus returns (up to 40%) depend on biological crop yields and realized commodity market sales.
+                  </div>
                 </div>
               </div>
             </motion.div>

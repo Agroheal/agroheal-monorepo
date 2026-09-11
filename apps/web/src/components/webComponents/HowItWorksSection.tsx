@@ -22,7 +22,7 @@ const steps = [
     icon: Coins,
     title: "Earn",
     description:
-      "Practice on a group farm (through whatsapp) with one day a month work rotation (pay a substitute if unavailable for your rotation). Through collective effort, you can earn up to 100% returns per farm slot every six months. Multiple slots, multiple returns!",
+      "Engage in managed cooperative cluster farming. Cycle 1 doubles biological capacity from 2 to 4 fruiting bags per slot, and from Cycle 2 onward, receive up to 40% projected quarterly harvest distributions from net produce sales (AgroHeal is an agricultural cooperative, not an investment platform).",
     color: "bg-[#e8b130] text-white",
   },
 ];

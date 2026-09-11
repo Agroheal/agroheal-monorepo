@@ -93,7 +93,7 @@ const legalSections: LegalSectionItem[] = [
     icon: Sprout,
     badge: "Farm Operations",
     summary:
-      "Binding operational terms for practical cluster farming, ₦5,000 slot setup, Cycle 1 biological doubling, and quarterly 40% harvest distributions.",
+      "Binding operational terms for practical cluster farming, ₦5,000 slot setup, Cycle 1 biological doubling, and up to 40% projected quarterly harvest distributions.",
     clauses: [
       {
         number: "2.1",
@@ -142,7 +142,7 @@ const legalSections: LegalSectionItem[] = [
         body: [
           "Commencing in Cycle 2 (quarterly ongoing), 4 mature bags produce projected gross quarterly revenue of ₦10,000 per slot.",
           "Deducting the ₦4,000 input continuation and replenishment cost leaves a ₦6,000 net Distributable Balance split as follows:",
-          "a. 40% (₦2,400) is credited directly to Farm Owners, distributed proportionally by eligible slots held.",
+          "a. Up to 40% (₦2,400) is credited directly to Farm Owners, distributed proportionally by eligible slots held from net harvest off-take sales.",
           "b. 20% (₦1,200) is allocated to the Gingertown expansion capital reserve.",
           "c. 20% (₦1,200) is allocated to the Organic FoodNation expansion capital reserve.",
           "d. 10% (₦600) is allocated to central company administrative support.",
@@ -151,7 +151,7 @@ const legalSections: LegalSectionItem[] = [
         ],
         highlights: [
           "Quarterly Distributable Balance: ₦6,000 per 4-bag unit",
-          "40% (₦2,400) Credited Directly to Farm Slot Owners",
+          "Up to 40% (₦2,400) Credited Directly to Farm Slot Owners",
           "20% Gingertown + 20% Organic FoodNation Reserves",
           "10% Company + 10% Cluster Coordinator",
         ],
@@ -305,13 +305,15 @@ const legalSections: LegalSectionItem[] = [
       },
       {
         number: "5.2",
-        heading: "Non-Guarantee of Fixed Financial Returns",
+        heading: "Non-Investment Platform Status & Absence of Fixed Financial Returns",
         body: [
+          "Agroheal is an agricultural cooperative and practical agro-education ecosystem, NOT an investment platform, collective investment scheme (CIS), financial broker, or asset management firm.",
           "Agroheal explicitly does NOT offer, promise, or guarantee fixed financial returns, interest rates, capital doubling guarantees, or fixed dividend yields.",
-          "All seasonal distributions represent actual sales of harvested agricultural produce to verified off-takers at prevailing market commodity prices.",
+          "All seasonal distributions (including references such as 'up to 40%') represent estimated allocations of actual net sales of harvested agricultural produce to verified off-takers at prevailing market commodity prices.",
           "Participants should view farm slots as practical agricultural engagements, food security contributions, and biological production assets, not speculative financial paper.",
         ],
         highlights: [
+          "We Are Not An Investment Platform",
           "No Fixed Financial Guarantees",
           "Returns Reflect Real Farm Produce Sales",
         ],

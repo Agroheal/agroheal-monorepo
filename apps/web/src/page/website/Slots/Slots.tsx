@@ -65,7 +65,7 @@ const Slots = () => {
                   Mushroom Flagship Slot
                 </h2>
                 <p className="text-emerald-200 text-xs mt-1">
-                  Cycle 1 Doubling · 40% Quarterly Returns from Cycle 2
+                  Cycle 1 Doubling · Up to 40% Projected Quarterly Returns
                 </p>
               </div>
 
@@ -84,9 +84,9 @@ const Slots = () => {
                 {[
                   "2 Commercial substrate fruiting bags included",
                   "Capacity doubles to 4 bags in Cycle 1 (Months 1–3)",
-                  "40% quarterly returns from net harvest proceeds from Cycle 2",
+                  "Up to 40% estimated quarterly returns from net harvest sales from Cycle 2",
                   "Expert agronomist oversight & managed fruiting house",
-                  "Guaranteed off-taker contracts & supermarket distribution",
+                  "Established off-taker contracts & supermarket distribution",
                 ].map((feature) => (
                   <div key={feature} className="flex items-center gap-3">
                     <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
@@ -113,6 +113,10 @@ const Slots = () => {
                 <p className="text-center text-xs text-gray-400 mt-3">
                   You'll receive onboarding instructions after payment
                 </p>
+
+                <div className="mt-4 p-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-500 text-[11px] leading-relaxed text-center">
+                  <span className="font-semibold text-gray-700">Notice:</span> We are an agricultural cooperative, not an investment platform. Surplus proceeds (up to 40%) depend on biological crop yields and realized commodity market sales.
+                </div>
               </div>
             </div>
           </motion.div>

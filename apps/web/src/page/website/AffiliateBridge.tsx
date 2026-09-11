@@ -234,6 +234,17 @@ export default function AffiliateBridge() {
             </div>
           </div>
 
+          {/* Statutory Compliance Notice */}
+          <div className="mt-8 p-4 sm:p-5 rounded-2xl bg-white border border-gray-200/90 text-gray-600 text-xs sm:text-sm leading-relaxed shadow-xs flex items-start gap-3.5">
+            <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 font-bold text-sm border border-amber-200">
+              ℹ
+            </span>
+            <div>
+              <strong className="text-gray-900 block mb-0.5 font-bold">Regulatory Notice — We Are Not An Investment Platform:</strong>
+              AgroHeal Solutions Ltd is an agricultural cooperative and direct commodity distribution ecosystem, <strong>not an investment platform or financial scheme</strong>. Commission simulations, matrix models, and bonuses are based strictly on active member direct sponsorships and verified retail consumer product sales, not passive financial yield or guaranteed investment returns.
+            </div>
+          </div>
+
           {/* CTA Box (Clean deep forest, no harsh radial blob) */}
           <div className="mt-14 bg-[#031d0f] text-white rounded-3xl p-8 md:p-10 text-center shadow-xl border border-green-900">
             <h3 className="text-2xl font-bold font-display mb-3 text-white">

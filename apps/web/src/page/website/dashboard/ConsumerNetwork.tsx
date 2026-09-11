@@ -485,6 +485,17 @@ export const ConsumerNetwork: React.FC = () => {
           ))}
         </div>
       </div>
+
+      {/* Statutory Regulatory & Non-Investment Notice */}
+      <div className="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-4 sm:p-5 text-amber-900 text-xs sm:text-sm leading-relaxed flex items-start gap-3.5 shadow-xs">
+        <div className="w-8 h-8 rounded-xl bg-amber-200/80 border border-amber-300 flex items-center justify-center shrink-0 text-amber-900">
+          <ShieldCheck className="w-4 h-4" />
+        </div>
+        <div>
+          <strong className="text-amber-950 block mb-0.5 font-bold">Regulatory Compliance Notice — We Are Not An Investment Platform:</strong>
+          AgroHeal Solutions Ltd is an agricultural cooperative and direct consumer goods distribution network, <strong>not an investment company, financial institution, or collective investment scheme (CIS)</strong>. Projections and earnings calculations shown above are mathematical simulations for illustrative purposes based on verified consumer product retail sales and active member personal qualifying volume (PQV), not guaranteed passive income or fixed financial interest.
+        </div>
+      </div>
     </div>
   );
 };

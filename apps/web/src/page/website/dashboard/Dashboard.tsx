@@ -384,7 +384,7 @@ const Dashboard = () => {
                 How Agroheal Works: Learn, Practice & Earn
               </h2>
               <p className="text-xs text-emerald-200/90 mt-0.5">
-                Master organic agriculture, activate Wealth Creation farm slots, and receive quarterly harvest dividends.
+                Master organic agriculture, activate Wealth Creation farm slots, and receive projected quarterly harvest dividends.
               </p>
             </div>
           </div>
@@ -715,7 +715,10 @@ const Dashboard = () => {
                         Mushroom Farm Slot
                       </h3>
                       <p className="text-xs text-gray-600 truncate mt-0.5">
-                        ₦5,000 / Slot · 40% quarterly harvest returns from Cycle 2 onward
+                        ₦5,000 / Slot · Up to 40% projected quarterly harvest returns from Cycle 2 onward
+                      </p>
+                      <p className="text-[10px] text-gray-400 truncate">
+                        AgroHeal is an agricultural cooperative, not an investment platform.
                       </p>
                     </div>
                   </div>

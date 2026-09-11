@@ -23,7 +23,7 @@ export default function RoadmapGuide() {
             How Agroheal Works
           </h1>
           <p className="text-emerald-200 mt-2 text-xs sm:text-sm md:text-base max-w-2xl leading-relaxed">
-            Your comprehensive guide to agribusiness education, Wealth Creation farm slots, and commercial quarterly harvest returns.
+            Your comprehensive guide to agribusiness education, Wealth Creation farm slots, and projected quarterly harvest returns (AgroHeal is an agricultural cooperative, not an investment platform).
           </p>
         </motion.div>
       </div>

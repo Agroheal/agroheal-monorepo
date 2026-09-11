@@ -50,7 +50,7 @@ export default function Home() {
     {
       badge: "GLOBAL COMMERCE",
       title: "Market Access & Export Opportunities",
-      desc: "Sell into guaranteed local retail chains and international food markets through Agroheal’s network.",
+      desc: "Sell into established local retail chains and international food markets through Agroheal’s network.",
     },
   ];
 
@@ -166,7 +166,7 @@ export default function Home() {
     },
     {
       q: "How do farm ownership slots work?",
-      a: "Each slot represents a structured slice of a commercial production cluster. Your starter slot covers cluster setup and biological inputs with zero recurring monthly fees. You are assigned a managed portion of land where crops or livestock are produced, processed, and sold to guaranteed off-takers.",
+      a: "Each slot represents a managed production unit within a commercial cooperative cluster (such as 2 Oyster Mushroom fruiting bags). Your contribution directly finances biological inputs and infrastructure with zero recurring monthly fees. We are an agricultural cooperative, not an investment platform; members participate in actual biological production sold through established off-taker channels.",
     },
     {
       q: "What support does Agroheal provide?",
@@ -451,15 +451,15 @@ export default function Home() {
               {
                 title: "Mushroom Village:",
                 subtitle:
-                  "Double production capacity in Cycle 1, earn up to 40% Quarterly Returns from Cycle 2 onwards.",
+                  "Double production capacity in Cycle 1, earn up to 40% estimated quarterly harvest returns from Cycle 2 onwards.",
                 description:
-                  "How it Works:\n\nParticipants join Mushroom Group Farms to learn and earn from the commercial production of Oyster Mushrooms.\n\n1. Secure Your Green Card (₦2,000)\nStart with a one-time ₦2,000 Green Card fee. This grants you permanent lifetime access to our organic training academy, your digital Green Card ID, and affiliate referral earning rights.\n\n2. Secure Your Farm Slot (₦5,000 per slot)\nEach group farm targets 1,000 production slots (operational kickoff at 250 slots). Secure your slot with a one-time ₦5,000 payment (70% covers fruiting house setup, racks, labor, and 2 initial substrate bags; 10% sponsor bonus; 20% platform admin). There are zero monthly maintenance fees.\n\n3. Cycle 1: Capacity Doubling (Months 1–3)\nYour 2 starter bags yield 2kg of mushrooms. 90% of harvest proceeds are ploughed back into production to double your capacity from 2 to 4 bags per slot without spending an extra kobo.\n\n4. Cycle 2+ Quarterly Returns (Every 3 Months Thereafter)\nYour 4 bags produce 4kg. After substrate bag replacement costs are deducted, 40% of net harvest proceeds are credited directly to your bank-withdrawable wallet every quarter perpetually.\n\n5. Guaranteed Off-Taker Market\nFresh mushrooms are supplied directly to guaranteed supermarket chains, hotels, restaurants, and dried for high-value export contracts.",
+                  "How it Works:\n\nParticipants join Mushroom Group Farms to learn and earn from the commercial production of Oyster Mushrooms.\n\n1. Secure Your Green Card (₦2,000)\nStart with a one-time ₦2,000 Green Card fee. This grants you permanent lifetime access to our organic training academy, your digital Green Card ID, and affiliate referral earning rights.\n\n2. Secure Your Farm Slot (₦5,000 per slot)\nEach group farm targets 1,000 production slots (operational kickoff at 250 slots). Secure your slot with a one-time ₦5,000 payment (70% covers fruiting house setup, racks, labor, and 2 initial substrate bags; 10% sponsor bonus; 20% platform admin). There are zero monthly maintenance fees.\n\n3. Cycle 1: Capacity Doubling (Months 1–3)\nYour 2 starter bags yield approximately 2kg of fresh mushrooms. 90% of harvest proceeds are ploughed back into production to double your capacity from 2 to 4 bags per slot without spending an extra kobo.\n\n4. Cycle 2+ Estimated Quarterly Surplus Dividends (Every 3 Months Thereafter)\nYour 4 bags produce approximately 4kg. After substrate bag replacement costs are deducted, up to 40% of net harvest surplus proceeds are credited directly to your bank-withdrawable wallet every quarter based on realized sales. (AgroHeal is an agricultural cooperative, not an investment platform; returns represent commodity crop sales, not fixed financial interest).\n\n5. Commercial Off-Taker Market\nFresh mushrooms are supplied directly to established supermarket chains, hotels, restaurants, and dried for high-value export contracts.",
               },
               {
                 title: "Organic FoodNation",
                 subtitle: "1 Million Hectares Against Hunger — Integrated Organic Cluster",
                 description:
-                  "How it Works:\n\nParticipants join Integrated Cluster Farms to learn and earn from mass organic food production.\n\n1. Secure Your Green Card (₦2,000)\nStart with a one-time ₦2,000 Green Card fee for permanent lifetime membership and access to comprehensive organic farming blueprints.\n\n2. Secure Your Farm Slot\nJoin a cooperative group farm cluster. Slot contributions fund certified organic inputs, land prep, and automated irrigation. No hidden monthly utilities.\n\n3. Sustainable Crop & Livestock Integration\nIntercropped organic vegetables, grains, plantain, and livestock produce high yields with low-cost on-farm organic compost and biopesticides.\n\n4. Harvest Distribution\nHarvested produce is sold directly to guaranteed Farm-to-Table food distribution networks to eliminate middlemen and maximize member dividends.",
+                  "How it Works:\n\nParticipants join Integrated Cluster Farms to learn and earn from mass organic food production.\n\n1. Secure Your Green Card (₦2,000)\nStart with a one-time ₦2,000 Green Card fee for permanent lifetime membership and access to comprehensive organic farming blueprints.\n\n2. Secure Your Farm Slot\nJoin a cooperative group farm cluster. Slot contributions fund certified organic inputs, land prep, and automated irrigation. No hidden monthly utilities.\n\n3. Sustainable Crop & Livestock Integration\nIntercropped organic vegetables, grains, plantain, and livestock produce high yields with low-cost on-farm organic compost and biopesticides.\n\n4. Harvest Distribution\nHarvested produce is sold directly to established Farm-to-Table food distribution networks to eliminate middlemen and maximize member dividends.",
               },
               {
                 title: "Pioneers Gingertown",
@@ -528,6 +528,17 @@ export default function Home() {
                 </div>
               );
             })}
+          </div>
+
+          {/* Statutory Cooperative Notice */}
+          <div className="mt-14 p-5 sm:p-6 rounded-3xl bg-white border border-gray-200/90 text-gray-600 text-xs sm:text-sm leading-relaxed shadow-xs flex items-start gap-4">
+            <span className="w-9 h-9 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 font-bold text-sm border border-amber-200">
+              ℹ
+            </span>
+            <div>
+              <strong className="text-gray-950 block mb-1 font-bold text-sm">Cooperative Notice — We Are Not An Investment Platform:</strong>
+              AgroHeal Solutions Ltd is an agricultural cooperative and agro-education platform, <strong>not an investment company, financial broker, or collective investment scheme (CIS)</strong>. We do not promise, offer, or guarantee fixed financial returns or interest. Projected surplus returns (e.g. <em>&quot;earn up to 40%&quot;</em>) represent estimated commodity sales dividends derived strictly from actual biological agricultural harvests and commercial off-taker distribution.
+            </div>
           </div>
         </div>
       </section>

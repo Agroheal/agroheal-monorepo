@@ -70,7 +70,7 @@ export default function FarmSlotsBridge() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-base md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed mb-8 font-sans font-light"
           >
-            Participate directly in real, productive organic agriculture. The cooperative handles land, organic inputs, agronomists, and security—while you earn quarterly harvest distributions.
+            Participate directly in real, productive organic agriculture. The cooperative handles land, organic inputs, agronomists, and security—while you receive projected quarterly harvest distributions.
           </motion.p>
 
           <motion.div
@@ -152,7 +152,7 @@ export default function FarmSlotsBridge() {
                   </div>
                   <div className="flex items-start gap-2.5">
                     <CheckCircle2 className="w-4 h-4 text-green-700 shrink-0 mt-0.5" />
-                    <span className="text-gray-700">Digital farm logbook &amp; quarterly harvest distributions</span>
+                    <span className="text-gray-700">Digital farm logbook &amp; projected quarterly harvest distributions</span>
                   </div>
                 </div>
               </div>
@@ -340,7 +340,7 @@ export default function FarmSlotsBridge() {
                 4 mature bags yield ₦10,000 projected revenue less ₦4,000 input continuation = <strong>₦6,000 distributable</strong>.
               </p>
               <ul className="text-[11px] text-gray-300 space-y-1.5 pt-2 border-t border-white/10">
-                <li>• <strong>40% (₦2,400)</strong> Distributed to Slot Owners</li>
+                <li>• <strong>Up to 40% (₦2,400)</strong> Distributed to Slot Owners</li>
                 <li>• <strong>20% (₦1,200)</strong> Gingertown Expansion reserve</li>
                 <li>• <strong>20% (₦1,200)</strong> Organic FoodNation Expansion</li>
                 <li>• <strong>10% (₦600)</strong> Company &bull; <strong>10% (₦600)</strong> Coordinator</li>
@@ -362,6 +362,17 @@ export default function FarmSlotsBridge() {
                 <li>• <strong>10%</strong> Central Company Administration</li>
                 <li className="text-[#d1ef75] font-semibold">• Target scale: 1,000 slots (≥250 to launch)</li>
               </ul>
+            </div>
+          </div>
+
+          {/* Statutory Regulatory & Non-Investment Notice */}
+          <div className="mt-10 p-5 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-3 max-w-3xl mx-auto text-left">
+            <ShieldCheck className="w-5 h-5 text-[#d1ef75] shrink-0 mt-0.5" />
+            <div className="text-xs text-gray-300 leading-relaxed space-y-1">
+              <strong className="text-white block font-bold text-sm">Regulatory Notice — We Are Not An Investment Platform:</strong>
+              <p>
+                AgroHeal Solutions Ltd is an agricultural cooperative and participatory agro-education platform, <strong>not an investment company, financial institution, or collective investment scheme (CIS)</strong>. Farm slot contributions directly finance real biological assets (fruiting substrate bags, climate-managed grow-rooms, automated humidification racks, and farm labor). Any reference to surplus distributions (e.g. <em>"up to 40%"</em>) represents projected commodity dividends derived strictly from realized agricultural crop sales and off-taker agreements, not fixed financial interest or passive investment returns.
+              </p>
             </div>
           </div>
 

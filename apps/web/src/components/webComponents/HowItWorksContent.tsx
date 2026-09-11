@@ -77,11 +77,11 @@ export default function HowItWorksContent({
       title: "3. Earn",
       tagline: "Harvest Distributions & Dividends",
       description:
-        "In Cycle 1 (Months 1–3), harvest is reinvested to double capacity (2 to 4 mature fruiting bags per slot). From Cycle 2 onward, receive 40% quarterly harvest distributions credited directly to your withdrawable wallet.",
+        "In Cycle 1 (Months 1–3), harvest is reinvested to double biological capacity (2 to 4 mature fruiting bags per slot). From Cycle 2 onward, receive up to 40% quarterly harvest surplus distributions credited directly to your withdrawable wallet.",
       highlights: [
         "Cycle 1 Capacity Doubling (2 ➔ 4 Bags in 3 Months)",
-        "40% Quarterly Harvest Returns (Cycle 2 Onward)",
-        "Guaranteed Institutional & Supermarket Off-Takers",
+        "Up to 40% Projected Quarterly Harvest Returns (Cycle 2 Onward)",
+        "Established Institutional & Supermarket Off-Takers",
       ],
       accent: "border-emerald-600/30 bg-white",
       badge: "bg-emerald-100 text-emerald-800",
@@ -98,8 +98,8 @@ export default function HowItWorksContent({
       tag: "High-Frequency Produce",
       image: AgrohealImages.Mushroom,
       description:
-        "Commercial production of high-value Oyster Mushrooms. Activated via the ₦10,000 Wealth Creation package (₦5,000 Mushroom Power product + ₦5,000 first slot; additional slots ₦5,000 each). Starter bags double from 2 to 4 in Cycle 1 (Months 1–3), delivering continuous 40% quarterly dividends from Cycle 2 onward.",
-      stat: "Cycle 1 Doubling + 40% Quarterly Dividends",
+        "Commercial production of high-value Oyster Mushrooms. Activated via the ₦10,000 Wealth Creation package (₦5,000 Mushroom Power product + ₦5,000 first slot; additional slots ₦5,000 each). Starter bags double from 2 to 4 in Cycle 1 (Months 1–3), delivering up to 40% estimated quarterly dividends from Cycle 2 onward based on realized harvest sales.",
+      stat: "Cycle 1 Doubling + Up to 40% Quarterly Dividends",
       icon: TrendingUp,
     },
     {
@@ -401,7 +401,7 @@ export default function HowItWorksContent({
                   </li>
                   <li className="flex items-start gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-[#d1ef75] shrink-0 mt-0.5" />
-                    <span>Cycle 1 biological doubling + 40% quarterly returns</span>
+                    <span>Cycle 1 biological doubling + up to 40% projected quarterly harvest returns</span>
                   </li>
                 </ul>
               </div>
@@ -418,6 +418,16 @@ export default function HowItWorksContent({
           </div>
         </div>
       )}
+      {/* Statutory Cooperative & Non-Investment Notice */}
+      <div className="mt-8 p-4 sm:p-5 rounded-2xl bg-white border border-gray-200/90 text-gray-600 text-xs sm:text-sm leading-relaxed shadow-xs flex items-start gap-3.5">
+        <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 border border-amber-200">
+          <ShieldCheck className="w-4 h-4 text-amber-700" />
+        </div>
+        <div>
+          <strong className="text-gray-900 block mb-0.5 font-bold">Non-Investment Policy &amp; Regulatory Notice:</strong>
+          AgroHeal Solutions Ltd is an agricultural cooperative and practical agro-education ecosystem, <strong>not an investment platform or financial scheme</strong>. Slot acquisitions directly fund physical biological inputs and managed grow infrastructure. Projected surplus distributions (e.g. <em>&quot;up to 40%&quot;</em>) represent estimated commodity dividends derived from real biological harvests and supermarket/off-taker sales, not guaranteed fixed financial interest.
+        </div>
+      </div>
     </div>
   );
 }
