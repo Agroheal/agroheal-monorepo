@@ -19,6 +19,10 @@ All legal clauses and agreements in [apps/web/src/page/website/Legal.tsx](file:/
   - ₦2,000 Green Card registration (₦1,000 referrer, ₦1,000 company).
   - ₦10,000 Wealth Creation Activation (₦5,000 Mushroom Power welcome product + ₦5,000 compulsory first farm slot).
   - 7-level product commission engine (40% ceiling: 12% retail seller, 5% L1, 3.5% L2, 3% L3, 2.5% L4–L7, 4% leadership pool, 2% sustainability reserve, 0.5% company margin).
+  - **Matrix Downline Structure Confirmation (Geometric 5→25 vs. Linear 5-5-5-5-5-5-5)**:
+    - *Option A (Geometric Exponential 5×7):* 5 → 25 → 125 → 625 → 3,125 → 15,625 → 78,125 (total 97,655 members). Standard matrix model where each level multiplies by 5.
+    - *Option B (Linear / Fixed 5 Per Level):* 5 → 5 → 5 → 5 → 5 → 5 → 5 (total 35 members). Each level counts up to 5 qualified team members.
+    - *Action needed:* Confirm which of the two models governs commission compression, spillover allocation, and dashboard organogram rendering.
   - Confirmation that farm slots do NOT generate multilevel commissions — only flat 10% (₦500) direct bonus.
   - Monthly qualification: ₦5,000 PQV (purchases + retail sales); unqualified earnings held indefinitely.
   - Withdrawal requirements: 5 direct referrals + ₦5,000 PQV within 30 days for multilevel withdrawals; direct referral bonuses withdrawable at ₦2,000 minimum.

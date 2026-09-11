@@ -110,6 +110,12 @@ Purchasing a slot creates a physical production **and** accounting record.
   - The member the referral is **placed under** earns the indirect/upline level commission when products are purchased.
 - **Matrix Immutability:** Once commission activity is recorded, tree placement cannot be shifted except via audited admin correction.
 
+> **Founders Confirmation Pending (Matrix Tier Sizing):**  
+> Pending final confirmation from founders whether the downline matrix is:
+> 1. **Option A (Exponential Geometric 5×7):** 5 → 25 → 125 → 625 → 3,125 → 15,625 → 78,125 (total 97,655 members across 7 levels).
+> 2. **Option B (Linear / Fixed 5 Per Level):** 5 → 5 → 5 → 5 → 5 → 5 → 5 (total 35 members across 7 levels).  
+> *Currently implemented as Option A in affiliate bridge simulations and organogram downline views.*
+
 ---
 
 ## 7. Monthly Qualification — ₦5,000 PQV
