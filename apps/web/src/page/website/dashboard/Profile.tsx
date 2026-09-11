@@ -13,7 +13,6 @@ import {
   Users,
   Sprout,
   ArrowRight,
-  ExternalLink,
   Camera,
   LoaderCircle,
   Trash2,
@@ -417,13 +416,6 @@ export const ProfileComponent: React.FC = () => {
             .
           </p>
         </div>
-        <Link
-          to="/dashboard/legal"
-          className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 hover:text-emerald-950 whitespace-nowrap"
-        >
-          <span>Review Bylaws</span>
-          <ExternalLink className="w-3 h-3" />
-        </Link>
       </div>
 
 
