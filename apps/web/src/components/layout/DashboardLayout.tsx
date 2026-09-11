@@ -14,11 +14,14 @@ import {
   ChevronRight,
   ChevronDown,
   Lock,
+  HelpCircle,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "./NotificationBell";
+import HowItWorksContent from "@/components/webComponents/HowItWorksContent";
 
 const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
 
@@ -37,7 +40,14 @@ interface NavGroup {
 }
 
 // ── 6-Menu Grouped Information Hierarchy ──
+// Strategic Placement: Learning Academy is placed FIRST to lead with the education funnel
 const navGroups: NavGroup[] = [
+  {
+    id: "academy",
+    label: "Learning Academy",
+    path: "/dashboard/courses",
+    icon: BookOpen,
+  },
   {
     id: "dashboard",
     label: "Dashboard",
@@ -88,16 +98,6 @@ const navGroups: NavGroup[] = [
       { label: "Legal Agreement", path: "/dashboard/legal" },
     ],
   },
-  {
-    id: "academy",
-    label: "Learning Academy",
-    path: "/dashboard/courses",
-    icon: BookOpen,
-    subItems: [
-      { label: "LEAP Courses", path: "/dashboard/courses" },
-      { label: "Step-by-Step Guide", path: "/dashboard/roadmap-guide" },
-    ],
-  },
 ];
 
 const HIDDEN_ROUTES = ["/signin", "/signup"];
@@ -105,6 +105,13 @@ const HIDDEN_ROUTES = ["/signin", "/signup"];
 const getPageTitle = (currentPath: string): string => {
   if (currentPath === "/dashboard" || currentPath === "/dashboard/") {
     return "Dashboard Overview";
+  }
+
+  if (
+    currentPath === "/dashboard/how-it-works" ||
+    currentPath === "/dashboard/roadmap-guide"
+  ) {
+    return "How Agroheal Works";
   }
 
   for (const group of navGroups) {
@@ -206,7 +213,7 @@ const SidebarContent = ({
           const isGroupActive = activeGroupId === group.id;
           const isOpen = Boolean(openGroups[group.id]);
 
-          // Exact single link (like Dashboard overview)
+          // Exact single link (Dashboard or direct Learning Academy)
           if (!hasChildren) {
             return (
               <NavLink
@@ -252,10 +259,8 @@ const SidebarContent = ({
               >
                 <NavLink
                   to={group.path}
-                  onClick={(e) => {
-                    // Navigate to primary route but also ensure group is opened
+                  onClick={() => {
                     setOpenGroups((prev) => ({ ...prev, [group.id]: true }));
-                    // Only close drawer if on mobile and no children need inspection
                   }}
                   className="flex items-center gap-3 flex-1 min-w-0"
                 >
@@ -355,6 +360,7 @@ const DashboardLayout = () => {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [howItWorksOpen, setHowItWorksOpen] = useState(false);
   const { session, profile } = useAuth();
 
   const isSuperDeveloper =
@@ -369,16 +375,17 @@ const DashboardLayout = () => {
     }
   }, [pathname, normalizedPath, navigate]);
 
-  // Close mobile drawer on Escape key
+  // Close drawers on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && mobileSidebarOpen) {
-        setMobileSidebarOpen(false);
+      if (e.key === "Escape") {
+        if (howItWorksOpen) setHowItWorksOpen(false);
+        if (mobileSidebarOpen) setMobileSidebarOpen(false);
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [mobileSidebarOpen]);
+  }, [mobileSidebarOpen, howItWorksOpen]);
 
   const handleClose = useCallback(() => {
     setMobileSidebarOpen(false);
@@ -456,6 +463,65 @@ const DashboardLayout = () => {
         )}
       </AnimatePresence>
 
+      {/* ── HOW IT WORKS RESPONSIVE SLIDE-OVER DRAWER ── */}
+      <AnimatePresence>
+        {howItWorksOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50"
+              onClick={() => setHowItWorksOpen(false)}
+            />
+
+            {/* Slide-over Container */}
+            <motion.aside
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 h-full w-full max-w-2xl bg-white z-50 shadow-2xl flex flex-col overflow-hidden border-l border-gray-200"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-[#0c2415] text-white shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-700/80 flex items-center justify-center">
+                    <Sparkles className="w-4 h-4 text-emerald-300" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm sm:text-base font-bold text-white leading-tight">
+                      How Agroheal Works
+                    </h2>
+                    <p className="text-[11px] text-emerald-300">
+                      Learn, Practice & Earn Cooperative Roadmap
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setHowItWorksOpen(false)}
+                  className="p-1.5 rounded-lg text-emerald-300 hover:text-white hover:bg-emerald-800/60 transition-colors"
+                  aria-label="Close guide"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Scrollable Body */}
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 no-scrollbar bg-gray-50/50">
+                <HowItWorksContent
+                  variant="modal"
+                  onNavigate={() => setHowItWorksOpen(false)}
+                />
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* ── MAIN CONTENT AREA ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top bar */}
@@ -478,7 +544,17 @@ const DashboardLayout = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* How It Works Header Button */}
+            <button
+              onClick={() => setHowItWorksOpen(true)}
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200/80 text-xs font-semibold transition-all shadow-xs"
+              title="How Agroheal Works Guide"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-emerald-700" />
+              <span className="hidden sm:inline">How It Works</span>
+            </button>
+
             {/* Notification Bell */}
             <NotificationBell />
 

@@ -136,6 +136,7 @@ export const appRouter = createBrowserRouter([
           { path: "create-farm-group", element: <CreateFarmGroup /> },
           { path: "farm-admin", element: <FarmRecordsView /> },
           { path: "roadmap-guide", element: <RoadmapGuide /> },
+          { path: "how-it-works", element: <RoadmapGuide /> },
           { path: "other-payments", element: <OtherPayments /> },
           { path: "mushroom-village", element: <MushroomVillage /> },
           { path: "compound-referrals", element: <CompoundReferrals /> },

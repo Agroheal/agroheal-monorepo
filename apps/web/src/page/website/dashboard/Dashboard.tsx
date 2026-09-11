@@ -14,6 +14,7 @@ import {
   IdCard,
   Award,
   ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -395,6 +396,35 @@ const Dashboard = () => {
       </div>
 
       <div className="px-4 md:px-8 -mt-8 pb-12 max-w-[96%] mx-auto">
+        {/* How It Works Quick Access Banner */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#0d2818] via-[#10331f] to-[#0a1e12] text-white border border-emerald-800/40 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        >
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-[#d1ef75]" />
+            </div>
+            <div>
+              <h2 className="text-sm sm:text-base font-bold text-white">
+                How Agroheal Works: Learn, Practice & Earn
+              </h2>
+              <p className="text-xs text-emerald-200/90 mt-0.5">
+                Master organic agriculture, activate Wealth Creation farm slots, and receive quarterly harvest dividends.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/dashboard/how-it-works"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#d1ef75] hover:bg-[#bce055] text-emerald-950 font-bold text-xs shrink-0 transition-colors shadow-xs"
+          >
+            <span>Explore Guide</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+        </motion.div>
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-6">
           {stats.map((stat, index) => (
             <motion.div
