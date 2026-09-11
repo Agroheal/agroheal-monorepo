@@ -35,10 +35,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
-import { SITE_URL } from "@/config/Index";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import NetworkCalculatorCard from "@/components/network/NetworkCalculatorCard";
+import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
 
 export interface OrganogramNode {
   id: string;
@@ -1548,6 +1548,9 @@ const CompoundReferrals: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Statutory Regulatory & Non-Investment Notice */}
+        <RegulatoryNotice linkHref="/dashboard/legal#terms" className="mt-4" />
       </div>
     </div>
   );

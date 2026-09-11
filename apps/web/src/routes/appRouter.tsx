@@ -36,6 +36,8 @@ import GreenCardCommunity from "@/page/website/dashboard/GreenCardCommunity";
 import VerifyCard from "@/page/website/VerifyCard";
 import TransactionLedger from "@/page/website/dashboard/TransactionLedger";
 import ConsumerNetwork from "@/page/website/dashboard/ConsumerNetwork";
+import KnowledgeBase from "@/page/website/dashboard/KnowledgeBase";
+import CustomerService from "@/page/website/dashboard/CustomerService";
 
 import CoursesBridge from "@/page/website/CoursesBridge";
 import FarmSlotsBridge from "@/page/website/FarmSlotsBridge";
@@ -145,6 +147,10 @@ export const appRouter = createBrowserRouter([
           { path: "organogram", element: <CompoundReferrals /> },
           { path: "kin", element: <KinDetails /> },
           { path: "legal", element: <Legal /> },
+          { path: "help/knowledge-base", element: <KnowledgeBase /> },
+          { path: "help/customer-service", element: <CustomerService /> },
+          { path: "knowledge-base", element: <KnowledgeBase /> },
+          { path: "customer-service", element: <CustomerService /> },
         ],
       },
     ],

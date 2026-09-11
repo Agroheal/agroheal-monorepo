@@ -107,6 +107,16 @@ const navGroups: NavGroup[] = [
       { label: "My Green Card", path: "/dashboard/green-card" },
     ],
   },
+  {
+    id: "help-support",
+    label: "Help & Support",
+    path: "/dashboard/help/knowledge-base",
+    icon: HelpCircle,
+    subItems: [
+      { label: "Knowledge Base", path: "/dashboard/help/knowledge-base" },
+      { label: "Customer Service", path: "/dashboard/help/customer-service" },
+    ],
+  },
 ];
 
 const HIDDEN_ROUTES = ["/signin", "/signup"];

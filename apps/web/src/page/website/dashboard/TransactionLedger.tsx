@@ -22,6 +22,9 @@ import {
   Lock,
   FileSpreadsheet,
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Wifi,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
@@ -29,6 +32,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import { exportToExcel } from "@shared/excelExport";
+import { AgrohealImages } from "@/constant/Image";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 interface LedgerItem {
@@ -42,14 +46,26 @@ interface LedgerItem {
   reference: string;
 }
 
+const MATRIX_TIERS = [
+  { level: 1, members: 5, percentage: 5.0, rewardPerSlot: 250, totalCeiling: 1250, requiredDirects: 1 },
+  { level: 2, members: 25, percentage: 3.5, rewardPerSlot: 175, totalCeiling: 4375, requiredDirects: 2 },
+  { level: 3, members: 125, percentage: 3.0, rewardPerSlot: 150, totalCeiling: 18750, requiredDirects: 3 },
+  { level: 4, members: 625, percentage: 2.5, rewardPerSlot: 125, totalCeiling: 78125, requiredDirects: 4 },
+  { level: 5, members: 3125, percentage: 2.5, rewardPerSlot: 125, totalCeiling: 390625, requiredDirects: 5 },
+  { level: 6, members: 15625, percentage: 2.5, rewardPerSlot: 125, totalCeiling: 1953125, requiredDirects: 5 },
+  { level: 7, members: 78125, percentage: 2.5, rewardPerSlot: 125, totalCeiling: 9765625, requiredDirects: 5 },
+];
+
 export default function TransactionLedger() {
   const [loading, setLoading] = useState<boolean>(true);
   const [memberId, setMemberId] = useState<string>("NO GREENCARD YET");
+  const [userProfile, setUserProfile] = useState<{ full_name?: string; email?: string } | null>(null);
   const [directReferralEarnings, setDirectReferralEarnings] = useState<number>(0);
   const [matrixEarnings, setMatrixEarnings] = useState<number>(0);
   const [directReferralsCount, setDirectReferralsCount] = useState<number>(0);
   const [activePqv30d, setActivePqv30d] = useState<number>(0);
   const [pqvDaysRemaining, setPqvDaysRemaining] = useState<number>(30);
+  const [selectedMatrixLevel, setSelectedMatrixLevel] = useState<number>(1);
   const [transactions, setTransactions] = useState<LedgerItem[]>([]);
   const [filterType, setFilterType] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -66,6 +82,33 @@ export default function TransactionLedger() {
   // Direct Referral Withdrawal Qualification: Active Project Subscribed AND >= ₦2,000
   const isDirectReferralWithdrawable = isProjectSubscribed && directReferralEarnings >= 2000;
   const canSubscribeWithWallet = !isProjectSubscribed && directReferralEarnings >= 10000;
+  const hasGreenCard = Boolean(memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING"));
+
+  // Clear financial balances
+  const availableBalance = (isDirectReferralWithdrawable ? directReferralEarnings : 0) + (isMatrixQualified ? matrixEarnings : 0);
+  const ledgerBalance = directReferralEarnings + matrixEarnings;
+
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshAll = async () => {
+    setIsRefreshing(true);
+    try {
+      await loadLedger();
+      showToast({
+        variant: "success",
+        title: "All Sections Updated",
+        description: "Refreshed wallet balances, matrix standing, and transaction history.",
+      });
+    } catch (err) {
+      showToast({
+        variant: "destructive",
+        title: "Refresh Failed",
+        description: "Could not refresh ledger data. Please try again.",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const loadLedger = async () => {
     setLoading(true);
@@ -117,7 +160,7 @@ export default function TransactionLedger() {
       ] = await Promise.all([
         supabase
           .from("profiles")
-          .select("member_id, referral_earnings, slot_bonus, total_referrals, created_at")
+          .select("member_id, full_name, email, referral_earnings, slot_bonus, total_referrals, created_at")
           .eq("id", user.id)
           .maybeSingle(),
         supabase
@@ -139,6 +182,12 @@ export default function TransactionLedger() {
           .limit(20),
       ]);
 
+      if (profile) {
+        setUserProfile({
+          full_name: profile.full_name,
+          email: profile.email,
+        });
+      }
       setMemberId(formatAgcId(profile?.member_id));
       const refEarnings = apiSummary?.directReferralWallet?.balance !== undefined
         ? Number(apiSummary.directReferralWallet.balance)
@@ -159,6 +208,7 @@ export default function TransactionLedger() {
         ? Number(apiSummary.matrixSpilloverWallet.directReferralsCount)
         : (referrals ? referrals.length : (profile?.total_referrals || 0));
       setDirectReferralsCount(refCount);
+      setSelectedMatrixLevel(refCount < 5 ? (refCount < 4 ? refCount + 1 : 5) : 1);
 
       // Compute 30-day PQV from slot subscriptions and monthly payments
       if (apiSummary?.matrixSpilloverWallet?.activePqv30d === undefined) {
@@ -487,199 +537,439 @@ export default function TransactionLedger() {
           <div className="flex items-center gap-3">
             <Button
               size="sm"
-              onClick={loadLedger}
-              className="bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl gap-2 font-semibold text-xs h-10 shadow-sm"
+              disabled={isRefreshing}
+              onClick={handleRefreshAll}
+              className="bg-emerald-800 hover:bg-emerald-700 text-white rounded-xl gap-2 font-semibold text-xs h-10 shadow-sm transition-all"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Refresh Ledger
+              <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+              {isRefreshing ? "Refreshing All..." : "Refresh Ledger & Wallet"}
             </Button>
           </div>
         </div>
 
-        {/* ── WALLET SUMMARY CARDS ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* 1. Direct Referral Earnings Wallet */}
-          <div className="bg-white rounded-3xl p-6 border border-amber-100 shadow-sm space-y-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
-                  <Award className="w-5 h-5" />
+        {/* ── TOP DUAL CARDS ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          {/* ── CARD 1 (LEFT): CONDITIONAL GREEN CARD ACTIVATION OR 5x7 MATRIX PIPELINE (STRICTLY NOT CALLED WALLET) ── */}
+          {!hasGreenCard ? (
+            <div className="bg-gradient-to-br from-emerald-950 via-emerald-900 to-green-950 text-white rounded-3xl p-6 sm:p-7 border border-emerald-500/30 shadow-xl flex flex-col justify-between relative overflow-hidden space-y-5">
+              <div className="absolute top-0 right-0 -mr-12 -mt-12 w-48 h-48 rounded-full bg-amber-400/10 blur-3xl pointer-events-none" />
+
+              <div className="space-y-4 relative z-10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center border border-emerald-400/30 font-bold">
+                      <Award className="w-5 h-5 text-amber-300" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-base">AgroHeal Green Card (AGC)</h3>
+                      <p className="text-xs text-emerald-200/70">Cooperative Identity & Profit Key</p>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                    Not Activated
+                  </span>
                 </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-base">Direct Referral Wallet</h3>
-                  <p className="text-xs text-gray-500">₦1,000 per Green Card Referral</p>
+
+                <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2.5 text-xs text-emerald-100/90">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Permanent Verified Member ID (AGC) & QR Credential</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Full lifetime access to AgroHeal Academy curriculums</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>₦1,000 Direct Referral Rewards on every Green Card</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span>Permanent placement in 7-level 5×7 community matrix</span>
+                  </div>
                 </div>
               </div>
-              <span
-                className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                  isDirectReferralWithdrawable
-                    ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+
+              <div className="pt-4 border-t border-white/10 space-y-3 relative z-10">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-emerald-200/70">One-Time Activation Fee</span>
+                  <span className="font-mono font-black text-xl text-amber-300">₦2,000</span>
+                </div>
+                <Button
+                  asChild
+                  className="w-full h-11 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-gray-950 font-bold text-xs shadow-lg transition-all"
+                >
+                  <Link to="/subscribe">
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Activate Green Card — ₦2,000
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-emerald-100 shadow-sm flex flex-col justify-between space-y-5">
+              {/* Header */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                      <Users className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-base">5×7 Community Matrix Pipeline</h3>
+                      <p className="text-xs text-gray-500">7-Level Spillover Network (Not a Wallet)</p>
+                    </div>
+                  </div>
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                      isMatrixQualified
+                        ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                        : "bg-amber-100 text-amber-800 border border-amber-200"
+                    }`}
+                  >
+                    {isMatrixQualified ? "Qualified" : "Qualification Required"}
+                  </span>
+                </div>
+
+                {/* Accrued Matrix Earnings */}
+                <div className="flex items-baseline justify-between pt-1">
+                  <div>
+                    <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider block">
+                      Accrued Matrix Dividends
+                    </span>
+                    <p className="text-3xl font-extrabold text-emerald-950 font-mono">
+                      ₦{matrixEarnings.toLocaleString()}
+                    </p>
+                  </div>
+                  <div className="text-right text-xs">
+                    <span className="text-gray-500">Active Depth:</span>{" "}
+                    <span className="font-bold text-emerald-800">
+                      {directReferralsCount >= 5
+                        ? "All 7 Levels"
+                        : directReferralsCount > 0
+                        ? `Levels 1-${directReferralsCount}`
+                        : "Level 0"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 30-Day Gatekeeper Progress */}
+                <div className="space-y-2 pt-2 bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-600 font-medium">1. Direct Referrals Gate (Min. 5):</span>
+                    <span className={`font-bold font-mono ${directReferralsCount >= 5 ? "text-emerald-700" : "text-amber-700"}`}>
+                      {directReferralsCount} / 5 {directReferralsCount >= 5 && "✓"}
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-600 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, (directReferralsCount / 5) * 100)}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <span className="text-gray-600 font-medium">2. 30-Day Active PQV (Min. ₦5,000):</span>
+                    <span className={`font-bold font-mono ${activePqv30d >= 5000 ? "text-emerald-700" : "text-amber-700"}`}>
+                      ₦{activePqv30d.toLocaleString()} / ₦5,000 {activePqv30d >= 5000 && "✓"}
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-600 rounded-full transition-all duration-300"
+                      style={{ width: `${Math.min(100, (activePqv30d / 5000) * 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-gray-400 block text-right">
+                    {pqvDaysRemaining} days remaining in current 30-day cycle
+                  </span>
+                </div>
+              </div>
+
+              {/* Matrix Level Stepper / Carousel */}
+              <div className="space-y-3 pt-1 border-t border-gray-100">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-700" />
+                    Tier Unlock Requirements
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMatrixLevel((prev) => Math.max(1, prev - 1))}
+                      disabled={selectedMatrixLevel <= 1}
+                      className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-100 text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title="Previous Level"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <span className="text-xs font-mono font-bold text-gray-700 px-1">
+                      Level {selectedMatrixLevel}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMatrixLevel((prev) => Math.min(7, prev + 1))}
+                      disabled={selectedMatrixLevel >= 7}
+                      className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-100 text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title="Next Level"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 7 Level Quick Jump Tabs */}
+                <div className="grid grid-cols-7 gap-1">
+                  {MATRIX_TIERS.map((tier) => {
+                    const isUnlocked = directReferralsCount >= tier.requiredDirects;
+                    const isSelected = selectedMatrixLevel === tier.level;
+                    return (
+                      <button
+                        key={tier.level}
+                        type="button"
+                        onClick={() => setSelectedMatrixLevel(tier.level)}
+                        className={`py-1 text-[10px] font-bold rounded-lg border transition-all text-center ${
+                          isSelected
+                            ? "bg-emerald-800 text-white border-emerald-900 shadow-xs ring-2 ring-emerald-600/30"
+                            : isUnlocked
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+                            : "bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100"
+                        }`}
+                      >
+                        L{tier.level}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Active Tier Details Slide */}
+                {(() => {
+                  const tier = MATRIX_TIERS.find((t) => t.level === selectedMatrixLevel) || MATRIX_TIERS[0];
+                  const isUnlocked = directReferralsCount >= tier.requiredDirects;
+                  const directsToUnlock = Math.max(0, tier.requiredDirects - directReferralsCount);
+
+                  return (
+                    <div className="p-3.5 rounded-2xl bg-gradient-to-br from-gray-50 to-emerald-50/40 border border-gray-200/80 space-y-2.5 text-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-gray-900">
+                          Level {tier.level} ({tier.members.toLocaleString()} members max)
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            isUnlocked
+                              ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                              : "bg-amber-100 text-amber-800 border border-amber-200"
+                          }`}
+                        >
+                          {isUnlocked ? (
+                            <>
+                              <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                              Unlocked & Earning
+                            </>
+                          ) : (
+                            <>
+                              <Lock className="w-3 h-3 text-amber-700" />
+                              Locked
+                            </>
+                          )}
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-[11px] pt-1 border-t border-gray-200/60">
+                        <div>
+                          <span className="text-gray-500 block">Commission Rate</span>
+                          <span className="font-bold text-gray-900 font-mono">
+                            {tier.percentage}% (₦{tier.rewardPerSlot}/slot)
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 block">Total Level Ceiling</span>
+                          <span className="font-bold text-emerald-900 font-mono">
+                            ₦{tier.totalCeiling.toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="pt-1 text-[11px]">
+                        {isUnlocked ? (
+                          <p className="text-emerald-800 font-medium">
+                            ✓ Sponsor requirement satisfied. Community spillovers down to this depth route into your wallet.
+                          </p>
+                        ) : (
+                          <p className="text-amber-800 font-medium flex items-center gap-1">
+                            <Lock className="w-3 h-3 shrink-0" />
+                            <span>
+                              Requires {tier.requiredDirects} direct sponsor{tier.requiredDirects > 1 ? "s" : ""} (Need <strong>{directsToUnlock} more direct partner{directsToUnlock > 1 ? "s" : ""}</strong> to unlock).
+                            </span>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
+          {/* ── CARD 2 (RIGHT): THE ONLY CARD CALLED "WALLET" (CREDIT CARD SHAPE & STYLING) ── */}
+          <div className="flex flex-col justify-between bg-gradient-to-br from-[#062414] via-[#0b331c] to-[#04190e] border border-emerald-500/40 rounded-3xl p-6 sm:p-7 text-white shadow-2xl relative overflow-hidden min-h-[380px]">
+            {/* Background Ambient Glows */}
+            <div className="absolute top-0 right-0 -mr-16 -mt-16 w-60 h-60 rounded-full bg-emerald-400/10 blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-60 h-60 rounded-full bg-amber-400/5 blur-3xl pointer-events-none" />
+
+            {/* Top Row: Company Logo + Official Wallet Badge + Status Badge + Contactless Icon */}
+            <div className="relative z-10 flex items-center justify-between pb-3 border-b border-white/10 gap-2 flex-wrap">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <img
+                  src={AgrohealImages.HeaderLogo}
+                  alt="AgroHeal"
+                  className="h-6 sm:h-7 object-contain brightness-0 invert opacity-95 shrink-0"
+                />
+                <div className="h-4 w-px bg-white/20 hidden sm:block" />
+                <span className="text-[10px] font-bold tracking-widest text-emerald-300/90 uppercase font-mono truncate">
+                  MEMBER WALLET
+                </span>
+              </div>
+
+              {/* Status Badge Styled Intelligently in Top-Right Header */}
+              <div className="flex items-center gap-2 shrink-0 ml-auto">
+                <span
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold tracking-wide border shadow-xs backdrop-blur-md ${
+                    isDirectReferralWithdrawable
+                      ? "bg-emerald-500/20 text-emerald-200 border-emerald-400/35"
+                      : canSubscribeWithWallet
+                      ? "bg-purple-500/25 text-purple-200 border-purple-400/40"
+                      : !isProjectSubscribed
+                      ? "bg-amber-500/20 text-amber-200 border-amber-400/35"
+                      : "bg-white/10 text-gray-300 border-white/20"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isDirectReferralWithdrawable
+                        ? "bg-emerald-400"
+                        : canSubscribeWithWallet
+                        ? "bg-purple-400"
+                        : "bg-amber-400"
+                    } animate-pulse`}
+                  />
+                  {isDirectReferralWithdrawable
+                    ? "Withdrawable"
                     : canSubscribeWithWallet
-                    ? "bg-purple-100 text-purple-800 border border-purple-200"
+                    ? "₦10k Ready to Activate"
                     : !isProjectSubscribed
-                    ? "bg-amber-100 text-amber-800 border border-amber-200"
-                    : "bg-gray-100 text-gray-600"
-                }`}
-              >
-                {isDirectReferralWithdrawable
-                  ? "Withdrawable"
-                  : canSubscribeWithWallet
-                  ? "₦10k Ready to Activate"
-                  : !isProjectSubscribed
-                  ? "Unsubscribed (Accumulating)"
-                  : "Min. ₦2,000"}
-              </span>
-            </div>
+                    ? "Unsubscribed (Accumulating)"
+                    : "Min. ₦2,000"}
+                </span>
 
-            <div className="space-y-1">
-              <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">
-                Available Direct Balance
-              </span>
-              <p className="text-3xl font-extrabold text-gray-900 font-mono">
-                ₦{directReferralEarnings.toLocaleString()}
-              </p>
-            </div>
-
-            {/* Dynamic Status / Information Box */}
-            {isProjectSubscribed ? (
-              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-100 text-xs text-emerald-900 space-y-1">
-                <p className="font-semibold flex items-center gap-1.5 text-emerald-950">
-                  <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                  Active Project Member
-                </p>
-                <p className="text-emerald-900/90 leading-relaxed">
-                  Direct referral earnings are independent of 5x7 matrix gates. You can withdraw your direct referral balance whenever it reaches ₦2,000.
-                </p>
+                <Wifi className="w-4 h-4 rotate-90 text-emerald-300/70 hidden sm:block" />
               </div>
-            ) : canSubscribeWithWallet ? (
-              <div className="p-3.5 rounded-2xl bg-purple-50 border border-purple-200 text-xs text-purple-950 space-y-2">
-                <p className="font-bold flex items-center gap-1.5 text-purple-900">
-                  <Sparkles className="w-4 h-4 text-purple-600" />
-                  ₦10,000 Wallet Credit Milestone Reached!
-                </p>
-                <p className="text-purple-800 leading-relaxed">
-                  You have accumulated ₦{directReferralEarnings.toLocaleString()} in your wallet! Use ₦10,000 of your wallet balance to activate your project subscription and unlock bank withdrawals.
-                </p>
+            </div>
+
+            {/* Middle: EMV Chip & Financial Balances */}
+            <div className="relative z-10 py-4 space-y-4">
+              <div className="flex items-center justify-between">
+                {/* Gold Smart Chip */}
+                <div className="w-11 h-8 rounded-lg bg-gradient-to-br from-amber-200 via-amber-300 to-amber-500 border border-amber-200/90 shadow-sm flex items-center justify-center p-1 relative overflow-hidden">
+                  <div className="w-full h-full border border-amber-600/40 rounded-sm grid grid-cols-2 grid-rows-2 opacity-60" />
+                </div>
+
+                <span className="text-[10px] font-mono text-emerald-200/60 uppercase tracking-wider">
+                  DEBIT / DIGITAL LEDGER
+                </span>
+              </div>
+
+              {/* Dual Financial Balances */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="bg-white/5 backdrop-blur-xs p-3.5 rounded-2xl border border-white/10 space-y-0.5">
+                  <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">
+                    Available Balance
+                  </span>
+                  <p className="text-2xl sm:text-3xl font-black font-mono text-white tracking-tight">
+                    ₦{availableBalance.toLocaleString()}
+                  </p>
+                  <span className="text-[10px] text-emerald-200/70 block">
+                    Immediately Withdrawable
+                  </span>
+                </div>
+
+                <div className="bg-white/5 backdrop-blur-xs p-3.5 rounded-2xl border border-white/10 space-y-0.5">
+                  <span className="text-[10px] text-gray-300 font-bold uppercase tracking-wider block">
+                    Ledger Balance
+                  </span>
+                  <p className="text-2xl sm:text-3xl font-black font-mono text-gray-200 tracking-tight">
+                    ₦{ledgerBalance.toLocaleString()}
+                  </p>
+                  <span className="text-[10px] text-gray-400 block">
+                    Total Cumulative Posted
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Card Row: Cardholder Details + Security/Audited Stamp */}
+            <div className="relative z-10 border-t border-white/10 pt-4 mt-auto space-y-3">
+              <div className="flex items-end justify-between gap-3">
+                <div className="min-w-0">
+                  <span className="text-[10px] text-emerald-200/60 uppercase tracking-widest font-semibold block">
+                    Cardholder & Member ID
+                  </span>
+                  <p className="text-sm font-bold text-white tracking-wide truncate max-w-[220px] sm:max-w-xs">
+                    {userProfile?.full_name || "AgroHeal Member"}
+                  </p>
+                  <p className="text-[11px] font-mono font-medium text-emerald-300/90 mt-0.5">
+                    {memberId}
+                  </p>
+                </div>
+
+                <div className="text-right shrink-0">
+                  <span className="text-[9px] text-emerald-200/50 uppercase tracking-widest font-mono block">
+                    COOPERATIVE LEDGER
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-emerald-300/80 uppercase">
+                    IMMUTABLE • AUDITED
+                  </span>
+                </div>
+              </div>
+
+              {/* Action Buttons below / on wallet card */}
+              {canSubscribeWithWallet && (
                 <Button
                   disabled={subscribingWithWallet}
                   onClick={handleSubscribeWithWallet}
-                  className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs h-9 rounded-xl shadow-sm"
+                  className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs h-10 rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5"
                 >
+                  <Sparkles className="w-4 h-4 text-purple-200" />
                   {subscribingWithWallet ? "Activating Subscription..." : "Activate Project Subscription from Wallet (₦10,000)"}
                 </Button>
-              </div>
-            ) : (
-              <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 text-xs text-amber-950 space-y-2">
-                <p className="font-bold flex items-center gap-1.5 text-amber-900">
-                  <Lock className="w-4 h-4 text-amber-700" />
-                  Project Subscription Required to Withdraw
-                </p>
-                <p className="text-amber-900/90 leading-relaxed">
-                  Your referral earnings accumulate safely in your wallet. Bank withdrawals unlock once you subscribe to an active project, or once your wallet credit reaches ₦10,000 to subscribe directly using your balance.
-                </p>
-              </div>
-            )}
+              )}
 
-            <Button
-              disabled={!isDirectReferralWithdrawable}
-              className={`w-full h-11 rounded-xl font-bold text-xs transition-all ${
-                isDirectReferralWithdrawable
-                  ? "bg-emerald-800 hover:bg-emerald-700 text-white shadow-md"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-              }`}
-              onClick={() => {
-                showToast({
-                  variant: "success",
-                  title: "Withdrawal Initiated",
-                  description: "Proceeding to bank disbursal selection...",
-                });
-              }}
-            >
-              <ArrowUpRight className="w-4 h-4 mr-1.5" />
-              {isDirectReferralWithdrawable
-                ? "Withdraw Direct Earnings"
-                : !isProjectSubscribed
-                ? "Withdrawal Locked (Project Subscription Required)"
-                : `Accumulate ₦${(2000 - directReferralEarnings).toLocaleString()} More to Withdraw`}
-            </Button>
-          </div>
-
-          {/* 2. 5x7 Matrix Spillover Earnings Wallet */}
-          <div className="bg-white rounded-3xl p-6 border border-emerald-100 shadow-sm space-y-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
-                  <Users className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 text-base">5×7 Matrix Spillover Wallet</h3>
-                  <p className="text-xs text-gray-500">7-Level Community Network Tree</p>
-                </div>
-              </div>
-              <span
-                className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
-                  isMatrixQualified
-                    ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                    : "bg-amber-100 text-amber-800 border border-amber-200"
+              <Button
+                disabled={!isDirectReferralWithdrawable}
+                onClick={() => {
+                  showToast({
+                    variant: "success",
+                    title: "Withdrawal Initiated",
+                    description: "Proceeding to bank disbursal selection...",
+                  });
+                }}
+                className={`w-full h-11 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
+                  isDirectReferralWithdrawable
+                    ? "bg-emerald-700 hover:bg-emerald-600 text-white shadow-md cursor-pointer"
+                    : "bg-white/10 text-gray-400 border border-white/10 cursor-not-allowed"
                 }`}
               >
-                {isMatrixQualified ? "Qualified" : "Qualification Required"}
-              </span>
+                <ArrowUpRight className="w-4 h-4 mr-1" />
+                {isDirectReferralWithdrawable
+                  ? `Withdraw Available Funds (₦${availableBalance.toLocaleString()})`
+                  : !isProjectSubscribed
+                  ? "Withdrawal Locked (Project Subscription Required)"
+                  : `Accumulate ₦${(2000 - directReferralEarnings).toLocaleString()} More to Withdraw`}
+              </Button>
             </div>
-
-            <div className="space-y-1">
-              <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">
-                Matrix Earnings Balance
-              </span>
-              <p className="text-3xl font-extrabold text-emerald-900 font-mono">
-                ₦{matrixEarnings.toLocaleString()}
-              </p>
-            </div>
-
-            {/* 30-Day Gatekeeper Progress */}
-            <div className="space-y-2 pt-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-600 font-medium">1. Direct Referrals Gate (Min. 5):</span>
-                <span className={`font-bold font-mono ${directReferralsCount >= 5 ? "text-emerald-700" : "text-amber-700"}`}>
-                  {directReferralsCount} / 5 {directReferralsCount >= 5 && "✓"}
-                </span>
-              </div>
-              <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
-                <div
-                  className="h-full bg-emerald-600 rounded-full transition-all duration-300"
-                  style={{ width: `${Math.min(100, (directReferralsCount / 5) * 100)}%` }}
-                />
-              </div>
-
-              <div className="flex items-center justify-between text-xs pt-1">
-                <span className="text-gray-600 font-medium">2. 30-Day Active PQV (Min. ₦5,000):</span>
-                <span className={`font-bold font-mono ${activePqv30d >= 5000 ? "text-emerald-700" : "text-amber-700"}`}>
-                  ₦{activePqv30d.toLocaleString()} / ₦5,000 {activePqv30d >= 5000 && "✓"}
-                </span>
-              </div>
-              <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
-                <div
-                  className="h-full bg-emerald-600 rounded-full transition-all duration-300"
-                  style={{ width: `${Math.min(100, (activePqv30d / 5000) * 100)}%` }}
-                />
-              </div>
-            </div>
-
-            <Button
-              disabled={!isMatrixQualified || matrixEarnings <= 0}
-              className={`w-full h-11 rounded-xl font-bold text-xs transition-all ${
-                isMatrixQualified && matrixEarnings > 0
-                  ? "bg-emerald-800 hover:bg-emerald-700 text-white shadow-md"
-                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
-              }`}
-            >
-              <ArrowUpRight className="w-4 h-4 mr-1.5" />
-              {isMatrixQualified
-                ? "Withdraw Matrix Spillover"
-                : "Complete 5 Referrals & ₦5k PQV to Unlock"}
-            </Button>
           </div>
         </div>
+
 
         {/* ── TRANSACTION HISTORY TABLE ── */}
         <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
@@ -730,21 +1020,6 @@ export default function TransactionLedger() {
                 <option value="CREDIT">Credits Only</option>
                 <option value="DEBIT">Debits Only</option>
               </select>
-
-              {/* Requery Payment button around Transaction History */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setRequeryRef("");
-                  setShowRequeryModal(true);
-                }}
-                className="h-9 px-3 rounded-xl border-emerald-700 text-emerald-800 hover:bg-emerald-50 text-xs font-semibold shadow-xs flex items-center gap-1.5"
-                title="Requery or sync an uncredited payment reference"
-              >
-                <RefreshCw className="w-3.5 h-3.5 text-emerald-700" />
-                <span>Requery Ref</span>
-              </Button>
 
               <Button
                 onClick={handleExportExcel}
