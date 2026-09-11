@@ -16,6 +16,7 @@ import {
   HelpCircle,
   Sparkles,
   ShoppingBag,
+  CornerDownRight,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
@@ -99,12 +100,11 @@ const navGroups: NavGroup[] = [
   },
   {
     id: "account",
-    label: "Account & Identity",
+    label: "Profile & Settings",
     path: "/dashboard/profile",
     icon: IdCard,
     subItems: [
-      { label: "Profile & Settings", path: "/dashboard/profile" },
-      { label: "Green Card Community", path: "/dashboard/green-card" },
+      { label: "My Green Card", path: "/dashboard/green-card" },
     ],
   },
 ];
@@ -201,15 +201,19 @@ const SidebarContent = ({
     <div className="flex flex-col h-full select-none text-emerald-100">
       {/* Brand Header */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-emerald-800/50 bg-[#0a1e12]/80 shrink-0">
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-green-700 flex items-center justify-center text-white shadow-md ring-1 ring-white/20 shrink-0">
-          <Sprout className="w-4 h-4" />
+        <div className="w-9 h-9 rounded-xl bg-emerald-950/80 border border-emerald-500/40 p-1 flex items-center justify-center shadow-md ring-1 ring-white/15 shrink-0">
+          <img
+            src="/apple-touch-icon.png"
+            alt="AgroHeal"
+            className="w-7 h-7 object-contain"
+          />
         </div>
         <div className="min-w-0 flex-1">
           <span className="text-white font-black text-sm tracking-tight block leading-tight truncate">
             AgroHeal Member Portal
           </span>
           <span className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase block truncate">
-            Cooperative Enterprise
+            Web App
           </span>
         </div>
       </div>
@@ -329,12 +333,13 @@ const SidebarContent = ({
                           key={sub.path}
                           to={sub.path}
                           onClick={handleClose}
-                          className={`block px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                             isSubActive
                               ? "bg-emerald-800/80 text-white font-semibold shadow-xs"
                               : "text-emerald-200/75 hover:bg-emerald-800/30 hover:text-white"
                           }`}
                         >
+                          <CornerDownRight className="w-3 h-3 text-emerald-400/60 shrink-0" />
                           <span className="truncate block">{sub.label}</span>
                         </NavLink>
                       );
@@ -347,39 +352,43 @@ const SidebarContent = ({
         })}
       </nav>
 
-      {/* User Profile & Logout Footer */}
-      <div className="p-3 border-t border-emerald-800/50 bg-[#0a1e12]/70 shrink-0 space-y-2">
-        <NavLink
-          to="/dashboard/profile"
-          onClick={handleClose}
-          className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-emerald-900/30 border border-emerald-800/40 hover:bg-emerald-800/50 transition-colors group"
-        >
-          <UserAvatar
-            src={avatarUrl}
-            name={userName}
-            email={userEmail}
-            sizeClassName="w-8 h-8"
-            textClassName="text-xs font-bold"
-            roundedClassName="rounded-full"
-            className="border border-emerald-500/40"
-          />
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold text-white truncate leading-tight group-hover:text-emerald-300 transition-colors">
-              {userName || "Agroheal Member"}
-            </p>
-            <p className="text-[10px] text-emerald-300/75 truncate leading-tight">
-              Profile & Settings
-            </p>
-          </div>
-        </NavLink>
+      {/* User Profile & Integrated Sign Out Footer */}
+      <div className="p-3 border-t border-emerald-800/50 bg-[#0a1e12]/70 shrink-0">
+        <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-emerald-900/30 border border-emerald-800/50 hover:border-emerald-700/60 transition-colors">
+          <NavLink
+            to="/dashboard/profile"
+            onClick={handleClose}
+            className="flex items-center gap-2.5 min-w-0 flex-1 group"
+          >
+            <UserAvatar
+              src={avatarUrl}
+              name={userName}
+              email={userEmail}
+              sizeClassName="w-8 h-8"
+              textClassName="text-xs font-bold"
+              roundedClassName="rounded-full"
+              className="border border-emerald-500/40 shrink-0"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-white truncate leading-tight group-hover:text-emerald-300 transition-colors">
+                {userName || "Agroheal Member"}
+              </p>
+              <p className="text-[10px] text-emerald-300/75 truncate leading-tight mt-0.5">
+                Profile & Settings
+              </p>
+            </div>
+          </NavLink>
 
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-emerald-200/90 hover:bg-rose-500/15 hover:text-rose-200 hover:border-rose-500/20 border border-transparent transition-all"
-        >
-          <LogOut className="w-4 h-4 shrink-0 text-emerald-300/80" />
-          <span>Sign Out</span>
-        </button>
+          <button
+            type="button"
+            onClick={onLogout}
+            title="Sign Out"
+            aria-label="Sign Out"
+            className="p-2 rounded-lg text-emerald-300/70 hover:text-rose-300 hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 transition-all shrink-0"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

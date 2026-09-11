@@ -625,11 +625,6 @@ const Legal = () => {
             that they have read, understood, and agreed to be legally bound by
             these Terms, Agreements, and Risk Disclosures.
           </p>
-
-          <div className="inline-flex items-center gap-2 text-xs font-medium text-green-300 bg-white/10 px-4 py-2 rounded-full">
-            <FileCheck className="w-4 h-4" />
-            <span>Effective: September 2026 · Registered in Nigeria</span>
-          </div>
         </motion.div>
       </div>
     </div>
