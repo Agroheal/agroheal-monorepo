@@ -87,7 +87,6 @@ const Dashboard = () => {
     support: { status: "inactive" },
     platform: { status: "active" }, // Default to active for initial UI
   });
-  const [showSubscriptionPopup, setShowSubscriptionPopup] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -249,22 +248,6 @@ const Dashboard = () => {
           support: supportStatus,
           platform: platformStatus,
         });
-
-        // Show popup if any are inactive (only for users with slots) AND kin details are complete
-        if (
-          slotsCount > 0 &&
-          kinData?.kin_name &&
-          kinData?.kin_address &&
-          kinData?.kin_number
-        ) {
-          if (
-            setupStatus.status === "inactive" ||
-            supportStatus.status === "inactive" ||
-            platformStatus.status === "inactive"
-          ) {
-            setShowSubscriptionPopup(true);
-          }
-        }
       }
 
       setProfile({ ...profileData });
@@ -1098,94 +1081,6 @@ const Dashboard = () => {
           }}
           onClose={() => setShowKinModal(false)}
         />
-      )}
-      {showSubscriptionPopup && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl w-full max-w-md overflow-hidden shadow-2xl"
-          >
-            <div className="bg-red-50 p-6 border-b border-red-100 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                <AlertCircle className="w-6 h-6 text-red-600" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  Subscription Alert
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Some of your services are inactive
-                </p>
-              </div>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-gray-600">
-                The following subscriptions require your attention to ensure
-                uninterrupted access:
-              </p>
-
-              <div className="space-y-3">
-                {otherSubscriptions.platform.status === "inactive" && (
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <BookOpen className="w-4 h-4 text-green-800" />
-                      <span className="text-sm font-medium text-gray-700">
-                        Green Card
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-bold text-red-600 uppercase px-2 py-0.5 bg-red-50 rounded-full">
-                      Inactive
-                    </span>
-                  </div>
-                )}
-                {otherSubscriptions.setup.status === "inactive" && (
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <Sprout className="w-4 h-4 text-green-800" />
-                      <span className="text-sm font-medium text-gray-700">
-                        Farm Setup Fee
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-bold text-red-600 uppercase px-2 py-0.5 bg-red-50 rounded-full">
-                      Inactive
-                    </span>
-                  </div>
-                )}
-                {otherSubscriptions.support.status === "inactive" && (
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50 border border-gray-100">
-                    <div className="flex items-center gap-3">
-                      <Users className="w-4 h-4 text-green-800" />
-                      <span className="text-sm font-medium text-gray-700">
-                        Farm Support Fee
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-bold text-red-600 uppercase px-2 py-0.5 bg-red-50 rounded-full">
-                      Inactive
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-3 pt-4">
-                <Button
-                  asChild
-                  className="w-full bg-green-800 hover:bg-green-700 h-11"
-                >
-                  <Link to="/dashboard/other-payments">Make Payment Now</Link>
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => setShowSubscriptionPopup(false)}
-                  className="w-full text-gray-400 hover:text-gray-600 text-sm h-10"
-                >
-                  Dismiss for now
-                </Button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
       )}
     </div>
   );

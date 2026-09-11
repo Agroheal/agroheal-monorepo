@@ -10,13 +10,12 @@ import {
   LogOut,
   Menu,
   X,
-  Leaf,
   ChevronRight,
   ChevronDown,
   Lock,
   HelpCircle,
   Sparkles,
-  Users,
+  ShoppingBag,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
@@ -46,11 +45,11 @@ interface NavGroup {
 // ── Consolidated Information Hierarchy ──
 // 1. Overview (#1)
 // 2. Learning Academy (#2)
-// 3. Farm Operations (Mushroom Village integrated in farming clusters)
-// 4. Wallet & Ledger
-// 5. Producer Network
-// 6. Consumer Network (Coming Soon)
-// 7. Account & Identity (Next of Kin consolidated into Profile & Settings)
+// 3. Farm Operations
+// 4. Producer Network
+// 5. Consumer Network (Coming Soon - E-commerce)
+// 6. Wallet & Ledger (Penultimate)
+// 7. Account & Identity (Profile & Green Card)
 const navGroups: NavGroup[] = [
   {
     id: "overview",
@@ -77,16 +76,6 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    id: "finances",
-    label: "Wallet & Ledger",
-    path: "/dashboard/transactions",
-    icon: Wallet,
-    subItems: [
-      { label: "Transaction Ledger", path: "/dashboard/transactions" },
-      { label: "Other Payments", path: "/dashboard/other-payments" },
-    ],
-  },
-  {
     id: "network",
     label: "Producer Network",
     path: "/dashboard/compound-referrals",
@@ -98,20 +87,28 @@ const navGroups: NavGroup[] = [
   {
     id: "consumer-network",
     label: "Consumer Network",
-    path: "#",
-    icon: Users,
+    path: "/dashboard/consumer-network",
+    icon: ShoppingBag,
     badge: "Coming Soon",
-    disabled: true,
+  },
+  {
+    id: "finances",
+    label: "Wallet & Ledger",
+    path: "/dashboard/transactions",
+    icon: Wallet,
+    subItems: [
+      { label: "Transaction Ledger", path: "/dashboard/transactions" },
+      { label: "Other Payments", path: "/dashboard/other-payments" },
+    ],
   },
   {
     id: "account",
     label: "Account & Identity",
-    path: "/dashboard/green-card",
+    path: "/dashboard/profile",
     icon: IdCard,
     subItems: [
-      { label: "Green Card Community", path: "/dashboard/green-card" },
       { label: "Profile & Settings", path: "/dashboard/profile" },
-      { label: "Legal Agreement", path: "/dashboard/legal" },
+      { label: "Green Card Community", path: "/dashboard/green-card" },
     ],
   },
 ];
@@ -220,7 +217,7 @@ const SidebarContent = ({
             email={userEmail}
             sizeClassName="w-10 h-10"
             textClassName="text-xs font-bold"
-            roundedClassName="rounded-xl"
+            roundedClassName="rounded-full"
             className="ring-2 ring-emerald-400/40 shadow-md group-hover:ring-emerald-300 transition-all"
           />
           <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-[#0a1e12] rounded-full" />
@@ -245,28 +242,7 @@ const SidebarContent = ({
           const isGroupActive = activeGroupId === group.id;
           const isOpen = Boolean(openGroups[group.id]);
 
-          // Disabled / Coming Soon items (e.g. Consumer Network)
-          if (group.disabled) {
-            return (
-              <div
-                key={group.id}
-                className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium text-emerald-300/40 cursor-not-allowed select-none bg-emerald-950/20 border border-emerald-900/30 transition-colors"
-                title={`${group.label} (Coming Soon)`}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <Icon className="w-4 h-4 shrink-0 text-emerald-400/30" />
-                  <span className="truncate">{group.label}</span>
-                </div>
-                {group.badge && (
-                  <span className="text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full bg-emerald-900/90 text-emerald-300 border border-emerald-700/60 shrink-0">
-                    {group.badge}
-                  </span>
-                )}
-              </div>
-            );
-          }
-
-          // Exact single link (Overview or direct Learning Academy)
+          // Exact single link (Overview, Learning Academy, Consumer Network)
           if (!hasChildren) {
             return (
               <NavLink
@@ -275,7 +251,7 @@ const SidebarContent = ({
                 end={group.exact}
                 onClick={handleClose}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-150 ${
+                  `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-150 ${
                     isActive
                       ? "bg-white text-emerald-950 shadow-sm font-semibold"
                       : "text-emerald-100/90 hover:bg-emerald-800/40 hover:text-white"
@@ -284,15 +260,25 @@ const SidebarContent = ({
               >
                 {({ isActive }) => (
                   <>
-                    <Icon
-                      className={`w-4 h-4 shrink-0 ${
-                        isActive ? "text-emerald-700" : "text-emerald-300/80"
-                      }`}
-                    />
-                    <span className="flex-1 truncate">{group.label}</span>
-                    {isActive && (
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Icon
+                        className={`w-4 h-4 shrink-0 ${
+                          isActive ? "text-emerald-700" : "text-emerald-300/80"
+                        }`}
+                      />
+                      <span className="truncate">{group.label}</span>
+                    </div>
+                    {group.badge ? (
+                      <span className={`text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                        isActive
+                          ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                          : "bg-emerald-900/90 text-emerald-300 border border-emerald-700/60"
+                      }`}>
+                        {group.badge}
+                      </span>
+                    ) : isActive ? (
                       <ChevronRight className="w-4 h-4 text-emerald-700 shrink-0" />
-                    )}
+                    ) : null}
                   </>
                 )}
               </NavLink>
@@ -305,7 +291,7 @@ const SidebarContent = ({
               <div
                 className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium cursor-pointer transition-all duration-150 ${
                   isGroupActive
-                    ? "bg-emerald-800/60 text-white border border-emerald-700/40"
+                    ? "bg-emerald-800/50 text-white font-medium"
                     : "text-emerald-100/90 hover:bg-emerald-800/30 hover:text-white"
                 }`}
                 onClick={() => toggleGroup(group.id)}
@@ -365,8 +351,8 @@ const SidebarContent = ({
                           onClick={handleClose}
                           className={`block px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                             isSubActive
-                              ? "bg-emerald-500/25 text-white font-semibold border-l-2 border-emerald-400 pl-2.5 shadow-xs"
-                              : "text-emerald-200/75 hover:bg-emerald-800/40 hover:text-white border-l-2 border-transparent pl-2.5"
+                              ? "bg-emerald-800/80 text-white font-semibold shadow-xs"
+                              : "text-emerald-200/75 hover:bg-emerald-800/30 hover:text-white"
                           }`}
                         >
                           <span className="truncate block">{sub.label}</span>
@@ -613,7 +599,7 @@ const DashboardLayout = () => {
                 email={profile?.email || session?.user?.email}
                 sizeClassName="w-8 h-8"
                 textClassName="text-[11px] font-bold"
-                roundedClassName="rounded-lg"
+                roundedClassName="rounded-full"
                 className="ring-1 ring-emerald-600/30"
               />
             </NavLink>
@@ -652,7 +638,7 @@ const DashboardLayout = () => {
                 email={profile?.email || session?.user?.email}
                 sizeClassName="w-8 h-8"
                 textClassName="text-[11px] font-bold"
-                roundedClassName="rounded-xl"
+                roundedClassName="rounded-full"
                 className="ring-2 ring-emerald-500/25 shadow-xs"
               />
               <div className="text-left hidden md:block">

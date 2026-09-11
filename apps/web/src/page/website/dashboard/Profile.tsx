@@ -211,8 +211,8 @@ export const ProfileComponent: React.FC = () => {
                 email={profile?.email}
                 sizeClassName="w-20 h-20 sm:w-24 sm:h-24"
                 textClassName="text-2xl sm:text-3xl font-black"
-                roundedClassName="rounded-3xl"
-                className="ring-4 ring-emerald-400/30 shadow-2xl"
+                roundedClassName="rounded-full"
+                className="ring-4 ring-emerald-400/40 shadow-2xl"
               />
 
               {/* Upload trigger button overlay */}
@@ -220,7 +220,7 @@ export const ProfileComponent: React.FC = () => {
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingAvatar}
-                className="absolute -bottom-1 -right-1 p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg border-2 border-emerald-950 transition-all hover:scale-105 disabled:opacity-50 cursor-pointer"
+                className="absolute bottom-0 right-0 p-2 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg border-2 border-white ring-2 ring-emerald-500/50 transition-all hover:scale-105 disabled:opacity-50 cursor-pointer"
                 title="Change display picture"
                 aria-label="Upload display picture"
               >
@@ -294,43 +294,49 @@ export const ProfileComponent: React.FC = () => {
       {/* Main Details Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card 1: Account Information */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200/80 space-y-5">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-            <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-              <User className="w-4 h-4 text-emerald-700" /> Personal Account Details
-            </h3>
+        <div className="bg-white rounded-3xl p-7 sm:p-8 shadow-sm border border-gray-200/90 space-y-6">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-800">
+                <User className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-sm">Personal Account Details</h3>
+                <p className="text-[11px] text-gray-500">Verified membership information</p>
+              </div>
+            </div>
             <button
               onClick={() => setShowPhoneModal(true)}
-              className="text-xs font-semibold text-emerald-700 hover:underline"
+              className="text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 transition-colors"
             >
               Edit Phone
             </button>
           </div>
 
-          <div className="space-y-3.5 text-xs">
-            <div className="flex justify-between items-center py-1 border-b border-gray-50">
-              <span className="text-gray-500">Full Legal Name</span>
-              <span className="font-bold text-gray-900">{profile?.full_name || "Not provided"}</span>
+          <div className="space-y-4 text-xs">
+            <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+              <span className="text-gray-500 font-medium">Full Legal Name</span>
+              <span className="font-bold text-gray-900 text-right">{profile?.full_name || "Not provided"}</span>
             </div>
-            <div className="flex justify-between items-center py-1 border-b border-gray-50">
-              <span className="text-gray-500">Email Address</span>
-              <span className="font-mono text-gray-900">{profile?.email}</span>
+            <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+              <span className="text-gray-500 font-medium">Email Address</span>
+              <span className="font-mono font-medium text-gray-900 text-right">{profile?.email}</span>
             </div>
-            <div className="flex justify-between items-center py-1 border-b border-gray-50">
-              <span className="text-gray-500">Phone Number</span>
-              <span className="font-bold text-gray-900">
+            <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+              <span className="text-gray-500 font-medium">Phone Number</span>
+              <span className="font-bold text-gray-900 text-right">
                 {profile?.phone || <span className="text-amber-600 font-normal">Pending</span>}
               </span>
             </div>
-            <div className="flex justify-between items-center py-1 border-b border-gray-50">
-              <span className="text-gray-500">AGC Member ID</span>
-              <span className="font-mono font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded">
+            <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+              <span className="text-gray-500 font-medium">AGC Member ID</span>
+              <span className="font-mono font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-lg">
                 {agcIdFormatted}
               </span>
             </div>
-            <div className="flex justify-between items-center py-1">
-              <span className="text-gray-500">Affiliate Referral Code</span>
-              <span className="font-mono font-bold text-gray-900">
+            <div className="flex justify-between items-center py-1.5">
+              <span className="text-gray-500 font-medium">Affiliate Referral Code</span>
+              <span className="font-mono font-bold text-gray-900 bg-gray-50 border border-gray-200 px-2.5 py-0.5 rounded-lg">
                 {profile?.referral_code || profile?.member_id || "None"}
               </span>
             </div>
@@ -338,40 +344,54 @@ export const ProfileComponent: React.FC = () => {
         </div>
 
         {/* Card 2: Next of Kin / POD Record */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200/80 space-y-5">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-            <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
-              <Users className="w-4 h-4 text-emerald-700" /> Next of Kin / Beneficiary (POD)
-            </h3>
+        <div className="bg-white rounded-3xl p-7 sm:p-8 shadow-sm border border-gray-200/90 space-y-6">
+          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-800">
+                <Users className="w-4 h-4" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900 text-sm">Next of Kin / Beneficiary</h3>
+                <p className="text-[11px] text-gray-500">Payable on Death (POD) record</p>
+              </div>
+            </div>
             <button
               onClick={() => setShowKinModal(true)}
-              className="text-xs font-semibold text-emerald-700 hover:underline"
+              className="text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 transition-colors"
             >
               {kin?.kin_name ? "Update Kin" : "Add Kin"}
             </button>
           </div>
 
           {kin?.kin_name ? (
-            <div className="space-y-3.5 text-xs">
-              <div className="flex justify-between items-center py-1 border-b border-gray-50">
-                <span className="text-gray-500">Beneficiary Name</span>
-                <span className="font-bold text-gray-900">{kin.kin_name}</span>
+            <div className="space-y-4 text-xs">
+              <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                <span className="text-gray-500 font-medium">Beneficiary Name</span>
+                <span className="font-bold text-gray-900 text-right">{kin.kin_name}</span>
               </div>
-              <div className="flex justify-between items-center py-1 border-b border-gray-50">
-                <span className="text-gray-500">Phone Contact</span>
-                <span className="font-mono text-gray-900">{kin.kin_number || "None"}</span>
+              <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                <span className="text-gray-500 font-medium">Phone Contact</span>
+                <span className="font-mono font-medium text-gray-900 text-right">{kin.kin_number || "None"}</span>
               </div>
-              <div className="flex flex-col py-1">
-                <span className="text-gray-500 mb-1">Residential Address</span>
-                <span className="text-gray-800 leading-snug">{kin.kin_address || "None"}</span>
+              <div className="flex flex-col py-1.5">
+                <span className="text-gray-500 font-medium mb-1">Residential Address</span>
+                <span className="text-gray-800 leading-relaxed bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  {kin.kin_address || "None"}
+                </span>
               </div>
             </div>
           ) : (
-            <div className="text-center py-6 space-y-2">
-              <p className="text-xs text-gray-500">No Next of Kin record attached yet.</p>
+            <div className="text-center py-8 space-y-3 bg-gray-50/70 rounded-2xl border border-dashed border-gray-200">
+              <Users className="w-8 h-8 text-gray-300 mx-auto" />
+              <div className="space-y-1">
+                <p className="text-xs font-semibold text-gray-700">No Next of Kin record attached yet</p>
+                <p className="text-[11px] text-gray-400 max-w-xs mx-auto">
+                  Designate your primary beneficiary for cooperative farm assets and dividend disbursements.
+                </p>
+              </div>
               <Button
                 onClick={() => setShowKinModal(true)}
-                className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-8 px-4 rounded-xl"
+                className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-8 px-4 rounded-xl font-bold"
               >
                 Configure Next of Kin
               </Button>
@@ -380,47 +400,32 @@ export const ProfileComponent: React.FC = () => {
         </div>
       </div>
 
-      {/* Quick Navigation Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Link
-          to="/dashboard/transactions"
-          className="bg-white rounded-2xl p-5 border border-gray-200/80 hover:border-emerald-300 hover:shadow-md transition-all group flex items-center justify-between"
-        >
-          <div>
-            <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider block">Wallet & Ledger</span>
-            <span className="text-base font-black text-gray-900 group-hover:text-emerald-800 transition-colors">
-              ₦{Number(profile?.referral_earnings || 0).toLocaleString()} Balance
-            </span>
+      {/* Permanent Covenant Agreement Notice */}
+      <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/70 p-4 sm:p-5 flex items-start sm:items-center justify-between gap-4 shadow-xs">
+        <div className="flex items-start sm:items-center gap-3">
+          <div className="w-5 h-5 rounded-md bg-emerald-700 text-white flex items-center justify-center shrink-0 mt-0.5 sm:mt-0 shadow-xs">
+            <Check className="w-3.5 h-3.5 stroke-[3]" />
           </div>
-          <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-700 group-hover:translate-x-1 transition-all" />
-        </Link>
-
+          <p className="text-xs text-gray-700 leading-relaxed">
+            By using this platform, I agree to the{" "}
+            <Link
+              to="/dashboard/legal"
+              className="font-bold text-emerald-800 hover:text-emerald-950 underline underline-offset-2"
+            >
+              Terms of Service, Cooperative Bylaws, and Mutual Covenant
+            </Link>
+            .
+          </p>
+        </div>
         <Link
-          to="/dashboard/compound-referrals"
-          className="bg-white rounded-2xl p-5 border border-gray-200/80 hover:border-emerald-300 hover:shadow-md transition-all group flex items-center justify-between"
+          to="/dashboard/legal"
+          className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 hover:text-emerald-950 whitespace-nowrap"
         >
-          <div>
-            <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider block">5×7 Organogram</span>
-            <span className="text-base font-black text-gray-900 group-hover:text-emerald-800 transition-colors">
-              {profile?.total_referrals || 0} Direct Partners
-            </span>
-          </div>
-          <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-700 group-hover:translate-x-1 transition-all" />
-        </Link>
-
-        <Link
-          to="/dashboard/slots"
-          className="bg-white rounded-2xl p-5 border border-gray-200/80 hover:border-emerald-300 hover:shadow-md transition-all group flex items-center justify-between"
-        >
-          <div>
-            <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider block">Farm Slots</span>
-            <span className="text-base font-black text-gray-900 group-hover:text-emerald-800 transition-colors">
-              Practicals & Harvest
-            </span>
-          </div>
-          <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-700 group-hover:translate-x-1 transition-all" />
+          <span>Review Bylaws</span>
+          <ExternalLink className="w-3 h-3" />
         </Link>
       </div>
+
 
       {/* Modals */}
       {showPhoneModal && profile && (

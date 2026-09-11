@@ -189,8 +189,8 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
                 Withdrawable immediately once balance reaches ₦2,000.
               </div>
               <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-                <span className="font-semibold text-amber-300 block mb-1">Seedling Rewards</span>
-                Free ginger seedlings unlocked per 50 community members.
+                <span className="font-semibold text-amber-300 block mb-1">Curriculum Access</span>
+                Full lifetime access to AgroHeal Academy courses &amp; practicals.
               </div>
             </div>
 

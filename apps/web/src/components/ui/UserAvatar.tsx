@@ -34,16 +34,17 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   email,
   className = "",
   sizeClassName = "w-10 h-10",
-  textClassName = "text-xs font-bold",
+  textClassName = "text-xs font-black",
   roundedClassName = "rounded-full",
 }) => {
   const [imgError, setImgError] = useState(false);
   const initials = getInitials(name, email);
 
+  // If user uploaded a photo and it loads successfully
   if (src && !imgError) {
     return (
       <div
-        className={`relative shrink-0 overflow-hidden shadow-xs border border-emerald-500/30 ${sizeClassName} ${roundedClassName} ${className}`}
+        className={`relative shrink-0 overflow-hidden rounded-full border-2 border-white shadow-md ring-2 ring-emerald-400/40 select-none ${sizeClassName} ${className}`}
       >
         <img
           src={src}
@@ -55,12 +56,13 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
     );
   }
 
+  // High-contrast, elegant light background that pops out against dark green surfaces
   return (
     <div
-      className={`relative shrink-0 flex items-center justify-center bg-gradient-to-br from-emerald-600 via-emerald-700 to-green-800 text-white tracking-wider border border-emerald-400/40 shadow-xs select-none ${sizeClassName} ${roundedClassName} ${textClassName} ${className}`}
+      className={`relative shrink-0 flex items-center justify-center rounded-full bg-gradient-to-br from-white via-emerald-50 to-emerald-100 text-emerald-950 font-black tracking-wide border-2 border-white shadow-md ring-2 ring-emerald-400/40 select-none ${sizeClassName} ${textClassName} ${className}`}
       title={name || email || "User"}
     >
-      {initials}
+      <span className="drop-shadow-xs">{initials}</span>
     </div>
   );
 };

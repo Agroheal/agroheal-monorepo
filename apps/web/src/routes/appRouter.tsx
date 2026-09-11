@@ -35,6 +35,7 @@ import FarmManagement from "@/page/group-farm/FarmManagement";
 import GreenCardCommunity from "@/page/website/dashboard/GreenCardCommunity";
 import VerifyCard from "@/page/website/VerifyCard";
 import TransactionLedger from "@/page/website/dashboard/TransactionLedger";
+import ConsumerNetwork from "@/page/website/dashboard/ConsumerNetwork";
 
 import CoursesBridge from "@/page/website/CoursesBridge";
 import FarmSlotsBridge from "@/page/website/FarmSlotsBridge";
@@ -140,6 +141,7 @@ export const appRouter = createBrowserRouter([
           { path: "other-payments", element: <OtherPayments /> },
           { path: "mushroom-village", element: <MushroomVillage /> },
           { path: "compound-referrals", element: <CompoundReferrals /> },
+          { path: "consumer-network", element: <ConsumerNetwork /> },
           { path: "organogram", element: <CompoundReferrals /> },
           { path: "kin", element: <KinDetails /> },
           { path: "legal", element: <Legal /> },
