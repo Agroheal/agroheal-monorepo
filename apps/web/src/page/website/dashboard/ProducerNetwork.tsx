@@ -36,20 +36,21 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import NetworkCalculatorCard from "@/components/network/NetworkCalculatorCard";
 import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
 import { AgrohealImages } from "@/constant/Image";
+import {
+  MATRIX_COMMISSIONS_TIERS,
+  getUnlockedMatrixLevel,
+  formatNaira,
+  BASE_SLOT_PRICE,
+  CLUSTER_SETUP_FEE,
+  STARTER_SLOT_TOTAL,
+  SUBSEQUENT_SLOT_PRICE,
+  BAGS_PER_SLOT_CYCLE_1,
+  TOTAL_POTENTIAL_MATRIX_COMMISSIONS,
+  SLOT_DIRECT_SPONSOR_PERCENT,
+} from "@shared/businessRules";
 
-export const MATRIX_COMMISSIONS = [
-  { level: 1, percentage: 5.0, amount: 250, maxMembers: 5, potential: 1250, requiredDirects: 5 },
-  { level: 2, percentage: 3.5, amount: 175, maxMembers: 25, potential: 4375, requiredDirects: 10 },
-  { level: 3, percentage: 3.0, amount: 150, maxMembers: 125, potential: 18750, requiredDirects: 15 },
-  { level: 4, percentage: 2.5, amount: 125, maxMembers: 625, potential: 78125, requiredDirects: 20 },
-  { level: 5, percentage: 2.5, amount: 125, maxMembers: 3125, potential: 390625, requiredDirects: 25 },
-  { level: 6, percentage: 2.5, amount: 125, maxMembers: 15625, potential: 1953125, requiredDirects: 30 },
-  { level: 7, percentage: 2.5, amount: 125, maxMembers: 78125, potential: 9765625, requiredDirects: 35 },
-];
-
-export const getUnlockedMatrixLevel = (directCount: number): number => {
-  return Math.min(7, Math.floor(directCount / 5));
-};
+export const MATRIX_COMMISSIONS = MATRIX_COMMISSIONS_TIERS;
+export { getUnlockedMatrixLevel };
 
 interface HarvestSlide {
   id: string;
@@ -233,7 +234,7 @@ export const ProducerNetwork: React.FC = () => {
             </h1>
 
             <p className="text-sm sm:text-base text-emerald-100/90 leading-relaxed">
-              Participate directly in smallholder mushroom cluster production. Secure commercial farm slots, track biological fruiting batches, earn <strong>10% direct sponsor bounties</strong>, and unlock <strong>7-level community production commissions</strong>.
+              Participate directly in smallholder mushroom cluster production. Secure commercial farm slots, track biological fruiting batches, earn <strong>{SLOT_DIRECT_SPONSOR_PERCENT}% direct sponsor bounties</strong>, and unlock <strong>7-level community production commissions</strong>.
             </p>
           </div>
 
@@ -266,7 +267,7 @@ export const ProducerNetwork: React.FC = () => {
                   Potential Matrix Pool
                 </span>
                 <span className="text-base sm:text-lg font-mono font-black text-amber-300">
-                  ₦12,212,500
+                  {formatNaira(TOTAL_POTENTIAL_MATRIX_COMMISSIONS)}
                 </span>
               </div>
             </div>
@@ -276,7 +277,7 @@ export const ProducerNetwork: React.FC = () => {
                 Potential Matrix Dividends Notice
               </p>
               <p className="text-[11px] sm:text-xs text-emerald-100/90 leading-relaxed">
-                Up to <strong className="text-white font-semibold">₦12,212,500</strong> in potential community commissions are accessible across your 7 matrix tiers. Unlocked dividends credit directly into your Member Wallet. Sponsor direct partners to expand your payout depth.
+                Up to <strong className="text-white font-semibold">{formatNaira(TOTAL_POTENTIAL_MATRIX_COMMISSIONS)}</strong> in potential community commissions are accessible across your 7 matrix tiers. Unlocked dividends credit directly into your Member Wallet. Sponsor direct partners to expand your payout depth.
               </p>
             </div>
 
@@ -308,15 +309,23 @@ export const ProducerNetwork: React.FC = () => {
         <div className="space-y-2 max-w-xl">
           <div className="flex items-center gap-2">
             <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs px-2.5 py-0.5">
-              {slotsHeld > 0 ? `${slotsHeld} Active Farm Slots Held` : "No Farm Slots Yet"}
+              {slotsHeld > 0 ? `${slotsHeld} Active Farm Slot(s) Held` : "No Farm Slots Yet • Starter Package Required"}
             </Badge>
             <span className="text-xs text-gray-500 font-medium">• Commercial Mushroom Production</span>
           </div>
           <h3 className="text-xl sm:text-2xl font-black text-gray-900">
-            {slotsHeld > 0 ? "Secure Additional Production Slots" : "Secure Your First Commercial Farm Slot"}
+            {slotsHeld > 0 ? "Secure Additional Commercial Production Slots" : "Secure Your Starter Commercial Farm Slot"}
           </h3>
           <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-            Each <strong>₦5,000 slot</strong> creates 2 verified biological oyster mushroom fruiting bags managed within our cooperative community farms. Earn projected harvest yields from Cycle 2 onward.
+            {slotsHeld === 0 ? (
+              <>
+                Your starter package is <strong>{formatNaira(STARTER_SLOT_TOTAL)} ({formatNaira(BASE_SLOT_PRICE)} biological farm slot + {formatNaira(CLUSTER_SETUP_FEE)} cooperative cluster setup &amp; onboarding)</strong>. This establishes your first {BAGS_PER_SLOT_CYCLE_1} verified biological oyster mushroom fruiting bags managed within our cooperative community farms. Subsequent slots scale at <strong>{formatNaira(SUBSEQUENT_SLOT_PRICE)} each</strong> with zero recurring monthly fees.
+              </>
+            ) : (
+              <>
+                Each additional <strong>{formatNaira(SUBSEQUENT_SLOT_PRICE)} slot</strong> allocates {BAGS_PER_SLOT_CYCLE_1} verified biological oyster mushroom fruiting bags into your cooperative farm cluster. You currently hold <strong>{slotsHeld} active slot(s)</strong> ({slotsHeld * BAGS_PER_SLOT_CYCLE_1} fruiting bags). Subsequent slots scale at {formatNaira(SUBSEQUENT_SLOT_PRICE)} each with zero recurring maintenance fees.
+              </>
+            )}
           </p>
         </div>
 
@@ -327,7 +336,11 @@ export const ProducerNetwork: React.FC = () => {
           >
             <Link to="/dashboard/slots">
               <PlusCircle className="w-4 h-4" />
-              <span>{slotsHeld > 0 ? "Buy More Slots (₦5,000)" : "Buy First Slot (₦5,000)"}</span>
+              <span>
+                {slotsHeld > 0
+                  ? `Buy More Slots (${formatNaira(SUBSEQUENT_SLOT_PRICE)}/ea)`
+                  : `Secure Starter Slot (${formatNaira(STARTER_SLOT_TOTAL)} / ₦5k + ₦5k)`}
+              </span>
             </Link>
           </Button>
 
@@ -357,12 +370,14 @@ export const ProducerNetwork: React.FC = () => {
               Approved Harvest &amp; Yield Records
             </h3>
             <p className="text-xs sm:text-sm text-gray-600 mt-1">
-              Audited harvest weight measurements, product classification, certified yield logs, and official coordinator approvals.
+              {slotsHeld === 0
+                ? "You currently have no active commercial farm slots. Production batches and harvest records activate once you secure a slot."
+                : "Audited harvest weight measurements, product classification, certified yield logs, and official coordinator approvals."}
             </p>
           </div>
 
           <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200 text-xs px-3 py-1 self-start sm:self-auto">
-            {approvedProductions.length} Personal Approved Records
+            {slotsHeld === 0 ? "0 Active Production Slots" : `${approvedProductions.length} Personal Approved Records`}
           </Badge>
         </div>
 
@@ -534,32 +549,58 @@ export const ProducerNetwork: React.FC = () => {
             )}
           </div>
 
-          {approvedProductions.length === 0 ? (
+          {/* REALISTIC 3-STATE HANDLING */}
+          {slotsHeld === 0 ? (
+            /* STATE 1: User has NO slots secured yet */
             <div className="rounded-2xl border-2 border-dashed border-emerald-200/80 bg-emerald-50/30 p-8 sm:p-10 text-center space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-xs">
                 <Sprout className="w-6 h-6" />
               </div>
               <h4 className="text-base font-bold text-gray-900">
-                No Approved Productions Yet
+                Production Not Started · No Commercial Farm Slots Secured
               </h4>
-              <p className="text-xs sm:text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-                Your approved productions will feature here when approved by AgroHeal admin and your farm coordinator.
+              <p className="text-xs sm:text-sm text-gray-600 max-w-lg mx-auto leading-relaxed">
+                You do not hold any active commercial farm slots yet, which means no biological fruiting bags are currently allocated to your account. You must secure your starter slot package ({formatNaira(STARTER_SLOT_TOTAL)}: {formatNaira(BASE_SLOT_PRICE)} biological asset + {formatNaira(CLUSTER_SETUP_FEE)} cluster setup) before cooperative production and cultivation can begin.
               </p>
-              {slotsHeld === 0 ? (
+              <p className="text-xs text-gray-500 max-w-md mx-auto">
+                Once secured, your fruiting bags will be managed by farm coordinators, and your audited harvest weights and approved yields will be recorded and credited here.
+              </p>
+              <div className="pt-2">
                 <Button
                   asChild
-                  size="sm"
-                  className="mt-2 bg-emerald-800 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl"
+                  className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs h-10 px-5 rounded-xl shadow-xs"
                 >
-                  <Link to="/dashboard/slots">Secure a Farm Slot to Begin</Link>
+                  <Link to="/dashboard/slots">
+                    <PlusCircle className="w-4 h-4 mr-1.5" />
+                    <span>Secure Starter Slot ({formatNaira(STARTER_SLOT_TOTAL)} / ₦5k + ₦5k)</span>
+                  </Link>
                 </Button>
-              ) : (
-                <p className="text-xs text-emerald-800 font-medium bg-emerald-100/60 inline-block px-3 py-1.5 rounded-lg">
-                  {slotsHeld} commercial farm slot(s) currently active in cultivation &amp; biological cycle monitoring.
-                </p>
-              )}
+              </div>
+            </div>
+          ) : approvedProductions.length === 0 ? (
+            /* STATE 2: User holds slots, but harvest audit / batch approval is in progress */
+            <div className="rounded-2xl border-2 border-dashed border-emerald-300/80 bg-emerald-50/40 p-8 sm:p-10 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-xs">
+                <Clock className="w-6 h-6" />
+              </div>
+              <div className="flex items-center justify-center gap-2 flex-wrap">
+                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs font-semibold">
+                  {slotsHeld} Active Slot{slotsHeld > 1 ? "s" : ""} ({slotsHeld * BAGS_PER_SLOT_CYCLE_1} Fruiting Bags)
+                </Badge>
+                <span className="text-xs text-amber-700 font-semibold">• Biological Cycle in Progress</span>
+              </div>
+              <h4 className="text-base font-bold text-gray-900">
+                Biological Cultivation in Progress · Awaiting First Harvest Audit
+              </h4>
+              <p className="text-xs sm:text-sm text-gray-600 max-w-lg mx-auto leading-relaxed">
+                Your {slotsHeld * BAGS_PER_SLOT_CYCLE_1} biological oyster mushroom fruiting bags are actively being monitored and cared for by cooperative farm coordinators. Once your fruiting flushes reach full maturity, your farm coordinator will conduct the certified weigh-in audit and AgroHeal admin will approve your harvest yields right here.
+              </p>
+              <p className="text-xs text-emerald-700 font-medium">
+                Projected harvest returns activate from Cycle 2 onward following Cycle 1 capacity doubling.
+              </p>
             </div>
           ) : (
+            /* STATE 3: User has approved harvest records */
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {approvedProductions.map((prod) => (
                 <div

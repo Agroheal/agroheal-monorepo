@@ -20,6 +20,12 @@ import { supabase } from "@/lib/supabaseClient";
 import * as Sentry from "@sentry/react";
 import { PROJECT_CATEGORIES, DEFAULT_CATEGORY } from "@/constant/projectCategories";
 import { cleanName, cleanEmail, normalizePhoneNumber, parsePositiveInt } from "@shared/dataSanitizers";
+import {
+  BASE_SLOT_PRICE as SLOT_UNIT_PRICE,
+  CLUSTER_SETUP_FEE,
+  GREEN_CARD_FEE,
+  calculateSlotSubtotal,
+} from "@shared/businessRules";
 
 const Checkout = () => {
   const { toast } = useToast();
@@ -27,22 +33,11 @@ const Checkout = () => {
   const [slotQuantity, setSlotQuantity] = useState(1);
   const [category, setCategory] = useState(DEFAULT_CATEGORY);
 
-  // Economic Architecture:
-  // - Unit price per slot: ₦5,000
-  // - First-time Cluster Setup & Onboarding fee: ₦5,000 (making 1st slot ₦10,000 total)
-  // - Subsequent slots in this or future orders: ₦5,000 each
-  // - Green Card Lifetime Pass: ₦2,000 (Required for farm dividends & verified ID; auto-bundled if user lacks active card)
-  const SLOT_UNIT_PRICE = 5000;
-  const CLUSTER_SETUP_FEE = 5000;
-  const GREEN_CARD_FEE = 2000;
-
   const [hasGreenCard, setHasGreenCard] = useState<boolean>(true); // assume true while loading
   const [hasPriorSlots, setHasPriorSlots] = useState<boolean>(false);
 
   const isFirstSlotPurchase = !hasPriorSlots;
-  const slotsSubtotal = isFirstSlotPurchase
-    ? SLOT_UNIT_PRICE + CLUSTER_SETUP_FEE + (slotQuantity - 1) * SLOT_UNIT_PRICE
-    : slotQuantity * SLOT_UNIT_PRICE;
+  const { subtotal: slotsSubtotal } = calculateSlotSubtotal(slotQuantity, hasPriorSlots);
 
   const greenCardFee = hasGreenCard ? 0 : GREEN_CARD_FEE;
   const totalPrice = slotsSubtotal + greenCardFee;

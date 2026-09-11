@@ -29,20 +29,15 @@ import { apiClient } from "@/lib/apiClient";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import NetworkCalculatorCard from "@/components/network/NetworkCalculatorCard";
 import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
+import {
+  MATRIX_COMMISSIONS_TIERS,
+  getUnlockedMatrixLevel,
+  formatNaira,
+  TOTAL_POTENTIAL_MATRIX_COMMISSIONS,
+} from "@shared/businessRules";
 
-export const MATRIX_COMMISSIONS = [
-  { level: 1, percentage: 5.0, amount: 250, maxMembers: 5, potential: 1250, requiredDirects: 5 },
-  { level: 2, percentage: 3.5, amount: 175, maxMembers: 25, potential: 4375, requiredDirects: 10 },
-  { level: 3, percentage: 3.0, amount: 150, maxMembers: 125, potential: 18750, requiredDirects: 15 },
-  { level: 4, percentage: 2.5, amount: 125, maxMembers: 625, potential: 78125, requiredDirects: 20 },
-  { level: 5, percentage: 2.5, amount: 125, maxMembers: 3125, potential: 390625, requiredDirects: 25 },
-  { level: 6, percentage: 2.5, amount: 125, maxMembers: 15625, potential: 1953125, requiredDirects: 30 },
-  { level: 7, percentage: 2.5, amount: 125, maxMembers: 78125, potential: 9765625, requiredDirects: 35 },
-];
-
-export const getUnlockedMatrixLevel = (directCount: number): number => {
-  return Math.min(7, Math.floor(directCount / 5));
-};
+export const MATRIX_COMMISSIONS = MATRIX_COMMISSIONS_TIERS;
+export { getUnlockedMatrixLevel };
 
 const UPCOMING_PRODUCTS = [
   {

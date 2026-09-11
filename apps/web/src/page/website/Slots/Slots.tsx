@@ -15,9 +15,15 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import PaymentGuidancePopup from "@/components/webComponents/PaymentGuidancePopup";
+import {
+  BASE_SLOT_PRICE,
+  CLUSTER_SETUP_FEE,
+  STARTER_SLOT_TOTAL,
+  SUBSEQUENT_SLOT_PRICE,
+  formatNaira,
+} from "@shared/businessRules";
 
 const Slots = () => {
-  const slotPrice = "₦5,000";
   const [showPopup, setShowPopup] = useState(false);
   const [scenario, setScenario] = useState<"referred" | "independent">(
     "referred",
@@ -69,14 +75,20 @@ const Slots = () => {
                 </p>
               </div>
 
-              {/* Price */}
-              <div className="px-6 py-5 text-center border-b border-gray-100 bg-emerald-50/50">
-                <div className="text-4xl font-extrabold text-emerald-900">
-                  {slotPrice}
+              {/* Price Breakdown */}
+              <div className="px-6 py-5 text-center border-b border-gray-100 bg-emerald-50/50 space-y-1">
+                <div className="text-3xl sm:text-4xl font-extrabold text-emerald-900">
+                  {formatNaira(STARTER_SLOT_TOTAL)}
                 </div>
-                <p className="text-gray-600 text-xs mt-1 font-medium">
-                  per slot · Zero monthly maintenance fees
+                <p className="text-xs font-bold text-emerald-800">
+                  Starter Slot Package (₦5,000 + ₦5,000)
                 </p>
+                <p className="text-gray-500 text-[11px] leading-tight">
+                  ₦5,000 Biological Slot (2 Fruiting Bags) + ₦5,000 Cluster Setup &amp; Onboarding
+                </p>
+                <div className="pt-2 border-t border-emerald-200/60 mt-2 text-[11px] text-gray-600">
+                  Additional subsequent slots: <strong className="text-emerald-900">{formatNaira(SUBSEQUENT_SLOT_PRICE)} each</strong> · Zero monthly fees
+                </div>
               </div>
 
               {/* Features */}
