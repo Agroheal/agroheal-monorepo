@@ -15,8 +15,6 @@ import {
   Users,
   Store,
   Tag,
-  ChevronRight,
-  ChevronLeft,
   ChevronDown,
   Lock,
   PlusCircle,
@@ -35,7 +33,6 @@ import { apiClient } from "@/lib/apiClient";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import NetworkCalculatorCard from "@/components/network/NetworkCalculatorCard";
 import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
-import { AgrohealImages } from "@/constant/Image";
 import {
   MATRIX_COMMISSIONS_TIERS,
   getUnlockedMatrixLevel,
@@ -52,75 +49,6 @@ import {
 export const MATRIX_COMMISSIONS = MATRIX_COMMISSIONS_TIERS;
 export { getUnlockedMatrixLevel };
 
-interface HarvestSlide {
-  id: string;
-  title: string;
-  product: string;
-  weightMeasurement: string;
-  dateApproved: string;
-  coordinatorStatus: string;
-  batchCode: string;
-  farmCluster: string;
-  image: string;
-  badge: string;
-  description: string;
-}
-
-export const HARVEST_SHOWCASE_SLIDES: HarvestSlide[] = [
-  {
-    id: "harvest-1",
-    title: "Fresh Oyster Mushroom Flush",
-    product: "Fresh Grey Oyster Mushrooms (Pleurotus ostreatus)",
-    weightMeasurement: "142.5 kg Certified Wet Weight",
-    dateApproved: "28 Aug 2026",
-    coordinatorStatus: "Coordinator Audited & Signed Off",
-    batchCode: "BATCH-OYM-2026-08A",
-    farmCluster: "Ogun Cooperative Cluster 01",
-    image: AgrohealImages.Mushroom,
-    badge: "Grade A Prime Flush",
-    description: "High-grade organic fruiting bags audited at full flush maturity with strict moisture and hygiene benchmarks.",
-  },
-  {
-    id: "harvest-2",
-    title: "Mushroom Power High-Protein Flakes",
-    product: "Mushroom Power (Value-Added Flakes)",
-    weightMeasurement: "50.0 kg Dehydrated & Milled Yield",
-    dateApproved: "02 Sep 2026",
-    coordinatorStatus: "Quality Lab Inspected & Certified",
-    batchCode: "BATCH-PWR-2026-09B",
-    farmCluster: "AgroHeal Central Processing Center",
-    image: "/products/mushroom-power.jpg",
-    badge: "Commercial Retail Ready",
-    description: "Dehydrated and processed mushroom flakes prepared for retail distribution and high-nutrient consumer packages.",
-  },
-  {
-    id: "harvest-3",
-    title: "Mushroom Break Roasted Snack Batch",
-    product: "Mushroom Break (Gourmet Crispy Snack)",
-    weightMeasurement: "35.0 kg Roasted & Packaged Yield",
-    dateApproved: "05 Sep 2026",
-    coordinatorStatus: "NAFDAC Standard Coordinator Audit",
-    batchCode: "BATCH-BRK-2026-09C",
-    farmCluster: "AgroHeal Value-Addition Unit A",
-    image: "/products/mushroom-break.jpg",
-    badge: "Value-Added Consumer Good",
-    description: "Vacuum-sealed savory mushroom snack batch approved for rapid retail delivery across the consumer network.",
-  },
-  {
-    id: "harvest-4",
-    title: "Organic Ginger & Mushroom Infusion",
-    product: "Ginger Mushroom Wellness Herbal Tea",
-    weightMeasurement: "78.2 kg Premium Botanical Blend",
-    dateApproved: "09 Sep 2026",
-    coordinatorStatus: "Farm Coordinator Sign-Off Complete",
-    batchCode: "BATCH-TEA-2026-09D",
-    farmCluster: "AgroHeal Herbal & Tea Processing Hub",
-    image: "/products/ginger-mushroom-tea.jpg",
-    badge: "Cooperative Herbal Blend",
-    description: "Blended with certified organic ginger root and medicinal mushroom dry extract for distribution in the consumer marketplace.",
-  },
-];
-
 export const ProducerNetwork: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [directReferralsCount, setDirectReferralsCount] = useState<number>(0);
@@ -130,15 +58,6 @@ export const ProducerNetwork: React.FC = () => {
   const [commissionTableOpen, setCommissionTableOpen] = useState(false);
   const [calcDirects, setCalcDirects] = useState<number>(5);
   const [calcSlotsPerDirect, setCalcSlotsPerDirect] = useState<number>(2);
-  const [activeHarvestSlide, setActiveHarvestSlide] = useState<number>(0);
-
-  const nextHarvestSlide = () => {
-    setActiveHarvestSlide((prev) => (prev + 1) % HARVEST_SHOWCASE_SLIDES.length);
-  };
-
-  const prevHarvestSlide = () => {
-    setActiveHarvestSlide((prev) => (prev - 1 + HARVEST_SHOWCASE_SLIDES.length) % HARVEST_SHOWCASE_SLIDES.length);
-  };
 
   useEffect(() => {
     loadProducerData();
@@ -222,7 +141,7 @@ export const ProducerNetwork: React.FC = () => {
           <div className="space-y-3 max-w-2xl">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 backdrop-blur-md">
-                <Sprout className="w-3.5 h-3.5" /> Producer Network &amp; Cooperative Production
+                <Sprout className="w-3.5 h-3.5" /> Producer Network &amp; Commercial Production
               </span>
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
                 <ShieldCheck className="w-3.5 h-3.5" /> Physical Biological Assets
@@ -304,283 +223,86 @@ export const ProducerNetwork: React.FC = () => {
         </div>
       </div>
 
-      {/* ── CARD TO BUY SLOTS (FIRST CARD / ACTION) ── */}
-      <div className="bg-gradient-to-br from-emerald-50 via-white to-green-50 rounded-3xl p-6 sm:p-8 border border-emerald-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="space-y-2 max-w-xl">
-          <div className="flex items-center gap-2">
-            <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs px-2.5 py-0.5">
-              {slotsHeld > 0 ? `${slotsHeld} Active Farm Slot(s) Held` : "No Farm Slots Yet • Starter Package Required"}
-            </Badge>
-            <span className="text-xs text-gray-500 font-medium">• Commercial Mushroom Production</span>
-          </div>
-          <h3 className="text-xl sm:text-2xl font-black text-gray-900">
-            {slotsHeld > 0 ? "Secure Additional Commercial Production Slots" : "Secure Your Starter Commercial Farm Slot"}
-          </h3>
-          <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-            {slotsHeld === 0 ? (
-              <>
-                Your starter package is <strong>{formatNaira(STARTER_SLOT_TOTAL)} ({formatNaira(BASE_SLOT_PRICE)} biological farm slot + {formatNaira(CLUSTER_SETUP_FEE)} cooperative cluster setup &amp; onboarding)</strong>. This establishes your first {BAGS_PER_SLOT_CYCLE_1} verified biological oyster mushroom fruiting bags managed within our cooperative community farms. Subsequent slots scale at <strong>{formatNaira(SUBSEQUENT_SLOT_PRICE)} each</strong> with zero recurring monthly fees.
-              </>
-            ) : (
-              <>
-                Each additional <strong>{formatNaira(SUBSEQUENT_SLOT_PRICE)} slot</strong> allocates {BAGS_PER_SLOT_CYCLE_1} verified biological oyster mushroom fruiting bags into your cooperative farm cluster. You currently hold <strong>{slotsHeld} active slot(s)</strong> ({slotsHeld * BAGS_PER_SLOT_CYCLE_1} fruiting bags). Subsequent slots scale at {formatNaira(SUBSEQUENT_SLOT_PRICE)} each with zero recurring maintenance fees.
-              </>
-            )}
-          </p>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full sm:w-auto">
-          <Button
-            asChild
-            className="w-full sm:w-auto h-11 px-6 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2"
-          >
-            <Link to="/dashboard/slots">
-              <PlusCircle className="w-4 h-4" />
-              <span>
-                {slotsHeld > 0
-                  ? `Buy More Slots (${formatNaira(SUBSEQUENT_SLOT_PRICE)}/ea)`
-                  : `Secure Starter Slot (${formatNaira(STARTER_SLOT_TOTAL)} / ₦5k + ₦5k)`}
-              </span>
-            </Link>
-          </Button>
-
-          <Button
-            asChild
-            variant="outline"
-            className="w-full sm:w-auto h-11 px-5 rounded-xl border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs transition-all"
-          >
-            <Link to="/dashboard/slots-subscription">
-              <span>View Slot Management</span>
-            </Link>
-          </Button>
-        </div>
-      </div>
-
-      {/* ── APPROVED PRODUCTION & HARVEST SECTION ── */}
+      {/* ── UNIFIED COMMERCIAL FARM PRODUCTION & HARVEST ALLOCATIONS CARD ── */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200/90 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
           <div>
             <div className="flex items-center gap-2">
               <span className="bg-emerald-100 text-emerald-900 text-xs font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                <FileCheck className="w-3.5 h-3.5" /> Certified Harvests &amp; Yield Audits
+                <FileCheck className="w-3.5 h-3.5" /> Farm Production &amp; Harvest Records
               </span>
-              <span className="text-xs text-gray-500 font-medium">• Verified Weigh-Ins &amp; Lab Sign-offs</span>
+              <span className="text-xs text-gray-500 font-medium">• Verified Allocations &amp; Yield Logs</span>
             </div>
-            <h3 className="text-xl font-black text-gray-900 mt-2">
-              Approved Harvest &amp; Yield Records
-            </h3>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1">
+            <h3 className="text-xl sm:text-2xl font-black text-gray-900 mt-2">
               {slotsHeld === 0
-                ? "You currently have no active commercial farm slots. Production batches and harvest records activate once you secure a slot."
-                : "Audited harvest weight measurements, product classification, certified yield logs, and official coordinator approvals."}
+                ? "Secure Your Starter Commercial Farm Slot"
+                : "Commercial Farm Production & Harvest Allocations"}
+            </h3>
+            <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-2xl leading-relaxed">
+              {slotsHeld === 0 ? (
+                <>
+                  Your starter package is <strong>{formatNaira(STARTER_SLOT_TOTAL)} ({formatNaira(BASE_SLOT_PRICE)} biological farm slot + {formatNaira(CLUSTER_SETUP_FEE)} cluster setup &amp; onboarding)</strong>. This establishes your first {BAGS_PER_SLOT_CYCLE_1} verified biological oyster mushroom fruiting bags managed within our community cluster farms. Subsequent slots scale at <strong>{formatNaira(SUBSEQUENT_SLOT_PRICE)} each</strong> with zero recurring monthly fees.
+                </>
+              ) : (
+                <>
+                  Live biological production records and audited harvest batches tied to your <strong>{slotsHeld} active commercial farm slot(s)</strong> ({slotsHeld * BAGS_PER_SLOT_CYCLE_1} fruiting bags under managed cluster care).
+                </>
+              )}
             </p>
           </div>
 
-          <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200 text-xs px-3 py-1 self-start sm:self-auto">
-            {slotsHeld === 0 ? "0 Active Production Slots" : `${approvedProductions.length} Personal Approved Records`}
+          <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200 text-xs px-3 py-1 self-start sm:self-auto shrink-0">
+            {slotsHeld === 0
+              ? "0 Active Production Slots"
+              : approvedProductions.length === 0
+              ? `${slotsHeld} Active Slot(s) • In Cultivation`
+              : `${approvedProductions.length} Approved Harvest Record(s)`}
           </Badge>
         </div>
 
-        {/* ── INTERACTIVE HARVEST SHOWCASE CAROUSEL / SLIDER ── */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-950/95 via-green-900/90 to-slate-900 text-white p-5 sm:p-7 border border-emerald-700/40 shadow-md">
-          {/* Header Controls */}
-          <div className="flex items-center justify-between gap-3 mb-5">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                Verified Harvest Showcase
-              </span>
-              <span className="text-xs text-emerald-200/80 font-mono hidden sm:inline">
-                Slide {activeHarvestSlide + 1} of {HARVEST_SHOWCASE_SLIDES.length}
-              </span>
+        {/* Dynamic State Handling */}
+        {slotsHeld === 0 ? (
+          /* STATE 1: User has NO slots secured yet */
+          <div className="rounded-2xl border-2 border-dashed border-emerald-200/90 bg-emerald-50/40 p-6 sm:p-10 text-center space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto shadow-xs">
+              <Sprout className="w-6 h-6" />
             </div>
-
-            {/* Slider Navigation Buttons */}
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={prevHarvestSlide}
-                aria-label="Previous harvest slide"
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white transition-colors cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-
-              <div className="flex items-center gap-1.5 px-1">
-                {HARVEST_SHOWCASE_SLIDES.map((slide, idx) => (
-                  <button
-                    key={slide.id}
-                    type="button"
-                    onClick={() => setActiveHarvestSlide(idx)}
-                    aria-label={`Go to slide ${idx + 1}`}
-                    className={`h-2 rounded-full transition-all cursor-pointer ${
-                      idx === activeHarvestSlide ? "w-6 bg-amber-400" : "w-2 bg-white/30 hover:bg-white/50"
-                    }`}
-                  />
-                ))}
-              </div>
-
-              <button
-                type="button"
-                onClick={nextHarvestSlide}
-                aria-label="Next harvest slide"
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white transition-colors cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Active Slide Body */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeHarvestSlide}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.25 }}
-              className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center"
-            >
-              {/* Slide Image */}
-              <div className="lg:col-span-5 relative group overflow-hidden rounded-2xl border border-white/15 shadow-md aspect-[16/10] sm:aspect-[4/3] bg-black/40">
-                <img
-                  src={HARVEST_SHOWCASE_SLIDES[activeHarvestSlide].image}
-                  alt={HARVEST_SHOWCASE_SLIDES[activeHarvestSlide].title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
-
-                <div className="absolute top-3 left-3">
-                  <span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/90 text-white shadow-xs backdrop-blur-md">
-                    {HARVEST_SHOWCASE_SLIDES[activeHarvestSlide].badge}
-                  </span>
-                </div>
-
-                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[11px] text-white/90 font-mono">
-                  <span className="bg-black/60 backdrop-blur-md px-2 py-0.5 rounded">
-                    {HARVEST_SHOWCASE_SLIDES[activeHarvestSlide].batchCode}
-                  </span>
-                  <span className="bg-black/60 backdrop-blur-md px-2 py-0.5 rounded text-amber-300">
-                    {HARVEST_SHOWCASE_SLIDES[activeHarvestSlide].farmCluster}
-                  </span>
-                </div>
-              </div>
-
-              {/* Slide Harvest Data Details */}
-              <div className="lg:col-span-7 space-y-4">
-                <div>
-                  <h4 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                    {HARVEST_SHOWCASE_SLIDES[activeHarvestSlide].title}
-                  </h4>
-                  <p className="text-xs sm:text-sm text-emerald-200 mt-1">
-                    {HARVEST_SHOWCASE_SLIDES[activeHarvestSlide].product}
-                  </p>
-                </div>
-
-                {/* Specific Harvest Details: Weight Measurement, Product, Date Approved, Audit Status */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="p-3.5 rounded-xl bg-white/10 border border-white/10 backdrop-blur-sm space-y-1">
-                    <div className="flex items-center gap-1.5 text-emerald-300 text-[11px] font-bold uppercase tracking-wider">
-                      <Scale className="w-3.5 h-3.5 text-amber-300" />
-                      <span>Weight Measurement</span>
-                    </div>
-                    <p className="text-sm sm:text-base font-black text-white font-mono">
-                      {HARVEST_SHOWCASE_SLIDES[activeHarvestSlide].weightMeasurement}
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl bg-white/10 border border-white/10 backdrop-blur-sm space-y-1">
-                    <div className="flex items-center gap-1.5 text-emerald-300 text-[11px] font-bold uppercase tracking-wider">
-                      <Calendar className="w-3.5 h-3.5 text-amber-300" />
-                      <span>Date Approved</span>
-                    </div>
-                    <p className="text-sm sm:text-base font-bold text-white">
-                      {HARVEST_SHOWCASE_SLIDES[activeHarvestSlide].dateApproved}
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl bg-white/10 border border-white/10 backdrop-blur-sm space-y-1">
-                    <div className="flex items-center gap-1.5 text-emerald-300 text-[11px] font-bold uppercase tracking-wider">
-                      <Package className="w-3.5 h-3.5 text-amber-300" />
-                      <span>Product Type</span>
-                    </div>
-                    <p className="text-xs sm:text-sm font-semibold text-white truncate">
-                      {HARVEST_SHOWCASE_SLIDES[activeHarvestSlide].product}
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl bg-white/10 border border-white/10 backdrop-blur-sm space-y-1">
-                    <div className="flex items-center gap-1.5 text-emerald-300 text-[11px] font-bold uppercase tracking-wider">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Coordinator Audit</span>
-                    </div>
-                    <p className="text-xs sm:text-sm font-semibold text-emerald-200">
-                      {HARVEST_SHOWCASE_SLIDES[activeHarvestSlide].coordinatorStatus}
-                    </p>
-                  </div>
-                </div>
-
-                <p className="text-xs text-emerald-100/80 leading-relaxed">
-                  {HARVEST_SHOWCASE_SLIDES[activeHarvestSlide].description}
-                </p>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Carousel Footer Notice */}
-          <div className="mt-5 pt-4 border-t border-white/10 flex items-center gap-2 text-xs text-emerald-200/90">
-            <Info className="w-4 h-4 text-amber-300 shrink-0" />
-            <p>
-              Representative cooperative harvest batch. You can also provide or upload custom harvest images anytime to feature your farm's production.
-            </p>
-          </div>
-        </div>
-
-        {/* ── USER'S PERSONAL APPROVED HARVEST ALLOCATIONS ── */}
-        <div className="space-y-4 pt-2">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="text-base font-bold text-gray-900">Your Harvest &amp; Production Allocations</h4>
-              <p className="text-xs text-gray-500">Live production records tied to your active commercial farm slots.</p>
-            </div>
-            {approvedProductions.length > 0 && (
-              <Badge className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs">
-                {approvedProductions.length} Active Records
-              </Badge>
-            )}
-          </div>
-
-          {/* REALISTIC 3-STATE HANDLING */}
-          {slotsHeld === 0 ? (
-            /* STATE 1: User has NO slots secured yet */
-            <div className="rounded-2xl border-2 border-dashed border-emerald-200/80 bg-emerald-50/30 p-8 sm:p-10 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto shadow-xs">
-                <Sprout className="w-6 h-6" />
-              </div>
+            <div className="space-y-1.5 max-w-lg mx-auto">
               <h4 className="text-base font-bold text-gray-900">
                 Production Not Started · No Commercial Farm Slots Secured
               </h4>
-              <p className="text-xs sm:text-sm text-gray-600 max-w-lg mx-auto leading-relaxed">
-                You do not hold any active commercial farm slots yet, which means no biological fruiting bags are currently allocated to your account. You must secure your starter slot package ({formatNaira(STARTER_SLOT_TOTAL)}: {formatNaira(BASE_SLOT_PRICE)} biological asset + {formatNaira(CLUSTER_SETUP_FEE)} cluster setup) before cooperative production and cultivation can begin.
+              <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+                You do not hold any active commercial farm slots yet. Secure your starter package to allocate your first {BAGS_PER_SLOT_CYCLE_1} biological fruiting bags. Once active, your bags are managed on-site by resident cluster agronomists, and audited harvest weights and approved yields will be recorded and credited right here.
               </p>
-              <p className="text-xs text-gray-500 max-w-md mx-auto">
-                Once secured, your fruiting bags will be managed by farm coordinators, and your audited harvest weights and approved yields will be recorded and credited here.
-              </p>
-              <div className="pt-2">
-                <Button
-                  asChild
-                  className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs h-10 px-5 rounded-xl shadow-xs"
-                >
-                  <Link to="/dashboard/slots">
-                    <PlusCircle className="w-4 h-4 mr-1.5" />
-                    <span>Secure Starter Slot ({formatNaira(STARTER_SLOT_TOTAL)} / ₦5k + ₦5k)</span>
-                  </Link>
-                </Button>
-              </div>
             </div>
-          ) : approvedProductions.length === 0 ? (
-            /* STATE 2: User holds slots, but harvest audit / batch approval is in progress */
-            <div className="rounded-2xl border-2 border-dashed border-emerald-300/80 bg-emerald-50/40 p-8 sm:p-10 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto shadow-xs">
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <Button
+                asChild
+                className="w-full sm:w-auto h-11 px-6 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2"
+              >
+                <Link to="/dashboard/slots">
+                  <PlusCircle className="w-4 h-4" />
+                  <span>Secure Starter Slot ({formatNaira(STARTER_SLOT_TOTAL)} / ₦5k + ₦5k)</span>
+                </Link>
+              </Button>
+
+              <Button
+                asChild
+                variant="outline"
+                className="w-full sm:w-auto h-11 px-5 rounded-xl border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs transition-all"
+              >
+                <Link to="/dashboard/slots-subscription">
+                  <span>View Slot Management</span>
+                </Link>
+              </Button>
+            </div>
+          </div>
+        ) : approvedProductions.length === 0 ? (
+          /* STATE 2: User holds slots, biological cultivation is actively in progress */
+          <div className="space-y-4">
+            <div className="rounded-2xl border-2 border-dashed border-emerald-300/90 bg-emerald-50/40 p-6 sm:p-10 text-center space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto shadow-xs">
                 <Clock className="w-6 h-6" />
               </div>
               <div className="flex items-center justify-center gap-2 flex-wrap">
@@ -589,18 +311,75 @@ export const ProducerNetwork: React.FC = () => {
                 </Badge>
                 <span className="text-xs text-amber-700 font-semibold">• Biological Cycle in Progress</span>
               </div>
-              <h4 className="text-base font-bold text-gray-900">
-                Biological Cultivation in Progress · Awaiting First Harvest Audit
-              </h4>
-              <p className="text-xs sm:text-sm text-gray-600 max-w-lg mx-auto leading-relaxed">
-                Your {slotsHeld * BAGS_PER_SLOT_CYCLE_1} biological oyster mushroom fruiting bags are actively being monitored and cared for by cooperative farm coordinators. Once your fruiting flushes reach full maturity, your farm coordinator will conduct the certified weigh-in audit and AgroHeal admin will approve your harvest yields right here.
-              </p>
-              <p className="text-xs text-emerald-700 font-medium">
-                Projected harvest returns activate from Cycle 2 onward following Cycle 1 capacity doubling.
-              </p>
+              <div className="space-y-1.5 max-w-lg mx-auto">
+                <h4 className="text-base font-bold text-gray-900">
+                  Biological Cultivation in Progress · Awaiting Harvest Audit
+                </h4>
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+                  Your {slotsHeld * BAGS_PER_SLOT_CYCLE_1} biological oyster mushroom fruiting bags are actively being monitored and cared for by farm cluster coordinators. Once your fruiting flushes reach full maturity, your farm coordinator will conduct the certified weigh-in audit and approved yields will be recorded and credited right here.
+                </p>
+                <p className="text-xs text-emerald-700 font-medium pt-1">
+                  Cycle 1 doubles biological capacity from 2 to 4 fruiting bags per slot. Projected harvest distributions activate from Cycle 2 onward.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+                <Button
+                  asChild
+                  className="w-full sm:w-auto h-10 px-5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all"
+                >
+                  <Link to="/dashboard/slots" className="flex items-center gap-1.5">
+                    <PlusCircle className="w-4 h-4" />
+                    <span>Buy More Slots ({formatNaira(SUBSEQUENT_SLOT_PRICE)}/ea)</span>
+                  </Link>
+                </Button>
+
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full sm:w-auto h-10 px-5 rounded-xl border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs transition-all"
+                >
+                  <Link to="/dashboard/slots-subscription">
+                    <span>View Slot Management</span>
+                  </Link>
+                </Button>
+              </div>
             </div>
-          ) : (
-            /* STATE 3: User has approved harvest records */
+          </div>
+        ) : (
+          /* STATE 3: User has approved harvest records */
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4">
+              <div>
+                <span className="text-xs font-bold text-emerald-900 block">Active Farm Allocations</span>
+                <span className="text-xs text-emerald-700">
+                  {slotsHeld} Slot{slotsHeld > 1 ? "s" : ""} ({slotsHeld * BAGS_PER_SLOT_CYCLE_1} Fruiting Bags) • {approvedProductions.length} Approved Harvest Batch{approvedProductions.length > 1 ? "es" : ""}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Button
+                  asChild
+                  size="sm"
+                  className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-xl"
+                >
+                  <Link to="/dashboard/slots" className="flex items-center gap-1.5">
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>Add Slots ({formatNaira(SUBSEQUENT_SLOT_PRICE)})</span>
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="sm"
+                  className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs h-9 px-3 rounded-xl"
+                >
+                  <Link to="/dashboard/slots-subscription">
+                    <span>Manage Slots</span>
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {approvedProductions.map((prod) => (
                 <div
@@ -619,13 +398,17 @@ export const ProducerNetwork: React.FC = () => {
                       <span className="text-gray-500 flex items-center gap-1">
                         <Scale className="w-3.5 h-3.5 text-emerald-700" /> Weight:
                       </span>
-                      <span className="font-bold font-mono text-gray-900">{prod.weight_kg ? `${prod.weight_kg} kg` : "Weigh-in Verified"}</span>
+                      <span className="font-bold font-mono text-gray-900">
+                        {prod.weight_kg ? `${prod.weight_kg} kg` : "Weigh-in Verified"}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-500 flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5 text-emerald-700" /> Date Approved:
                       </span>
-                      <span className="font-mono text-gray-700">{new Date(prod.created_at || Date.now()).toLocaleDateString()}</span>
+                      <span className="font-mono text-gray-700">
+                        {new Date(prod.created_at || Date.now()).toLocaleDateString()}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-gray-500 flex items-center gap-1">
@@ -636,13 +419,13 @@ export const ProducerNetwork: React.FC = () => {
                   </div>
 
                   <p className="text-[11px] text-gray-600 pt-2 border-t border-emerald-200/60">
-                    {prod.notes || "Cooperative Verified Harvest Batch"}
+                    {prod.notes || "Verified Harvest Batch"}
                   </p>
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* ── SECTION: 7-LEVEL PRODUCTION MATRIX STRUCTURE (FOLDABLE, FOLDED BY DEFAULT) ── */}
@@ -757,7 +540,7 @@ export const ProducerNetwork: React.FC = () => {
               </div>
 
               {/* Allocation Architecture Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
+              <div className="pt-2">
                 <div className="bg-emerald-50/70 rounded-2xl p-5 border border-emerald-200/80 text-xs text-emerald-950 space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="font-extrabold text-emerald-900 block uppercase text-[11px] tracking-wider">
@@ -767,7 +550,7 @@ export const ProducerNetwork: React.FC = () => {
                       Biological Asset
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-2 gap-2.5 text-[11px]">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-[11px]">
                     <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-200/70 shadow-xs">
                       <span className="text-gray-500 block text-[10px]">Direct Referrer</span>
                       <strong className="text-emerald-900 text-xs">10% (₦500)</strong>
@@ -785,30 +568,6 @@ export const ProducerNetwork: React.FC = () => {
                       <strong className="text-emerald-900 text-xs">42% (₦2,100)</strong>
                     </div>
                   </div>
-                </div>
-
-                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 text-xs text-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-slate-900 block uppercase text-[11px] tracking-wider">
-                      Green Card Membership Key (₦2,000 One-Time)
-                    </span>
-                    <Badge className="bg-slate-200 text-slate-800 border-slate-300 text-[10px]">
-                      Identity & Curricula
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2.5 text-[11px]">
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Direct Sponsor Bounty</span>
-                      <strong className="text-emerald-700 text-xs">50% (₦1,000)</strong>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Academy Curricula & System</span>
-                      <strong className="text-emerald-700 text-xs">50% (₦1,000)</strong>
-                    </div>
-                  </div>
-                  <p className="text-[11px] text-gray-500 pt-2 border-t border-slate-200">
-                    Unlocks permanent verified cooperative identity, QR credential, and lifelong curriculum access.
-                  </p>
                 </div>
               </div>
             </motion.div>

@@ -127,7 +127,7 @@ const Slots = () => {
                 </p>
 
                 <div className="mt-4 p-3 rounded-xl bg-gray-50 border border-gray-200 text-gray-500 text-[11px] leading-relaxed text-center">
-                  <span className="font-semibold text-gray-700">Notice:</span> We are an agricultural cooperative, not an investment platform. Surplus proceeds (up to 40%) depend on biological crop yields and realized commodity market sales.
+                  <span className="font-semibold text-gray-700">Notice:</span> We are an agricultural production and agribusiness enablement platform, not an investment company. Surplus proceeds (up to 40%) depend on biological crop yields and realized commodity market sales.
                 </div>
               </div>
             </div>

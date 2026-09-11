@@ -706,7 +706,7 @@ const Checkout = () => {
                         {isFirstSlotPurchase && (
                           <div className="text-[11px] text-green-700 space-y-0.5">
                             <p>• ₦5,000 Farm Slot (Biological asset allocation)</p>
-                            <p>• ₦5,000 Cooperative Cluster Setup & Onboarding</p>
+                            <p>• ₦5,000 Practical Cluster Setup & Onboarding</p>
                           </div>
                         )}
 
@@ -1014,8 +1014,8 @@ const Checkout = () => {
                   </ul>
 
                   <div className="mt-5 p-3.5 rounded-xl bg-muted/60 border border-border/60 text-[11px] text-muted-foreground leading-relaxed">
-                    <strong className="text-foreground block mb-0.5 font-semibold">Cooperative Notice:</strong>
-                    AgroHeal is an agricultural cooperative, not an investment platform. Slot contributions finance physical biological inputs and farm grow-houses. Projected surplus returns (up to 40%) depend on biological crop yields and realized commodity market sales.
+                    <strong className="text-foreground block mb-0.5 font-semibold">Production & Risk Notice:</strong>
+                    AgroHeal is an agribusiness enablement and commercial production platform, not an investment company. Slot contributions finance physical biological inputs and farm grow-houses. Projected surplus returns (up to 40%) depend on biological crop yields and realized commodity market sales.
                   </div>
                 </div>
               </div>
