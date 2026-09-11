@@ -62,17 +62,17 @@ const FarmingInitiativePopup = () => {
                 <div className="inline-flex items-center gap-1.5 bg-[#e8b130]/20 border border-[#e8b130]/40 rounded-full px-3 py-1 mb-4">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#e8b130] animate-pulse" />
                   <span className="text-[#e8b130] text-xs font-semibold tracking-wide uppercase">
-                    New Training
+                    Official Community
                   </span>
                 </div>
 
                 <h2 className="text-white text-xl font-bold leading-snug mb-1 relative z-10">
-                  Ginger & Pepper Group
+                  Mushroom Flagship
                   <br />
-                  Farming Initiative 🌱
+                  & Wealth Creation Hub 🌱
                 </h2>
                 <p className="text-green-300 text-[12px] sm:text-sm relative z-10">
-                  Join and unlock serious profits from intercropping
+                  Real-time harvest updates, production cycles & live webinars
                 </p>
 
                 {/* ROI badges */}

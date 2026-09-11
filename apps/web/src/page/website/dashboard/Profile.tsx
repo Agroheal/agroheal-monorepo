@@ -407,7 +407,7 @@ export const ProfileComponent: React.FC = () => {
             <Check className="w-3.5 h-3.5 stroke-[3]" />
           </div>
           <p className="text-xs text-gray-700 leading-relaxed">
-            By using this platform, I agree to the{" "}
+            By using this platform, I, <strong className="font-bold text-gray-900">{profile?.full_name || "the undersigned member"}</strong>, agree to the{" "}
             <Link
               to="/dashboard/legal"
               className="font-bold text-emerald-800 hover:text-emerald-950 underline underline-offset-2"

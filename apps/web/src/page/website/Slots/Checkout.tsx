@@ -18,14 +18,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import * as Sentry from "@sentry/react";
-import { PROJECT_CATEGORIES } from "@/constant/projectCategories";
+import { PROJECT_CATEGORIES, DEFAULT_CATEGORY } from "@/constant/projectCategories";
 import { cleanName, cleanEmail, normalizePhoneNumber, parsePositiveInt } from "@shared/dataSanitizers";
 
 const Checkout = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [slotQuantity, setSlotQuantity] = useState(1);
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState(DEFAULT_CATEGORY);
 
   // Economic Architecture:
   // - Unit price per slot: ₦5,000
@@ -647,9 +647,7 @@ const Checkout = () => {
                       <option value="" disabled>
                         Select Project Category
                       </option>
-                      {PROJECT_CATEGORIES.filter(
-                        (cat) => cat !== "Mushroom Village",
-                      ).map((cat) => (
+                      {PROJECT_CATEGORIES.map((cat) => (
                         <option key={cat} value={cat}>
                           {cat}
                         </option>

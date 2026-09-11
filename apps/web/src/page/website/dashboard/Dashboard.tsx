@@ -584,32 +584,32 @@ const Dashboard = () => {
                   type="button"
                   onClick={() => {
                     setShowSecureSlotModal(false);
-                    navigate("/dashboard/mushroom-village");
-                  }}
-                  className="w-full rounded-2xl border border-green-800 bg-green-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
-                >
-                  Mushroom Village
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSecureSlotModal(false);
                     navigate("/dashboard/slots");
                   }}
-                  className="w-full rounded-2xl border border-green-800 bg-green-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
+                  className="w-full rounded-2xl border border-emerald-700 bg-emerald-800 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-700 text-left flex items-center justify-between shadow-xs"
                 >
-                  Gingertown
+                  <div>
+                    <p className="font-bold text-white">Mushroom Village (Flagship)</p>
+                    <p className="text-xs text-emerald-100/90 font-normal">₦5,000/slot · Active commercial production</p>
+                  </div>
+                  <span className="text-xs font-bold uppercase bg-emerald-950/60 px-2 py-0.5 rounded text-emerald-200">Open</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowSecureSlotModal(false);
-                    navigate("/dashboard/slots");
-                  }}
-                  className="w-full rounded-2xl border border-green-800 bg-green-800 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-700"
-                >
-                  Organic FoodNation
-                </button>
+
+                <div className="w-full rounded-2xl border border-gray-200 bg-gray-50/90 px-4 py-3 text-sm text-left flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-gray-700">Pioneers Gingertown Farm</p>
+                    <p className="text-xs text-gray-500">Funded via Mushroom Cycle 2 returns</p>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase bg-amber-100 text-amber-800 px-2 py-0.5 rounded border border-amber-200">Cycle 2 Funded</span>
+                </div>
+
+                <div className="w-full rounded-2xl border border-gray-200 bg-gray-50/90 px-4 py-3 text-sm text-left flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-gray-700">Organic FoodNation</p>
+                    <p className="text-xs text-gray-500">Integrated food cluster expansion</p>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase bg-gray-200 text-gray-600 px-2 py-0.5 rounded">Expansion Phase</span>
+                </div>
               </div>
             </div>
           </div>
@@ -668,104 +668,67 @@ const Dashboard = () => {
                       size="sm"
                       className="h-8 bg-green-800 hover:bg-green-700 text-xs"
                     >
-                      <Link to="/subscription">Renew</Link>
+                      <Link to="/subscribe">Renew</Link>
                     </Button>
                   )}
                 </div>
               </div>
 
-              {totalSlotsPurchased > 0 && (
-                <>
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-100 hover:border-green-200 transition-colors shrink-0 gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-green-800/10 flex items-center justify-center shrink-0">
-                        <Sprout className="w-5 h-5 text-green-800" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-gray-900 text-sm truncate">
-                          Farm Setup Fee
-                        </h3>
-                        <p className="text-[10px] sm:text-xs text-gray-500 truncate">
-                          {otherSubscriptions.setup.expiryDate
-                            ? `Valid until ${otherSubscriptions.setup.expiryDate.toLocaleDateString()}`
-                            : "5 months setup fee"}
-                        </p>
-                      </div>
+              {totalSlotsPurchased > 0 ? (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-emerald-50/70 border border-emerald-200/80 hover:border-emerald-300 transition-colors shrink-0 gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-700/10 border border-emerald-700/20 flex items-center justify-center shrink-0">
+                      <Sprout className="w-5 h-5 text-emerald-800" />
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-                      <div
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full shrink-0 ${
-                          otherSubscriptions.setup.status === "active"
-                            ? "text-green-700 bg-green-50"
-                            : "text-red-700 bg-red-50"
-                        }`}
-                      >
-                        {otherSubscriptions.setup.status === "active" ? (
-                          <CheckCircle className="w-3.5 h-3.5" />
-                        ) : (
-                          <AlertCircle className="w-3.5 h-3.5" />
-                        )}
-                        <span className="text-[10px] sm:text-xs font-semibold capitalize">
-                          {otherSubscriptions.setup.status}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-gray-900 text-sm truncate">
+                          Mushroom Flagship Slots
+                        </h3>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                          {totalSlotsPurchased} {totalSlotsPurchased === 1 ? "Slot" : "Slots"} Active
                         </span>
                       </div>
-                      {otherSubscriptions.setup.status === "inactive" && (
-                        <Button
-                          asChild
-                          size="sm"
-                          className="h-7 sm:h-8 bg-green-800 hover:bg-green-700 text-[10px] sm:text-xs px-2 sm:px-3"
-                        >
-                          <Link to="/dashboard/other-payments">Pay Now</Link>
-                        </Button>
-                      )}
+                      <p className="text-xs text-gray-600 truncate mt-0.5">
+                        Fully funded production · Zero monthly maintenance fees
+                      </p>
                     </div>
                   </div>
-
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-gray-50 border border-gray-100 hover:border-green-200 transition-colors shrink-0 gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-green-800/10 flex items-center justify-center shrink-0">
-                        <Users className="w-5 h-5 text-green-800" />
-                      </div>
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-gray-900 text-sm truncate">
-                          Farm Support Fee
-                        </h3>
-                        <p className="text-[10px] sm:text-xs text-gray-500 truncate">
-                          {otherSubscriptions.support.expiryDate
-                            ? `Valid until ${otherSubscriptions.support.expiryDate.toLocaleDateString()}`
-                            : "Monthly maintenance support"}
-                        </p>
-                      </div>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <Button
+                      asChild
+                      size="sm"
+                      className="h-8 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold px-3 rounded-lg shadow-xs"
+                    >
+                      <Link to="/dashboard/slots">Manage Slots</Link>
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-amber-50/70 border border-amber-200/80 hover:border-amber-300 transition-colors shrink-0 gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                      <Sprout className="w-5 h-5 text-amber-800" />
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-                      <div
-                        className={`flex items-center gap-1.5 px-3 py-1 rounded-full shrink-0 ${
-                          otherSubscriptions.support.status === "active"
-                            ? "text-green-700 bg-green-50"
-                            : "text-red-700 bg-red-50"
-                        }`}
-                      >
-                        {otherSubscriptions.support.status === "active" ? (
-                          <CheckCircle className="w-3.5 h-3.5" />
-                        ) : (
-                          <AlertCircle className="w-3.5 h-3.5" />
-                        )}
-                        <span className="text-[10px] sm:text-xs font-semibold capitalize">
-                          {otherSubscriptions.support.status}
-                        </span>
-                      </div>
-                      {otherSubscriptions.support.status === "inactive" && (
-                        <Button
-                          asChild
-                          size="sm"
-                          className="h-7 sm:h-8 bg-green-800 hover:bg-green-700 text-[10px] sm:text-xs px-2 sm:px-3"
-                        >
-                          <Link to="/dashboard/other-payments">Pay Now</Link>
-                        </Button>
-                      )}
+                    <div className="min-w-0">
+                      <h3 className="font-bold text-gray-900 text-sm truncate">
+                        Mushroom Farm Slot
+                      </h3>
+                      <p className="text-xs text-gray-600 truncate mt-0.5">
+                        ₦5,000 / Slot · 40% quarterly harvest returns from Cycle 2 onward
+                      </p>
                     </div>
                   </div>
-                </>
+                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <Button
+                      asChild
+                      size="sm"
+                      className="h-8 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold px-3 rounded-lg shadow-xs"
+                    >
+                      <Link to="/dashboard/slots">Secure Slot</Link>
+                    </Button>
+                  </div>
+                </div>
               )}
 
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden shrink-0">

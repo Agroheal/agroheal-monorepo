@@ -62,37 +62,37 @@ const Slots = () => {
                   <Sprout className="w-6 h-6 text-white" />
                 </div>
                 <h2 className="text-lg font-bold text-white">
-                  Practical Farm Slot
+                  Mushroom Flagship Slot
                 </h2>
-                <p className="text-green-200 text-xs mt-1">
-                  Two growing seasons · 12 months
+                <p className="text-emerald-200 text-xs mt-1">
+                  Cycle 1 Doubling · 40% Quarterly Returns from Cycle 2
                 </p>
               </div>
 
               {/* Price */}
-              <div className="px-6 py-5 text-center border-b border-gray-100 bg-green-50">
-                <div className="text-4xl font-bold text-green-900">
+              <div className="px-6 py-5 text-center border-b border-gray-100 bg-emerald-50/50">
+                <div className="text-4xl font-extrabold text-emerald-900">
                   {slotPrice}
                 </div>
-                <p className="text-gray-500 text-xs mt-1 font-medium">
-                  per slot · ₦10,000 first slot (includes cluster setup)
+                <p className="text-gray-600 text-xs mt-1 font-medium">
+                  per slot · Zero monthly maintenance fees
                 </p>
               </div>
 
               {/* Features */}
               <div className="px-6 py-5 space-y-3">
                 {[
-                  "Shared access to a group farm",
-                  "Expert guidance throughout the season",
-                  "Onsite production of organic inputs",
-                  "WhatsApp group coordination",
-                  "Share in harvest proceeds",
+                  "2 Commercial substrate fruiting bags included",
+                  "Capacity doubles to 4 bags in Cycle 1 (Months 1–3)",
+                  "40% quarterly returns from net harvest proceeds from Cycle 2",
+                  "Expert agronomist oversight & managed fruiting house",
+                  "Guaranteed off-taker contracts & supermarket distribution",
                 ].map((feature) => (
                   <div key={feature} className="flex items-center gap-3">
-                    <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle className="w-3 h-3 text-green-700" />
+                    <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-3.5 h-3.5 text-emerald-700" />
                     </div>
-                    <span className="text-sm text-gray-700">{feature}</span>
+                    <span className="text-sm text-gray-700 font-medium">{feature}</span>
                   </div>
                 ))}
               </div>

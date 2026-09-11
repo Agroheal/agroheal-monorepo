@@ -17,19 +17,18 @@ export const ShareReferralModal = ({
 }: ShareReferralModalProps) => {
   const [copied, setCopied] = useState(false);
 
-  const textCopy = `Join me on Agroheal and secure your Green Card:
+  const textCopy = `Join me on AgroHeal and secure your Green Card:
 
 ${SITE_URL}/signup?ref=${referralCode}
 
-🌱 What's the Agroheal Green Card?
+🌱 What's the AgroHeal Green Card?
 
-For a one-time ₦2,000 fee, you get full access to the Agroheal platform — organic farming courses, farm slot opportunities, and the LEAP Community.
+For a one-time ₦2,000 fee, you get verified cooperative membership:
+• Lifetime access to organic farming & mushroom cultivation courses in the Learning Academy
+• Earn ₦1,000 direct sponsor rewards for every member you refer
+• Immediate eligibility for our 5×7 Organogram matrix and physical Mushroom Farm Slots
 
-🫚 Free Ginger Seedlings
-
-Every Green Card Community that reaches 50 members unlocks free ginger seedlings for everyone in it — one for every member. The more of us who join together, the sooner we unlock it.
-
-Sign up with my link above and let's grow this together.`;
+Sign up with my link above and let's grow wealth through sustainable agriculture together!`;
 
   const handleCopy = async () => {
     try {

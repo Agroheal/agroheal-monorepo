@@ -261,30 +261,43 @@ const MushroomVillage = () => {
                   Fee Breakdown
                 </h2>
               </div>
-              <div className="space-y-4 text-sm text-gray-700">
-                <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+              <div className="space-y-3.5 text-sm text-gray-700">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                   <div>
-                    <p className="font-semibold">Slot & Admin Marketing</p>
-                    <p className="text-xs text-gray-500">
-                      Slot subscription + support fee
-                    </p>
+                    <p className="font-semibold text-gray-900">Direct Sponsor Reward (10%)</p>
+                    <p className="text-xs text-gray-500">Credited to referring producer</p>
                   </div>
-                  <p className="font-semibold">₦1,500</p>
+                  <p className="font-bold text-gray-900">₦500</p>
                 </div>
-                <div className="flex items-center justify-between border-b border-gray-200 pb-3">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                   <div>
-                    <p className="font-semibold">Farm Setup</p>
-                    <p className="text-xs text-gray-500">
-                      Farm setup fee per slot
-                    </p>
+                    <p className="font-semibold text-gray-900">Admin & Operations (20%)</p>
+                    <p className="text-xs text-gray-500">Cooperative administration & oversight</p>
                   </div>
-                  <p className="font-semibold">₦3,500</p>
+                  <p className="font-bold text-gray-900">₦1,000</p>
                 </div>
-                <div className="flex items-center justify-between pt-3">
-                  <span className="text-sm font-semibold text-gray-900">
-                    Total per slot
-                  </span>
-                  <span className="text-sm font-semibold text-gray-900">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                  <div>
+                    <p className="font-semibold text-gray-900">Starter Fruiting Bags (28%)</p>
+                    <p className="text-xs text-gray-500">2 commercial substrate bags per slot</p>
+                  </div>
+                  <p className="font-bold text-gray-900">₦1,400</p>
+                </div>
+                <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                  <div>
+                    <p className="font-semibold text-gray-900">Housing & Climate Infrastructure (42%)</p>
+                    <p className="text-xs text-gray-500">Fruiting house, racks, and humidification</p>
+                  </div>
+                  <p className="font-bold text-gray-900">₦2,100</p>
+                </div>
+                <div className="flex items-center justify-between pt-2">
+                  <div>
+                    <span className="text-sm font-bold text-emerald-900">
+                      Total Production Cost
+                    </span>
+                    <p className="text-xs text-emerald-700 font-medium">Zero monthly maintenance fees</p>
+                  </div>
+                  <span className="text-base font-black text-emerald-900">
                     ₦5,000
                   </span>
                 </div>

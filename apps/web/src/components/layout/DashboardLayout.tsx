@@ -96,10 +96,6 @@ const navGroups: NavGroup[] = [
     label: "Wallet & Ledger",
     path: "/dashboard/transactions",
     icon: Wallet,
-    subItems: [
-      { label: "Transaction Ledger", path: "/dashboard/transactions" },
-      { label: "Other Payments", path: "/dashboard/other-payments" },
-    ],
   },
   {
     id: "account",
@@ -203,34 +199,18 @@ const SidebarContent = ({
 
   return (
     <div className="flex flex-col h-full select-none text-emerald-100">
-      {/* User DP & Brand Header in Top-Left Corner */}
-      <div className="flex items-center gap-3 px-4 py-3.5 border-b border-emerald-800/50 bg-[#0a1e12]/60 shrink-0">
-        <NavLink
-          to="/dashboard/profile"
-          onClick={handleClose}
-          title="My Profile & Settings"
-          className="relative group transition-transform hover:scale-105 shrink-0"
-        >
-          <UserAvatar
-            src={avatarUrl}
-            name={userName}
-            email={userEmail}
-            sizeClassName="w-10 h-10"
-            textClassName="text-xs font-bold"
-            roundedClassName="rounded-full"
-            className="ring-2 ring-emerald-400/40 shadow-md group-hover:ring-emerald-300 transition-all"
-          />
-          <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 border-2 border-[#0a1e12] rounded-full" />
-        </NavLink>
+      {/* Brand Header */}
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-emerald-800/50 bg-[#0a1e12]/80 shrink-0">
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-green-700 flex items-center justify-center text-white shadow-md ring-1 ring-white/20 shrink-0">
+          <Sprout className="w-4 h-4" />
+        </div>
         <div className="min-w-0 flex-1">
-          <NavLink to="/dashboard/profile" onClick={handleClose} className="block group">
-            <span className="text-white font-bold text-sm tracking-tight block leading-tight truncate group-hover:text-emerald-300 transition-colors">
-              {userName || "Agroheal Member"}
-            </span>
-            <span className="text-[10px] font-semibold text-emerald-400/80 tracking-wide block truncate">
-              {userEmail ? "Member Portal" : "Active"}
-            </span>
-          </NavLink>
+          <span className="text-white font-black text-sm tracking-tight block leading-tight truncate">
+            AgroHeal Member Portal
+          </span>
+          <span className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase block truncate">
+            Cooperative Enterprise
+          </span>
         </div>
       </div>
 

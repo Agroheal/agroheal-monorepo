@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { supabase } from "@/lib/supabaseClient";
 import { showToast } from "@/components/ui/ToastComponent";
 import { Toaster } from "react-hot-toast";
-import { Plus, Edit, Trash2, Save, X, Printer, Lock, TrendingUp, FileSpreadsheet } from "lucide-react";
+import { Plus, Edit, Trash2, Save, X, Printer, Lock, TrendingUp, FileSpreadsheet, Sprout } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PROJECT_CATEGORIES,
@@ -1647,6 +1647,22 @@ const FarmRecordsView = () => {
             </Button>
           </div>
         </motion.div>
+
+        {(selectedCategory === "Gingertown" || selectedCategory === "Pioneers Gingertown") && (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 sm:p-5 text-amber-900 shadow-xs flex items-start gap-3.5 no-print">
+            <div className="w-10 h-10 rounded-xl bg-amber-200/70 border border-amber-300 flex items-center justify-center shrink-0 text-amber-800 shadow-xs">
+              <Sprout className="w-5 h-5 text-amber-800" />
+            </div>
+            <div>
+              <h4 className="font-bold text-sm sm:text-base text-amber-950">
+                Pioneers Gingertown Group Farm — Operational Status
+              </h4>
+              <p className="text-xs sm:text-sm text-amber-800/90 mt-1 leading-relaxed">
+                Pioneers Gingertown Group Farm is the only active farm in Gingertown. In line with AgroHeal's current operational strategy, it is funded and sustained directly from the returns of the second cycle/quarter of our Mushroom Flagship production. All active new farm slots and expansion are concentrated in the Mushroom Village Flagship.
+              </p>
+            </div>
+          </div>
+        )}
 
         {!canManageRecords && !canManageExpenses && !canManageSales && (
           <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-slate-700 shadow-sm no-print">

@@ -112,12 +112,12 @@ export default function HowItWorksContent({
       icon: Building,
     },
     {
-      title: "Gingertown",
-      tag: "Export-Grade Spices",
+      title: "Pioneers Gingertown",
+      tag: "Funded via Mushroom Cycle 2",
       image: AgrohealImages.HowItWorksTwo,
       description:
-        "1-Hectare commercial ginger clusters cultivated with drip irrigation and premium organic soil management. Cured, processed, and supplied directly to export and industrial spice markets.",
-      stat: "Export-Certified Industrial Processing",
+        "The active Pioneers Gingertown Group Farm is sustained and financed directly through proceeds from Cycle 2 onwards of our Mushroom Flagship project. Cultivates commercial ginger with drip irrigation for export spice markets.",
+      stat: "Cycle 2 Mushroom Reinvestment",
       icon: ShieldCheck,
     },
   ];
