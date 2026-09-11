@@ -81,13 +81,13 @@ export default function HowItWorks() {
                 step: "02",
                 icon: Sprout,
                 title: "2. Practice",
-                tagline: "Participate on Real Farm Land",
+                tagline: "Wealth Creation & Farm Slots",
                 description:
-                  "Secure an operational farm slot (₦5,000 one-time setup). Participate in real agricultural clusters with physical land, professional nursery infrastructure, and dedicated on-site supervision.",
+                  "Activate Wealth Creation membership with our ₦10,000 dual activation package: ₦5,000 Mushroom Power welcome product + ₦5,000 compulsory first farm slot. Additional slots are ₦5,000 each with zero recurring maintenance fees.",
                 highlights: [
-                  "₦5,000 One-Time Slot Setup",
+                  "₦10,000 Dual Activation (₦5k Product + ₦5k Slot)",
+                  "Optional Additional Slots at ₦5,000 Each",
                   "Zero Ongoing Monthly Utility Dues",
-                  "Managed On-Site by Resident Supervisors",
                 ],
                 accent: "border-amber-500/30 bg-white",
                 badge: "bg-amber-100 text-amber-800",
@@ -98,11 +98,11 @@ export default function HowItWorks() {
                 title: "3. Earn",
                 tagline: "Harvest Distributions & Dividends",
                 description:
-                  "In Cycle 1 (Months 1–6), initial harvest ploughed back to double capacity (from 2 bags to 4 mature bags per slot). From Cycle 2 onward, receive 40% quarterly harvest distributions credited directly to your withdrawable wallet.",
+                  "In Cycle 1 (Months 1–3), harvest is reinvested to double capacity (from 2 bags to 4 mature fruiting bags per slot). From Cycle 2 onward, receive 40% quarterly harvest distributions credited directly to your withdrawable wallet.",
                 highlights: [
-                  "Cycle 1 Capacity Doubling (2 ➔ 4 Bags)",
-                  "40% Quarterly Harvest Returns",
-                  "Guaranteed Supermarket & Export Off-Takers",
+                  "Cycle 1 Capacity Doubling (2 ➔ 4 Bags in 3 Months)",
+                  "40% Quarterly Harvest Returns (Cycle 2 Onward)",
+                  "Guaranteed Supermarket & Institutional Off-Takers",
                 ],
                 accent: "border-emerald-600/30 bg-white",
                 badge: "bg-emerald-100 text-emerald-800",
@@ -188,15 +188,16 @@ export default function HowItWorks() {
                   </span>
                   <h3 className="text-2xl font-bold mb-3">Mushroom Village</h3>
                   <p className="text-gray-300 text-sm leading-relaxed mb-6 font-light">
-                    Commercial production of high-value Oyster Mushrooms. ₦5,000
-                    per slot. Starter bags double to 4 mature fruiting bags in
-                    Cycle 1, yielding continuous 40% net quarterly returns in
-                    Cycle 2 onward.
+                    Commercial production of high-value Oyster Mushrooms. Activated via the
+                    ₦10,000 Wealth Creation package (₦5,000 Mushroom Power product + ₦5,000
+                    first slot; additional slots ₦5,000 each). Starter bags double from 2 to 4
+                    mature bags in Cycle 1 (Months 1–3), delivering continuous 40% quarterly
+                    harvest distributions from Cycle 2 onward.
                   </p>
                 </div>
                 <div className="pt-4 border-t border-green-900/60 text-xs text-[#d1ef75] font-semibold flex items-center gap-1.5">
                   <TrendingUp className="w-4 h-4" />
-                  <span>Cycle 1 Doubling + 40% Quarterly Distributions</span>
+                  <span>Cycle 1 (M1–3) Doubling + 40% Quarterly Dividends</span>
                 </div>
               </div>
 
@@ -312,49 +313,62 @@ export default function HowItWorks() {
                 </Link>
               </div>
 
-              {/* Practical Farm Slot */}
+              {/* Wealth Creation & Farm Slot */}
               <div className="bg-green-950 text-white rounded-2xl p-6 border border-green-800 flex flex-col justify-between shadow-lg">
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-xs font-bold uppercase tracking-wider text-green-950 bg-[#d1ef75] px-2.5 py-1 rounded-md">
-                      Biological Production
+                      Wealth Creation
                     </span>
-                    <span className="text-xl font-extrabold text-white">
-                      ₦5,000 <span className="text-xs font-normal text-gray-300">per slot</span>
-                    </span>
+                    <div className="text-right">
+                      <span className="text-xl font-extrabold text-white">
+                        ₦10,000
+                      </span>
+                      <span className="block text-[11px] text-gray-300">
+                        ₦5k product + ₦5k slot
+                      </span>
+                    </div>
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">Practical Farm Slot</h3>
+                  <h3 className="text-xl font-bold text-white mb-2">Wealth Creation Activation</h3>
                   <p className="text-gray-300 text-xs leading-relaxed mb-6">
-                    Direct physical production unit in a cooperative group farm cluster.
+                    Full commercial production activation with welcome health product and first practical farm slot.
                   </p>
 
                   <ul className="space-y-2.5 text-xs text-gray-200 mb-6">
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-[#d1ef75] shrink-0 mt-0.5" />
-                      <span>Physical starter fruiting bags & nursery allocation</span>
+                      <span>₦5,000 Mushroom Power welcome health beverage (₦6k retail value)</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-[#d1ef75] shrink-0 mt-0.5" />
-                      <span>Zero recurring monthly maintenance dues</span>
+                      <span>₦5,000 compulsory first farm slot (2 starter fruiting bags)</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-[#d1ef75] shrink-0 mt-0.5" />
-                      <span>Cycle 1 biological doubling to 4 mature bags</span>
+                      <span>Optional additional farm slots at ₦5,000 each (unlimited)</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-[#d1ef75] shrink-0 mt-0.5" />
-                      <span>40% quarterly harvest returns from Cycle 2 onward</span>
+                      <span>Cycle 1 (Months 1–3) biological doubling from 2 to 4 bags</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-[#d1ef75] shrink-0 mt-0.5" />
-                      <span>Unlocks 5x7 cluster matrix placement & spillover</span>
+                      <span>40% quarterly harvest returns credited to wallet from Cycle 2</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[#d1ef75] shrink-0 mt-0.5" />
+                      <span>Flat ₦500 direct referral bonus on every slot referred</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-[#d1ef75] shrink-0 mt-0.5" />
+                      <span>Zero monthly maintenance dues or recurring utility fees</span>
                     </li>
                   </ul>
                 </div>
 
                 <Link to="/signup?redirect=/dashboard/checkout">
                   <Button className="w-full bg-[#d1ef75] hover:bg-[#bce055] text-green-950 font-bold rounded-xl">
-                    Secure Farm Slot
+                    Activate Wealth Creation (₦10,000)
                   </Button>
                 </Link>
               </div>

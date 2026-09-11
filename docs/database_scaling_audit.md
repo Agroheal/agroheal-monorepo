@@ -51,20 +51,20 @@ A comprehensive structural remediation, sponsor policy realignment, and database
 ### Technical Implementation:
 1. **Wallet Accumulation:**
    * Unsubscribed members can share their referral link (`/signup?ref=CODE`).
-   * When their referrals pay for Green Cards or slots, direct referral bonuses (₦1,000) and matrix commissions enter their wallet (`public.profiles.referral_earnings` and `public.wallet_ledger`).
+   * When their referrals pay for Green Cards (₦1,000 direct referral bonus), farm slots (₦500 direct referral bonus), or purchase products (7-level matrix commissions), earnings enter their wallet (`public.profiles.referral_earnings` and `public.wallet_ledger`).
 2. **Withdrawal Gate:**
    * Bank withdrawals require an active project subscription (`is_project_subscribed = true`).
    * For unsubscribed members, the withdrawal button is locked with the explanatory status:
-     *"Project Subscription Required: Your referral earnings accumulate safely in your wallet. Bank withdrawals unlock once you pay for a project, or once your wallet credit reaches ₦10,000 to subscribe directly using your balance."*
+     *"Project Subscription Required: Your referral earnings accumulate safely in your wallet. Bank withdrawals unlock once you pay for a project, or once your wallet credit reaches ₦10,000 to activate your Wealth Creation Team membership directly using your balance."*
 3. **₦10,000 Wallet Subscription Activation:**
    * When an unsubscribed member's wallet balance reaches **₦10,000**, a special action unlocks:
-     **"Activate Project Subscription from Wallet Balance (₦10,000)"**
+     **"Activate Wealth Creation Team from Wallet Balance (₦10,000)"**
    * Handled atomically via PostgreSQL stored procedure:
      `public.subscribe_with_wallet_balance(p_user_id UUID)`:
      - Verifies `referral_earnings >= 10000`.
      - Debits ₦10,000 from wallet balance.
      - Logs double-entry transaction in `public.wallet_ledger`.
-     - Inserts an active lifetime Green Card subscription in `public.subscriptions`.
+     - Inserts an active lifetime Wealth Creation subscription and first farm slot.
      - Unlocks bank withdrawals immediately.
 
 ---
@@ -76,7 +76,7 @@ A comprehensive structural remediation, sponsor policy realignment, and database
 * `/about` — About AgroHeal Mission & Story
 * `/careers` — Open Job Postings & Volunteer Applications (Ogun, Lagos, Remote)
 * `/legal`, `/terms`, `/privacy` — Terms of Service, Privacy Policy, Agreement
-* `/login`, `/signup`, `/forgot-password`, `/reset-password` — Authentication
+* `/signin`, `/signup`, `/forgot-password`, `/reset-password` — Authentication
 * `/verify-card/:memberId` — Public Digital Green Card QR Verification
 
 ### 3.2. Member Portal Routes (Session Protected — All Registered Users)

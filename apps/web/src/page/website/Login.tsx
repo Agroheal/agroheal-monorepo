@@ -123,7 +123,7 @@ const Login = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="pl-10 h-10.5 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
+                  className="pl-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
                   required
                 />
               </div>
@@ -153,7 +153,7 @@ const Login = () => {
                   onChange={(e) => setPassword(e.target.value)}
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  className="pl-10 pr-10 h-10.5 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
+                  className="pl-10 pr-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
                   required
                 />
                 <button
@@ -171,11 +171,11 @@ const Login = () => {
             </div>
 
             {/* Submit */}
-            <div className="pt-1">
+            <div className="pt-2">
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-10.5 bg-green-800 hover:bg-green-700 text-white font-semibold rounded-xl text-sm transition-all duration-200 flex items-center justify-center gap-2 group"
+                className="w-full h-12 bg-green-800 hover:bg-green-700 text-white font-bold rounded-xl text-base transition-all duration-200 shadow-md flex items-center justify-center gap-2 group"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
@@ -185,7 +185,7 @@ const Login = () => {
                 ) : (
                   <span className="flex items-center gap-2">
                     Sign in
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+                    <ArrowRight className="w-4.5 h-4.5 group-hover:translate-x-0.5 transition-transform" />
                   </span>
                 )}
               </Button>
