@@ -196,7 +196,7 @@ export const ProfileComponent: React.FC = () => {
     : "Member";
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12 font-sans">
+    <div className="max-w-5xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8 pb-16 font-sans">
       <Toaster position="top-right" />
 
       {/* Header Banner */}

@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import NetworkCalculatorCard from "@/components/network/NetworkCalculatorCard";
 
 export const MATRIX_COMMISSIONS = [
   { level: 1, percentage: 5.0, amount: 250, maxMembers: 5, potential: 1250, requiredDirects: 5 },
@@ -133,7 +134,7 @@ export const ConsumerNetwork: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+    <div className="space-y-8 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 pb-16 font-sans">
       {/* ── HERO BANNER ── */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-950 via-green-900 to-slate-950 text-white p-7 sm:p-10 shadow-xl border border-emerald-700/30">
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
@@ -341,26 +342,18 @@ export const ConsumerNetwork: React.FC = () => {
       </div>
 
       {/* ── INTERACTIVE EARNINGS CALCULATOR ── */}
-      <div className="bg-gradient-to-br from-emerald-900 via-green-950 to-slate-900 text-white rounded-3xl p-7 sm:p-9 shadow-xl border border-emerald-700/40 space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-xl">
-            <span className="text-xs font-bold text-emerald-300 uppercase tracking-widest flex items-center gap-1.5">
-              <Calculator className="w-4 h-4" /> Consumer Earnings Forecaster
-            </span>
-            <h3 className="text-xl sm:text-2xl font-black">
-              Interactive Multilevel Retail Forecaster
-            </h3>
-            <p className="text-xs sm:text-sm text-emerald-100/80 leading-relaxed">
-              Estimate your monthly recurring harvest bonuses when your consumer community purchases eligible retail packages (such as Mushroom Power 500g).
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 bg-white/10 p-3.5 rounded-2xl border border-white/15">
-            <label className="text-xs font-semibold whitespace-nowrap">Orders / Member:</label>
+      <NetworkCalculatorCard
+        eyebrowIcon={Calculator}
+        eyebrowText="Consumer Earnings Forecaster"
+        title="Interactive Multilevel Retail Forecaster"
+        description="Estimate your monthly recurring harvest bonuses when your consumer community purchases eligible retail packages (such as Mushroom Power 500g)."
+        controls={
+          <div className="space-y-1">
+            <label className="text-[10px] text-emerald-200 font-semibold block">Orders / Member:</label>
             <select
               value={calcOrdersPerMember}
               onChange={(e) => setCalcOrdersPerMember(Number(e.target.value))}
-              className="bg-emerald-950 text-white text-xs font-bold px-3 py-2 rounded-xl border border-emerald-500/40 cursor-pointer"
+              className="bg-emerald-950 text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-emerald-500/40 cursor-pointer w-full"
             >
               {[1, 2, 3, 4, 5, 10, 20].map((num) => (
                 <option key={num} value={num}>
@@ -369,42 +362,32 @@ export const ConsumerNetwork: React.FC = () => {
               ))}
             </select>
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-          <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-            <span className="text-[10px] text-emerald-300 uppercase tracking-wider block">Level 1 (5 Members)</span>
-            <span className="text-xl font-black text-white mt-1 block">
-              ₦{(1250 * calcOrdersPerMember).toLocaleString()}
-            </span>
-            <span className="text-[10px] text-emerald-200/70 mt-0.5 block">₦250/product</span>
-          </div>
-
-          <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-            <span className="text-[10px] text-emerald-300 uppercase tracking-wider block">Level 2 (25 Members)</span>
-            <span className="text-xl font-black text-white mt-1 block">
-              ₦{(4375 * calcOrdersPerMember).toLocaleString()}
-            </span>
-            <span className="text-[10px] text-emerald-200/70 mt-0.5 block">₦175/product</span>
-          </div>
-
-          <div className="bg-white/5 p-4 rounded-2xl border border-white/10">
-            <span className="text-[10px] text-emerald-300 uppercase tracking-wider block">Level 3 (125 Members)</span>
-            <span className="text-xl font-black text-white mt-1 block">
-              ₦{(18750 * calcOrdersPerMember).toLocaleString()}
-            </span>
-            <span className="text-[10px] text-emerald-200/70 mt-0.5 block">₦150/product</span>
-          </div>
-
-          <div className="bg-emerald-500/20 p-4 rounded-2xl border border-emerald-400/50">
-            <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider block">Levels 1–3 Cumulative</span>
-            <span className="text-xl font-black text-amber-300 mt-1 block">
-              ₦{((1250 + 4375 + 18750) * calcOrdersPerMember).toLocaleString()}
-            </span>
-            <span className="text-[10px] text-emerald-200 mt-0.5 block">Across 155 members</span>
-          </div>
-        </div>
-      </div>
+        }
+        metrics={[
+          {
+            label: "Level 1 (5 Members)",
+            value: `₦${(1250 * calcOrdersPerMember).toLocaleString()}`,
+            subtext: "₦250/product",
+          },
+          {
+            label: "Level 2 (25 Members)",
+            value: `₦${(4375 * calcOrdersPerMember).toLocaleString()}`,
+            subtext: "₦175/product",
+          },
+          {
+            label: "Level 3 (125 Members)",
+            value: `₦${(18750 * calcOrdersPerMember).toLocaleString()}`,
+            subtext: "₦150/product",
+          },
+          {
+            label: "Levels 1–3 Cumulative",
+            value: `₦${((1250 + 4375 + 18750) * calcOrdersPerMember).toLocaleString()}`,
+            subtext: "Across 155 members",
+            isHighlight: true,
+          },
+        ]}
+        complianceNotice="AgroHeal is an agricultural cooperative, not an investment platform. Multilevel retail simulations represent cooperative community purchase cashbacks and referral royalties on authentic farm produce, not fixed returns or guaranteed investment yields."
+      />
 
       {/* ── CONSUMER MARKETPLACE PREVIEW (COMING SOON) ── */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200/90 space-y-6">

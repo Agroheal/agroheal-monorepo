@@ -27,6 +27,7 @@ import PhoneModal from "./PhoneModal";
 import KinModal from "./KinModal";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import NextStepModal from "@/components/dashboard/NextStepModal";
 
 interface ReferralProps {
   id: string;
@@ -76,6 +77,7 @@ const Dashboard = () => {
   const [showKinModal, setShowKinModal] = useState<boolean>(false);
   const [showSecureSlotModal, setShowSecureSlotModal] =
     useState<boolean>(false);
+  const [forceOpenNextStep, setForceOpenNextStep] = useState<boolean>(false);
   const [kinDetails, setKinDetails] = useState<KinDetails | null>(null);
   const [referralNumber, setReferralNumber] = useState("");
   const [otherSubscriptions, setOtherSubscriptions] = useState<{
@@ -355,15 +357,28 @@ const Dashboard = () => {
             </p>
           </div>
 
-          <Link
-            to="/dashboard/green-card"
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold backdrop-blur-sm border border-white/20 transition-colors shadow-xs"
-            title="View Official Green Card"
-          >
-            <Award className="w-4 h-4 text-emerald-300" />
-            <span className="font-mono">{formatAgcId(profile?.member_id as string)}</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          </Link>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setForceOpenNextStep(true)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-400/20 hover:bg-emerald-400/30 text-emerald-200 border border-emerald-400/35 text-xs sm:text-sm font-semibold backdrop-blur-sm transition-all shadow-xs cursor-pointer"
+              title="View Next Cooperative Milestone"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+              <span>Next Milestone</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            </button>
+
+            <Link
+              to="/dashboard/green-card"
+              className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold backdrop-blur-sm border border-white/20 transition-colors shadow-xs"
+              title="View Official Green Card"
+            >
+              <Award className="w-4 h-4 text-emerald-300" />
+              <span className="font-mono">{formatAgcId(profile?.member_id as string)}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            </Link>
+          </div>
         </motion.div>
       </div>
 
@@ -1046,6 +1061,16 @@ const Dashboard = () => {
             setKinDetails(updatedData);
           }}
           onClose={() => setShowKinModal(false)}
+        />
+      )}
+      {profile && (
+        <NextStepModal
+          hasGreenCard={otherSubscriptions.platform.status === "active"}
+          totalSlots={totalSlotsPurchased}
+          directReferralsCount={profile.referrals?.length ?? 0}
+          referralCode={profile.referral_code ?? ""}
+          forceOpen={forceOpenNextStep}
+          onCloseExternal={() => setForceOpenNextStep(false)}
         />
       )}
     </div>

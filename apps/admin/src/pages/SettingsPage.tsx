@@ -2,6 +2,7 @@ import { ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LegalDocEditor } from "@/components/admin/LegalDocEditor";
+import { NextStepModalConfigEditor } from "@/components/admin/NextStepModalConfigEditor";
 import { StatusBanner } from "@/components/admin/StatusBanner";
 
 export default function SettingsPage() {
@@ -14,9 +15,14 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-6 max-w-6xl mx-auto pb-12">
       <StatusBanner variant="success" message={successMessage} />
       <StatusBanner variant="error" message={errorMessage} />
+
+      <NextStepModalConfigEditor
+        onSuccess={(msg) => flash(setSuccessMessage, msg)}
+        onError={(msg) => flash(setErrorMessage, msg)}
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <LegalDocEditor
