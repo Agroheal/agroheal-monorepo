@@ -10,11 +10,12 @@ import {
   Wallet,
   CheckCircle2,
   AlertCircle,
+  Coins,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import * as Sentry from "@sentry/react";
@@ -30,8 +31,19 @@ import {
 const Checkout = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [slotQuantity, setSlotQuantity] = useState(1);
-  const [category, setCategory] = useState(DEFAULT_CATEGORY);
+  const [searchParams] = useSearchParams();
+
+  const urlCategory = searchParams.get("category");
+  const urlSlots = parseInt(searchParams.get("slots") || "1", 10);
+
+  const [slotQuantity, setSlotQuantity] = useState(
+    !isNaN(urlSlots) && urlSlots > 0 ? urlSlots : 1,
+  );
+  const [category, setCategory] = useState(
+    urlCategory && PROJECT_CATEGORIES.includes(urlCategory)
+      ? urlCategory
+      : DEFAULT_CATEGORY,
+  );
 
   const [hasGreenCard, setHasGreenCard] = useState<boolean>(true); // assume true while loading
   const [hasPriorSlots, setHasPriorSlots] = useState<boolean>(false);
@@ -44,8 +56,9 @@ const Checkout = () => {
   const isOrganicFoodNation =
     category === "Organic FoodNation (1 Million Hectares against Hunger)";
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"flutterwave" | "wallet">("flutterwave");
+  const [paymentMethod, setPaymentMethod] = useState<"flutterwave" | "wallet" | "split">("flutterwave");
   const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [walletAmountToUse, setWalletAmountToUse] = useState<number>(0);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true);
   const [formData, setFormData] = useState({
     firstName: "",
@@ -90,30 +103,32 @@ const Checkout = () => {
           }));
           const bal = Number(profile.referral_earnings ?? profile.wallet_balance ?? 0);
           setWalletBalance(bal);
+          setWalletAmountToUse(Math.min(bal, totalPrice));
         }
 
-        // Check active Green Card subscription
-        const { data: sub } = await supabase
+        // Check active Green Card subscription across all plans
+        const { data: subs } = await supabase
           .from("subscriptions")
-          .select("expires_at, status")
-          .eq("user_id", user.id)
-          .eq("status", "active")
-          .order("expires_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        const userHasGreenCard =
-          !!sub && (!sub.expires_at || new Date(sub.expires_at) > new Date());
-        setHasGreenCard(userHasGreenCard);
-
-        // Check if user already owns any slots
-        const { count } = await supabase
-          .from("slot_subscriptions")
-          .select("*", { count: "exact", head: true })
+          .select("expires_at, status, plan")
           .eq("user_id", user.id)
           .eq("status", "active");
 
-        setHasPriorSlots((count ?? 0) > 0);
+        const userHasGreenCard = Boolean(
+          subs &&
+            subs.some(
+              (s) => !s.expires_at || new Date(s.expires_at).getTime() > Date.now()
+            )
+        );
+        setHasGreenCard(userHasGreenCard);
+
+        // Check if user already owns any slots
+        const { count, data: slotsData } = await supabase
+          .from("slot_subscriptions")
+          .select("id", { count: "exact" })
+          .eq("user_id", user.id)
+          .eq("status", "active");
+
+        setHasPriorSlots(Boolean((count && count > 0) || (slotsData && slotsData.length > 0)));
       } catch (err) {
         console.error("Error loading profile in checkout:", err);
       } finally {
@@ -124,6 +139,16 @@ const Checkout = () => {
     loadProfile();
   }, []);
 
+  // Sync wallet amount to use if total price changes
+  useEffect(() => {
+    if (walletBalance > 0) {
+      setWalletAmountToUse((prev) => {
+        if (prev <= 0) return Math.min(walletBalance, totalPrice);
+        return Math.min(prev, Math.min(walletBalance, totalPrice));
+      });
+    }
+  }, [totalPrice, walletBalance]);
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -132,7 +157,7 @@ const Checkout = () => {
   const incrementSlot = () => setSlotQuantity((q) => Math.min(q + 1, 100));
   const decrementSlot = () => setSlotQuantity((q) => Math.max(q - 1, 1));
 
-  const createCheckout = async (method: "flutterwave" | "wallet" = "flutterwave") => {
+  const createCheckout = async (method: "flutterwave" | "wallet" | "split" = "flutterwave") => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -279,7 +304,7 @@ const Checkout = () => {
       });
 
       setWalletBalance((prev) => Math.max(0, prev - totalPrice));
-      navigate("/dashboard/slots-subscription");
+      navigate("/dashboard/my-slots");
     } catch (err: any) {
       console.error("Wallet payment failed:", err);
       Sentry.captureException(err);
@@ -468,7 +493,7 @@ const Checkout = () => {
                   description: "Your slot has been secured!",
                 });
 
-                navigate("/dashboard/slots-subscription");
+                navigate("/dashboard/my-slots");
               } catch (err) {
                 console.error("Direct activation failed:", err);
                 toast({
@@ -496,6 +521,218 @@ const Checkout = () => {
           error instanceof Error
             ? error.message
             : "Failed to initialize payment.",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+    }
+  };
+
+  const handleSplitPayment = async () => {
+    const cleanFirstName = cleanName(formData.firstName);
+    const cleanLastName = cleanName(formData.lastName);
+    const normalizedEmail = cleanEmail(formData.email);
+    const normalizedPhone = normalizePhoneNumber(formData.phone);
+
+    const newErrors: Record<string, string> = {};
+    if (!cleanFirstName) newErrors.firstName = "First name is required";
+    if (!cleanLastName) newErrors.lastName = "Last name is required";
+    if (!normalizedEmail) newErrors.email = "Email address is required";
+    if (!normalizedPhone || normalizedPhone.length < 10) {
+      newErrors.phone = "Enter a valid phone number (at least 10 digits)";
+    }
+    if (!category) newErrors.category = "Please select a project category";
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all required fields marked in red.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setErrors({});
+
+    const usableWallet = Math.min(walletBalance, Math.max(1, walletAmountToUse));
+    const cardAmountToPay = totalPrice - usableWallet;
+
+    if (usableWallet <= 0) {
+      toast({
+        title: "No Wallet Balance Applied",
+        description: "Please apply a wallet amount or choose Flutterwave for full card payment.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (cardAmountToPay <= 0) {
+      await handleWalletPayment();
+      return;
+    }
+
+    // Read-only audit mode guard
+    const {
+      data: { user: currentUser },
+    } = await supabase.auth.getUser();
+    if (currentUser && currentUser.email !== "developerelijah360@gmail.com") {
+      toast({
+        title: "System in Audit Mode",
+        description:
+          "Slot purchases are temporarily paused during financial reconciliation. Only developerelijah360@gmail.com can test transactions.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!window.FlutterwaveCheckout) {
+      toast({
+        title: "Payment Error",
+        description: "Flutterwave is still loading. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const flwKey = import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY;
+    if (!flwKey) {
+      toast({
+        title: "Payment Error",
+        description: "Flutterwave key missing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    Sentry.metrics.count("split_payment_initiated", 1);
+    setIsProcessing(true);
+
+    const order = await createCheckout("split");
+    if (!order) {
+      setIsProcessing(false);
+      return;
+    }
+
+    try {
+      const txRef = `SPLIT_${order.id}_${Date.now()}`;
+
+      window.FlutterwaveCheckout({
+        public_key: flwKey,
+        tx_ref: txRef,
+        amount: cardAmountToPay,
+        currency: "NGN",
+        payment_options: "card, banktransfer, ussd",
+        customer: {
+          email: order.email,
+          phone_number: order.phone,
+          name: `${formData.firstName} ${formData.lastName}`,
+        },
+        meta: {
+          user_id: order.user_id,
+          order_id: order.id,
+          plan: "slot_split",
+          wallet_used: usableWallet,
+          card_paid: cardAmountToPay,
+          project_category: category,
+        },
+        customizations: {
+          title: "Agroheal Farm Slot (Split Payment)",
+          description: `₦${usableWallet.toLocaleString()} wallet + ₦${cardAmountToPay.toLocaleString()} card (${slotQuantity} slots)`,
+          logo: "https://ptowfacejneezksyhntk.supabase.co/storage/v1/object/sign/agroheal-%20buckets/logo.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iZGE2NjM1ZS00NTAzLTRkZDktOTdmOS0zYWExY2Y5NzNiOGQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhZ3JvaGVhbC0gYnVja2V0cy9sb2dvLnBuZyIsImlhdCI6MTc3NDAwODY3OCwiZXhwIjo0OTI3NjA4Njc4fQ.fuwva3-hMj5KmMRqElcclgJqzA5d4aigxCIlHVHgMak",
+        },
+        onclose: () => {
+          toast({
+            title: "Payment cancelled",
+            description: "You closed the payment window. No charges were made.",
+          });
+          setIsProcessing(false);
+        },
+        callback: function (response) {
+          if (
+            response.status === "successful" ||
+            response.status === "completed"
+          ) {
+            Sentry.metrics.count("split_payment_success", 1);
+            const flwTransactionId =
+              response.transaction_id || response.id || response.flw_ref;
+
+            const finalizeSplit = async () => {
+              try {
+                // Call atomic split procedure
+                const { data: rpcRes, error: rpcErr } = await supabase.rpc(
+                  "pay_checkout_with_split",
+                  {
+                    p_user_id: order.user_id,
+                    p_checkout_id: order.id,
+                    p_wallet_amount: usableWallet,
+                    p_card_amount: cardAmountToPay,
+                    p_slots: slotQuantity,
+                    p_slot_price: SLOT_UNIT_PRICE,
+                    p_category: category,
+                    p_flw_ref: String(flwTransactionId),
+                  }
+                );
+
+                if (rpcErr) throw rpcErr;
+                if (!rpcRes?.success) {
+                  throw new Error(rpcRes?.message || "Failed to finalize split payment.");
+                }
+
+                // If user did not previously hold a Green Card, activate it
+                if (!hasGreenCard) {
+                  const expiresAt = new Date();
+                  expiresAt.setFullYear(expiresAt.getFullYear() + 100);
+                  await supabase.from("subscriptions").upsert(
+                    [
+                      {
+                        user_id: order.user_id,
+                        plan: "green_card",
+                        status: "active",
+                        started_at: new Date().toISOString(),
+                        expires_at: expiresAt.toISOString(),
+                      },
+                    ],
+                    { onConflict: "user_id" },
+                  );
+                }
+
+                toast({
+                  title: "Split Payment Successful!",
+                  description: `₦${usableWallet.toLocaleString()} deducted from wallet & ₦${cardAmountToPay.toLocaleString()} paid via card. ${slotQuantity} slot(s) activated!`,
+                });
+
+                setWalletBalance((prev) => Math.max(0, prev - usableWallet));
+                navigate("/dashboard/my-slots");
+              } catch (finalizeErr: any) {
+                console.error("Error finalizing split payment:", finalizeErr);
+                toast({
+                  title: "Activation Notice",
+                  description:
+                    "Card payment succeeded. If your slots do not appear immediately, support will reconcile with ref: " +
+                    flwTransactionId,
+                });
+                navigate("/dashboard/my-slots");
+              } finally {
+                setIsProcessing(false);
+              }
+            };
+
+            finalizeSplit();
+          } else {
+            toast({
+              title: "Payment Unsuccessful",
+              description: "Card payment was not completed.",
+              variant: "destructive",
+            });
+            setIsProcessing(false);
+          }
+        },
+      });
+    } catch (err: any) {
+      console.error("Flutterwave split launch error:", err);
+      toast({
+        title: "Payment Error",
+        description: err.message || "Failed to initialize payment.",
         variant: "destructive",
       });
       setIsProcessing(false);
@@ -749,7 +986,7 @@ const Checkout = () => {
                     <Label className="text-sm font-semibold text-foreground block">
                       Select Payment Method
                     </Label>
-                    <div className="grid sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {/* Flutterwave Card */}
                       <div
                         onClick={() => setPaymentMethod("flutterwave")}
@@ -834,6 +1071,57 @@ const Checkout = () => {
                           />
                         </div>
                       </div>
+
+                      {/* Split Payment Card (Combination) */}
+                      {walletBalance > 0 && (
+                        <div
+                          onClick={() => {
+                            setPaymentMethod("split");
+                            if (walletAmountToUse <= 0) {
+                              setWalletAmountToUse(Math.min(walletBalance, totalPrice));
+                            }
+                          }}
+                          className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                            paymentMethod === "split"
+                              ? "border-green-800 bg-green-50/50 shadow-sm"
+                              : "border-border hover:border-gray-300 bg-card"
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                                  paymentMethod === "split"
+                                    ? "bg-green-800 text-white"
+                                    : "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                <Coins className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <p className="font-semibold text-sm text-foreground">
+                                    Wallet + Card
+                                  </p>
+                                  <span className="bg-amber-100 text-amber-900 text-[10px] font-bold px-1.5 py-0.5 rounded">
+                                    Split
+                                  </span>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  Use ₦{Math.min(walletBalance, totalPrice).toLocaleString()} balance
+                                </p>
+                              </div>
+                            </div>
+                            <input
+                              type="radio"
+                              name="paymentMethod"
+                              checked={paymentMethod === "split"}
+                              onChange={() => setPaymentMethod("split")}
+                              className="mt-1 text-green-800 focus:ring-green-800"
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Wallet Guidance Message */}
@@ -867,11 +1155,63 @@ const Checkout = () => {
                                 Insufficient Wallet Balance
                               </p>
                               <p className="text-xs mt-0.5 text-amber-800">
-                                This order requires ₦{totalPrice.toLocaleString()}, but you have ₦{walletBalance.toLocaleString()}. Select Flutterwave to pay with card/bank transfer, or accrue more bonuses.
+                                This order requires ₦{totalPrice.toLocaleString()}, but you have ₦{walletBalance.toLocaleString()}. Select Flutterwave to pay with card/bank transfer, or choose Split Payment to combine your balance with card.
                               </p>
                             </div>
                           </div>
                         )}
+                      </motion.div>
+                    )}
+
+                    {/* Split Payment Guidance & Amount Adjuster */}
+                    {paymentMethod === "split" && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="rounded-xl p-4 border bg-emerald-50/80 border-emerald-200 text-emerald-950 space-y-3"
+                      >
+                        <div className="flex items-center justify-between text-xs font-semibold">
+                          <span>Order Total:</span>
+                          <span className="text-sm font-bold text-gray-900">₦{totalPrice.toLocaleString()}</span>
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <label className="font-medium text-emerald-900">Apply from Wallet Balance:</label>
+                            <span className="font-bold text-emerald-800">
+                              ₦{walletAmountToUse.toLocaleString()} (of ₦{walletBalance.toLocaleString()})
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Input
+                              type="number"
+                              min={1}
+                              max={Math.min(walletBalance, totalPrice)}
+                              value={walletAmountToUse}
+                              onChange={(e) => {
+                                const val = Math.max(0, Math.min(Number(e.target.value) || 0, Math.min(walletBalance, totalPrice)));
+                                setWalletAmountToUse(val);
+                              }}
+                              className="h-9 text-xs bg-white rounded-lg font-mono font-bold"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setWalletAmountToUse(Math.min(walletBalance, totalPrice))}
+                              className="h-9 text-xs border-emerald-300 text-emerald-900 hover:bg-emerald-100 font-semibold"
+                            >
+                              Use Max
+                            </Button>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-emerald-200 flex items-center justify-between text-xs font-semibold">
+                          <span className="text-gray-700">Remaining to Pay via Card / Transfer:</span>
+                          <span className="text-sm font-black text-emerald-900">
+                            ₦{Math.max(0, totalPrice - walletAmountToUse).toLocaleString()}
+                          </span>
+                        </div>
                       </motion.div>
                     )}
                   </div>
@@ -893,7 +1233,7 @@ const Checkout = () => {
                         `Pay ₦${totalPrice.toLocaleString()} with Flutterwave`
                       )}
                     </Button>
-                  ) : (
+                  ) : paymentMethod === "wallet" ? (
                     <Button
                       onClick={handleWalletPayment}
                       disabled={isProcessing || walletBalance < totalPrice}
@@ -908,6 +1248,21 @@ const Checkout = () => {
                         `Pay ₦${totalPrice.toLocaleString()} from Wallet Balance`
                       ) : (
                         `Insufficient Wallet Balance (₦${walletBalance.toLocaleString()})`
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleSplitPayment}
+                      disabled={isProcessing || walletAmountToUse <= 0}
+                      className="w-full h-12 bg-green-800 hover:bg-green-900 text-white font-semibold"
+                    >
+                      {isProcessing ? (
+                        <span className="flex items-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          Processing Split Payment...
+                        </span>
+                      ) : (
+                        `Pay ₦${Math.max(0, totalPrice - walletAmountToUse).toLocaleString()} via Card (+ ₦${walletAmountToUse.toLocaleString()} from Wallet)`
                       )}
                     </Button>
                   )}

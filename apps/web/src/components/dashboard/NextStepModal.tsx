@@ -242,60 +242,56 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-black/60 backdrop-blur-md overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 15 }}
-          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-full max-w-xl bg-gradient-to-b from-slate-900 via-emerald-950 to-slate-950 text-white rounded-3xl border border-emerald-500/30 shadow-2xl p-6 sm:p-8 overflow-hidden my-auto"
+          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          className="relative w-full max-w-xl bg-white text-gray-900 rounded-3xl border border-gray-100 shadow-2xl p-6 sm:p-7 overflow-hidden my-auto"
         >
-          {/* Subtle Ambient Glow */}
-          <div className="absolute -top-24 -right-24 w-60 h-60 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-emerald-700/15 rounded-full blur-3xl pointer-events-none" />
-
           {/* Close button */}
           <button
             type="button"
             onClick={handleDismiss}
             aria-label="Dismiss Next Step Modal"
-            className="absolute top-5 right-5 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white flex items-center justify-center transition-colors z-10"
+            className="absolute top-5 right-5 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 flex items-center justify-center transition-colors z-10"
           >
             <X className="w-4 h-4" />
           </button>
 
           {/* Optional Broadcast Notice from Admin */}
           {config.broadcastNotice && (
-            <div className="mb-5 p-3 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center gap-2.5 text-xs text-emerald-200">
-              <Megaphone className="w-4 h-4 text-emerald-300 shrink-0" />
+            <div className="mb-5 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-2.5 text-xs text-emerald-900">
+              <Megaphone className="w-4 h-4 text-emerald-600 shrink-0" />
               <p className="font-medium leading-tight">{config.broadcastNotice}</p>
             </div>
           )}
 
           {/* Roadmap Step Indicator */}
-          <div className="mb-6 pb-5 border-b border-white/10">
-            <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-300 mb-3 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" /> Member Progression Roadmap
+          <div className="mb-6 pb-5 border-b border-gray-100">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-800 mb-3 flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Member Progression Roadmap
             </p>
 
             <div className="grid grid-cols-3 gap-2 relative">
               {/* Step 1 Node */}
               <div
-                className={`flex flex-col items-center text-center p-2 rounded-xl transition-all ${
+                className={`flex flex-col items-center text-center p-2 rounded-2xl transition-all ${
                   currentStep === 1
-                    ? "bg-emerald-500/20 border border-emerald-400/50 shadow-xs"
+                    ? "bg-emerald-50 border border-emerald-300 text-emerald-950 font-bold shadow-xs"
                     : currentStep > 1
-                    ? "bg-white/5 border border-white/10 opacity-70"
-                    : "opacity-40"
+                    ? "bg-gray-50 border border-gray-200 text-gray-700"
+                    : "bg-gray-50/50 border border-gray-100 text-gray-400 opacity-60"
                 }`}
               >
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mb-1 ${
                     currentStep > 1
-                      ? "bg-emerald-500 text-slate-950 font-black"
+                      ? "bg-emerald-600 text-white"
                       : currentStep === 1
-                      ? "bg-emerald-400 text-slate-950 ring-4 ring-emerald-400/20"
-                      : "bg-white/10 text-white/60"
+                      ? "bg-emerald-700 text-white ring-4 ring-emerald-100"
+                      : "bg-gray-200 text-gray-500"
                   }`}
                 >
                   {currentStep > 1 ? <Check className="w-4 h-4" /> : <IdCard className="w-3.5 h-3.5" />}
@@ -305,21 +301,21 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
 
               {/* Step 2 Node */}
               <div
-                className={`flex flex-col items-center text-center p-2 rounded-xl transition-all ${
+                className={`flex flex-col items-center text-center p-2 rounded-2xl transition-all ${
                   currentStep === 2
-                    ? "bg-emerald-500/20 border border-emerald-400/50 shadow-xs"
+                    ? "bg-emerald-50 border border-emerald-300 text-emerald-950 font-bold shadow-xs"
                     : currentStep > 2
-                    ? "bg-white/5 border border-white/10 opacity-70"
-                    : "opacity-40"
+                    ? "bg-gray-50 border border-gray-200 text-gray-700"
+                    : "bg-gray-50/50 border border-gray-100 text-gray-400 opacity-60"
                 }`}
               >
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mb-1 ${
                     currentStep > 2
-                      ? "bg-emerald-500 text-slate-950 font-black"
+                      ? "bg-emerald-600 text-white"
                       : currentStep === 2
-                      ? "bg-emerald-400 text-slate-950 ring-4 ring-emerald-400/20"
-                      : "bg-white/10 text-white/60"
+                      ? "bg-emerald-700 text-white ring-4 ring-emerald-100"
+                      : "bg-gray-200 text-gray-500"
                   }`}
                 >
                   {currentStep > 2 ? <Check className="w-4 h-4" /> : <Sprout className="w-3.5 h-3.5" />}
@@ -329,21 +325,21 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
 
               {/* Step 3 Node */}
               <div
-                className={`flex flex-col items-center text-center p-2 rounded-xl transition-all ${
+                className={`flex flex-col items-center text-center p-2 rounded-2xl transition-all ${
                   currentStep === 3
-                    ? "bg-emerald-500/20 border border-emerald-400/50 shadow-xs"
+                    ? "bg-emerald-50 border border-emerald-300 text-emerald-950 font-bold shadow-xs"
                     : currentStep > 3
-                    ? "bg-emerald-500/20 border border-emerald-400/30"
-                    : "opacity-40"
+                    ? "bg-emerald-50 border border-emerald-200 text-emerald-900"
+                    : "bg-gray-50/50 border border-gray-100 text-gray-400 opacity-60"
                 }`}
               >
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold mb-1 ${
                     currentStep > 3
-                      ? "bg-emerald-500 text-slate-950 font-black"
+                      ? "bg-emerald-600 text-white"
                       : currentStep === 3
-                      ? "bg-emerald-400 text-slate-950 ring-4 ring-emerald-400/20"
-                      : "bg-white/10 text-white/60"
+                      ? "bg-emerald-700 text-white ring-4 ring-emerald-100"
+                      : "bg-gray-200 text-gray-500"
                   }`}
                 >
                   {currentStep > 3 ? <Check className="w-4 h-4" /> : <Users className="w-3.5 h-3.5" />}
@@ -356,62 +352,62 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
           {/* Active Step Content */}
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-2">
-              <Badge className="bg-emerald-400/20 text-emerald-300 border border-emerald-400/40 text-[11px] font-bold uppercase px-3 py-1">
+              <Badge className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold uppercase px-3 py-1">
                 {currentData.badgeText}
               </Badge>
 
               {currentStep === 3 && (
-                <span className="text-xs font-bold text-amber-300">
+                <span className="text-xs font-bold text-amber-700">
                   {directReferralsCount} of {targetDirects} Directs Registered
                 </span>
               )}
             </div>
 
             <div>
-              <h3 className="text-xl sm:text-2xl font-black text-white leading-tight">
+              <h3 className="text-xl sm:text-2xl font-black text-gray-900 leading-tight">
                 {currentData.title}
               </h3>
-              <p className="text-xs sm:text-sm text-emerald-100/80 mt-1 leading-relaxed">
+              <p className="text-xs sm:text-sm text-gray-600 mt-1 leading-relaxed">
                 {currentData.subtitle}
               </p>
             </div>
 
             {/* Price Tag or Progress Bar */}
             {currentStep === 3 ? (
-              <div className="bg-white/10 p-3.5 rounded-2xl border border-white/15 space-y-2">
-                <div className="flex justify-between text-xs font-bold text-emerald-200">
+              <div className="bg-gray-50 p-3.5 rounded-2xl border border-gray-200 space-y-2">
+                <div className="flex justify-between text-xs font-bold text-gray-700">
                   <span>Level 7 Matrix Depth Progress</span>
-                  <span>{Math.min(100, Math.round((directReferralsCount / targetDirects) * 100))}% Unlocked</span>
+                  <span className="text-emerald-700">{Math.min(100, Math.round((directReferralsCount / targetDirects) * 100))}% Unlocked</span>
                 </div>
-                <div className="w-full h-2.5 bg-black/40 rounded-full overflow-hidden border border-white/10">
+                <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-emerald-500 to-amber-400 transition-all duration-500 rounded-full"
+                    className="h-full bg-emerald-600 transition-all duration-500 rounded-full"
                     style={{ width: `${Math.min(100, (directReferralsCount / targetDirects) * 100)}%` }}
                   />
                 </div>
-                <p className="text-[11px] text-emerald-100/70">
+                <p className="text-[11px] text-gray-500">
                   Each direct member unlocks an additional matrix tier. Sponsor {targetDirects} directs to unlock all 7 levels.
                 </p>
               </div>
             ) : (
-              <div className="inline-flex items-center gap-2 bg-emerald-500/15 border border-emerald-400/30 px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-200">
-                <ShieldCheck className="w-4 h-4 text-emerald-300 shrink-0" />
+              <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200/80 px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-900">
+                <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
                 <span>{"priceText" in currentData ? currentData.priceText : ""}</span>
               </div>
             )}
 
             {/* Verified Benefit List */}
-            <div className="space-y-2.5 pt-2">
-              <p className="text-xs font-bold text-white uppercase tracking-wider">
+            <div className="space-y-2.5 pt-1">
+              <p className="text-xs font-bold text-gray-700 uppercase tracking-wider">
                 What you receive upon completion:
               </p>
               <div className="grid gap-2">
                 {currentData.benefits.map((benefit, idx) => (
                   <div
                     key={idx}
-                    className="flex items-start gap-2.5 p-2.5 rounded-xl bg-white/5 border border-white/10 text-xs text-emerald-100/90 leading-snug"
+                    className="flex items-start gap-2.5 p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-xs text-gray-700 leading-snug"
                   >
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <span>{benefit}</span>
                   </div>
                 ))}
@@ -419,19 +415,19 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
             </div>
 
             {/* Action Buttons */}
-            <div className="pt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <div className="pt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <Button
                 onClick={handlePrimaryAction}
-                className="flex-1 h-12 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 hover:to-emerald-500 text-slate-950 font-black text-sm shadow-lg shadow-emerald-950/50 flex items-center justify-center gap-2"
+                className="flex-1 h-12 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-sm shadow-sm flex items-center justify-center gap-2 transition-colors"
               >
                 {currentStep === 3 ? (
                   copied ? (
                     <>
-                      <Check className="w-4 h-4 text-slate-950" /> Link Copied!
+                      <Check className="w-4 h-4 text-white" /> Link Copied!
                     </>
                   ) : (
                     <>
-                      <Copy className="w-4 h-4 text-slate-950" /> Copy Referral Link
+                      <Copy className="w-4 h-4 text-white" /> Copy Referral Link
                     </>
                   )
                 ) : (
@@ -449,7 +445,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                     navigate("/dashboard/compound-referrals");
                     handleDismiss();
                   }}
-                  className="h-12 rounded-2xl bg-white/10 hover:bg-white/20 text-white border-white/20 text-xs font-semibold px-4"
+                  className="h-12 rounded-2xl bg-white hover:bg-gray-50 text-gray-800 border-gray-200 text-xs font-semibold px-4"
                 >
                   View Matrix
                 </Button>
@@ -458,7 +454,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
               <button
                 type="button"
                 onClick={handleDismiss}
-                className="h-12 px-4 rounded-2xl text-xs font-semibold text-emerald-300/80 hover:text-white hover:bg-white/5 transition-colors text-center"
+                className="h-12 px-4 rounded-2xl text-xs font-semibold text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-colors text-center"
               >
                 Remind Me Later
               </button>

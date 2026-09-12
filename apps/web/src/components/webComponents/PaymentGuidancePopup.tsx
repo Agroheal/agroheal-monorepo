@@ -14,21 +14,21 @@ const PaymentGuidancePopup = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs"
           />
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.92, y: 20 }}
+            initial={{ opacity: 0, scale: 0.94, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 10 }}
-            transition={{ type: "spring", stiffness: 260, damping: 24 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            transition={{ type: "spring", stiffness: 280, damping: 26 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4"
           >
-            <div className="w-full max-w-2xl bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-gray-100 overflow-hidden max-h-[92vh] flex flex-col">
-              <div className="bg-green-800 px-4 sm:px-6 py-4 sm:py-5">
+            <div className="w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden max-h-[90vh] flex flex-col">
+              <div className="bg-gradient-to-r from-emerald-950 via-green-900 to-emerald-900 px-6 py-5 text-white">
                 <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
-                    <ShieldAlert className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center flex-shrink-0 text-emerald-300">
+                    <ShieldAlert className="w-5 h-5 text-emerald-300" />
                   </div>
                   <div className="min-w-0">
                     <p className="text-white text-base sm:text-lg font-bold leading-tight">
@@ -113,7 +113,7 @@ const PaymentGuidancePopup = () => {
               <div className="px-4 sm:px-6 pb-4 sm:pb-6 pt-2 sm:pt-3 border-t border-gray-100 bg-white">
                 <Button
                   onClick={() => setOpen(false)}
-                  className="w-full h-11 bg-green-800 hover:bg-green-700 text-white rounded-xl font-semibold"
+                  className="w-full h-12 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl font-bold shadow-sm transition-colors"
                 >
                   I Understand, Continue
                 </Button>

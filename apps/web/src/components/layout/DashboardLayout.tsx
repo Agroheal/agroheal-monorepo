@@ -69,12 +69,11 @@ const navGroups: NavGroup[] = [
   {
     id: "farm-operations",
     label: "Farm Operations",
-    path: "/dashboard/slots-subscription",
+    path: "/dashboard/farm-operations/buy-slots",
     icon: Sprout,
     subItems: [
-      { label: "Slot Management", path: "/dashboard/slots-subscription" },
-      { label: "Practice Slots", path: "/dashboard/slots" },
-      { label: "Farm Accounts", path: "/dashboard/group-farm-accounts" },
+      { label: "Browse & Buy Slots", path: "/dashboard/farm-operations/buy-slots" },
+      { label: "Manage My Farm Slots", path: "/dashboard/farm-operations/my-slots" },
     ],
   },
   {
@@ -82,10 +81,9 @@ const navGroups: NavGroup[] = [
     label: "My Network",
     path: "/dashboard/my-network",
     icon: GitBranch,
-    alwaysExpanded: true,
     subItems: [
-      { label: "Producer Network", path: "/dashboard/producer-network" },
-      { label: "Consumer Network", path: "/dashboard/consumer-network" },
+      { label: "Producer Network", path: "/dashboard/my-network/producer" },
+      { label: "Consumer Network", path: "/dashboard/my-network/consumer" },
     ],
   },
   {
@@ -100,7 +98,7 @@ const navGroups: NavGroup[] = [
     path: "/dashboard/profile",
     icon: IdCard,
     subItems: [
-      { label: "My Green Card", path: "/dashboard/green-card" },
+      { label: "My Green Card", path: "/dashboard/profile/green-card" },
     ],
   },
   {
@@ -132,11 +130,40 @@ const getPageTitle = (currentPath: string): string => {
   if (currentPath === "/dashboard/my-network") {
     return "My Network · 5×7 Organogram";
   }
-  if (currentPath === "/dashboard/producer-network") {
+  if (
+    currentPath === "/dashboard/my-network/producer" ||
+    currentPath === "/dashboard/my-network/producer-network" ||
+    currentPath === "/dashboard/producer-network"
+  ) {
     return "Producer Network";
   }
-  if (currentPath === "/dashboard/consumer-network") {
+  if (
+    currentPath === "/dashboard/my-network/consumer" ||
+    currentPath === "/dashboard/my-network/consumer-network" ||
+    currentPath === "/dashboard/consumer-network"
+  ) {
     return "Consumer Network";
+  }
+  if (
+    currentPath === "/dashboard/farm-operations/buy-slots" ||
+    currentPath === "/dashboard/buy-slots" ||
+    currentPath === "/dashboard/slots"
+  ) {
+    return "Browse & Buy Farm Slots";
+  }
+  if (
+    currentPath === "/dashboard/farm-operations/my-slots" ||
+    currentPath === "/dashboard/my-slots" ||
+    currentPath === "/dashboard/manage-slots" ||
+    currentPath === "/dashboard/slots-subscription"
+  ) {
+    return "Manage My Farm Slots";
+  }
+  if (
+    currentPath === "/dashboard/profile/green-card" ||
+    currentPath === "/dashboard/green-card"
+  ) {
+    return "My Green Card";
   }
 
   for (const group of navGroups) {
@@ -196,8 +223,11 @@ const SidebarContent = ({
     return null;
   }, [normalizedPath]);
 
-  // Track accordion expand/collapse state per group
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  // Track accordion expand/collapse state per group (open by default for network & farm-operations)
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => ({
+    "farm-operations": true,
+    network: true,
+  }));
 
   // Auto-expand the active group when route changes
   useEffect(() => {
@@ -240,8 +270,7 @@ const SidebarContent = ({
           const Icon = group.icon;
           const hasChildren = Boolean(group.subItems && group.subItems.length > 0);
           const isGroupActive = activeGroupId === group.id;
-          const isAlwaysExpanded = Boolean(group.alwaysExpanded);
-          const isOpen = isAlwaysExpanded || Boolean(openGroups[group.id]);
+          const isOpen = Boolean(openGroups[group.id]);
 
           // Exact single link (Overview, Learning Academy, etc.)
           if (!hasChildren) {
@@ -286,114 +315,78 @@ const SidebarContent = ({
             );
           }
 
-          // Group with Sub-items
+          // Group with Sub-items (collapsible accordion)
           return (
             <div key={group.id} className="space-y-0.5">
               <div
-                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-150 ${
+                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-150 cursor-pointer ${
                   isGroupActive
                     ? "bg-emerald-800/50 text-white font-medium"
                     : "text-emerald-100/90 hover:bg-emerald-800/30 hover:text-white"
-                } ${!isAlwaysExpanded ? "cursor-pointer" : ""}`}
-                onClick={() => {
-                  if (!isAlwaysExpanded) toggleGroup(group.id);
-                }}
+                }`}
+                onClick={() => toggleGroup(group.id)}
               >
-                <NavLink
-                  to={group.path}
-                  onClick={() => {
-                    setOpenGroups((prev) => ({ ...prev, [group.id]: true }));
-                    handleClose();
-                  }}
-                  className="flex items-center gap-3 flex-1 min-w-0"
-                >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
                   <Icon
                     className={`w-4 h-4 shrink-0 ${
                       isGroupActive ? "text-emerald-300" : "text-emerald-300/80"
                     }`}
                   />
                   <span className="truncate">{group.label}</span>
-                </NavLink>
+                </div>
 
-                {/* Accordion toggle trigger (only if collapsible) */}
-                {!isAlwaysExpanded && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleGroup(group.id);
-                    }}
-                    className="p-1 rounded-md text-emerald-300/70 hover:text-white hover:bg-emerald-700/40 transition-colors ml-1"
-                    aria-label={`Toggle ${group.label} sub-items`}
-                  >
-                    <ChevronDown
-                      className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                        isOpen ? "rotate-180 text-emerald-200" : "text-emerald-400/60"
-                      }`}
-                    />
-                  </button>
-                )}
+                {/* Accordion toggle button */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleGroup(group.id);
+                  }}
+                  className="p-1 rounded-md text-emerald-300/70 hover:text-white hover:bg-emerald-700/40 transition-colors ml-1"
+                  aria-label={`Toggle ${group.label} sub-items`}
+                >
+                  <ChevronDown
+                    className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                      isOpen ? "rotate-180 text-emerald-200" : "text-emerald-400/60"
+                    }`}
+                  />
+                </button>
               </div>
 
-              {/* Sub-items list */}
-              {isAlwaysExpanded ? (
-                <div className="pl-7 pr-1 py-1 space-y-1">
-                  {group.subItems?.map((sub) => {
-                    const isSubActive =
-                      normalizedPath === sub.path ||
-                      normalizedPath.startsWith(sub.path + "/");
-                    return (
-                      <NavLink
-                        key={sub.path}
-                        to={sub.path}
-                        onClick={handleClose}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                          isSubActive
-                            ? "bg-white text-emerald-950 font-semibold shadow-xs"
-                            : "text-emerald-200/80 hover:bg-emerald-800/40 hover:text-white"
-                        }`}
-                      >
-                        <CornerDownRight className={`w-3 h-3 shrink-0 ${isSubActive ? "text-emerald-800" : "text-emerald-400/60"}`} />
-                        <span className="truncate block">{sub.label}</span>
-                      </NavLink>
-                    );
-                  })}
-                </div>
-              ) : (
-                <AnimatePresence initial={false}>
-                  {isOpen && group.subItems && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2, ease: "easeInOut" }}
-                      className="overflow-hidden pl-7 pr-1 py-1 space-y-1"
-                    >
-                      {group.subItems.map((sub) => {
-                        const isSubActive =
-                          normalizedPath === sub.path ||
-                          normalizedPath.startsWith(sub.path + "/");
-                        return (
-                          <NavLink
-                            key={sub.path}
-                            to={sub.path}
-                            onClick={handleClose}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                              isSubActive
-                                ? "bg-white text-emerald-950 font-semibold shadow-xs"
-                                : "text-emerald-200/80 hover:bg-emerald-800/40 hover:text-white"
-                            }`}
-                          >
-                            <CornerDownRight className={`w-3 h-3 shrink-0 ${isSubActive ? "text-emerald-800" : "text-emerald-400/60"}`} />
-                            <span className="truncate block">{sub.label}</span>
-                          </NavLink>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              )}
+              {/* Sub-items animated list */}
+              <AnimatePresence initial={false}>
+                {isOpen && group.subItems && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: "easeInOut" }}
+                    className="overflow-hidden pl-7 pr-1 py-1 space-y-1"
+                  >
+                    {group.subItems.map((sub) => {
+                      const isSubActive =
+                        normalizedPath === sub.path ||
+                        normalizedPath.startsWith(sub.path + "/");
+                      return (
+                        <NavLink
+                          key={sub.path}
+                          to={sub.path}
+                          onClick={handleClose}
+                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            isSubActive
+                              ? "bg-white text-emerald-950 font-semibold shadow-xs"
+                              : "text-emerald-200/80 hover:bg-emerald-800/40 hover:text-white"
+                          }`}
+                        >
+                          <CornerDownRight className={`w-3 h-3 shrink-0 ${isSubActive ? "text-emerald-800" : "text-emerald-400/60"}`} />
+                          <span className="truncate block">{sub.label}</span>
+                        </NavLink>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           );
         })}

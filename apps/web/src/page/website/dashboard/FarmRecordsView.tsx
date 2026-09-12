@@ -589,7 +589,7 @@ const FarmRecordsView = () => {
       .select("*")
       .eq("coordinator_id", user.id);
 
-    // 2. Groups where user is a member
+    // 2. Groups where user is a member in farm_records
     const { data: memberRecords } = await supabase
       .from("farm_records")
       .select("farm_id, farm_groups!inner(*)")
@@ -600,7 +600,26 @@ const FarmRecordsView = () => {
         (r) => r.farm_groups as unknown as FarmRecord["farm_groups"],
       ) || [];
 
-    // 3. If admin, super_admin, or support, also fetch all farm groups across the platform
+    // 3. Farm groups matching categories where user holds slot subscriptions
+    const { data: userSlotSubs } = await supabase
+      .from("slot_subscriptions")
+      .select("project_category")
+      .eq("user_id", user.id);
+
+    const subscribedCategories = Array.from(
+      new Set((userSlotSubs || []).map((s: { project_category?: string }) => s.project_category).filter(Boolean))
+    );
+
+    let slotSubFarms: FarmRecord["farm_groups"][] = [];
+    if (subscribedCategories.length > 0) {
+      const { data: catFarms } = await supabase
+        .from("farm_groups")
+        .select("*")
+        .in("project_category", subscribedCategories);
+      slotSubFarms = (catFarms || []) as unknown as FarmRecord["farm_groups"][];
+    }
+
+    // 4. If admin, super_admin, or support, also fetch all farm groups across the platform
     let platformFarms: FarmRecord["farm_groups"][] = [];
     if (isAdmin || isSupport) {
       const { data: allFarms } = await supabase.from("farm_groups").select("*");
@@ -608,7 +627,7 @@ const FarmRecordsView = () => {
     }
 
     // Combine and deduplicate
-    const combinedFarms = [...(coordFarms || []), ...memberFarms, ...platformFarms];
+    const combinedFarms = [...(coordFarms || []), ...memberFarms, ...slotSubFarms, ...platformFarms];
     const uniqueFarms = Array.from(
       new Map(combinedFarms.map((f) => [f.id, f])).values(),
     ) as Array<{ id: string; name: string; coordinator_id: string; project_category: string }>;
@@ -646,6 +665,7 @@ const FarmRecordsView = () => {
           .from("farm_records")
           .select("*")
           .eq("farm_id", activeFarm.id)
+          .eq("project_category", activeFarm.project_category || selectedCategory)
           .order("name"),
         supabase
           .from("farm_expenses")
@@ -1695,13 +1715,13 @@ const FarmRecordsView = () => {
         )}
 
         {!canManageRecords && !canManageExpenses && !canManageSales && (
-          <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-slate-700 shadow-sm no-print">
-            <div className="flex items-center gap-2 font-semibold">
-              <Lock className="w-5 h-5 text-slate-500" />
-              <span>Read-Only View</span>
+          <div className="mb-6 rounded-2xl border border-emerald-200/80 bg-emerald-50/50 p-4 text-emerald-950 shadow-xs no-print">
+            <div className="flex items-center gap-2 font-bold text-sm text-emerald-900">
+              <Lock className="w-4 h-4 text-emerald-700" />
+              <span>Real-Time Member Slot Financials · Read-Only View</span>
             </div>
-            <p className="mt-1 text-xs text-slate-600">
-              You have read-only access to this farm group. Farm records, operating expenses, and harvest sales can only be created or modified by Farm Coordinators, Customer Support, and Platform Administrators.
+            <p className="mt-1 text-xs text-emerald-800/90 leading-relaxed">
+              You are viewing real-time member contributions, operating expenses, and produce sales revenue for your subscribed farm slot cluster. Adding, editing, and auditing records is strictly managed by the designated Farm Coordinator.
             </p>
           </div>
         )}

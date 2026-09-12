@@ -37,8 +37,8 @@ import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
-import NetworkCalculatorCard from "@/components/network/NetworkCalculatorCard";
 import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
+import { SITE_URL } from "@/config/Index";
 
 export interface OrganogramNode {
   id: string;
@@ -98,7 +98,6 @@ export const getNextMatrixLevelTarget = (directCount: number) => {
 };
 
 const CompoundReferrals: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"organogram" | "directory" | "rules">("organogram");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -108,8 +107,6 @@ const CompoundReferrals: React.FC = () => {
   const [referralCode, setReferralCode] = useState<string>("");
 
   // Qualification State
-  const [directReferralEarnings, setDirectReferralEarnings] = useState<number>(0);
-  const [matrixSpilloverEarnings, setMatrixSpilloverEarnings] = useState<number>(0);
   const [directReferralsCount, setDirectReferralsCount] = useState<number>(0);
   const [activePqv30d, setActivePqv30d] = useState<number>(0);
   const [pqvDaysRemaining, setPqvDaysRemaining] = useState<number>(30);
@@ -126,10 +123,6 @@ const CompoundReferrals: React.FC = () => {
   const [searchStatus, setSearchStatus] = useState<string>("");
   const [directoryFilter, setDirectoryFilter] = useState<"ALL" | "DIRECT" | "SPILLOVER">("ALL");
 
-  // Calculator State
-  const [calcSlotsPerMember, setCalcSlotsPerMember] = useState<number>(1);
-  const [calcProducerDirects, setCalcProducerDirects] = useState<number>(5);
-  const [calcProducerSlotsPerDirect, setCalcProducerSlotsPerDirect] = useState<number>(2);
   const [copiedLink, setCopiedLink] = useState(false);
   const [isProjectSubscribed, setIsProjectSubscribed] = useState<boolean>(false);
   const [userFarms, setUserFarms] = useState<Array<{ id: string; name: string; project_category?: string }>>([]);
@@ -612,7 +605,9 @@ const CompoundReferrals: React.FC = () => {
   const activeReferralLink = useMemo(() => {
     if (selectedFarmId && selectedFarmId !== "all") {
       const targetFarm = userFarms.find((f) => f.id === selectedFarmId);
-      const farmSlug = targetFarm ? encodeURIComponent(targetFarm.name.toLowerCase().replace(/\s+/g, "-")) : selectedFarmId;
+      const farmSlug = targetFarm?.name
+        ? encodeURIComponent(targetFarm.name.toLowerCase().replace(/\s+/g, "-"))
+        : selectedFarmId;
       return `${SITE_URL}/signup?ref=${activeReferralCode}&farm=${farmSlug}`;
     }
     return `${SITE_URL}/signup?ref=${activeReferralCode}`;
@@ -639,25 +634,22 @@ const CompoundReferrals: React.FC = () => {
   };
 
   // Qualification Calculations
-  const isDirectWithdrawable = isProjectSubscribed && directReferralEarnings >= MIN_DIRECT_REFERRAL_WITHDRAWAL;
-  const canSubscribeWithWallet = !isProjectSubscribed && directReferralEarnings >= 10000;
-  const directRemaining = Math.max(0, MIN_DIRECT_REFERRAL_WITHDRAWAL - directReferralEarnings);
-
   const unlockedLevel = getUnlockedMatrixLevel(directReferralsCount);
   const nextLevelTarget = getNextMatrixLevelTarget(directReferralsCount);
   const hasEnoughReferrals = unlockedLevel >= 1;
   const hasEnoughPqv = activePqv30d >= MIN_PQV_FOR_MATRIX_WITHDRAWAL;
-  const isMatrixQualified = unlockedLevel >= 1 && hasEnoughPqv;
 
   // Filtered Downline Directory
   const filteredDirectory = useMemo(() => {
-    return downlineList.filter((item) => {
+    return (downlineList || []).filter((item) => {
+      if (!item) return false;
+      const q = (searchQuery || "").trim().toLowerCase();
       const matchSearch =
-        item.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.memberId.toLowerCase().includes(searchQuery.toLowerCase());
+        (item.fullName || "").toLowerCase().includes(q) ||
+        (item.email || "").toLowerCase().includes(q) ||
+        (item.memberId || "").toLowerCase().includes(q);
 
-      if (!matchSearch && searchQuery) return false;
+      if (!matchSearch && q) return false;
       if (directoryFilter === "DIRECT") return !item.isSpillover;
       if (directoryFilter === "SPILLOVER") return Boolean(item.isSpillover);
       return true;
@@ -841,271 +833,10 @@ const CompoundReferrals: React.FC = () => {
           </div>
         </div>
 
-        {/* ── DUAL-WALLET & QUALIFICATION HUD ── */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* 1. Direct Referral Wallet */}
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200/80 flex flex-col justify-between relative overflow-hidden">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
-                  <Wallet className="w-3.5 h-3.5 text-blue-600" /> Direct Referral Wallet
-                </span>
-                <div className="text-2xl font-black text-gray-900 mt-1">
-                  ₦{directReferralEarnings.toLocaleString("en-NG", { minimumFractionDigits: 2 })}
-                </div>
-              </div>
-              <Badge
-                className={
-                  isDirectWithdrawable
-                    ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                    : canSubscribeWithWallet
-                    ? "bg-purple-100 text-purple-800 border-purple-300 font-bold"
-                    : !isProjectSubscribed
-                    ? "bg-amber-100 text-amber-800 border-amber-300"
-                    : "bg-gray-100 text-gray-700 border-gray-300"
-                }
-              >
-                {isDirectWithdrawable
-                  ? "Withdrawable Now"
-                  : canSubscribeWithWallet
-                  ? "₦10k Ready to Activate"
-                  : !isProjectSubscribed
-                  ? "Project Subscription Required"
-                  : "Below ₦2,000 Min"}
-              </Badge>
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-gray-100 space-y-1.5">
-              <div className="flex items-center justify-between text-xs text-gray-600">
-                <span>Withdrawal Status:</span>
-                <span className="font-semibold text-gray-900">
-                  {isProjectSubscribed ? "Active Project Member" : "Registered Member"}
-                </span>
-              </div>
-              <p className="text-[11px] text-gray-500 leading-relaxed">
-                {isDirectWithdrawable
-                  ? "✓ Unrestricted. Direct earnings can be withdrawn immediately without 5-direct or PQV requirements."
-                  : canSubscribeWithWallet
-                  ? "🎉 You have reached ₦10,000 in referral earnings! Visit Wallet & Ledger to activate your project subscription using your wallet balance and unlock bank withdrawals."
-                  : !isProjectSubscribed
-                  ? "Your referral earnings accumulate safely in your wallet. Bank withdrawals unlock once you pay for a project, or once your wallet credit reaches ₦10,000 to subscribe directly using your balance."
-                  : `₦${directRemaining.toLocaleString("en-NG")} more required to reach minimum withdrawal threshold.`}
-              </p>
-              {!isProjectSubscribed && (
-                <div className="pt-2">
-                  <Link
-                    to={canSubscribeWithWallet ? "/dashboard/transactions" : "/subscribe"}
-                    className="inline-flex items-center text-xs font-semibold text-emerald-800 hover:text-emerald-900 gap-1"
-                  >
-                    {canSubscribeWithWallet ? "Activate in Wallet & Ledger →" : "Subscribe to Project (₦2,000) →"}
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 2. 5x7 Matrix Spillover Wallet */}
-          <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-200/80 flex flex-col justify-between relative overflow-hidden">
-            <div className="flex items-start justify-between">
-              <div>
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
-                  <GitBranch className="w-3.5 h-3.5 text-emerald-600" /> 5×7 Matrix Spillover Wallet
-                </span>
-                <div className="text-2xl font-black text-gray-900 mt-1">
-                  ₦{matrixSpilloverEarnings.toLocaleString("en-NG", { minimumFractionDigits: 2 })}
-                </div>
-              </div>
-              <Badge
-                className={
-                  userSlotsHeld === 0
-                    ? "bg-amber-100 text-amber-800 border-amber-300 font-bold"
-                    : isMatrixQualified
-                    ? "bg-emerald-100 text-emerald-800 border-emerald-300 font-bold"
-                    : "bg-purple-100 text-purple-800 border-purple-300 font-medium"
-                }
-              >
-                {userSlotsHeld === 0
-                  ? "Farm Slot Required"
-                  : unlockedLevel >= 7
-                  ? "All 7 Levels Unlocked"
-                  : unlockedLevel >= 1
-                  ? `Level ${unlockedLevel} Unlocked`
-                  : "Locked (Need 5 Directs)"}
-              </Badge>
-            </div>
-
-            {/* Progress Bars */}
-            <div className="mt-3 space-y-2.5">
-              <div>
-                <div className="flex justify-between text-[11px] font-medium text-gray-700 mb-1">
-                  <span>
-                    {unlockedLevel >= 7
-                      ? "All 7 Levels Unlocked"
-                      : `Unlock Level ${nextLevelTarget.nextLevel} (Needs ${nextLevelTarget.requiredDirects} Directs)`}
-                  </span>
-                  <span className={unlockedLevel >= 1 ? "text-emerald-700 font-bold" : "text-amber-700"}>
-                    {directReferralsCount} / {nextLevelTarget.requiredDirects}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${unlockedLevel >= 1 ? "bg-emerald-500" : "bg-amber-500"}`}
-                    style={{
-                      width: `${Math.min(100, (directReferralsCount / nextLevelTarget.requiredDirects) * 100)}%`,
-                    }}
-                  />
-                </div>
-                <p className="text-[10px] text-gray-400 mt-1">
-                  {unlockedLevel >= 7
-                    ? "✓ Apex Producer: Full 40% waterfall unlocked down to Level 7."
-                    : `Sponsor ${nextLevelTarget.remainingDirects} more direct partner(s) to unlock Level ${nextLevelTarget.nextLevel} matrix commissions.`}
-                </p>
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[11px] font-medium text-gray-700 mb-1">
-                  <span>Requirement 2: ₦5,000 30-Day PQV</span>
-                  <span className={hasEnoughPqv ? "text-emerald-700 font-bold" : "text-amber-700"}>
-                    ₦{activePqv30d.toLocaleString()} / ₦5,000
-                  </span>
-                </div>
-                <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full ${hasEnoughPqv ? "bg-emerald-500" : "bg-amber-500"}`}
-                    style={{ width: `${Math.min(100, (activePqv30d / 5000) * 100)}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500">
-              <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3 text-gray-400" /> Rolling 30d Window:
-              </span>
-              <span className="font-semibold text-gray-800">{pqvDaysRemaining} days remaining</span>
-            </div>
-          </div>
-
-          {/* 3. Slot Entry & Member Overview */}
-          <div className="bg-gradient-to-br from-emerald-50 to-teal-50/50 rounded-2xl p-5 shadow-sm border border-emerald-200/80 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600" /> Matrix Entry Status
-                </span>
-                <Badge className={userSlotsHeld > 0 ? "bg-emerald-600 text-white font-bold" : "bg-amber-600 text-white font-bold"}>
-                  {userSlotsHeld > 0 ? "Active 5×7 Slot Holder" : "Slot Required (₦2k Registered)"}
-                </Badge>
-              </div>
-
-              <div className="mt-3 space-y-2">
-                <div className="flex items-center justify-between text-xs text-emerald-950">
-                  <span>Farm Slots Held:</span>
-                  <span className="font-bold text-base text-emerald-900">{userSlotsHeld} Slot(s)</span>
-                </div>
-                <div className="flex items-center justify-between text-xs text-emerald-950">
-                  <span>AGC Member ID:</span>
-                  <span className="font-mono font-bold text-xs text-emerald-800">
-                    {formatAgcId(currentUserProfile?.member_id)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs text-emerald-950">
-                  <span>Affiliate Code:</span>
-                  <span className="font-mono font-bold text-xs text-emerald-800">
-                    {referralCode || "PENDING"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-3 pt-2.5 border-t border-emerald-200/60 text-[11px] text-emerald-800/90 leading-relaxed">
-              {userSlotsHeld > 0 ? (
-                <span>✓ You hold {userSlotsHeld} active farm slot(s) and occupy an active node in your Group Farm 5×7 matrix.</span>
-              ) : (
-                <span>💡 <em>Your ₦2,000 Green Card qualifies you for direct referrals. Subscribing to a Farm Slot (₦5,000) unlocks your 5×7 matrix position and spillover.</em></span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* ── NAVIGATION TABS & SEARCH BAR ── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-3 sm:p-4 rounded-2xl border border-gray-200 shadow-sm">
-          {/* Tab buttons */}
-          <div className="flex items-center gap-1.5 bg-gray-100/80 p-1.5 rounded-xl self-start">
-            <button
-              onClick={() => setActiveTab("organogram")}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeTab === "organogram"
-                  ? "bg-white text-emerald-800 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <GitBranch className="w-3.5 h-3.5" /> Visual Organogram
-            </button>
-            <button
-              onClick={() => setActiveTab("directory")}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeTab === "directory"
-                  ? "bg-white text-emerald-800 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <Users className="w-3.5 h-3.5" /> Downline Directory ({downlineList.length})
-            </button>
-            <button
-              onClick={() => setActiveTab("rules")}
-              className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                activeTab === "rules"
-                  ? "bg-white text-emerald-800 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              <Sprout className="w-3.5 h-3.5" /> Farm-Slot Allocation (₦5,000)
-            </button>
-          </div>
-
-          {/* Quick Search Form */}
-          <form onSubmit={handleSearch} className="flex items-center gap-2 w-full md:w-auto">
-            <div className="relative flex-1 md:w-72">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <Input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search name, email, or AGC ID..."
-                className="pl-9 pr-3 py-1.5 text-xs rounded-xl bg-gray-50 border-gray-200 h-9"
-              />
-            </div>
-            <Button
-              type="submit"
-              disabled={refreshing}
-              className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-9 px-3.5 rounded-xl shrink-0"
-            >
-              {refreshing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : "Inspect"}
-            </Button>
-          </form>
-        </div>
-
-        {searchStatus && (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-2 rounded-xl flex items-center justify-between">
-            <span>{searchStatus}</span>
-            <button
-              onClick={() => {
-                setSearchStatus("");
-                setSearchQuery("");
-                handleResetToSelf();
-              }}
-              className="font-bold underline text-emerald-900 ml-2"
-            >
-              Clear
-            </button>
-          </div>
-        )}
-
-        {/* ── TAB 1: VISUAL 5x7 ORGANOGRAM ── */}
-        {activeTab === "organogram" && activeRootNode && (
+        {/* ── 5×7 VISUAL ORGANOGRAM ── */}
+        {activeRootNode ? (
           activeRootNode.id === currentUserId && userSlotsHeld === 0 ? (
-            <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-emerald-800/15 text-center space-y-6 max-w-2xl mx-auto my-6">
+            <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-emerald-800/15 text-center space-y-6 max-w-2xl mx-auto my-4">
               <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto shadow-inner">
                 <Lock className="w-8 h-8 text-amber-700" />
               </div>
@@ -1134,8 +865,9 @@ const CompoundReferrals: React.FC = () => {
                   Secure a Farm Slot (₦5,000)
                 </Link>
                 <button
-                  onClick={() => setActiveTab("directory")}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm transition-all"
+                  type="button"
+                  onClick={() => document.getElementById("downline-directory")?.scrollIntoView({ behavior: "smooth" })}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm transition-all cursor-pointer"
                 >
                   <Users className="w-4 h-4" />
                   View Direct Referrals ({directReferralsCount})
@@ -1144,8 +876,75 @@ const CompoundReferrals: React.FC = () => {
             </div>
           ) : (
             <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200/90 space-y-8">
+              {/* Header with Title and Quick Tree Inspector Form */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">
+                      <GitBranch className="w-4 h-4" />
+                    </span>
+                    <h2 className="text-base font-bold text-gray-900">
+                      Visual 5×7 Organogram Tree
+                    </h2>
+                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]">
+                      5 Legs · Level 1 Active
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    Interactive geometric tree with automated spillover placement. Click any child to drill down.
+                  </p>
+                </div>
+
+                {/* Quick Tree Search & Inspect Form */}
+                <form onSubmit={handleSearch} className="flex items-center gap-2 w-full lg:w-auto">
+                  <div className="relative flex-1 lg:w-72">
+                    <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search name, email, or AGC ID..."
+                      className="pl-9 pr-3 py-1.5 text-xs rounded-xl bg-gray-50 border-gray-200 h-9"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    disabled={refreshing}
+                    className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-9 px-3.5 rounded-xl shrink-0"
+                  >
+                    {refreshing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : "Inspect"}
+                  </Button>
+                  {activeRootNode.id !== currentUserId && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleResetToSelf}
+                      className="text-xs h-9 border-emerald-600 text-emerald-800 hover:bg-emerald-50 rounded-xl shrink-0"
+                    >
+                      Reset to My Tree
+                    </Button>
+                  )}
+                </form>
+              </div>
+
+              {searchStatus && (
+                <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-4 py-2 rounded-xl flex items-center justify-between">
+                  <span>{searchStatus}</span>
+                  <button
+                    onClick={() => {
+                      setSearchStatus("");
+                      setSearchQuery("");
+                      handleResetToSelf();
+                    }}
+                    className="font-bold underline text-emerald-900 ml-2"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
+
               {/* Breadcrumb Trail */}
-              <div className="flex items-center flex-wrap gap-1 text-xs text-gray-500 pb-4 border-b border-gray-100">
+              <div className="flex items-center flex-wrap gap-1 text-xs text-gray-500 pb-2 border-b border-gray-100">
                 <span className="font-semibold text-gray-400 mr-1 flex items-center gap-1">
                   <Layers className="w-3.5 h-3.5" /> Navigation Trail:
                 </span>
@@ -1235,11 +1034,11 @@ const CompoundReferrals: React.FC = () => {
                     </div>
 
                     <div className="w-12 h-12 rounded-full bg-emerald-800 text-white font-black text-lg flex items-center justify-center mt-1 shadow-inner">
-                      {activeRootNode.fullName.charAt(0).toUpperCase()}
+                      {(activeRootNode.fullName || "M").charAt(0).toUpperCase()}
                     </div>
 
                     <h3 className="font-extrabold text-gray-900 text-base mt-2 line-clamp-1">
-                      {activeRootNode.fullName}
+                      {activeRootNode.fullName || "AgroHeal Member"}
                     </h3>
                     <p className="font-mono text-xs text-emerald-800 font-bold bg-emerald-100/60 px-2 py-0.5 rounded-md mt-1">
                       {activeRootNode.memberId}
@@ -1297,7 +1096,7 @@ const CompoundReferrals: React.FC = () => {
                             </div>
 
                             <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 font-bold mx-auto flex items-center justify-center text-sm shadow-inner">
-                              {child.fullName.charAt(0).toUpperCase()}
+                              {(child.fullName || "M").charAt(0).toUpperCase()}
                             </div>
 
                             <div className="mt-2">
@@ -1401,303 +1200,156 @@ const CompoundReferrals: React.FC = () => {
               </div>
             </div>
           </div>
-        ))}
+        )) : (
+          <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-gray-200 text-center space-y-4 max-w-xl mx-auto my-6">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-800 flex items-center justify-center mx-auto">
+              <GitBranch className="w-7 h-7 text-emerald-700" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">Unable to load organogram root</h3>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Could not locate your account node in the tree. Please click below to refresh your network connection.
+            </p>
+            <Button onClick={() => loadMemberGenealogy()} className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs rounded-xl">
+              <RefreshCw className="w-3.5 h-3.5 mr-2" /> Reload Organogram
+            </Button>
+          </div>
+        )}
 
-        {/* ── TAB 2: DOWNLINE DIRECTORY ── */}
-        {activeTab === "directory" && (
-          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="text-lg font-bold text-gray-900">Downline Members Directory</h3>
-                <p className="text-xs text-gray-500">
-                  Comprehensive roster of all members in your downline structure with contact actions.
-                </p>
-              </div>
-
+        {/* ── DOWNLINE MEMBERS DIRECTORY ── */}
+        <div id="downline-directory" className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200 space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
               <div className="flex items-center gap-2">
-                <Button
-                  variant={directoryFilter === "ALL" ? "default" : "outline"}
-                  onClick={() => setDirectoryFilter("ALL")}
-                  className={`text-xs h-8 rounded-lg ${directoryFilter === "ALL" ? "bg-emerald-800" : ""}`}
-                >
-                  All ({downlineList.length})
-                </Button>
-                <Button
-                  variant={directoryFilter === "DIRECT" ? "default" : "outline"}
-                  onClick={() => setDirectoryFilter("DIRECT")}
-                  className={`text-xs h-8 rounded-lg ${directoryFilter === "DIRECT" ? "bg-emerald-800" : ""}`}
-                >
-                  Direct Personal ({downlineList.filter((d) => !d.isSpillover).length})
-                </Button>
-                <Button
-                  variant={directoryFilter === "SPILLOVER" ? "default" : "outline"}
-                  onClick={() => setDirectoryFilter("SPILLOVER")}
-                  className={`text-xs h-8 rounded-lg ${directoryFilter === "SPILLOVER" ? "bg-emerald-800" : ""}`}
-                >
-                  Spillover ({downlineList.filter((d) => d.isSpillover).length})
-                </Button>
-              </div>
-            </div>
-
-            {filteredDirectory.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-100">
-                <Users className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm font-semibold text-gray-700">No downline members found.</p>
-                <p className="text-xs text-gray-400 mt-1">Share your referral link to recruit your first 5 partners!</p>
-                <Button onClick={handleCopyReferralLink} className="mt-4 bg-emerald-800 text-white text-xs">
-                  Copy Referral Link
-                </Button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase font-semibold text-[10px] tracking-wider">
-                    <tr>
-                      <th className="py-3 px-4">#</th>
-                      <th className="py-3 px-4">Member Name</th>
-                      <th className="py-3 px-4">AGC Member ID</th>
-                      <th className="py-3 px-4">Contact Info</th>
-                      <th className="py-3 px-4">Source / Sponsor</th>
-                      <th className="py-3 px-4">Slots Held</th>
-                      <th className="py-3 px-4">Tree Position</th>
-                      <th className="py-3 px-4 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {filteredDirectory.map((m, idx) => (
-                      <tr key={m.id} className="hover:bg-emerald-50/30 transition-colors">
-                        <td className="py-3 px-4 text-gray-400 font-mono">{idx + 1}</td>
-                        <td className="py-3 px-4 font-bold text-gray-900">{m.fullName}</td>
-                        <td className="py-3 px-4 font-mono font-semibold text-emerald-800">
-                          {m.memberId}
-                        </td>
-                        <td className="py-3 px-4 text-gray-600">
-                          <div>{m.email}</div>
-                          {m.phone && <div className="text-[11px] text-gray-400">{m.phone}</div>}
-                        </td>
-                        <td className="py-3 px-4">
-                          {m.isSpillover ? (
-                            <span className="bg-blue-50 text-blue-800 px-2.5 py-0.5 rounded-full border border-blue-200/60 font-medium inline-flex items-center gap-1 text-[11px]">
-                              🌊 Spillover ({m.sponsorName || "Upline"})
-                            </span>
-                          ) : (
-                            <span className="bg-emerald-50 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-200/60 font-medium inline-flex items-center gap-1 text-[11px]">
-                              ⭐ Direct Personal
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 font-bold text-gray-800">
-                          {m.slotsHeld > 0 ? (
-                            <span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200/60 font-medium inline-flex items-center gap-1">
-                              🟢 Active Farm Slot ({m.slotsHeld})
-                            </span>
-                          ) : (
-                            <span className="bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full border border-amber-200/60 font-medium inline-flex items-center gap-1">
-                              🟡 ₦2k Member (No Farm Slot)
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4">
-                          {m.position > 0 ? (
-                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md text-[11px] border border-emerald-100">
-                              Leg #{m.position}
-                            </span>
-                          ) : (
-                            <span className="font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-md text-[11px]">
-                              Direct Enrollee
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 px-4 text-right space-x-1.5">
-                          {m.phone && (
-                            <button
-                              onClick={() => window.open(`https://wa.me/${m.phone?.replace(/[^0-9]/g, "")}`, "_blank")}
-                              className="text-emerald-700 hover:text-emerald-900 font-bold bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md text-[11px]"
-                            >
-                              WhatsApp
-                            </button>
-                          )}
-                          <button
-                            onClick={() => buildSubtree(m.id, false)}
-                            className="text-blue-700 hover:text-blue-900 font-bold bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md text-[11px]"
-                          >
-                            Inspect Tree
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ── TAB 3: FARM-SLOT PHYSICAL ASSET ALLOCATION ── */}
-        {activeTab === "rules" && (
-          <div className="space-y-6">
-            {/* Farm-Slot Physical Asset Allocation Card */}
-            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200/90 space-y-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100 pb-5">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="bg-emerald-100 text-emerald-900 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                      Physical Production Asset
-                    </span>
-                    <span className="text-xs text-gray-500 font-medium">• No Multilevel MLM</span>
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-black text-gray-900 mt-2">
-                    Farm-Slot Production Allocation (₦5,000 / Slot)
-                  </h3>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-3xl leading-relaxed">
-                    Purchasing a farm slot creates a tangible agricultural production unit (two inoculated fruiting bags, housing infrastructure, and farm management) and does <strong>not</strong> enter the multilevel commission engine.
-                  </p>
-                </div>
-
-                <Link
-                  to="/dashboard/slots"
-                  className="inline-flex items-center gap-2 text-xs font-bold text-white bg-emerald-800 hover:bg-emerald-900 px-4 py-2.5 rounded-xl shadow-xs transition-colors self-start md:self-auto"
-                >
-                  <Sprout className="w-3.5 h-3.5" />
-                  <span>Manage Farm Slots</span>
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-b from-white to-emerald-50/40 p-5 rounded-2xl border border-emerald-200/80 shadow-xs flex flex-col justify-between space-y-2">
-                  <div className="space-y-1">
-                    <span className="text-[10px] uppercase tracking-wider text-emerald-800 font-bold block">Direct Referrer</span>
-                    <strong className="text-2xl font-black text-emerald-950 block">10%</strong>
-                    <span className="text-sm font-bold text-emerald-800">₦500.00 / Slot</span>
-                  </div>
-                  <p className="text-[11px] text-gray-500 leading-snug">
-                    Instant direct sponsor bounty credited directly to the referring member's referral wallet.
-                  </p>
-                </div>
-
-                <div className="bg-gradient-to-b from-white to-slate-50/50 p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col justify-between space-y-2">
-                  <div className="space-y-1">
-                    <span className="text-[10px] uppercase tracking-wider text-slate-700 font-bold block">Company Admin</span>
-                    <strong className="text-2xl font-black text-slate-900 block">20%</strong>
-                    <span className="text-sm font-bold text-slate-700">₦1,000.00 / Slot</span>
-                  </div>
-                  <p className="text-[11px] text-gray-500 leading-snug">
-                    Operational overhead, cooperative platform governance, security, and audit infrastructure.
-                  </p>
-                </div>
-
-                <div className="bg-gradient-to-b from-white to-emerald-50/40 p-5 rounded-2xl border border-emerald-200/80 shadow-xs flex flex-col justify-between space-y-2">
-                  <div className="space-y-1">
-                    <span className="text-[10px] uppercase tracking-wider text-emerald-800 font-bold block">Two Fruiting Bags</span>
-                    <strong className="text-2xl font-black text-emerald-950 block">28%</strong>
-                    <span className="text-sm font-bold text-emerald-800">₦1,400.00 / Slot</span>
-                  </div>
-                  <p className="text-[11px] text-gray-500 leading-snug">
-                    Procurement of premium organic substrates, sterilization, and pure-culture fungal mycelium inoculation.
-                  </p>
-                </div>
-
-                <div className="bg-gradient-to-b from-white to-emerald-50/40 p-5 rounded-2xl border border-emerald-200/80 shadow-xs flex flex-col justify-between space-y-2">
-                  <div className="space-y-1">
-                    <span className="text-[10px] uppercase tracking-wider text-emerald-800 font-bold block">House &amp; Logistics</span>
-                    <strong className="text-2xl font-black text-emerald-950 block">42%</strong>
-                    <span className="text-sm font-bold text-emerald-800">₦2,100.00 / Slot</span>
-                  </div>
-                  <p className="text-[11px] text-gray-500 leading-snug">
-                    Climate-controlled fruiting house construction, humidity automation, farm labor, and harvesting logistics.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Interactive Producer Direct Bounty & Cluster Simulation */}
-            <NetworkCalculatorCard
-              eyebrowIcon={Calculator}
-              eyebrowText="Producer Cashflow Simulation"
-              title="Producer Direct Sponsor & Cluster Harvest Forecaster"
-              description="Estimate direct enrollment rewards (₦1,000 Green Card bounty), farm-slot referral commissions (10% / ₦500 per slot), and physical fruiting capacity generated by your direct producer partners."
-              controls={
-                <>
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-emerald-200 font-semibold block">Direct Partners:</label>
-                    <select
-                      value={calcProducerDirects}
-                      onChange={(e) => setCalcProducerDirects(Number(e.target.value))}
-                      className="bg-emerald-950 text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-emerald-500/40 cursor-pointer w-full"
-                    >
-                      {[5, 10, 15, 20, 25, 30, 35].map((cnt) => (
-                        <option key={cnt} value={cnt}>
-                          {cnt} Partners (Level {Math.min(7, Math.floor(cnt / 5))} Depth)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-emerald-200 font-semibold block">Slots / Partner:</label>
-                    <select
-                      value={calcProducerSlotsPerDirect}
-                      onChange={(e) => setCalcProducerSlotsPerDirect(Number(e.target.value))}
-                      className="bg-emerald-950 text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-emerald-500/40 cursor-pointer w-full"
-                    >
-                      {[1, 2, 3, 5, 10].map((slots) => (
-                        <option key={slots} value={slots}>
-                          {slots} {slots === 1 ? "Slot" : "Slots"} (₦{(slots * 5000).toLocaleString()})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </>
-              }
-              metrics={[
-                {
-                  label: "Green Card Bounty",
-                  value: `₦${(calcProducerDirects * 1000).toLocaleString()}`,
-                  subtext: `₦1,000 × ${calcProducerDirects} Directs`,
-                },
-                {
-                  label: "Farm-Slot Bounties",
-                  value: `₦${(calcProducerDirects * calcProducerSlotsPerDirect * 500).toLocaleString()}`,
-                  subtext: "10% (₦500) per slot",
-                },
-                {
-                  label: "Total Direct Cashflow",
-                  value: `₦${(calcProducerDirects * 1000 + calcProducerDirects * calcProducerSlotsPerDirect * 500).toLocaleString()}`,
-                  subtext: "Immediate Referral Payout",
-                  isHighlight: true,
-                },
-                {
-                  label: "Cluster Production",
-                  value: `${calcProducerDirects * calcProducerSlotsPerDirect * 2} Bags`,
-                  subtext: `${calcProducerDirects * calcProducerSlotsPerDirect} Active Slots`,
-                },
-              ]}
-            />
-
-            {/* Handover Banner to Consumer Network */}
-            <div className="bg-gradient-to-br from-emerald-950 via-green-900 to-slate-900 text-white rounded-3xl p-7 sm:p-9 shadow-xl border border-emerald-700/40 flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-2 max-w-xl">
-                <span className="text-xs font-bold text-amber-300 uppercase tracking-widest flex items-center gap-1.5">
-                  <Store className="w-4 h-4" /> Retail Engine Handover
+                <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">
+                  <Users className="w-4 h-4" />
                 </span>
-                <h4 className="text-xl sm:text-2xl font-black">
-                  7-Level Product Commission Engine (40% Maximum Payout Ceiling)
-                </h4>
-                <p className="text-xs sm:text-sm text-emerald-100/90 leading-relaxed">
-                  Retail commissions from consumer goods (such as the ₦5,000 Mushroom Power welcome product) are now managed on the <strong>Consumer Network</strong> page. Explore the complete 7-tier distribution table, 40% waterfall breakdown, and interactive earnings forecaster there.
-                </p>
+                <h3 className="text-lg font-bold text-gray-900">Downline Members Directory</h3>
               </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Comprehensive roster of all members in your downline structure with contact actions.
+              </p>
+            </div>
 
-              <Link
-                to="/dashboard/consumer-network"
-                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-gray-950 font-black text-xs sm:text-sm px-6 py-3.5 rounded-2xl shadow-lg transition-all shrink-0"
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant={directoryFilter === "ALL" ? "default" : "outline"}
+                onClick={() => setDirectoryFilter("ALL")}
+                className={`text-xs h-8 rounded-lg ${directoryFilter === "ALL" ? "bg-emerald-800 text-white" : ""}`}
               >
-                <span>Go to Consumer Network</span>
-                <ArrowUpRight className="w-4 h-4" />
-              </Link>
+                All ({downlineList.length})
+              </Button>
+              <Button
+                variant={directoryFilter === "DIRECT" ? "default" : "outline"}
+                onClick={() => setDirectoryFilter("DIRECT")}
+                className={`text-xs h-8 rounded-lg ${directoryFilter === "DIRECT" ? "bg-emerald-800 text-white" : ""}`}
+              >
+                Direct Personal ({downlineList.filter((d) => !d.isSpillover).length})
+              </Button>
+              <Button
+                variant={directoryFilter === "SPILLOVER" ? "default" : "outline"}
+                onClick={() => setDirectoryFilter("SPILLOVER")}
+                className={`text-xs h-8 rounded-lg ${directoryFilter === "SPILLOVER" ? "bg-emerald-800 text-white" : ""}`}
+              >
+                Spillover ({downlineList.filter((d) => d.isSpillover).length})
+              </Button>
             </div>
           </div>
-        )}
+
+          {filteredDirectory.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-100">
+              <Users className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-gray-700">No downline members found.</p>
+              <p className="text-xs text-gray-400 mt-1">Share your referral link to recruit your first 5 partners!</p>
+              <Button onClick={handleCopyReferralLink} className="mt-4 bg-emerald-800 text-white text-xs">
+                Copy Referral Link
+              </Button>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase font-semibold text-[10px] tracking-wider">
+                  <tr>
+                    <th className="py-3 px-4">#</th>
+                    <th className="py-3 px-4">Member Name</th>
+                    <th className="py-3 px-4">AGC Member ID</th>
+                    <th className="py-3 px-4">Contact Info</th>
+                    <th className="py-3 px-4">Source / Sponsor</th>
+                    <th className="py-3 px-4">Slots Held</th>
+                    <th className="py-3 px-4">Tree Position</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {filteredDirectory.map((m, idx) => (
+                    <tr key={m.id} className="hover:bg-emerald-50/30 transition-colors">
+                      <td className="py-3 px-4 text-gray-400 font-mono">{idx + 1}</td>
+                      <td className="py-3 px-4 font-bold text-gray-900">{m.fullName}</td>
+                      <td className="py-3 px-4 font-mono font-semibold text-emerald-800">
+                        {m.memberId}
+                      </td>
+                      <td className="py-3 px-4 text-gray-600">
+                        <div>{m.email}</div>
+                        {m.phone && <div className="text-[11px] text-gray-400">{m.phone}</div>}
+                      </td>
+                      <td className="py-3 px-4">
+                        {m.isSpillover ? (
+                          <span className="bg-blue-50 text-blue-800 px-2.5 py-0.5 rounded-full border border-blue-200/60 font-medium inline-flex items-center gap-1 text-[11px]">
+                            🌊 Spillover ({m.sponsorName || "Upline"})
+                          </span>
+                        ) : (
+                          <span className="bg-emerald-50 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-200/60 font-medium inline-flex items-center gap-1 text-[11px]">
+                            ⭐ Direct Personal
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 font-bold text-gray-800">
+                        {m.slotsHeld > 0 ? (
+                          <span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200/60 font-medium inline-flex items-center gap-1">
+                            🟢 Active Farm Slot ({m.slotsHeld})
+                          </span>
+                        ) : (
+                          <span className="bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full border border-amber-200/60 font-medium inline-flex items-center gap-1">
+                            🟡 ₦2k Member (No Farm Slot)
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        {m.position > 0 ? (
+                          <span className="font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md text-[11px] border border-emerald-100">
+                            Leg #{m.position}
+                          </span>
+                        ) : (
+                          <span className="font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-md text-[11px]">
+                            Direct Enrollee
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right space-x-1.5">
+                        {m.phone && (
+                          <button
+                            onClick={() => window.open(`https://wa.me/${m.phone?.replace(/[^0-9]/g, "")}`, "_blank")}
+                            className="text-emerald-700 hover:text-emerald-900 font-bold bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md text-[11px]"
+                          >
+                            WhatsApp
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            buildSubtree(m.id, false);
+                            window.scrollTo({ top: 400, behavior: "smooth" });
+                          }}
+                          className="text-blue-700 hover:text-blue-900 font-bold bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md text-[11px]"
+                        >
+                          Inspect Tree
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
         {/* Statutory Regulatory & Non-Investment Notice */}
         <RegulatoryNotice linkHref="/dashboard/legal#terms" className="mt-4" />

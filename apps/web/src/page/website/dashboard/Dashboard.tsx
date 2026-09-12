@@ -917,7 +917,7 @@ const Dashboard = () => {
                     variant="outline"
                     className="h-8 rounded-lg border-emerald-400/40 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs cursor-pointer whitespace-nowrap justify-center px-2"
                   >
-                    <Link to="/dashboard/producer-network">
+                    <Link to="/dashboard/my-network/producer">
                       Producer Matrix
                     </Link>
                   </Button>

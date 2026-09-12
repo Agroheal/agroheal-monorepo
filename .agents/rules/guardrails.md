@@ -35,5 +35,9 @@
    - If content or specifications are missing or unspecified, present a clean, neutral state (e.g. "not actively hiring", "coming soon", or contact inquiry) and ask the user for the actual copy or requirement rather than making up details.
 
 8. **Authoritative Business Logic Source of Truth:**
-   - [docs/BUSINESS_LOGIC.md](file:///c:/Users/Elijah/Desktop/AgroHeal/agroheal-fe/docs/BUSINESS_LOGIC.md) is the single authoritative source of truth for all compensation calculations, 7-level product commission engine (40% ceiling), farm slot allocations (₦500 direct referral only, no multilevel MLM), farm production cycles (Cycle 1 ₦0 cash payout doubling 2->4 bags, Cycle 2+ ₦6k distributable split), monthly PQV (₦5,000), and policy resolutions. All code and documentation must strictly conform to this file.
+   - `docs/BUSINESS_LOGIC.md` is the single authoritative source of truth for all compensation calculations, 7-level product commission engine (40% ceiling), farm slot allocations, farm production cycles, and policy resolutions. All code and documentation must strictly conform to this file.
+
+9. **Database Environment Isolation (CRITICAL):**
+   - Whenever the user asks to seed data, create test records, or test functionality, this **MUST ALWAYS** be executed against the **Development/Staging Database** (or local mocks), **NEVER the Production Database**.
+   - The Production Database (`ptowfacejneezksyhntk`) is reserved exclusively for live data audits, schema fixes approved by the user, and official verified migrations. Under no circumstances should test or mock records be written to Production.
 

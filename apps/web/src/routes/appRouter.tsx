@@ -10,6 +10,8 @@ import Careers from "@/page/website/Careers";
 import Login from "@/page/website/Login";
 import Signup from "@/page/website/Signup";
 import Slots from "@/page/website/Slots/Slots";
+import BuySlots from "@/page/website/Slots/BuySlots";
+import MyFarmSlots from "@/page/website/Slots/MyFarmSlots";
 import Courses from "@/page/website/Courses/Courses";
 import Dashboard from "@/page/website/dashboard/Dashboard";
 import SingleCoursePage from "@/page/website/Courses/CoursesDetails";
@@ -102,7 +104,34 @@ export const appRouter = createBrowserRouter([
         children: [
           { index: true, element: <Dashboard /> },
           { path: "transactions", element: <TransactionLedger /> },
-          { path: "slots", element: <Slots /> },
+
+          // Farm Operations (nested & backward-compatible aliases)
+          { path: "farm-operations", element: <BuySlots /> },
+          { path: "farm-operations/buy-slots", element: <BuySlots /> },
+          { path: "farm-operations/my-slots", element: <MyFarmSlots /> },
+          { path: "buy-slots", element: <BuySlots /> },
+          { path: "slots", element: <BuySlots /> },
+          { path: "my-slots", element: <MyFarmSlots /> },
+          { path: "manage-slots", element: <MyFarmSlots /> },
+          { path: "slots-subscription", element: <MyFarmSlots />, },
+
+          // My Network (nested & backward-compatible aliases)
+          { path: "my-network", element: <CompoundReferrals /> },
+          { path: "network", element: <CompoundReferrals /> },
+          { path: "my-network/producer", element: <ProducerNetwork /> },
+          { path: "my-network/producer-network", element: <ProducerNetwork /> },
+          { path: "producer-network", element: <ProducerNetwork /> },
+          { path: "my-network/consumer", element: <ConsumerNetwork /> },
+          { path: "my-network/consumer-network", element: <ConsumerNetwork /> },
+          { path: "consumer-network", element: <ConsumerNetwork /> },
+          { path: "compound-referrals", element: <CompoundReferrals /> },
+          { path: "organogram", element: <CompoundReferrals /> },
+
+          // Profile & Green Card
+          { path: "profile", element: <ProfileComponent /> },
+          { path: "profile/green-card", element: <GreenCardCommunity /> },
+          { path: "green-card", element: <GreenCardCommunity /> },
+
           { path: "checkout", element: <Checkout /> },
           {
             path: "courses",
@@ -120,15 +149,6 @@ export const appRouter = createBrowserRouter([
               </RequireSubscription>
             ),
           },
-          { path: "profile", element: <ProfileComponent /> },
-          {
-            path: "slots-subscription",
-            element: (
-              <RequireSubscription>
-                <MonthlyPayment />
-              </RequireSubscription>
-            ),
-          },
           {
             path: "group-farm-accounts",
             element: (
@@ -143,11 +163,6 @@ export const appRouter = createBrowserRouter([
           { path: "how-it-works", element: <RoadmapGuide /> },
           { path: "other-payments", element: <OtherPayments /> },
           { path: "mushroom-village", element: <MushroomVillage /> },
-          { path: "my-network", element: <CompoundReferrals /> },
-          { path: "producer-network", element: <ProducerNetwork /> },
-          { path: "consumer-network", element: <ConsumerNetwork /> },
-          { path: "compound-referrals", element: <CompoundReferrals /> },
-          { path: "organogram", element: <CompoundReferrals /> },
           { path: "kin", element: <KinDetails /> },
           { path: "legal", element: <Legal /> },
           { path: "help/knowledge-base", element: <KnowledgeBase /> },
