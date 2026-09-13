@@ -45,7 +45,7 @@ const RequireSubscription = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!hasActiveSubscription) {
-    return <Navigate to="/subscribe" replace />;
+    return <Navigate to="/dashboard/checkout?product=green_card" replace />;
   }
 
   return <>{children}</>;

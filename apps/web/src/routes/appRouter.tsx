@@ -1,4 +1,4 @@
-import { createBrowserRouter, Outlet } from "react-router-dom";
+import { createBrowserRouter, Outlet, Navigate } from "react-router-dom";
 
 // Page & Layout Imports
 import Home from "@/page/website/Home";
@@ -9,7 +9,6 @@ import HowItWorks from "@/page/website/HowItWorks";
 import Careers from "@/page/website/Careers";
 import Login from "@/page/website/Login";
 import Signup from "@/page/website/Signup";
-import Slots from "@/page/website/Slots/Slots";
 import BuySlots from "@/page/website/Slots/BuySlots";
 import MyFarmSlots from "@/page/website/Slots/MyFarmSlots";
 import Courses from "@/page/website/Courses/Courses";
@@ -24,7 +23,6 @@ import Subscribe from "@/page/website/dashboard/Subscribe";
 import ForgotPasswordForm from "@/page/ForgotPassword";
 import UpdatePasswordForm from "@/page/UpdatePassword";
 import ProfileComponent from "@/page/website/dashboard/Profile";
-import MonthlyPayment from "@/page/website/Slots/MonthlyPayment";
 import Legal from "@/page/website/Legal";
 import RoadmapGuide from "@/page/website/dashboard/RoadmapGuide";
 import CreateFarmGroup from "@/page/website/dashboard/CreateFarmGroup";
@@ -105,32 +103,70 @@ export const appRouter = createBrowserRouter([
           { index: true, element: <Dashboard /> },
           { path: "transactions", element: <TransactionLedger /> },
 
-          // Farm Operations (nested & backward-compatible aliases)
-          { path: "farm-operations", element: <BuySlots /> },
+          // Farm Operations (strict nested domain structure)
+          {
+            path: "farm-operations",
+            element: (
+              <Navigate to="/dashboard/farm-operations/buy-slots" replace />
+            ),
+          },
           { path: "farm-operations/buy-slots", element: <BuySlots /> },
           { path: "farm-operations/my-slots", element: <MyFarmSlots /> },
-          { path: "buy-slots", element: <BuySlots /> },
-          { path: "slots", element: <BuySlots /> },
-          { path: "my-slots", element: <MyFarmSlots /> },
-          { path: "manage-slots", element: <MyFarmSlots /> },
-          { path: "slots-subscription", element: <MyFarmSlots />, },
+          {
+            path: "buy-slots",
+            element: (
+              <Navigate to="/dashboard/farm-operations/buy-slots" replace />
+            ),
+          },
+          {
+            path: "my-slots",
+            element: (
+              <Navigate to="/dashboard/farm-operations/my-slots" replace />
+            ),
+          },
+          {
+            path: "slots",
+            element: (
+              <Navigate to="/dashboard/farm-operations/buy-slots" replace />
+            ),
+          },
+          {
+            path: "manage-slots",
+            element: (
+              <Navigate to="/dashboard/farm-operations/my-slots" replace />
+            ),
+          },
+          {
+            path: "slots-subscription",
+            element: (
+              <Navigate to="/dashboard/farm-operations/my-slots" replace />
+            ),
+          },
 
-          // My Network (nested & backward-compatible aliases)
+          // My Network (strict nested domain structure)
           { path: "my-network", element: <CompoundReferrals /> },
-          { path: "network", element: <CompoundReferrals /> },
+          {
+            path: "network",
+            element: <Navigate to="/dashboard/my-network" replace />,
+          },
           { path: "my-network/producer", element: <ProducerNetwork /> },
-          { path: "my-network/producer-network", element: <ProducerNetwork /> },
-          { path: "producer-network", element: <ProducerNetwork /> },
           { path: "my-network/consumer", element: <ConsumerNetwork /> },
-          { path: "my-network/consumer-network", element: <ConsumerNetwork /> },
-          { path: "consumer-network", element: <ConsumerNetwork /> },
-          { path: "compound-referrals", element: <CompoundReferrals /> },
-          { path: "organogram", element: <CompoundReferrals /> },
+          {
+            path: "compound-referrals",
+            element: <Navigate to="/dashboard/my-network" replace />,
+          },
+          {
+            path: "organogram",
+            element: <Navigate to="/dashboard/my-network" replace />,
+          },
 
           // Profile & Green Card
           { path: "profile", element: <ProfileComponent /> },
           { path: "profile/green-card", element: <GreenCardCommunity /> },
-          { path: "green-card", element: <GreenCardCommunity /> },
+          {
+            path: "green-card",
+            element: <Navigate to="/dashboard/profile/green-card" replace />,
+          },
 
           { path: "checkout", element: <Checkout /> },
           {

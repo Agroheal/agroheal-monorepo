@@ -33,25 +33,27 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const urlCategory = searchParams.get("category");
-  const urlSlots = parseInt(searchParams.get("slots") || "1", 10);
+  const isGreenCardOnly = searchParams.get("product") === "green_card";
+  const rawUrlSlots = searchParams.get("slots");
+  const parsedSlots = rawUrlSlots !== null ? parseInt(rawUrlSlots, 10) : 1;
+  const initialSlots = isGreenCardOnly ? 0 : (!isNaN(parsedSlots) && parsedSlots >= 0 ? parsedSlots : 1);
 
-  const [slotQuantity, setSlotQuantity] = useState(
-    !isNaN(urlSlots) && urlSlots > 0 ? urlSlots : 1,
-  );
+  const [slotQuantity, setSlotQuantity] = useState(initialSlots);
   const [category, setCategory] = useState(
     urlCategory && PROJECT_CATEGORIES.includes(urlCategory)
       ? urlCategory
       : DEFAULT_CATEGORY,
   );
 
-  const [hasGreenCard, setHasGreenCard] = useState<boolean>(true); // assume true while loading
+  const [hasGreenCard, setHasGreenCard] = useState<boolean>(!isGreenCardOnly); // false if green card checkout
   const [hasPriorSlots, setHasPriorSlots] = useState<boolean>(false);
 
   const isFirstSlotPurchase = !hasPriorSlots;
-  const { subtotal: slotsSubtotal } = calculateSlotSubtotal(slotQuantity, hasPriorSlots);
+  const { subtotal: slotsSubtotal } = slotQuantity > 0
+    ? calculateSlotSubtotal(slotQuantity, hasPriorSlots)
+    : { subtotal: 0, setupLevy: 0, slotBaseTotal: 0 };
 
-  const greenCardFee = hasGreenCard ? 0 : GREEN_CARD_FEE;
+  const greenCardFee = isGreenCardOnly || !hasGreenCard ? GREEN_CARD_FEE : 0;
   const totalPrice = slotsSubtotal + greenCardFee;
   const isOrganicFoodNation =
     category === "Organic FoodNation (1 Million Hectares against Hunger)";

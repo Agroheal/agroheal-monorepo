@@ -34,6 +34,7 @@ import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import { exportToExcel } from "@shared/excelExport";
 import { AgrohealImages } from "@/constant/Image";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import WithdrawalModal from "@/components/wallet/WithdrawalModal";
 
 interface LedgerItem {
   id: string;
@@ -59,7 +60,14 @@ const MATRIX_TIERS = [
 export default function TransactionLedger() {
   const [loading, setLoading] = useState<boolean>(true);
   const [memberId, setMemberId] = useState<string>("NO GREENCARD YET");
-  const [userProfile, setUserProfile] = useState<{ full_name?: string; email?: string } | null>(null);
+  const [userProfile, setUserProfile] = useState<{
+    full_name?: string;
+    email?: string;
+    bank_name?: string;
+    bank_account_number?: string;
+    bank_account_name?: string;
+    bank_code?: string;
+  } | null>(null);
   const [directReferralEarnings, setDirectReferralEarnings] = useState<number>(0);
   const [matrixEarnings, setMatrixEarnings] = useState<number>(0);
   const [directReferralsCount, setDirectReferralsCount] = useState<number>(0);
@@ -73,6 +81,7 @@ export default function TransactionLedger() {
   const [requeryLoading, setRequeryLoading] = useState<boolean>(false);
   const [activeRequeryRef, setActiveRequeryRef] = useState<string | null>(null);
   const [showRequeryModal, setShowRequeryModal] = useState<boolean>(false);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState<boolean>(false);
   const [isProjectSubscribed, setIsProjectSubscribed] = useState<boolean>(false);
   const [subscribingWithWallet, setSubscribingWithWallet] = useState<boolean>(false);
 
@@ -160,7 +169,7 @@ export default function TransactionLedger() {
       ] = await Promise.all([
         supabase
           .from("profiles")
-          .select("member_id, full_name, email, referral_earnings, slot_bonus, total_referrals, created_at")
+          .select("member_id, full_name, email, referral_earnings, slot_bonus, total_referrals, created_at, bank_name, bank_account_number, bank_account_name, bank_code")
           .eq("id", user.id)
           .maybeSingle(),
         supabase
@@ -186,6 +195,10 @@ export default function TransactionLedger() {
         setUserProfile({
           full_name: profile.full_name,
           email: profile.email,
+          bank_name: profile.bank_name,
+          bank_account_number: profile.bank_account_number,
+          bank_account_name: profile.bank_account_name,
+          bank_code: profile.bank_code,
         });
       }
       setMemberId(formatAgcId(profile?.member_id));
@@ -533,6 +546,42 @@ export default function TransactionLedger() {
       description: isFiltered
         ? `Exported ${filteredTransactions.length} filtered items + complete ${transactions.length} transactions history.`
         : `Exported all ${transactions.length} transactions and wallet overview to ${filename}.`,
+    });
+  };
+
+  const handleSaveBankToProfile = async (bankDetails: {
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
+  }) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    await supabase
+      .from("profiles")
+      .update({
+        bank_name: bankDetails.bankName,
+        bank_account_number: bankDetails.accountNumber,
+        bank_account_name: bankDetails.accountName,
+      })
+      .eq("id", user.id);
+
+    setUserProfile((prev) =>
+      prev
+        ? {
+            ...prev,
+            bank_name: bankDetails.bankName,
+            bank_account_number: bankDetails.accountNumber,
+            bank_account_name: bankDetails.accountName,
+          }
+        : null
+    );
+
+    showToast({
+      variant: "success",
+      title: "Bank Details Saved",
+      description: `Default payout destination saved to profile: ${bankDetails.bankName}.`,
     });
   };
 
@@ -939,16 +988,12 @@ export default function TransactionLedger() {
               )}
 
               <Button
-                disabled={!isDirectReferralWithdrawable}
+                disabled={!isDirectReferralWithdrawable && !isMatrixQualified}
                 onClick={() => {
-                  showToast({
-                    variant: "success",
-                    title: "Withdrawal Initiated",
-                    description: "Proceeding to bank disbursal selection...",
-                  });
+                  setIsWithdrawModalOpen(true);
                 }}
                 className={`w-full h-9 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
-                  isDirectReferralWithdrawable
+                  (isDirectReferralWithdrawable || isMatrixQualified)
                     ? "bg-emerald-700 hover:bg-emerald-600 text-white shadow-xs cursor-pointer"
                     : "bg-white/10 text-gray-400 border border-white/10 cursor-not-allowed"
                 }`}
@@ -1185,6 +1230,21 @@ export default function TransactionLedger() {
             </div>
           </div>
         )}
+        {/* Disbursal & Bank Withdrawal Modal */}
+        <WithdrawalModal
+          isOpen={isWithdrawModalOpen}
+          onClose={() => setIsWithdrawModalOpen(false)}
+          directReferralBalance={directReferralEarnings}
+          matrixBalance={matrixEarnings}
+          isMatrixQualified={isMatrixQualified}
+          savedBankName={userProfile?.bank_name}
+          savedAccountNumber={userProfile?.bank_account_number}
+          savedAccountName={userProfile?.bank_account_name}
+          onSaveBankToProfile={handleSaveBankToProfile}
+          onSuccess={() => {
+            loadLedger();
+          }}
+        />
       </div>
     </div>
   );

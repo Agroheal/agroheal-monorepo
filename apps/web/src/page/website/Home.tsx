@@ -60,7 +60,7 @@ export default function Home() {
       desc: "Low-Cost Entry to other projects.",
     },
     {
-      name: "Gingertown",
+      name: "Ginger Town",
       desc: "No. 1 Global Ginger Exporter",
     },
     {
@@ -71,7 +71,7 @@ export default function Home() {
 
   const projectHubs = [
     {
-      name: "Gingertown",
+      name: "Ginger Town",
       desc: "No. 1 ginger production, processing & export powerhouse.",
     },
     {
@@ -419,7 +419,7 @@ export default function Home() {
                   <div className="w-full md:w-40 h-32 md:h-36 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
                     <img
                       src={
-                        project.name === "Gingertown"
+                        project.name === "Ginger Town" || project.name === "Gingertown"
                           ? AgrohealImages.HowItWorksTwo
                           : project.name === "Mushroom Village"
                             ? AgrohealImages.Mushroom
@@ -462,10 +462,10 @@ export default function Home() {
                   "How it Works:\n\nParticipants join Integrated Cluster Farms to learn and earn from mass organic food production.\n\n1. Secure Your Green Card (₦2,000)\nStart with a one-time ₦2,000 Green Card fee for permanent lifetime membership and access to comprehensive organic farming blueprints.\n\n2. Secure Your Farm Slot\nJoin a cooperative group farm cluster. Slot contributions fund certified organic inputs, land prep, and automated irrigation. No hidden monthly utilities.\n\n3. Sustainable Crop & Livestock Integration\nIntercropped organic vegetables, grains, plantain, and livestock produce high yields with low-cost on-farm organic compost and biopesticides.\n\n4. Harvest Distribution\nHarvested produce is sold directly to established Farm-to-Table food distribution networks to eliminate middlemen and maximize member dividends.",
               },
               {
-                title: "Pioneers Gingertown",
+                title: "Ginger Town",
                 subtitle: "Cooperative Flagship Farm Funded via Mushroom Cycle 2 Profits",
                 description:
-                  "How it Works:\n\nPioneers Gingertown Group Farm is the premier ginger production cluster under AgroHeal cooperative management.\n\n1. Sustained by Mushroom Cycle 2 Profits\nRather than ongoing individual slot levies, Pioneers Gingertown Group Farm is directly funded and sustained through proceeds generated from Cycle 2 onwards of our Mushroom Flagship project.\n\n2. High-Grade Organic Ginger Cultivation\nOperates 1-Hectare commercial ginger acreage equipped with modern drip irrigation and biological soil enrichment.\n\n3. Expert Cooperative Agronomy\nManaged on the ground by certified agronomists and experienced agricultural labor, eliminating the need for members to perform physical farm work.\n\n4. Export & Value-Added Spice Channels\nHarvested produce is cured, dried, and supplied to industrial spice processors and off-taker export markets, enriching the cooperative's long-term asset base.",
+                  "How it Works:\n\nGinger Town Group Farm is the premier ginger production cluster under AgroHeal cooperative management.\n\n1. Sustained by Mushroom Cycle 2 Profits\nRather than ongoing individual slot levies, Ginger Town Group Farm is directly funded and sustained through proceeds generated from Cycle 2 onwards of our Mushroom Flagship project.\n\n2. High-Grade Organic Ginger Cultivation\nOperates commercial ginger acreage equipped with modern drip irrigation and biological soil enrichment.\n\n3. Expert Cooperative Agronomy\nManaged on the ground by certified agronomists and experienced agricultural labor, eliminating the need for members to perform physical farm work.\n\n4. Export & Value-Added Spice Channels\nHarvested produce is cured, dried, and supplied to industrial spice processors and off-taker export markets, enriching the cooperative's long-term asset base.",
               },
             ].map((card, index) => {
               const words = card.description.split(/\s+/).filter(Boolean);

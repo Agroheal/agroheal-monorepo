@@ -112,11 +112,11 @@ export default function HowItWorksContent({
       icon: Building,
     },
     {
-      title: "Pioneers Gingertown",
+      title: "Ginger Town",
       tag: "Funded via Mushroom Cycle 2",
       image: AgrohealImages.HowItWorksTwo,
       description:
-        "The active Pioneers Gingertown Group Farm is sustained and financed directly through proceeds from Cycle 2 onwards of our Mushroom Flagship project. Cultivates commercial ginger with drip irrigation for export spice markets.",
+        "The active Ginger Town Group Farm is sustained and financed directly through proceeds from Cycle 2 onwards of our Mushroom Flagship project. Cultivates commercial ginger with drip irrigation for export spice markets.",
       stat: "Cycle 2 Mushroom Reinvestment",
       icon: ShieldCheck,
     },

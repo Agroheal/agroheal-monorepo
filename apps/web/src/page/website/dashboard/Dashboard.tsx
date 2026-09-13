@@ -625,7 +625,7 @@ const Dashboard = () => {
 
                 <div className="w-full rounded-2xl border border-gray-200 bg-gray-50/90 px-4 py-3 text-sm text-left flex items-center justify-between">
                   <div>
-                    <p className="font-bold text-gray-700">Pioneers Gingertown Farm</p>
+                    <p className="font-bold text-gray-700">Ginger Town Farm</p>
                     <p className="text-xs text-gray-500">Funded via Mushroom Cycle 2 returns</p>
                   </div>
                   <span className="text-[10px] font-bold uppercase bg-amber-100 text-amber-800 px-2 py-0.5 rounded border border-amber-200">Cycle 2 Funded</span>

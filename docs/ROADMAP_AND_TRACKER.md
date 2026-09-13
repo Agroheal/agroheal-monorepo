@@ -88,6 +88,7 @@ All legal clauses and customer-facing terms in [apps/web/src/page/website/Legal.
 - [ ] **3.4 Cycle 2+ Quarterly Waterfall Calculator:** ₦10,000 gross - ₦4,000 continuation = ₦6,000 distributable (40% / 20% / 20% / 10% / 10%).
 - [ ] **3.5 Maker-Checker Farm Harvest Close Workflow:** Coordinator drafts, Farm Accountant validates and approves.
 - [ ] **3.6 Automated Wallet Disbursement:** Approved cycle balances post automatically to slot owners' wallets.
+- [ ] **3.7 Coordinator Instant Slot Purchase Notification Hook:** Automated dispatch (In-App Bell / SMS / WhatsApp / Email) alerting resident Farm Coordinators immediately when a member purchases and is assigned slots in their cluster.
 
 ### ⚪ MILESTONE 4: Financial Dashboard, Maker-Checker Controls & Production Hardening
 - [ ] **4.1 Super Admin Financial Dashboard (Option A FinTech Model):** Gross inflows, member liabilities, company retained margin, and Liquidity Coverage Ratio (LCR).

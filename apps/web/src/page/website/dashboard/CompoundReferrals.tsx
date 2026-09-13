@@ -163,9 +163,6 @@ const CompoundReferrals: React.FC = () => {
             setPqvDaysRemaining(Number(apiQuals.matrixSpilloverWallet.daysRemaining));
           }
         }
-        if (apiQuals?.directReferralWallet?.currentBalance !== undefined) {
-          setDirectReferralEarnings(Number(apiQuals.directReferralWallet.currentBalance));
-        }
       } catch (apiErr: any) {
         console.info("[CompoundReferrals] Express Genealogy API unavailable, relying on database records:", apiErr.message);
       }
@@ -180,10 +177,6 @@ const CompoundReferrals: React.FC = () => {
       if (profile) {
         setCurrentUserProfile(profile);
         setReferralCode(profile.referral_code || profile.member_id || "");
-        if (apiQuals?.directReferralWallet?.currentBalance === undefined) {
-          setDirectReferralEarnings(Number(profile.referral_earnings || 0));
-        }
-        setMatrixSpilloverEarnings(Number(profile.slot_bonus || 0));
       }
 
       // 2. Fetch User Slot Subscriptions

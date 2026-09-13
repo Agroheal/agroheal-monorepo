@@ -242,6 +242,29 @@ export const apiClient = {
   },
 
   /**
+   * Disbursal & Bank Withdrawal APIs
+   * POST /api/v1/withdrawals/request
+   */
+  withdrawals: {
+    request: (payload: {
+      walletType: "DIRECT_REFERRAL" | "MATRIX_SPILLOVER";
+      amount: number;
+      bankName: string;
+      accountNumber: string;
+      accountName: string;
+    }) =>
+      apiRequest<{
+        id: string;
+        amount: number;
+        status: string;
+        walletType: string;
+      }>("withdrawals/request", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+  },
+
+  /**
    * LMS & Agronomy Courses APIs
    * GET /api/v1/courses/...
    */

@@ -72,8 +72,14 @@ const navGroups: NavGroup[] = [
     path: "/dashboard/farm-operations/buy-slots",
     icon: Sprout,
     subItems: [
-      { label: "Browse & Buy Slots", path: "/dashboard/farm-operations/buy-slots" },
-      { label: "Manage My Farm Slots", path: "/dashboard/farm-operations/my-slots" },
+      {
+        label: "Browse & Buy Slots",
+        path: "/dashboard/farm-operations/buy-slots",
+      },
+      {
+        label: "Manage My Farm Slots",
+        path: "/dashboard/farm-operations/my-slots",
+      },
     ],
   },
   {
@@ -174,7 +180,10 @@ const getPageTitle = (currentPath: string): string => {
       );
       if (match) return match.label;
     }
-    if (currentPath === group.path || currentPath.startsWith(group.path + "/")) {
+    if (
+      currentPath === group.path ||
+      currentPath.startsWith(group.path + "/")
+    ) {
       return group.label;
     }
   }
@@ -268,7 +277,9 @@ const SidebarContent = ({
       <nav className="flex-1 px-3 py-3 space-y-1.5 overflow-y-auto scrollbar-thin scrollbar-thumb-emerald-700/50 hover:scrollbar-thumb-emerald-600/70 scrollbar-track-transparent">
         {navGroups.map((group) => {
           const Icon = group.icon;
-          const hasChildren = Boolean(group.subItems && group.subItems.length > 0);
+          const hasChildren = Boolean(
+            group.subItems && group.subItems.length > 0,
+          );
           const isGroupActive = activeGroupId === group.id;
           const isOpen = Boolean(openGroups[group.id]);
 
@@ -299,11 +310,13 @@ const SidebarContent = ({
                       <span className="truncate">{group.label}</span>
                     </div>
                     {group.badge ? (
-                      <span className={`text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full shrink-0 ${
-                        isActive
-                          ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
-                          : "bg-emerald-900/90 text-emerald-300 border border-emerald-700/60"
-                      }`}>
+                      <span
+                        className={`text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                          isActive
+                            ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                            : "bg-emerald-900/90 text-emerald-300 border border-emerald-700/60"
+                        }`}
+                      >
                         {group.badge}
                       </span>
                     ) : isActive ? (
@@ -315,25 +328,33 @@ const SidebarContent = ({
             );
           }
 
-          // Group with Sub-items (collapsible accordion)
+          // Group with Sub-items (collapsible accordion with direct navigation)
           return (
             <div key={group.id} className="space-y-0.5">
               <div
-                className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-150 cursor-pointer ${
+                className={`flex items-center justify-between rounded-xl overflow-hidden transition-all duration-150 ${
                   isGroupActive
                     ? "bg-emerald-800/50 text-white font-medium"
                     : "text-emerald-100/90 hover:bg-emerald-800/30 hover:text-white"
                 }`}
-                onClick={() => toggleGroup(group.id)}
               >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
+                <NavLink
+                  to={group.path}
+                  onClick={() => {
+                    if (!isOpen) {
+                      toggleGroup(group.id);
+                    }
+                    handleClose();
+                  }}
+                  className="flex items-center gap-3 px-3.5 py-2.5 flex-1 min-w-0 text-xs sm:text-sm font-medium"
+                >
                   <Icon
                     className={`w-4 h-4 shrink-0 ${
                       isGroupActive ? "text-emerald-300" : "text-emerald-300/80"
                     }`}
                   />
                   <span className="truncate">{group.label}</span>
-                </div>
+                </NavLink>
 
                 {/* Accordion toggle button */}
                 <button
@@ -343,12 +364,14 @@ const SidebarContent = ({
                     e.stopPropagation();
                     toggleGroup(group.id);
                   }}
-                  className="p-1 rounded-md text-emerald-300/70 hover:text-white hover:bg-emerald-700/40 transition-colors ml-1"
+                  className="p-2.5 rounded-r-xl text-emerald-300/70 hover:text-white hover:bg-emerald-700/40 transition-colors"
                   aria-label={`Toggle ${group.label} sub-items`}
                 >
                   <ChevronDown
                     className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                      isOpen ? "rotate-180 text-emerald-200" : "text-emerald-400/60"
+                      isOpen
+                        ? "rotate-180 text-emerald-200"
+                        : "text-emerald-400/60"
                     }`}
                   />
                 </button>
@@ -379,7 +402,9 @@ const SidebarContent = ({
                               : "text-emerald-200/80 hover:bg-emerald-800/40 hover:text-white"
                           }`}
                         >
-                          <CornerDownRight className={`w-3 h-3 shrink-0 ${isSubActive ? "text-emerald-800" : "text-emerald-400/60"}`} />
+                          <CornerDownRight
+                            className={`w-3 h-3 shrink-0 ${isSubActive ? "text-emerald-800" : "text-emerald-400/60"}`}
+                          />
                           <span className="truncate block">{sub.label}</span>
                         </NavLink>
                       );
@@ -688,7 +713,9 @@ const DashboardLayout = () => {
             <div className="flex items-center gap-2 min-w-0">
               <Lock className="w-4 h-4 shrink-0 text-amber-600" />
               <span className="truncate sm:whitespace-normal">
-                <strong>Read-Only Audit Mode:</strong> The platform is currently undergoing financial reconciliation & audit. Data modifications and new slot subscriptions are temporarily in view-only mode.
+                <strong>Read-Only Audit Mode:</strong> The platform is currently
+                undergoing financial reconciliation & audit. Data modifications
+                and new slot subscriptions are temporarily in view-only mode.
               </span>
             </div>
             <span className="shrink-0 text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-mono font-bold tracking-wider">
@@ -699,7 +726,12 @@ const DashboardLayout = () => {
 
         {/* Page Content Viewport */}
         <main className="flex-1 overflow-y-auto bg-gray-50/60">
-          <Outlet context={{ setHowItWorksOpen, openHowItWorks: () => setHowItWorksOpen(true) }} />
+          <Outlet
+            context={{
+              setHowItWorksOpen,
+              openHowItWorks: () => setHowItWorksOpen(true),
+            }}
+          />
         </main>
       </div>
     </div>
