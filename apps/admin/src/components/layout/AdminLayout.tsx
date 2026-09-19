@@ -6,7 +6,6 @@ import {
   Settings as SettingsIcon,
   Sprout,
   LogOut,
-  MapPinned,
   Lock,
   Landmark,
 } from "lucide-react";

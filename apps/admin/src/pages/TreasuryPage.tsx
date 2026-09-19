@@ -1,23 +1,17 @@
 import { useState, useEffect } from "react";
 import {
   ShieldCheck,
-  AlertTriangle,
   Coins,
   ArrowDownToLine,
-  TrendingUp,
   RefreshCw,
   CheckCircle2,
-  XCircle,
   Clock,
   Landmark,
-  Building2,
-  DollarSign,
-  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { StatusBanner } from "@/components/admin/StatusBanner";
 import { adminApiClient } from "@/lib/apiClient";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
@@ -52,9 +46,8 @@ interface TreasuryAuditData {
 }
 
 export default function TreasuryPage() {
-  const { isSuperDeveloper, isAdmin, isReviewer } = useAdminAuth();
+  const { isSuperDeveloper, isAdmin } = useAdminAuth();
 
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -106,7 +99,6 @@ export default function TreasuryPage() {
     } catch (err: any) {
       flash(setErrorMessage, err.message || "Failed to load treasury data");
     } finally {
-      setLoading(false);
       setRefreshing(false);
     }
   };

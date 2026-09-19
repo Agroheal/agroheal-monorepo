@@ -8,19 +8,12 @@ import {
   Sprout,
   MapPinned,
   RefreshCw,
-  TrendingUp,
-  Coins,
   ShieldCheck,
-  Send,
-  Calendar,
-  Layers,
-  ChevronRight,
-  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBanner } from "@/components/admin/StatusBanner";
 import { useFarmAssignmentGaps, type FarmAssignmentGap } from "@/hooks/useFarmAssignmentGaps";
