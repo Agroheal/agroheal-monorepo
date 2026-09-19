@@ -254,8 +254,8 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
           </Button>
         </div>
       ) : viewMode === "classic" ? (
-        /* Classic SVG & Rasterizer Export View */
-        <div className="relative rounded-2xl p-2 sm:p-4 bg-gradient-to-br from-emerald-950 via-green-900 to-emerald-950 border border-emerald-700/40 shadow-xl overflow-hidden print:border-none print:shadow-none print:p-0">
+        /* Flat 2D Card View without outer background box */
+        <div className="w-full flex justify-center py-2">
           <GreenCardImage
             memberName={memberName}
             memberId={formattedId}

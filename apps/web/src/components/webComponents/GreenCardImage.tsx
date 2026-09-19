@@ -95,7 +95,7 @@ export const GreenCardImage = ({
   return (
     <div className="flex flex-col items-center gap-4 w-full">
       {/* ── LUXURY FLAT 2D CARD (HIGH FIDELITY SVG) ── */}
-      <div className="w-full max-w-[620px] rounded-2xl shadow-2xl overflow-hidden border border-amber-400/40 bg-emerald-950">
+      <div className="w-full max-w-[580px] filter drop-shadow-2xl">
         <svg
           ref={svgRef}
           viewBox={`0 0 ${CARD_WIDTH} ${CARD_HEIGHT}`}
