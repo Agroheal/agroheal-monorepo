@@ -115,55 +115,13 @@ export const appRouter = createBrowserRouter([
           },
           { path: "farm-operations/buy-slots", element: <BuySlots /> },
           { path: "farm-operations/my-slots", element: <MyFarmSlots /> },
-          {
-            path: "buy-slots",
-            element: (
-              <Navigate to="/dashboard/farm-operations/buy-slots" replace />
-            ),
-          },
-          {
-            path: "my-slots",
-            element: (
-              <Navigate to="/dashboard/farm-operations/my-slots" replace />
-            ),
-          },
-          {
-            path: "slots",
-            element: (
-              <Navigate to="/dashboard/farm-operations/buy-slots" replace />
-            ),
-          },
-          {
-            path: "manage-slots",
-            element: (
-              <Navigate to="/dashboard/farm-operations/my-slots" replace />
-            ),
-          },
-          {
-            path: "slots-subscription",
-            element: (
-              <Navigate to="/dashboard/farm-operations/my-slots" replace />
-            ),
-          },
 
           // My Network (strict nested domain structure)
           { path: "my-network", element: <CompoundReferrals /> },
-          {
-            path: "network",
-            element: <Navigate to="/dashboard/my-network" replace />,
-          },
           { path: "my-network/producer", element: <ProducerNetwork /> },
           { path: "my-network/consumer", element: <ConsumerNetwork /> },
-          {
-            path: "compound-referrals",
-            element: <Navigate to="/dashboard/my-network" replace />,
-          },
-          {
-            path: "organogram",
-            element: <Navigate to="/dashboard/my-network" replace />,
-          },
 
-          // Profile & Green Card
+          // Profile & Green Card (strict nested domain structure)
           { path: "profile", element: <ProfileComponent /> },
           {
             path: "profile/green-card",
@@ -172,10 +130,6 @@ export const appRouter = createBrowserRouter([
                 <GreenCardCommunity />
               </RequireSubscription>
             ),
-          },
-          {
-            path: "green-card",
-            element: <Navigate to="/dashboard/profile/green-card" replace />,
           },
 
           { path: "checkout", element: <Checkout /> },
@@ -206,15 +160,12 @@ export const appRouter = createBrowserRouter([
           { path: "create-farm-group", element: <CreateFarmGroup /> },
           { path: "farm-admin", element: <FarmRecordsView /> },
           { path: "roadmap-guide", element: <RoadmapGuide /> },
-          { path: "how-it-works", element: <RoadmapGuide /> },
           { path: "other-payments", element: <OtherPayments /> },
           { path: "mushroom-village", element: <MushroomVillage /> },
           { path: "kin", element: <KinDetails /> },
           { path: "legal", element: <Legal /> },
           { path: "help/knowledge-base", element: <KnowledgeBase /> },
           { path: "help/customer-service", element: <CustomerService /> },
-          { path: "knowledge-base", element: <KnowledgeBase /> },
-          { path: "customer-service", element: <CustomerService /> },
         ],
       },
     ],

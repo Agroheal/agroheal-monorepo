@@ -68,7 +68,7 @@ export default function HowItWorksContent({
       badge: "bg-amber-100 text-amber-800",
       actionText: isDashboard ? "Manage Farm Slots" : "Activate Wealth (₦10,000)",
       actionLink: isDashboard
-        ? "/dashboard/slots-subscription"
+        ? "/dashboard/farm-operations/my-slots"
         : "/signup?redirect=/dashboard/checkout",
     },
     {

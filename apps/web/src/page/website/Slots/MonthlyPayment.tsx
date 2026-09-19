@@ -801,7 +801,7 @@ const MonthlyPayment = () => {
             You haven't secured a farm slot yet. Purchase one to get started.
           </p>
           <a
-            href="/dashboard/slots"
+            href="/dashboard/farm-operations/buy-slots"
             className="inline-flex items-center gap-2 bg-green-800 text-white text-sm font-semibold px-5 py-3 rounded-xl hover:bg-green-700 transition-colors"
           >
             Secure your Farm Slot

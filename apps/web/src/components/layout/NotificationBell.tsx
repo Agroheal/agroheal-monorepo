@@ -143,7 +143,7 @@ export const NotificationBell: React.FC = () => {
             type: "slot",
             created_at: new Date().toISOString(),
             read: false,
-            link: "/dashboard/slots",
+            link: "/dashboard/farm-operations/my-slots",
           });
         }
 

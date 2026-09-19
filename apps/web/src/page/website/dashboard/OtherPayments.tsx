@@ -268,7 +268,7 @@ const OtherPayments = () => {
             // Optional: Redirect or refresh
             setIsProcessing(false);
             setTimeout(() => {
-              navigate("/dashboard/slots-subscription");
+              navigate("/dashboard/farm-operations/my-slots");
             }, 1000);
           } else {
             setIsProcessing(false);

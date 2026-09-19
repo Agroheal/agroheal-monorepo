@@ -281,7 +281,7 @@ export const ProducerNetwork: React.FC = () => {
                 asChild
                 className="w-full sm:w-auto h-11 px-6 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2"
               >
-                <Link to="/dashboard/slots">
+                <Link to="/dashboard/farm-operations/buy-slots">
                   <PlusCircle className="w-4 h-4" />
                   <span>Secure Starter Slot ({formatNaira(STARTER_SLOT_TOTAL)} / ₦5k + ₦5k)</span>
                 </Link>
@@ -292,7 +292,7 @@ export const ProducerNetwork: React.FC = () => {
                 variant="outline"
                 className="w-full sm:w-auto h-11 px-5 rounded-xl border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs transition-all"
               >
-                <Link to="/dashboard/slots-subscription">
+                <Link to="/dashboard/farm-operations/my-slots">
                   <span>View Slot Management</span>
                 </Link>
               </Button>
@@ -328,7 +328,7 @@ export const ProducerNetwork: React.FC = () => {
                   asChild
                   className="w-full sm:w-auto h-10 px-5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all"
                 >
-                  <Link to="/dashboard/slots" className="flex items-center gap-1.5">
+                  <Link to="/dashboard/farm-operations/buy-slots" className="flex items-center gap-1.5">
                     <PlusCircle className="w-4 h-4" />
                     <span>Buy More Slots ({formatNaira(SUBSEQUENT_SLOT_PRICE)}/ea)</span>
                   </Link>
@@ -339,7 +339,7 @@ export const ProducerNetwork: React.FC = () => {
                   variant="outline"
                   className="w-full sm:w-auto h-10 px-5 rounded-xl border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs transition-all"
                 >
-                  <Link to="/dashboard/slots-subscription">
+                  <Link to="/dashboard/farm-operations/my-slots">
                     <span>View Slot Management</span>
                   </Link>
                 </Button>
@@ -362,7 +362,7 @@ export const ProducerNetwork: React.FC = () => {
                   size="sm"
                   className="bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-4 rounded-xl"
                 >
-                  <Link to="/dashboard/slots" className="flex items-center gap-1.5">
+                  <Link to="/dashboard/farm-operations/buy-slots" className="flex items-center gap-1.5">
                     <PlusCircle className="w-3.5 h-3.5" />
                     <span>Add Slots ({formatNaira(SUBSEQUENT_SLOT_PRICE)})</span>
                   </Link>
@@ -373,7 +373,7 @@ export const ProducerNetwork: React.FC = () => {
                   size="sm"
                   className="border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs h-9 px-3 rounded-xl"
                 >
-                  <Link to="/dashboard/slots-subscription">
+                  <Link to="/dashboard/farm-operations/my-slots">
                     <span>Manage Slots</span>
                   </Link>
                 </Button>

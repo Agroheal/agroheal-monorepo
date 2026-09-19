@@ -748,7 +748,7 @@ const Checkout = () => {
       <main className="pt-0 pb-16">
         <div className="container mx-auto px-4 max-w-4xl">
           <Link
-            to="/dashboard/slots"
+            to="/dashboard/farm-operations/buy-slots"
             className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8"
           >
             <ArrowLeft className="w-4 h-4" />

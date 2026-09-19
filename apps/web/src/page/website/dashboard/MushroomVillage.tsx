@@ -202,7 +202,7 @@ const MushroomVillage = () => {
 
               // Redirect after brief delay to ensure user sees the success message
               setTimeout(() => {
-                navigate("/dashboard/slots-subscription");
+                navigate("/dashboard/farm-operations/my-slots");
               }, 1000);
             } catch (error) {
               console.error("Payment recording error:", error);

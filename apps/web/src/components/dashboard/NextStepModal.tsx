@@ -87,7 +87,7 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
         "Secures your locked placement in the 5×7 Cooperative Matrix",
       ],
       buttonText: "Secure Farm Slot (₦5,000)",
-      targetRoute: "/dashboard/slots",
+      targetRoute: "/dashboard/farm-operations/buy-slots",
     },
     step3: {
       title: "Unlock 7-Level Matrix Harvest Dividends",
@@ -209,7 +209,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
       navigate(config.steps.step1.targetRoute || "/subscribe");
       handleDismiss();
     } else if (currentStep === 2) {
-      navigate(config.steps.step2.targetRoute || "/dashboard/slots");
+      navigate(config.steps.step2.targetRoute || "/dashboard/farm-operations/buy-slots");
       handleDismiss();
     } else if (currentStep === 3) {
       // Step 3: Copy referral link

@@ -305,8 +305,8 @@ const Dashboard = () => {
       valueColor: "text-gray-900",
       actionTo:
         totalSlotsPurchased > 0
-          ? "/dashboard/slots-subscription"
-          : "/dashboard/slots",
+          ? "/dashboard/farm-operations/my-slots"
+          : "/dashboard/farm-operations/buy-slots",
       actionLabel: totalSlotsPurchased > 0 ? "Manage Slots" : "Secure Slot",
     },
     {
@@ -451,7 +451,7 @@ const Dashboard = () => {
                       variant="outline"
                       className="mt-2.5 sm:mt-4 w-full rounded-xl border border-emerald-800 bg-emerald-800 hover:bg-emerald-700 text-white px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer"
                     >
-                      <Link to="/dashboard/slots">Secure Slot</Link>
+                      <Link to="/dashboard/farm-operations/buy-slots">Secure Slot</Link>
                     </Button>
                   ) : (
                     <Button
@@ -699,7 +699,7 @@ const Dashboard = () => {
                   type="button"
                   onClick={() => {
                     setShowSecureSlotModal(false);
-                    navigate("/dashboard/slots");
+                    navigate("/dashboard/farm-operations/buy-slots");
                   }}
                   className="w-full rounded-2xl border border-emerald-700 bg-emerald-800 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-700 text-left flex items-center justify-between shadow-xs"
                 >
@@ -789,7 +789,7 @@ const Dashboard = () => {
                       size="sm"
                       className="h-8 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold px-3 rounded-lg shadow-xs cursor-pointer"
                     >
-                      <Link to="/dashboard/slots-subscription">Manage Slots</Link>
+                      <Link to="/dashboard/farm-operations/my-slots">Manage Slots</Link>
                     </Button>
                   </div>
                 </div>
@@ -888,7 +888,7 @@ const Dashboard = () => {
                   },
                   totalSlotsPurchased > 0
                     ? {
-                        to: "/dashboard/slots-subscription",
+                        to: "/dashboard/farm-operations/my-slots",
                         icon: Sprout,
                         label: "Producer Operations",
                         desc: "Active Producer · Slot allocation",
@@ -896,7 +896,7 @@ const Dashboard = () => {
                         iconColor: "text-emerald-800",
                       }
                     : {
-                        to: hasGreenCard ? "/dashboard/slots" : "/dashboard/checkout?product=farm_slot",
+                        to: hasGreenCard ? "/dashboard/farm-operations/buy-slots" : "/dashboard/checkout?product=farm_slot",
                         icon: Sprout,
                         label: "Become a Producer",
                         desc: hasGreenCard ? "Secure commercial farm slot" : "Secure slot (bundles Green Card)",
