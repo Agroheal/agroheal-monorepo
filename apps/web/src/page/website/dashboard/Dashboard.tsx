@@ -988,11 +988,10 @@ const Dashboard = () => {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className="grid grid-cols-1 gap-2 pt-1">
                   <Button
                     asChild
-                    size="sm"
-                    className="h-8 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-xs cursor-pointer shadow-xs whitespace-nowrap justify-center px-2"
+                    className="w-full h-9 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold text-xs cursor-pointer shadow-xs justify-center px-3"
                   >
                     <Link to="/dashboard/my-network">
                       My Network
@@ -1000,9 +999,8 @@ const Dashboard = () => {
                   </Button>
                   <Button
                     asChild
-                    size="sm"
                     variant="outline"
-                    className="h-8 rounded-lg border-emerald-400/40 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs cursor-pointer whitespace-nowrap justify-center px-2"
+                    className="w-full h-9 rounded-xl border-emerald-400/40 bg-white/10 hover:bg-white/20 text-white font-semibold text-xs cursor-pointer justify-center px-3"
                   >
                     <Link to="/dashboard/my-network/producer">
                       Producer Matrix
