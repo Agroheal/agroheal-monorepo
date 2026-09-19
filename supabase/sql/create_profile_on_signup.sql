@@ -34,8 +34,8 @@ begin
 
   select id into referrer_id
   from public.profiles
-  where referral_code = upper(incoming_ref)
-     or member_id = incoming_ref
+  where upper(referral_code) = upper(incoming_ref)
+     or upper(member_id) = upper(incoming_ref)
      or id::text = incoming_ref
   limit 1;
 

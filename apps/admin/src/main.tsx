@@ -13,6 +13,7 @@ import PaymentsPage from "@/pages/PaymentsPage";
 import FarmAssignmentsPage from "@/pages/FarmAssignmentsPage";
 import TreasuryPage from "@/pages/TreasuryPage";
 import SettingsPage from "@/pages/SettingsPage";
+import CoreDriversPage from "@/pages/CoreDriversPage";
 
 const router = createBrowserRouter([
   { path: "/signin", element: <LoginPage /> },
@@ -26,6 +27,7 @@ const router = createBrowserRouter([
           { index: true, element: <DashboardPage /> },
           { path: "members", element: <MembersPage /> },
           { path: "farm-assignments", element: <FarmAssignmentsPage /> },
+          { path: "core-drivers", element: <CoreDriversPage /> },
           { path: "payments", element: <PaymentsPage /> },
           { path: "treasury", element: <TreasuryPage /> },
           { path: "settings", element: <SettingsPage /> },

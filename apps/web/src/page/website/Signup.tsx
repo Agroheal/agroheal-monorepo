@@ -28,10 +28,10 @@ const Signup = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const DEFAULT_SPONSOR_CODE = "356FV1"; // Adetola Esther (Co-founder Root Sponsor)
   const queryRef = searchParams.get("ref");
-  const hasQueryRef = Boolean(queryRef);
-  const [referral, setReferral] = useState<string>(() => {
-    return queryRef || DEFAULT_SPONSOR_CODE;
-  });
+  const storedRef = typeof window !== "undefined" ? localStorage.getItem("agroheal_ref") : null;
+  const effectiveRef = (queryRef || storedRef || DEFAULT_SPONSOR_CODE).trim().toUpperCase();
+  const hasQueryRef = Boolean(queryRef || storedRef);
+  const [referral, setReferral] = useState<string>(effectiveRef);
 
   // console.log("ref param:", searchParams.get("ref"));
 
@@ -147,6 +147,9 @@ const Signup = () => {
     });
 
     Sentry.metrics.count("signup_completed", 1);
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("agroheal_ref");
+    }
     setTimeout(() => {
       navigate(redirectUrl);
     }, 1000);

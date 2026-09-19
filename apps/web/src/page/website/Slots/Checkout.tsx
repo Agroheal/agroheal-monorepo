@@ -46,7 +46,7 @@ const Checkout = () => {
       : DEFAULT_CATEGORY,
   );
 
-  const [hasGreenCard, setHasGreenCard] = useState<boolean>(!isGreenCardOnly); // false if green card checkout
+  const [hasGreenCard, setHasGreenCard] = useState<boolean>(false);
   const [hasPriorSlots, setHasPriorSlots] = useState<boolean>(false);
 
   const isFirstSlotPurchase = !hasPriorSlots;
@@ -109,11 +109,12 @@ const Checkout = () => {
           setWalletAmountToUse(Math.min(bal, totalPrice));
         }
 
-        // Check active Green Card subscription across all plans
+        // Check active Green Card subscription strictly on plan = 'green_card'
         const { data: subs } = await supabase
           .from("subscriptions")
           .select("expires_at, status, plan")
           .eq("user_id", user.id)
+          .eq("plan", "green_card")
           .eq("status", "active");
 
         const userHasGreenCard = Boolean(

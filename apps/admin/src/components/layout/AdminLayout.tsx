@@ -8,6 +8,7 @@ import {
   LogOut,
   Lock,
   Landmark,
+  Award,
 } from "lucide-react";
 import {
   Sidebar,
@@ -31,6 +32,7 @@ const navItems = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
   { label: "Members", path: "/members", icon: Users },
   { label: "Farm Management", path: "/farm-assignments", icon: Sprout },
+  { label: "Core Drivers Pool", path: "/core-drivers", icon: Award },
   { label: "Payments", path: "/payments", icon: CreditCard },
   { label: "Treasury & Payouts", path: "/treasury", icon: Landmark },
   { label: "Settings", path: "/settings", icon: SettingsIcon },
@@ -41,7 +43,7 @@ function isItemActive(path: string, pathname: string) {
 }
 
 export default function AdminLayout() {
-  const { profile, isReadOnly, isSupport, isCoordinator, hasTreasuryAccess } = useAdminAuth();
+  const { profile, isReadOnly, isSupport, isCoordinator, hasTreasuryAccess, isSuperDeveloper } = useAdminAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -50,7 +52,14 @@ export default function AdminLayout() {
     navigate("/signin", { replace: true });
   };
 
+  const isSuperAdmin =
+    isSuperDeveloper ||
+    profile?.role === "super_admin" ||
+    profile?.email?.toLowerCase() === "developerelijah360@gmail.com";
+
   const visibleNavItems = navItems.filter((item) => {
+    // Core Drivers Pool is strictly visible to Super Admin initially
+    if (item.path === "/core-drivers" && !isSuperAdmin) return false;
     // Support cannot see Treasury or Settings
     if (isSupport && (item.path === "/settings" || item.path === "/treasury")) return false;
     // Coordinator can only see Dashboard and Farm Management

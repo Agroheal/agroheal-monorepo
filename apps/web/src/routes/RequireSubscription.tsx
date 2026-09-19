@@ -26,14 +26,18 @@ const RequireSubscription = ({ children }: { children: React.ReactNode }) => {
 
       const { data: sub } = await supabase
         .from("subscriptions")
-        .select("expires_at")
+        .select("expires_at, plan, status")
         .eq("user_id", user.id)
+        .eq("plan", "green_card")
         .eq("status", "active")
         .order("expires_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
-      setHasActiveSubscription(!!sub && new Date(sub.expires_at) > new Date());
+      const isActive = Boolean(
+        sub && (!sub.expires_at || new Date(sub.expires_at).getTime() > Date.now())
+      );
+      setHasActiveSubscription(isActive);
       setLoading(false);
     };
 

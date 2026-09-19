@@ -247,51 +247,7 @@ Deno.serve(async (req) => {
       throw subError;
     }
 
-    console.log("Slot created successfully.");
-
-    // ── Credit Referrer with Slot Bonus (₦500 per slot) ───
-    // This is wrapped in its own try/catch to ensure it doesn't break the main flow
-    try {
-      console.log(`Checking for referrer of user ${userId}...`);
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("referred_by")
-        .eq("id", userId)
-        .single();
-
-      if (profile?.referred_by) {
-        const bonusAmount = 500 * Number(slotQuantity);
-        console.log(`Crediting referrer ${profile.referred_by} with ₦${bonusAmount}...`);
-        
-        const { error: bonusError } = await supabase.rpc('increment_slot_bonus', {
-          user_id: profile.referred_by,
-          amount: bonusAmount
-        });
-
-        if (bonusError) {
-          console.warn("RPC increment failed, trying direct update:", bonusError);
-          const { data: referrerProfile } = await supabase
-            .from("profiles")
-            .select("slot_bonus")
-            .eq("id", profile.referred_by)
-            .single();
-          
-          if (referrerProfile) {
-            await supabase
-              .from("profiles")
-              .update({ slot_bonus: (Number(referrerProfile.slot_bonus || 0) + bonusAmount) })
-              .eq("id", profile.referred_by);
-            console.log("Direct bonus update successful.");
-          }
-        } else {
-          console.log("Bonus credited via RPC successfully.");
-        }
-      } else {
-        console.log("No referrer found for this user.");
-      }
-    } catch (err) {
-      console.error("Referral bonus logic failed (non-critical):", err);
-    }
+    console.log("Slot created successfully. Slot referral bonus (₦500/slot) is automatically handled by the on_slot_purchased database trigger.");
 
     // ── Log the payment (non-critical) ────────────────────
     try {
