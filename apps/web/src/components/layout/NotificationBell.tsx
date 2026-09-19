@@ -38,11 +38,12 @@ export const NotificationBell: React.FC = () => {
         } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Fetch user profile and subscriptions to synthesize real-time notifications
+        // Fetch user profile, live notifications, and subscriptions
         const [
           { data: profile },
           { data: subscriptions },
           { data: otherPayments },
+          { data: dbNotifications },
         ] = await Promise.all([
           supabase
             .from("profiles")
@@ -54,14 +55,39 @@ export const NotificationBell: React.FC = () => {
             .select("plan, status, started_at, slots")
             .eq("user_id", user.id),
           supabase
-            .from("otherPayments")
+            .from("other_payments")
             .select("payment_type, amount, created_at, status")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false })
             .limit(5),
+          supabase
+            .from("notifications")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(10),
         ]);
 
         const notifs: InAppNotification[] = [];
+
+        // 0. Live DB Notifications (Strategic actions, coordinator alerts, harvest dividends)
+        (dbNotifications || []).forEach((n: any) => {
+          let mappedType: InAppNotification["type"] = "system";
+          if (n.type === "green_card") mappedType = "greencard";
+          else if (n.type === "slot_assigned") mappedType = "slot";
+          else if (n.type === "harvest_dividend") mappedType = "bonus";
+          else if (n.type === "withdrawal_update") mappedType = "matrix";
+
+          notifs.push({
+            id: n.id,
+            title: n.title,
+            message: n.message,
+            type: mappedType,
+            created_at: n.created_at,
+            read: Boolean(n.is_read),
+            link: n.action_url || undefined,
+          });
+        });
 
         // 1. Green Card Notification
         const greenCardSub = (subscriptions || []).find(

@@ -291,7 +291,127 @@ export const apiClient = {
         timestamp: string;
       }>("admin/stats"),
     getTreasuryAudit: () => apiRequest<any>("admin/treasury-audit"),
+    verifySolvencyShield: (payload: { liquidBankBalance: number; withdrawalIds?: string[] }) =>
+      apiRequest<{
+        liquidBankBalance: number;
+        totalPendingLiability: number;
+        pendingWithdrawalCount: number;
+        liquidityCoverageRatio: number;
+        isSolvent: boolean;
+        status: string;
+        shortfall: number;
+        clearedWithdrawalIds: string[];
+        verifiedAt: string;
+      }>("admin/withdrawals/solvency-shield", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    batchDisburseWithdrawals: (payload: { liquidBankBalance: number; withdrawalIds: string[] }) =>
+      apiRequest<{
+        disbursedCount: number;
+        totalDisbursed: number;
+        clearedIds: string[];
+      }>("admin/withdrawals/batch-disburse", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+  },
+
+  /**
+   * Milestone 3: Farm Production Cycles & Harvests APIs
+   * /api/v1/cycles/...
+   */
+  cycles: {
+    getFarmGroups: () => apiRequest<any[]>("cycles/farm-groups"),
+    getConfigs: () =>
+      apiRequest<{
+        ginger: { name: string; durationMonths: number; targetYieldPerSlotKg: number };
+        mushroom: { name: string; durationMonths: number; targetYieldPerSlotKg: number };
+      }>("cycles/configs"),
+    getMySlots: () =>
+      apiRequest<{
+        totalPurchasedSlots: number;
+        totalAssignedSlots: number;
+        unassignedSlots: number;
+        farmAllocations: Array<{
+          farmId: string;
+          farmName: string;
+          category: string;
+          slots: number;
+        }>;
+      }>("cycles/my-slots"),
+    getFarmCycles: (farmGroupId: string) =>
+      apiRequest<any[]>(`cycles/farm/${encodeURIComponent(farmGroupId)}`),
+    draftCycleReport: (payload: {
+      farmGroupId: string;
+      cycleNumber?: number;
+      cropType?: string;
+      totalBagsFruiting?: number;
+      totalYieldKg?: number;
+      grossRevenue?: number;
+      continuationCost?: number;
+      notes?: string;
+    }) =>
+      apiRequest<any>("cycles/draft", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    approveCycleReport: (cycleId: string) =>
+      apiRequest<any>(`cycles/${encodeURIComponent(cycleId)}/approve`, {
+        method: "POST",
+      }),
+    distributeDividends: (cycleId: string) =>
+      apiRequest<{
+        cycleId: string;
+        status: string;
+        totalSlotsHeld: number;
+        dividendPerSlot: number;
+        slotOwnersPool: number;
+        distributedCount: number;
+      }>(`cycles/${encodeURIComponent(cycleId)}/distribute`, {
+        method: "POST",
+      }),
+    calculateWaterfall: (payload: {
+      farmGroupId: string;
+      grossRevenue: number;
+      operatingExpenses: number;
+      memberSlots: Array<{ userId: string; memberId: string; slotsHeld: number }>;
+    }) =>
+      apiRequest<any>("cycles/calculate-waterfall", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+  },
+
+  /**
+   * Item 3.7: In-App Notifications Feed APIs
+   * /api/v1/notifications/...
+   */
+  notifications: {
+    getAll: (limit: number = 20, offset: number = 0) =>
+      apiRequest<{
+        notifications: Array<{
+          id: string;
+          title: string;
+          message: string;
+          type: string;
+          is_read: boolean;
+          action_url?: string;
+          created_at: string;
+          metadata?: Record<string, any>;
+        }>;
+        unreadCount: number;
+      }>(`notifications?limit=${limit}&offset=${offset}`),
+    markAsRead: (id: string) =>
+      apiRequest<{ id: string; is_read: boolean }>(`notifications/${encodeURIComponent(id)}/read`, {
+        method: "PATCH",
+      }),
+    markAllAsRead: () =>
+      apiRequest<{ success: boolean }>("notifications/mark-all-read", {
+        method: "POST",
+      }),
   },
 };
 
 export default apiClient;
+

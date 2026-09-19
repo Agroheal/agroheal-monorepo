@@ -28,6 +28,7 @@ import { Toaster, toast } from "react-hot-toast";
 import FarmingInitiativePopup from "./TelegramPopup";
 import ShareReferralModal from "@/components/webComponents/shareModal";
 import PhoneModal from "./PhoneModal";
+import FarmCycleTracker from "@/components/dashboard/FarmCycleTracker";
 import KinModal from "./KinModal";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
@@ -584,6 +585,11 @@ const Dashboard = () => {
               </Button>
             )}
           </div>
+        </div>
+
+        {/* ── REAL-TIME FARM PRODUCTION CYCLE TRACKER (MILESTONE 3) ── */}
+        <div className="mb-6">
+          <FarmCycleTracker />
         </div>
 
         {showSecureSlotModal && (
