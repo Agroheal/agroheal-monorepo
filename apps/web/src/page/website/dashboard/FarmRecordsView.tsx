@@ -430,16 +430,17 @@ const FarmRecordsView = () => {
 
   const currentUserId = authProfile?.id || authUser?.id;
 
-  // STRICT PRIVILEGE SEPARATION (Personal Member Dashboard vs. Admin Portal):
-  // Admins, Super Admins, and Support staff must NOT edit records in their personal dashboard (apps/web).
-  // Platform staff must perform system-wide edits and audits through the dedicated Admin Portal (apps/admin).
-  // In apps/web, ONLY the designated Farm Coordinator assigned to this specific farm can edit/manage records.
+  // STRICT PRIVILEGE SEPARATION & 3-DAY VERIFICATION PROTOCOL:
+  // During the verification window, member slot allocations are strictly Read-Only to prevent
+  // re-duplication and unauthorized edits. Coordinators certify records via the `Coord` badge.
+  // Coordinators retain active permission to log daily operational farm expenses.
+  // Harvest sales recording is locked until Platform Farm Admin officially opens the harvest season.
   const isAssignedCoordinatorOfThisFarm = Boolean(
     farm && currentUserId && farm.coordinator_id === currentUserId
   );
-  const canManageRecords = isAssignedCoordinatorOfThisFarm;
-  const canManageExpenses = isAssignedCoordinatorOfThisFarm;
-  const canManageSales = isAssignedCoordinatorOfThisFarm;
+  const canManageRecords = false; // Locked: slot adjustments go through Mrs. Esther -> Super Admin
+  const canManageExpenses = isAssignedCoordinatorOfThisFarm; // Active: coordinators log inputs & labor
+  const canManageSales = false; // Locked: unlocks when Platform Admin opens harvest season
   const isPlatformStaffInPersonalDashboard = Boolean(
     (isAdmin || isSuperAdmin || isSupport) && !isAssignedCoordinatorOfThisFarm
   );

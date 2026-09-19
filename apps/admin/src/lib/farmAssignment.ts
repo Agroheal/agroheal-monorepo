@@ -97,3 +97,86 @@ export async function assignSlotsToFarmGroup(input: {
   });
   if (insertErr) throw new Error(`Creating the farm record failed: ${insertErr.message}`);
 }
+
+/**
+ * Resolves the appropriate farm group for a member based on referrer lineage:
+ * 1. Looks up member's sponsor_id in profiles.
+ * 2. Checks which farm group the sponsor holds slots in for the given category.
+ * 3. Checks if that farm group has available capacity (< 1,000 slots).
+ * 4. If yes, returns that farm group.
+ * 5. If maxed out (>= 1,000 slots) or sponsor has no farm group, returns the first unmaxed active farm group in that category (< 1,000 slots).
+ */
+export async function resolveAutoAssignedFarmGroup(
+  memberUserId: string,
+  category: string = "Mushroom Village"
+): Promise<FarmGroup | null> {
+  // 1. Fetch sponsor_id
+  const { data: memberProfile } = await supabase
+    .from("profiles")
+    .select("sponsor_id")
+    .eq("id", memberUserId)
+    .maybeSingle();
+
+  if (memberProfile?.sponsor_id) {
+    // 2. Check sponsor's farm group in farm_records
+    const { data: sponsorRecords } = await supabase
+      .from("farm_records")
+      .select("farm_id, farm_slots, farm_groups!inner(id, name, project_category)")
+      .eq("user_id", memberProfile.sponsor_id)
+      .eq("project_category", category)
+      .order("farm_slots", { ascending: false })
+      .limit(1);
+
+    if (sponsorRecords && sponsorRecords.length > 0) {
+      const sponsorFarmId = sponsorRecords[0].farm_id;
+      // Check total slots in this farm
+      const { data: clusterSlots } = await supabase
+        .from("farm_records")
+        .select("farm_slots")
+        .eq("farm_id", sponsorFarmId);
+
+      const totalSlots = (clusterSlots || []).reduce(
+        (sum, r) => sum + (Number(r.farm_slots) || 0),
+        0
+      );
+
+      if (totalSlots < 1000) {
+        const fg = sponsorRecords[0].farm_groups as any;
+        return {
+          id: fg.id,
+          name: fg.name,
+          project_category: fg.project_category,
+        };
+      }
+    }
+  }
+
+  // 3. Fallback: Find the first unmaxed farm group (< 1,000 slots) in the category
+  const { data: allFarms } = await supabase
+    .from("farm_groups")
+    .select("id, name, project_category")
+    .eq("project_category", category)
+    .order("created_at", { ascending: true });
+
+  if (!allFarms || allFarms.length === 0) return null;
+
+  for (const farm of allFarms) {
+    const { data: clusterSlots } = await supabase
+      .from("farm_records")
+      .select("farm_slots")
+      .eq("farm_id", farm.id);
+
+    const totalSlots = (clusterSlots || []).reduce(
+      (sum, r) => sum + (Number(r.farm_slots) || 0),
+      0
+    );
+
+    if (totalSlots < 1000) {
+      return farm;
+    }
+  }
+
+  // If all are full, return the first one as fallback
+  return allFarms[0];
+}
+
