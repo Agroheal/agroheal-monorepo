@@ -62,13 +62,13 @@ export default function AffiliateBridge() {
             transition={{ duration: 0.5, delay: 0.3 }}
             className="flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <Link to="/signup?redirect=/dashboard/green-card">
+            <Link to="/signup?redirect=/dashboard/profile/green-card">
               <Button size="lg" className="w-full sm:w-auto bg-[#d1ef75] text-green-950 hover:bg-[#bce055] font-bold h-12 px-8 rounded-full shadow-md">
                 Get Green Card & Referral Link (₦2,000)
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </Link>
-            <Link to="/signin?redirect=/dashboard/green-card">
+            <Link to="/signin?redirect=/dashboard/profile/green-card">
               <Button
                 size="lg"
                 className="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white border border-white/20 font-medium h-12 px-8 rounded-full backdrop-blur-xs transition-colors shadow-none"
@@ -253,7 +253,7 @@ export default function AffiliateBridge() {
             <p className="text-sm md:text-base text-gray-300 max-w-xl mx-auto mb-6 font-light">
               Get your personal referral link, full streaming access to all farming blueprints, and verified member credentials for just ₦2,000.
             </p>
-            <Link to="/signup?redirect=/dashboard/green-card">
+            <Link to="/signup?redirect=/dashboard/profile/green-card">
               <Button size="lg" className="bg-[#d1ef75] text-green-950 hover:bg-[#bce055] font-bold h-12 px-8 rounded-full">
                 Join Community & Get Referral Link
                 <ArrowRight className="w-4 h-4 ml-2" />

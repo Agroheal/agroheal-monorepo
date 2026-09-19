@@ -50,7 +50,7 @@ export default function HowItWorksContent({
       actionText: isDashboard ? "Explore LEAP Courses" : "Get Started (₦2,000)",
       actionLink: isDashboard
         ? "/dashboard/courses"
-        : "/signup?redirect=/dashboard/green-card",
+        : "/signup?redirect=/dashboard/profile/green-card",
     },
     {
       step: "02",
@@ -353,7 +353,7 @@ export default function HowItWorksContent({
               </div>
 
               <Link
-                to={isDashboard ? "/dashboard/green-card" : "/signup?redirect=/dashboard/green-card"}
+                to={isDashboard ? "/dashboard/profile/green-card" : "/signup?redirect=/dashboard/profile/green-card"}
                 onClick={onNavigate}
               >
                 <Button

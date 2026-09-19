@@ -102,7 +102,7 @@ export const NotificationBell: React.FC = () => {
             type: "greencard",
             created_at: greenCardSub.started_at || new Date().toISOString(),
             read: false,
-            link: "/dashboard/green-card",
+            link: "/dashboard/profile/green-card",
           });
         } else {
           notifs.push({

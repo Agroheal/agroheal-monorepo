@@ -91,11 +91,7 @@ export const appRouter = createBrowserRouter([
       { path: "/subscribe", element: <Subscribe /> },
       {
         path: "/dashboard/green-card",
-        element: (
-          <RequireSubscription>
-            <GreenCardCommunity />
-          </RequireSubscription>
-        ),
+        element: <Navigate to="/dashboard/profile/green-card" replace />,
       },
 
       // Core dashboard area is accessible to all registered members (both subscribed

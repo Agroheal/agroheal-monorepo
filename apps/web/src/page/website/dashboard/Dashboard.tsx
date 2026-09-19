@@ -356,7 +356,7 @@ const Dashboard = () => {
 
             {profile?.member_id ? (
               <Link
-                to="/dashboard/green-card"
+                to="/dashboard/profile/green-card"
                 className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs sm:text-sm font-semibold backdrop-blur-sm border border-white/20 transition-colors shadow-xs"
                 title="View Official Green Card"
               >
@@ -638,7 +638,7 @@ const Dashboard = () => {
                   asChild
                   className="flex-1 md:flex-initial h-9 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-semibold text-xs px-4 border border-emerald-500/40 shadow-xs cursor-pointer"
                 >
-                  <Link to="/dashboard/green-card">View & Download Card</Link>
+                  <Link to="/dashboard/profile/green-card">View & Download Card</Link>
                 </Button>
                 <Button
                   variant="outline"

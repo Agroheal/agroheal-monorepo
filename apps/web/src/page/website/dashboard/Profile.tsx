@@ -291,7 +291,7 @@ export const ProfileComponent: React.FC = () => {
               {copiedLink ? "Link Copied!" : "Copy Referral Link"}
             </Button>
             <Link
-              to="/dashboard/green-card"
+              to="/dashboard/profile/green-card"
               className="bg-white/10 hover:bg-white/20 text-white font-semibold text-xs px-4 py-2.5 rounded-xl border border-white/20 transition-all flex items-center gap-2"
             >
               <IdCard className="w-4 h-4 text-emerald-300" />
