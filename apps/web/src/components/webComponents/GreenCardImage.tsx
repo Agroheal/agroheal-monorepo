@@ -1,352 +1,41 @@
 import { useRef, useState, type ReactNode } from "react";
-
-/**
- * A self-contained, data-driven digital membership card, rendered as a
- * single SVG so it stays crisp at any display size and is trivial to
- * export as a PNG. Requires no npm dependencies beyond React — QR
- * encoding is optional/pluggable via the `qrRenderer` prop (see the
- * comment near `renderFallbackQr` below for how to wire in a real
- * encoder such as `react-qr-code` or `qrcode.react`).
- */
-
-const CARD_WIDTH = 1260;
-const CARD_HEIGHT = 794;
-const CORNER_RADIUS = 28;
-const MARGIN = 64;
-
-const COLORS = {
-  bgStart: "#0a2210",
-  bgMid: "#12321a",
-  bgEnd: "#173e20",
-  border: "rgba(255,255,255,0.15)",
-  accent: "#b8e034",
-  offWhite: "#e7f0df",
-  mutedGreenWhite: "#cfe2c2",
-  leafMedium1: "#3f7a2c",
-  leafMedium2: "#4f9337",
-  badgeGreen: "#4b7f2e",
-  white: "#ffffff",
-};
-
-const SANS = "Arial, Helvetica, sans-serif";
-const SERIF = "Georgia, 'Times New Roman', serif";
-const MONO = "'Courier New', Courier, monospace";
-
-// ─── Seeded, deterministic randomness (no Math.random — same input always
-// produces the same visual pattern) ─────────────────────────────────────
-
-function hashString(str: string): number {
-  let h = 0;
-  for (let i = 0; i < str.length; i++) {
-    h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
-  }
-  return h >>> 0;
-}
-
-function mulberry32(seed: number) {
-  let state = seed | 0;
-  return () => {
-    state = (state + 0x6d2b79f5) | 0;
-    let t = Math.imul(state ^ (state >>> 15), 1 | state);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-// ─── Generic leaf silhouette, reused for the decorative top-right leaves
-// and the seeded fallback pattern in the photo band ─────────────────────
-
-const leafPathD = (size: number) => {
-  const s = size;
-  return `M ${s * 0.5} 0 C ${s * 0.95} ${s * 0.15} ${s} ${s * 0.55} ${s * 0.5} ${s} C ${s * 0.05} ${s * 0.55} 0 ${s * 0.15} ${s * 0.5} 0 Z`;
-};
-
-const Leaf = ({
-  size,
-  color,
-  x,
-  y,
-  rotation = 0,
-  opacity = 1,
-  vein = true,
-}: {
-  size: number;
-  color: string;
-  x: number;
-  y: number;
-  rotation?: number;
-  opacity?: number;
-  vein?: boolean;
-}) => (
-  <g transform={`translate(${x} ${y}) rotate(${rotation})`} opacity={opacity}>
-    <path d={leafPathD(size)} fill={color} />
-    {vein && (
-      <line
-        x1={size * 0.5}
-        y1={size * 0.1}
-        x2={size * 0.5}
-        y2={size * 0.9}
-        stroke="rgba(255,255,255,0.25)"
-        strokeWidth={Math.max(1, size * 0.015)}
-      />
-    )}
-  </g>
-);
-
-// ─── Fallback QR-style module grid — a visual approximation only, NOT a
-// scannable code. It seeds a 21x21 grid from `value` so the same member
-// always gets the same pattern, and stamps the three standard QR
-// "finder" squares in the corners so it reads as QR-like at a glance.
-//
-// To make it actually scannable, pass a real encoder via `qrRenderer`,
-// e.g. with `react-qr-code`:
-//   <GreenCardImage qrRenderer={(value, size) => (
-//     <QRCode value={value} size={size} bgColor="#fff" fgColor="#111" />
-//   )} />
-// qrRenderer must return SVG-compatible markup (like react-qr-code does)
-// rather than arbitrary HTML, so the card can still be reliably
-// serialized and rasterized to a PNG.
-const FINDER_PATTERN = [
-  [1, 1, 1, 1, 1, 1, 1],
-  [1, 0, 0, 0, 0, 0, 1],
-  [1, 0, 1, 1, 1, 0, 1],
-  [1, 0, 1, 1, 1, 0, 1],
-  [1, 0, 1, 1, 1, 0, 1],
-  [1, 0, 0, 0, 0, 0, 1],
-  [1, 1, 1, 1, 1, 1, 1],
-];
-
-function generateFallbackQrModules(value: string, gridSize = 21): boolean[][] {
-  const rand = mulberry32(hashString(value || "green-card"));
-  const grid: boolean[][] = Array.from({ length: gridSize }, () =>
-    Array.from({ length: gridSize }, () => rand() < 0.42),
-  );
-
-  const stampFinder = (originRow: number, originCol: number) => {
-    for (let r = 0; r < 7; r++) {
-      for (let c = 0; c < 7; c++) {
-        const row = originRow + r;
-        const col = originCol + c;
-        if (row >= 0 && row < gridSize && col >= 0 && col < gridSize) {
-          grid[row][col] = FINDER_PATTERN[r][c] === 1;
-        }
-      }
-    }
-  };
-
-  stampFinder(0, 0);
-  stampFinder(0, gridSize - 7);
-  stampFinder(gridSize - 7, 0);
-
-  return grid;
-}
-
-const renderFallbackQr = (value: string, boxSize: number) => {
-  const gridSize = 21;
-  const modules = generateFallbackQrModules(value, gridSize);
-  const cell = boxSize / gridSize;
-  return (
-    <g>
-      {modules.map((row, ry) =>
-        row.map((filled, rx) =>
-          filled ? (
-            <rect
-              key={`${rx}-${ry}`}
-              x={rx * cell}
-              y={ry * cell}
-              width={cell}
-              height={cell}
-              fill="#111111"
-            />
-          ) : null,
-        ),
-      )}
-    </g>
-  );
-};
-
-// ─── Seeded fallback pattern for the photo band, used only when no
-// `photoUrl` is supplied ─────────────────────────────────────────────────
-
-const SCATTER_COLORS = ["#123a1a", "#1b4b23", "#0f2e15", "#204f28", "#153a1c"];
-
-function renderPhotoFallback(seed: string, bandY: number, bandHeight: number) {
-  const rand = mulberry32(hashString(seed || "green-card"));
-  const shapes = Array.from({ length: 16 }, (_, i) => {
-    const size = 90 + rand() * 160;
-    return (
-      <Leaf
-        key={i}
-        size={size}
-        color={SCATTER_COLORS[Math.floor(rand() * SCATTER_COLORS.length)]}
-        x={rand() * CARD_WIDTH - size / 2}
-        y={bandY + rand() * bandHeight - size / 2}
-        rotation={rand() * 360}
-        opacity={0.55 + rand() * 0.3}
-        vein={false}
-      />
-    );
-  });
-  return (
-    <>
-      <rect x={0} y={bandY} width={CARD_WIDTH} height={bandHeight} fill="#0d2812" />
-      {shapes}
-    </>
-  );
-}
-
-// ─── Small hand-drawn icon glyphs (no icon library dependency) ─────────
-
-const IdCardIcon = ({ size }: { size: number }) => (
-  <g transform={`translate(${-size / 2} ${-size / 2})`}>
-    <rect
-      x={size * 0.1}
-      y={size * 0.2}
-      width={size * 0.8}
-      height={size * 0.6}
-      rx={size * 0.1}
-      fill="none"
-      stroke="#ffffff"
-      strokeWidth={size * 0.07}
-    />
-    <circle cx={size * 0.32} cy={size * 0.5} r={size * 0.1} fill="#ffffff" />
-    <line
-      x1={size * 0.52}
-      y1={size * 0.42}
-      x2={size * 0.78}
-      y2={size * 0.42}
-      stroke="#ffffff"
-      strokeWidth={size * 0.06}
-    />
-    <line
-      x1={size * 0.52}
-      y1={size * 0.58}
-      x2={size * 0.72}
-      y2={size * 0.58}
-      stroke="#ffffff"
-      strokeWidth={size * 0.06}
-    />
-  </g>
-);
-
-const CalendarIcon = ({ size }: { size: number }) => (
-  <g transform={`translate(${-size / 2} ${-size / 2})`}>
-    <rect
-      x={size * 0.12}
-      y={size * 0.22}
-      width={size * 0.76}
-      height={size * 0.66}
-      rx={size * 0.08}
-      fill="none"
-      stroke="#ffffff"
-      strokeWidth={size * 0.07}
-    />
-    <line
-      x1={size * 0.12}
-      y1={size * 0.42}
-      x2={size * 0.88}
-      y2={size * 0.42}
-      stroke="#ffffff"
-      strokeWidth={size * 0.06}
-    />
-    <line x1={size * 0.3} y1={size * 0.14} x2={size * 0.3} y2={size * 0.3} stroke="#ffffff" strokeWidth={size * 0.07} />
-    <line x1={size * 0.7} y1={size * 0.14} x2={size * 0.7} y2={size * 0.3} stroke="#ffffff" strokeWidth={size * 0.07} />
-  </g>
-);
-
-const CommunityIcon = ({ size }: { size: number }) => (
-  <g transform={`translate(${-size / 2} ${-size / 2})`}>
-    <circle cx={size * 0.36} cy={size * 0.38} r={size * 0.16} fill="#ffffff" />
-    <circle cx={size * 0.64} cy={size * 0.38} r={size * 0.16} fill="#ffffff" />
-    <path
-      d={`M ${size * 0.12} ${size * 0.85} C ${size * 0.12} ${size * 0.6} ${size * 0.6} ${size * 0.6} ${size * 0.6} ${size * 0.85} Z`}
-      fill="#ffffff"
-    />
-    <path
-      d={`M ${size * 0.4} ${size * 0.85} C ${size * 0.4} ${size * 0.6} ${size * 0.88} ${size * 0.6} ${size * 0.88} ${size * 0.85} Z`}
-      fill="#ffffff"
-    />
-  </g>
-);
-
-const LeafGlyph = ({ size }: { size: number }) => (
-  <g transform={`translate(${-size / 2} ${-size / 2})`}>
-    <path
-      d={`M ${size * 0.2} ${size * 0.85} C ${size * 0.1} ${size * 0.4} ${size * 0.35} ${size * 0.1} ${size * 0.85} ${size * 0.15} C ${size * 0.8} ${size * 0.6} ${size * 0.55} ${size * 0.85} ${size * 0.2} ${size * 0.85} Z`}
-      fill="none"
-      stroke="#ffffff"
-      strokeWidth={size * 0.06}
-      strokeLinejoin="round"
-    />
-    <path
-      d={`M ${size * 0.25} ${size * 0.78} L ${size * 0.72} ${size * 0.24}`}
-      stroke="#ffffff"
-      strokeWidth={size * 0.045}
-      strokeLinecap="round"
-    />
-  </g>
-);
-
-// ─── Component ───────────────────────────────────────────────────────────
+import { Download, Share2, ShieldCheck, Sparkles, Check, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export interface GreenCardImageProps {
-  orgName?: string;
-  cardLabel?: string;
-  tagline?: string;
-  heroTitle?: string;
-  heroSubtitle?: string;
   memberName?: string;
   memberId?: string;
   memberSince?: string;
-  footerText?: string;
   qrValue?: string;
-  photoUrl?: string;
   fileName?: string;
-  /** Optional pluggable real QR encoder — see the comment above `renderFallbackQr`. */
   qrRenderer?: (value: string, size: number) => ReactNode;
 }
 
-const GreenCardImage = ({
-  orgName = "AgroHEAL",
-  cardLabel = "GREEN CARD",
-  tagline = "Grow Healthy Food, Restore Health, Create Wealth.",
-  heroTitle = "GREEN CARD",
-  heroSubtitle = "Seed of Hope, Future of Communities.",
-  memberName,
-  memberId = "AGC-000001-2026",
-  memberSince = "AUGUST 2026",
-  footerText = "TOGETHER, WE GROW HOPE\nAND BUILD THRIVING COMMUNITIES.",
+const CARD_WIDTH = 1200;
+const CARD_HEIGHT = 756; // Standard card aspect ratio (1.586:1)
+const CORNER_RADIUS = 32;
+
+export const GreenCardImage = ({
+  memberName = "AgroHeal Member",
+  memberId = "AGC-2026-00001",
+  memberSince = "SEPTEMBER 2026",
   qrValue,
-  photoUrl,
   fileName,
   qrRenderer,
 }: GreenCardImageProps) => {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [preparing, setPreparing] = useState(false);
-  const [exportError, setExportError] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
+  const [downloadError, setDownloadError] = useState(false);
 
-  const resolvedQrValue = qrValue || memberId;
-  const footerLines = footerText.split("\n");
-
-  const bandY = CARD_HEIGHT * 0.6;
-  const bandHeight = CARD_HEIGHT - bandY;
-
-  const qrBoxSize = 150;
-  const qrBoxX = CARD_WIDTH - MARGIN - qrBoxSize;
-  const qrBoxY = 300;
-  const qrPadding = 12;
-  const qrInnerSize = qrBoxSize - qrPadding * 2;
-
-  const memberRowY = 428;
-  const memberValueY = 468;
-  const memberCol2X = MARGIN + 320;
+  const resolvedQrValue = qrValue || `https://agroheal.org/verify-card/${encodeURIComponent(memberId)}`;
 
   const handleDownload = async () => {
     const svgEl = svgRef.current;
     if (!svgEl) return;
 
-    setPreparing(true);
-    setExportError(false);
+    setDownloading(true);
+    setDownloadError(false);
 
     try {
       const serializer = new XMLSerializer();
@@ -360,317 +49,452 @@ const GreenCardImage = ({
       img.crossOrigin = "anonymous";
       await new Promise<void>((resolve, reject) => {
         img.onload = () => resolve();
-        img.onerror = () =>
-          reject(new Error("Failed to load card image for export"));
+        img.onerror = () => reject(new Error("Failed to render card for download"));
         img.src = url;
       });
 
+      // Render at 2x crisp retina resolution (2400 x 1512)
       const scale = 2;
       const canvas = document.createElement("canvas");
       canvas.width = CARD_WIDTH * scale;
       canvas.height = CARD_HEIGHT * scale;
       const ctx = canvas.getContext("2d");
-      if (!ctx) throw new Error("Canvas not supported");
+      if (!ctx) throw new Error("Canvas context not available");
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(url);
 
-      // Note: if `photoUrl` is served without CORS headers, this canvas
-      // becomes "tainted" and toBlob will fail — the try/catch below
-      // handles that gracefully rather than crashing.
       canvas.toBlob((blob) => {
         if (!blob) {
-          setExportError(true);
+          setDownloadError(true);
           return;
         }
         const downloadUrl = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = downloadUrl;
-        const safeName = (fileName || memberId || "green-card").replace(
+        const safeName = (fileName || memberId || "agroheal-greencard").replace(
           /[^a-z0-9-_]+/gi,
-          "-",
+          "-"
         );
         link.download = `${safeName}.png`;
         link.click();
         URL.revokeObjectURL(downloadUrl);
+        setDownloadSuccess(true);
+        setTimeout(() => setDownloadSuccess(false), 3000);
       }, "image/png");
     } catch (err) {
-      console.error("Green Card export failed", err);
-      setExportError(true);
+      console.error("Failed to export Green Card PNG:", err);
+      setDownloadError(true);
     } finally {
-      setPreparing(false);
+      setDownloading(false);
     }
   };
 
   return (
-    <div>
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${CARD_WIDTH} ${CARD_HEIGHT}`}
-        width="100%"
-        height="auto"
-        style={{ display: "block", fontFamily: SANS }}
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <linearGradient
-            id="cardBg"
-            x1="0"
-            y1="0"
-            x2={CARD_WIDTH}
-            y2={CARD_HEIGHT}
-            gradientUnits="userSpaceOnUse"
-          >
-            <stop offset="0%" stopColor={COLORS.bgStart} />
-            <stop offset="50%" stopColor={COLORS.bgMid} />
-            <stop offset="100%" stopColor={COLORS.bgEnd} />
-          </linearGradient>
-          <linearGradient id="bandOverlay" x1="0" y1={bandY} x2="0" y2={CARD_HEIGHT} gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="rgba(0,0,0,0.75)" />
-            <stop offset="40%" stopColor="rgba(0,0,0,0.15)" />
-            <stop offset="100%" stopColor="rgba(0,0,0,0.75)" />
-          </linearGradient>
-          <linearGradient id="seam" x1="0" y1="0" x2={CARD_WIDTH} y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="rgba(255,255,255,0)" />
-            <stop offset="50%" stopColor="rgba(255,255,255,0.35)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-          </linearGradient>
-          <clipPath id="cardClip">
-            <rect
-              width={CARD_WIDTH}
-              height={CARD_HEIGHT}
-              rx={CORNER_RADIUS}
-            />
-          </clipPath>
-          <clipPath id="bandClip">
-            <rect x={0} y={bandY} width={CARD_WIDTH} height={bandHeight} />
-          </clipPath>
-        </defs>
+    <div className="flex flex-col items-center gap-4 w-full">
+      {/* ── LUXURY FLAT 2D CARD (HIGH FIDELITY SVG) ── */}
+      <div className="w-full max-w-[620px] rounded-2xl shadow-2xl overflow-hidden border border-amber-400/40 bg-emerald-950">
+        <svg
+          ref={svgRef}
+          viewBox={`0 0 ${CARD_WIDTH} ${CARD_HEIGHT}`}
+          width="100%"
+          height="auto"
+          className="block w-full h-auto select-none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            {/* Deep Emerald Luxury Gradients */}
+            <linearGradient id="cardBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#022013" />
+              <stop offset="45%" stopColor="#064024" />
+              <stop offset="75%" stopColor="#08381e" />
+              <stop offset="100%" stopColor="#021a0d" />
+            </linearGradient>
 
-        {/* Background */}
-        <rect
-          width={CARD_WIDTH}
-          height={CARD_HEIGHT}
-          rx={CORNER_RADIUS}
-          fill="url(#cardBg)"
-          stroke={COLORS.border}
-          strokeWidth={1}
-        />
+            <radialGradient id="radialGlow" cx="85%" cy="15%" r="50%">
+              <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
+            </radialGradient>
 
-        <g clipPath="url(#cardClip)">
-          {/* Decorative top-right leaves */}
-          <Leaf
-            size={280}
-            color={COLORS.leafMedium1}
-            x={880}
-            y={-40}
-            rotation={18}
-            opacity={0.85}
-          />
-          <Leaf
-            size={220}
-            color={COLORS.leafMedium2}
-            x={1020}
-            y={30}
-            rotation={-24}
-            opacity={0.9}
-          />
+            <radialGradient id="radialAmberGlow" cx="20%" cy="85%" r="55%">
+              <stop offset="0%" stopColor="#d97706" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#d97706" stopOpacity="0" />
+            </radialGradient>
 
-          {/* Logo lockup */}
-          <g transform={`translate(${MARGIN + 34} 98)`}>
-            <circle r={34} fill="none" stroke="#ffffff" strokeWidth={2} />
-            <LeafGlyph size={38} />
-          </g>
-          <text
-            x={MARGIN + 84}
-            y={88}
-            fontSize={34}
-            fontWeight={800}
-            fill={COLORS.white}
-          >
-            {orgName}
-          </text>
-          <text
-            x={MARGIN + 84}
-            y={120}
-            fontSize={24}
-            fontWeight={800}
-            letterSpacing={2}
-            fill={COLORS.accent}
-          >
-            {cardLabel}
-          </text>
-          <text x={MARGIN} y={168} fontSize={16} fill={COLORS.offWhite}>
-            {tagline}
-          </text>
+            {/* Gold Gradients */}
+            <linearGradient id="goldTextGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#fef3c7" />
+              <stop offset="50%" stopColor="#fde68a" />
+              <stop offset="100%" stopColor="#f59e0b" />
+            </linearGradient>
 
-          {/* Hero */}
-          <text
-            x={MARGIN}
-            y={300}
-            fontSize={100}
-            fontWeight={900}
-            fill={COLORS.white}
-          >
-            {heroTitle}
-          </text>
-          <text
-            x={MARGIN}
-            y={350}
-            fontSize={34}
-            fontWeight={700}
-            fontStyle="italic"
-            fontFamily={SERIF}
-            fill={COLORS.white}
-          >
-            {heroSubtitle}
-          </text>
-          {memberName && (
-            <text
-              x={MARGIN}
-              y={384}
-              fontSize={20}
-              fill={COLORS.mutedGreenWhite}
-            >
-              {memberName}
-            </text>
-          )}
+            <linearGradient id="chipGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#fef08a" />
+              <stop offset="40%" stopColor="#facc15" />
+              <stop offset="100%" stopColor="#b45309" />
+            </linearGradient>
 
-          {/* Member info row */}
-          <g transform={`translate(${MARGIN + 18} ${memberRowY})`}>
-            <circle r={18} fill={COLORS.badgeGreen} />
-            <IdCardIcon size={20} />
-          </g>
-          <text
-            x={MARGIN + 50}
-            y={memberRowY + 5}
-            fontSize={16}
-            fontWeight={800}
-            letterSpacing={1.5}
-            fill={COLORS.accent}
-          >
-            MEMBER ID
-          </text>
-          <text
-            x={MARGIN + 50}
-            y={memberValueY}
-            fontSize={24}
-            fontWeight={700}
-            fontFamily={MONO}
-            fill={COLORS.white}
-          >
-            {memberId}
-          </text>
+            {/* Security Guilloche Lattice */}
+            <pattern id="secGuilloche" width="50" height="50" patternUnits="userSpaceOnUse">
+              <path d="M 0,25 Q 12.5,0 25,25 T 50,25" fill="none" stroke="#fcd34d" strokeWidth="0.65" opacity="0.2" />
+              <path d="M 0,25 Q 12.5,50 25,25 T 50,25" fill="none" stroke="#6ee7b7" strokeWidth="0.65" opacity="0.2" />
+            </pattern>
 
-          <g transform={`translate(${memberCol2X + 18} ${memberRowY})`}>
-            <circle r={18} fill={COLORS.badgeGreen} />
-            <CalendarIcon size={20} />
-          </g>
-          <text
-            x={memberCol2X + 50}
-            y={memberRowY + 5}
-            fontSize={16}
-            fontWeight={800}
-            letterSpacing={1.5}
-            fill={COLORS.accent}
-          >
-            MEMBER SINCE
-          </text>
-          <text
-            x={memberCol2X + 50}
-            y={memberValueY}
-            fontSize={24}
-            fontWeight={700}
-            fill={COLORS.white}
-          >
-            {memberSince}
-          </text>
+            <clipPath id="cardCorners">
+              <rect width={CARD_WIDTH} height={CARD_HEIGHT} rx={CORNER_RADIUS} />
+            </clipPath>
+          </defs>
 
-          {/* QR code */}
+          {/* Card Base */}
           <rect
-            x={qrBoxX}
-            y={qrBoxY}
-            width={qrBoxSize}
-            height={qrBoxSize}
-            rx={16}
-            fill="#ffffff"
+            width={CARD_WIDTH}
+            height={CARD_HEIGHT}
+            rx={CORNER_RADIUS}
+            fill="url(#cardBgGrad)"
+            stroke="#fbbf24"
+            strokeWidth="2"
+            strokeOpacity="0.4"
           />
-          <g transform={`translate(${qrBoxX + qrPadding} ${qrBoxY + qrPadding})`}>
-            {qrRenderer
-              ? qrRenderer(resolvedQrValue, qrInnerSize)
-              : renderFallbackQr(resolvedQrValue, qrInnerSize)}
-          </g>
 
-          {/* Photo / community band */}
-          <g clipPath="url(#bandClip)">
-            {photoUrl ? (
-              <image
-                href={photoUrl}
-                x={0}
-                y={bandY}
-                width={CARD_WIDTH}
-                height={bandHeight}
-                preserveAspectRatio="xMidYMid slice"
-              />
-            ) : (
-              renderPhotoFallback(memberId, bandY, bandHeight)
-            )}
+          <g clipPath="url(#cardCorners)">
+            {/* Ambient Overlays */}
+            <rect width={CARD_WIDTH} height={CARD_HEIGHT} fill="url(#radialGlow)" />
+            <rect width={CARD_WIDTH} height={CARD_HEIGHT} fill="url(#radialAmberGlow)" />
+            <rect width={CARD_WIDTH} height={CARD_HEIGHT} fill="url(#secGuilloche)" />
+
+            {/* Subtle Metallic Bevel */}
             <rect
-              x={0}
-              y={bandY}
-              width={CARD_WIDTH}
-              height={bandHeight}
-              fill="url(#bandOverlay)"
+              x="8"
+              y="8"
+              width={CARD_WIDTH - 16}
+              height={CARD_HEIGHT - 16}
+              rx={CORNER_RADIUS - 4}
+              fill="none"
+              stroke="#fbbf24"
+              strokeWidth="1.2"
+              strokeOpacity="0.25"
             />
-          </g>
-          <rect x={0} y={bandY - 2} width={CARD_WIDTH} height={4} fill="url(#seam)" />
 
-          {/* Footer bar */}
-          <g transform={`translate(${MARGIN + 30} ${CARD_HEIGHT - MARGIN - 30})`}>
-            <circle r={30} fill={COLORS.badgeGreen} />
-            <CommunityIcon size={34} />
-          </g>
-          <text
-            x={MARGIN + 76}
-            y={CARD_HEIGHT - MARGIN - 38}
-            fontSize={26}
-            fontWeight={800}
-            fill={COLORS.white}
-          >
-            {footerLines.map((line, i) => (
-              <tspan key={i} x={MARGIN + 76} dy={i === 0 ? 0 : 32}>
-                {line}
-              </tspan>
-            ))}
-          </text>
-        </g>
-      </svg>
+            {/* ── TOP HEADER ROW ── */}
+            {/* AgroHeal Gold Holographic Crest */}
+            <g transform="translate(64, 56)">
+              <rect
+                x="0"
+                y="0"
+                width="72"
+                height="72"
+                rx="18"
+                fill="#022013"
+                stroke="#fcd34d"
+                strokeWidth="2"
+              />
+              <g transform="translate(18, 18)">
+                <path
+                  d="M 18,0 L 22,12 L 36,18 L 22,24 L 18,36 L 14,24 L 0,18 L 14,12 Z"
+                  fill="#fde68a"
+                />
+                <circle cx="18" cy="18" r="3" fill="#ffffff" />
+              </g>
 
-      <div style={{ marginTop: 16 }}>
-        <button
+              {/* Title Lockup */}
+              <text
+                x="92"
+                y="34"
+                fill="url(#goldTextGrad)"
+                fontFamily="system-ui, -apple-system, sans-serif"
+                fontSize="34"
+                fontWeight="900"
+                letterSpacing="4"
+              >
+                AGROHEAL
+              </text>
+              <text
+                x="92"
+                y="60"
+                fill="#a7f3d0"
+                fontFamily="system-ui, -apple-system, sans-serif"
+                fontSize="16"
+                fontWeight="600"
+                letterSpacing="2"
+              >
+                COOPERATIVE DIGITAL PASS
+              </text>
+            </g>
+
+            {/* Top-Right Badge: GREEN CARD LEAP ALLIANCE */}
+            <g transform="translate(940, 56)">
+              <rect
+                x="0"
+                y="0"
+                width="196"
+                height="54"
+                rx="12"
+                fill="#022013"
+                fillOpacity="0.6"
+                stroke="#fcd34d"
+                strokeWidth="1.5"
+                strokeOpacity="0.6"
+              />
+              <text
+                x="98"
+                y="26"
+                textAnchor="middle"
+                fill="#fde68a"
+                fontFamily="system-ui, -apple-system, sans-serif"
+                fontSize="17"
+                fontWeight="800"
+                letterSpacing="2"
+              >
+                GREEN CARD
+              </text>
+              <text
+                x="98"
+                y="44"
+                textAnchor="middle"
+                fill="#6ee7b7"
+                fontFamily="system-ui, -apple-system, sans-serif"
+                fontSize="11"
+                fontWeight="700"
+                letterSpacing="1.5"
+              >
+                LEAP ALLIANCE
+              </text>
+            </g>
+
+            {/* ── MIDDLE ROW: EMV CHIP & VERIFIED BADGE ── */}
+            {/* Gold EMV Microchip */}
+            <g transform="translate(64, 210)">
+              <rect
+                x="0"
+                y="0"
+                width="118"
+                height="92"
+                rx="14"
+                fill="url(#chipGoldGrad)"
+                stroke="#d97706"
+                strokeWidth="1.5"
+              />
+              <g stroke="#78350f" strokeWidth="1.5" strokeOpacity="0.5">
+                <line x1="39" y1="0" x2="39" y2="92" />
+                <line x1="79" y1="0" x2="79" y2="92" />
+                <line x1="0" y1="46" x2="118" y2="46" />
+                <rect x="42" y="32" width="34" height="28" rx="6" fill="#fef08a" fillOpacity="0.4" />
+              </g>
+            </g>
+
+            {/* Contactless Waves */}
+            <g transform="translate(200, 238)" stroke="#fde68a" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.85">
+              <path d="M 0,10 A 16,16 0 0,1 0,36" />
+              <path d="M 8,4 A 26,26 0 0,1 8,42" />
+              <path d="M 16,-2 A 36,36 0 0,1 16,48" />
+            </g>
+
+            {/* Official Verified Secure Hologram */}
+            <g transform="translate(270, 234)">
+              <rect
+                x="0"
+                y="0"
+                width="190"
+                height="46"
+                rx="14"
+                fill="#ffffff"
+                fillOpacity="0.08"
+                stroke="#6ee7b7"
+                strokeWidth="1"
+                strokeOpacity="0.4"
+              />
+              <path
+                d="M 22,14 L 32,10 L 42,14 L 42,24 C 42,30 32,36 32,36 C 32,36 22,30 22,24 Z"
+                fill="#10b981"
+                fillOpacity="0.8"
+              />
+              <path d="M 27,23 L 30,26 L 37,19" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+              <text
+                x="56"
+                y="28"
+                fill="#ecfdf5"
+                fontFamily="system-ui, -apple-system, sans-serif"
+                fontSize="13"
+                fontWeight="700"
+                letterSpacing="1.5"
+              >
+                VERIFIED SECURE
+              </text>
+            </g>
+
+            {/* ── RIGHT COLUMN: HIGH-RES QR CODE ── */}
+            <g transform="translate(940, 180)">
+              <rect
+                x="0"
+                y="0"
+                width="196"
+                height="220"
+                rx="18"
+                fill="#ffffff"
+                stroke="#fcd34d"
+                strokeWidth="2"
+              />
+              <g transform="translate(18, 18)">
+                {qrRenderer ? (
+                  qrRenderer(resolvedQrValue, 160)
+                ) : (
+                  <rect width="160" height="160" fill="#022013" />
+                )}
+              </g>
+              <text
+                x="98"
+                y="204"
+                textAnchor="middle"
+                fill="#022013"
+                fontFamily="monospace"
+                fontSize="11"
+                fontWeight="900"
+                letterSpacing="1.5"
+              >
+                SCAN TO VERIFY
+              </text>
+            </g>
+
+            {/* ── BOTTOM CREDENTIALS AREA ── */}
+            {/* Member Credential ID */}
+            <g transform="translate(64, 400)">
+              <text
+                x="0"
+                y="0"
+                fill="#a7f3d0"
+                fontFamily="monospace"
+                fontSize="15"
+                fontWeight="700"
+                letterSpacing="3"
+              >
+                MEMBER CREDENTIAL ID
+              </text>
+              <text
+                x="0"
+                y="52"
+                fill="url(#goldTextGrad)"
+                fontFamily="'Courier New', monospace"
+                fontSize="48"
+                fontWeight="900"
+                letterSpacing="6"
+              >
+                {memberId}
+              </text>
+            </g>
+
+            {/* Member Name & Since Details */}
+            <g transform="translate(64, 535)">
+              <line x1="0" y1="0" x2="800" y2="0" stroke="#ffffff" strokeWidth="1" strokeOpacity="0.15" />
+
+              {/* Cardholder Name */}
+              <text
+                x="0"
+                y="34"
+                fill="#6ee7b7"
+                fontFamily="system-ui, -apple-system, sans-serif"
+                fontSize="14"
+                fontWeight="700"
+                letterSpacing="2"
+              >
+                CARDHOLDER NAME
+              </text>
+              <text
+                x="0"
+                y="74"
+                fill="#ffffff"
+                fontFamily="system-ui, -apple-system, sans-serif"
+                fontSize="30"
+                fontWeight="800"
+                letterSpacing="2"
+              >
+                {memberName.toUpperCase()}
+              </text>
+
+              {/* Member Since */}
+              <text
+                x="560"
+                y="34"
+                fill="#6ee7b7"
+                fontFamily="system-ui, -apple-system, sans-serif"
+                fontSize="14"
+                fontWeight="700"
+                letterSpacing="2"
+              >
+                MEMBER SINCE
+              </text>
+              <text
+                x="560"
+                y="74"
+                fill="#fde68a"
+                fontFamily="monospace"
+                fontSize="24"
+                fontWeight="800"
+                letterSpacing="2"
+              >
+                {memberSince.toUpperCase()}
+              </text>
+            </g>
+
+            {/* Bottom Security Footer */}
+            <g transform="translate(64, 690)">
+              <line x1="0" y1="0" x2={CARD_WIDTH - 128} y2="0" stroke="#ffffff" strokeWidth="1" strokeOpacity="0.1" />
+              <text
+                x="0"
+                y="34"
+                fill="#6ee7b7"
+                fontFamily="system-ui, -apple-system, sans-serif"
+                fontSize="14"
+                opacity="0.8"
+              >
+                Official Verification: agroheal.org/verify-card/{memberId}
+              </text>
+              <text
+                x={CARD_WIDTH - 128}
+                y="34"
+                textAnchor="end"
+                fill="#fde68a"
+                fontFamily="monospace"
+                fontSize="14"
+                fontWeight="700"
+                opacity="0.8"
+              >
+                REF: {memberId}
+              </text>
+            </g>
+          </g>
+        </svg>
+      </div>
+
+      {/* ── ACTION CONTROLS ── */}
+      <div className="flex flex-wrap items-center justify-center gap-3 w-full max-w-[620px]">
+        <Button
           type="button"
           onClick={handleDownload}
-          disabled={preparing}
-          style={{
-            width: "100%",
-            height: 44,
-            borderRadius: 12,
-            border: "none",
-            background: "#1e6b2f",
-            color: "#ffffff",
-            fontWeight: 600,
-            fontSize: 14,
-            cursor: preparing ? "default" : "pointer",
-            opacity: preparing ? 0.7 : 1,
-          }}
+          disabled={downloading}
+          className="h-11 px-6 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-green-800 hover:from-emerald-500 hover:to-green-700 text-white font-semibold text-sm shadow-md flex items-center gap-2"
         >
-          {preparing ? "Preparing…" : "Download card"}
-        </button>
-        {exportError && (
-          <p style={{ marginTop: 8, fontSize: 12, color: "#b91c1c" }}>
-            Couldn't prepare the download — please try again.
-          </p>
-        )}
+          {downloadSuccess ? (
+            <>
+              <Check className="w-4 h-4 text-emerald-300" />
+              Downloaded Successfully!
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4" />
+              {downloading ? "Generating High-Res PNG..." : "Download Green Card (PNG)"}
+            </>
+          )}
+        </Button>
       </div>
+
+      {downloadError && (
+        <div className="flex items-center gap-1.5 text-xs text-red-500">
+          <AlertCircle className="w-3.5 h-3.5" />
+          <span>Could not prepare high-res image. Please try again.</span>
+        </div>
+      )}
     </div>
   );
 };

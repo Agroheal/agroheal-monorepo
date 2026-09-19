@@ -191,10 +191,10 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
             <button
               type="button"
               onClick={() => setViewMode((m) => (m === "3d" ? "classic" : "3d"))}
-              className="px-2.5 py-1 rounded-lg text-xs font-medium text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors"
-              title="Toggle between 3D Interactive Card and Classic Export View"
+              className="px-2.5 py-1 rounded-lg text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+              title="Toggle between 3D Interactive Card and Flat 2D View"
             >
-              {viewMode === "3d" ? "Classic View" : "3D Interactive"}
+              {viewMode === "3d" ? "Flat 2D View" : "3D Interactive"}
             </button>
           )}
 
@@ -508,16 +508,30 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
 
       {/* ── CARD ACTION TOOLBAR ── */}
       {isActive && showControls && (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 print:hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 pt-2 print:hidden">
           {/* Flip 3D Card Toggle */}
           <Button
             type="button"
             variant="outline"
-            onClick={() => setIsFlipped((f) => !f)}
+            onClick={() => {
+              if (viewMode !== "3d") setViewMode("3d");
+              setIsFlipped((f) => !f);
+            }}
             className="h-10 rounded-xl border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/70 text-emerald-800 font-medium text-xs flex items-center justify-center gap-1.5 shadow-2xs"
           >
             <RotateCw className="w-3.5 h-3.5 text-emerald-700" />
             {isFlipped ? "Show Front" : "Show Back (QR)"}
+          </Button>
+
+          {/* Download Flat Card (PNG) */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setViewMode("classic")}
+            className="h-10 rounded-xl border-emerald-300 bg-emerald-100/60 hover:bg-emerald-200/70 text-emerald-900 font-semibold text-xs flex items-center justify-center gap-1.5 shadow-2xs"
+          >
+            <Download className="w-3.5 h-3.5 text-emerald-800" />
+            Download (2D)
           </Button>
 
           {/* Add to Mobile Wallet */}
