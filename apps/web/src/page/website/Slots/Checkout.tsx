@@ -38,13 +38,8 @@ const Checkout = () => {
   const parsedSlots = rawUrlSlots !== null ? parseInt(rawUrlSlots, 10) : 1;
   const initialSlots = isGreenCardOnly ? 0 : (!isNaN(parsedSlots) && parsedSlots >= 0 ? parsedSlots : 1);
 
-  const urlCategory = searchParams.get("category");
   const [slotQuantity, setSlotQuantity] = useState(initialSlots);
-  const [category, setCategory] = useState(
-    urlCategory && PROJECT_CATEGORIES.includes(urlCategory)
-      ? urlCategory
-      : DEFAULT_CATEGORY,
-  );
+  const [category, setCategory] = useState(DEFAULT_CATEGORY);
 
   const [hasGreenCard, setHasGreenCard] = useState<boolean>(false);
   const [hasPriorSlots, setHasPriorSlots] = useState<boolean>(false);
@@ -877,20 +872,32 @@ const Checkout = () => {
                         if (errors.category)
                           setErrors((prev) => ({ ...prev, category: "" }));
                       }}
-                      className={`w-full h-10 px-3 rounded-md border bg-background text-sm mb-4 ${errors.category ? "border-red-500" : "border-input"}`}
+                      className={`w-full h-10 px-3 rounded-md border bg-background text-sm mb-1.5 ${errors.category ? "border-red-500" : "border-input"}`}
                       required
                     >
-                      <option value="" disabled>
-                        Select Project Category
+                      <option value="Mushroom Village">
+                        Mushroom Village (Active Cluster)
                       </option>
-                      {PROJECT_CATEGORIES.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
+                      <option
+                        value="Ginger Town"
+                        disabled
+                        className="text-muted-foreground bg-muted/40"
+                      >
+                        Ginger Town (Coming Soon)
+                      </option>
+                      <option
+                        value="Organic FoodNation (1 Million Hectares against Hunger)"
+                        disabled
+                        className="text-muted-foreground bg-muted/40"
+                      >
+                        Organic FoodNation (In Incubation)
+                      </option>
                     </select>
+                    <p className="text-[11px] text-muted-foreground mb-4">
+                      Currently, only the <strong>Mushroom Village</strong> cluster is open for active slot allocation.
+                    </p>
                     {errors.category && (
-                      <p className="text-xs text-red-500 mt-0.5 mb-4">
+                      <p className="text-xs text-red-500 -mt-2 mb-4">
                         {errors.category}
                       </p>
                     )}

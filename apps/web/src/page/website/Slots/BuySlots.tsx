@@ -67,16 +67,40 @@ const BuySlots: React.FC = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-1 space-y-4">
-            <div className="bg-slate-50 p-4 rounded-lg space-y-2">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-500">Unit</span>
-                <span className="font-medium text-slate-900">2 Fruiting Bags / Slot</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-500">Price</span>
-                <span className="font-medium text-slate-900">
-                  {hasPriorSlots ? '₦5,000 / slot' : '₦10,000 (Starter) then ₦5k'}
+            <div className="bg-emerald-50/70 border border-emerald-100/80 rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  Unit Capacity
                 </span>
+                <Badge variant="outline" className="bg-white border-emerald-200 text-emerald-900 font-semibold px-2.5 py-0.5 text-xs shadow-xs">
+                  2 Fruiting Bags / Slot
+                </Badge>
+              </div>
+
+              <div className="border-t border-emerald-100/70 pt-2.5 flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  Pricing Structure
+                </span>
+                <div className="text-right">
+                  {hasPriorSlots ? (
+                    <div className="flex items-baseline justify-end gap-1">
+                      <span className="text-sm font-bold text-emerald-900">₦5,000</span>
+                      <span className="text-xs text-slate-500 font-normal">/ slot</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-0.5">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span className="text-sm font-bold text-emerald-900">₦10,000</span>
+                        <span className="text-[10px] font-bold uppercase bg-emerald-200/70 text-emerald-900 px-1.5 py-0.5 rounded">
+                          Starter Slot
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-medium">
+                        Subsequent slots scale at ₦5,000 each
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -119,7 +143,7 @@ const BuySlots: React.FC = () => {
           <CardFooter>
             <Button 
               className="w-full bg-emerald-600 hover:bg-emerald-700"
-              onClick={() => handleCheckout('mushroom', mushroomQty)}
+              onClick={() => handleCheckout('Mushroom Village', mushroomQty)}
             >
               <ShoppingCart className="mr-2 h-4 w-4" />
               Proceed to Checkout
