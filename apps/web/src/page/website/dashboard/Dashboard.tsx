@@ -19,6 +19,7 @@ import {
   Share2,
   MessageCircle,
   Send,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -83,6 +84,7 @@ const Dashboard = () => {
   const [showKinModal, setShowKinModal] = useState<boolean>(false);
   const [showSecureSlotModal, setShowSecureSlotModal] =
     useState<boolean>(false);
+  const [hasGreenCard, setHasGreenCard] = useState<boolean>(false);
   const [forceOpenNextStep, setForceOpenNextStep] = useState<boolean>(false);
   const [kinDetails, setKinDetails] = useState<KinDetails | null>(null);
   const [referralNumber, setReferralNumber] = useState("");
@@ -115,6 +117,7 @@ const Dashboard = () => {
         { data: referrals },
         { data: subscriptions },
         { data: checkoutsData },
+        { data: greenCardSub },
       ] = await Promise.all([
         supabase
           .from("kin_details")
@@ -135,7 +138,22 @@ const Dashboard = () => {
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
           .limit(8),
+        supabase
+          .from("subscriptions")
+          .select("id, plan, status, expires_at")
+          .eq("user_id", user.id)
+          .eq("plan", "green_card")
+          .eq("status", "active")
+          .order("expires_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
       ]);
+
+      const isSubActive = Boolean(
+        greenCardSub && (!greenCardSub.expires_at || new Date(greenCardSub.expires_at).getTime() > Date.now())
+      );
+      const isCardHolder = Boolean(profileData.member_id || isSubActive);
+      setHasGreenCard(isCardHolder);
 
       if (!kinError) {
         setKinDetails(
@@ -427,12 +445,40 @@ const Dashboard = () => {
 
               {stat.actionTo &&
                 (stat.actionLabel === "Secure Slot" ? (
+                  hasGreenCard ? (
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="mt-2.5 sm:mt-4 w-full rounded-xl border border-emerald-800 bg-emerald-800 hover:bg-emerald-700 text-white px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer"
+                    >
+                      <Link to="/dashboard/slots">Secure Slot</Link>
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        toast.error("You need an active Green Card to secure farm slots. Bundling with Green Card at checkout...");
+                        navigate("/dashboard/checkout?product=farm_slot");
+                      }}
+                      className="mt-2.5 sm:mt-4 w-full rounded-xl border border-gray-200 bg-gray-100 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-900 text-gray-500 px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                      <span>Requires Green Card</span>
+                    </Button>
+                  )
+                ) : stat.label === "Start Learning" && !hasGreenCard ? (
                   <Button
-                    onClick={() => setShowSecureSlotModal(true)}
+                    type="button"
                     variant="outline"
-                    className="mt-2.5 sm:mt-4 w-full rounded-xl border border-emerald-800 bg-emerald-800 hover:bg-emerald-700 text-white px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer"
+                    onClick={() => {
+                      toast.error("Active Green Card required to access course modules. Redirecting to checkout...");
+                      navigate("/dashboard/checkout?product=green_card");
+                    }}
+                    className="mt-2.5 sm:mt-4 w-full rounded-xl border border-gray-200 bg-gray-100 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-900 text-gray-500 px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5"
                   >
-                    Secure Slot
+                    <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                    <span>Requires Green Card</span>
                   </Button>
                 ) : (
                   <Button
@@ -449,37 +495,65 @@ const Dashboard = () => {
               {(stat.actionHref || stat.whatsappHref) && (
                 <div className="mt-2.5 sm:mt-4 flex w-full flex-col gap-1.5">
                   {stat.actionHref && (
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="w-full rounded-xl border border-emerald-800 bg-emerald-800 hover:bg-emerald-700 text-white px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <a
-                        href={stat.actionHref}
-                        target="_blank"
-                        rel="noreferrer"
+                    hasGreenCard ? (
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="w-full rounded-xl border border-emerald-800 bg-emerald-800 hover:bg-emerald-700 text-white px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5"
                       >
-                        <Send className="w-3.5 h-3.5 shrink-0" />
+                        <a
+                          href={stat.actionHref}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <Send className="w-3.5 h-3.5 shrink-0" />
+                          <span>Join Telegram</span>
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          toast.error("Active Green Card required to join exclusive LEAP Community channels.");
+                        }}
+                        className="w-full rounded-xl border border-gray-200 bg-gray-100 text-gray-400 hover:bg-gray-100 cursor-not-allowed px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold shadow-xs flex items-center justify-center gap-1.5"
+                      >
+                        <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                         <span>Join Telegram</span>
-                      </a>
-                    </Button>
+                      </Button>
+                    )
                   )}
 
                   {stat.whatsappHref && (
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="w-full rounded-xl border border-emerald-700 bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <a
-                        href={stat.whatsappHref}
-                        target="_blank"
-                        rel="noreferrer"
+                    hasGreenCard ? (
+                      <Button
+                        asChild
+                        variant="outline"
+                        className="w-full rounded-xl border border-emerald-700 bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5"
                       >
-                        <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                        <a
+                          href={stat.whatsappHref}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+                          <span>Join WhatsApp</span>
+                        </a>
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          toast.error("Active Green Card required to join exclusive LEAP Community channels.");
+                        }}
+                        className="w-full rounded-xl border border-gray-200 bg-gray-100 text-gray-400 hover:bg-gray-100 cursor-not-allowed px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold shadow-xs flex items-center justify-center gap-1.5"
+                      >
+                        <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                         <span>Join WhatsApp</span>
-                      </a>
-                    </Button>
+                      </Button>
+                    )
                   )}
                 </div>
               )}
@@ -502,7 +576,14 @@ const Dashboard = () => {
                         await navigator.clipboard.writeText(
                           `${SITE_URL}/signup?ref=${profile?.referral_code ?? ""}`,
                         );
-                        toast.success("Referral link copied");
+                        if (!hasGreenCard) {
+                          toast.success(
+                            "Referral link copied! Share to earn ₦1,000 per registration. You can convert accumulated earnings to activate your Green Card & slots!",
+                            { duration: 5000 }
+                          );
+                        } else {
+                          toast.success("Referral link copied!");
+                        }
                       } catch {
                         toast.error("Failed to copy referral link");
                       }
@@ -798,12 +879,12 @@ const Dashboard = () => {
               <div className="grid sm:grid-cols-2 gap-3">
                 {[
                   {
-                    to: "/dashboard/courses",
-                    icon: BookOpen,
-                    label: "Continue Learning",
-                    desc: "Pick up where you left off",
-                    iconBg: "bg-emerald-50",
-                    iconColor: "text-emerald-800",
+                    to: hasGreenCard ? "/dashboard/courses" : "/dashboard/checkout?product=green_card",
+                    icon: hasGreenCard ? BookOpen : Lock,
+                    label: hasGreenCard ? "Continue Learning" : "Unlock Courses",
+                    desc: hasGreenCard ? "Pick up where you left off" : "Requires Green Card — ₦2,000",
+                    iconBg: hasGreenCard ? "bg-emerald-50" : "bg-amber-50",
+                    iconColor: hasGreenCard ? "text-emerald-800" : "text-amber-800",
                   },
                   totalSlotsPurchased > 0
                     ? {
@@ -815,10 +896,10 @@ const Dashboard = () => {
                         iconColor: "text-emerald-800",
                       }
                     : {
-                        to: "/dashboard/slots",
+                        to: hasGreenCard ? "/dashboard/slots" : "/dashboard/checkout?product=farm_slot",
                         icon: Sprout,
                         label: "Become a Producer",
-                        desc: "Secure commercial farm slot",
+                        desc: hasGreenCard ? "Secure commercial farm slot" : "Secure slot (bundles Green Card)",
                         iconBg: "bg-emerald-50",
                         iconColor: "text-emerald-800",
                       },

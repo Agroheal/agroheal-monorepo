@@ -89,11 +89,18 @@ export const appRouter = createBrowserRouter([
     ),
     children: [
       { path: "/subscribe", element: <Subscribe /> },
-      { path: "/dashboard/green-card", element: <GreenCardCommunity /> },
+      {
+        path: "/dashboard/green-card",
+        element: (
+          <RequireSubscription>
+            <GreenCardCommunity />
+          </RequireSubscription>
+        ),
+      },
 
       // Core dashboard area is accessible to all registered members (both subscribed
       // and unsubscribed). Unsubscribed members can track their referral link, organogram,
-      // and accumulating wallet earnings. Specific paid features (courses, farm tools)
+      // and accumulating wallet earnings. Specific paid features (courses, farm tools, green card)
       // are individually paywalled with RequireSubscription.
       {
         path: "/dashboard",
@@ -162,7 +169,14 @@ export const appRouter = createBrowserRouter([
 
           // Profile & Green Card
           { path: "profile", element: <ProfileComponent /> },
-          { path: "profile/green-card", element: <GreenCardCommunity /> },
+          {
+            path: "profile/green-card",
+            element: (
+              <RequireSubscription>
+                <GreenCardCommunity />
+              </RequireSubscription>
+            ),
+          },
           {
             path: "green-card",
             element: <Navigate to="/dashboard/profile/green-card" replace />,

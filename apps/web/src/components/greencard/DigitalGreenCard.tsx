@@ -508,7 +508,7 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
 
       {/* ── CARD ACTION TOOLBAR ── */}
       {isActive && showControls && (
-        <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 pt-2 print:hidden">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-2 print:hidden">
           {/* Flip 3D Card Toggle */}
           <Button
             type="button"
@@ -517,10 +517,10 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
               if (viewMode !== "3d") setViewMode("3d");
               setIsFlipped((f) => !f);
             }}
-            className="h-10 rounded-xl border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/70 text-emerald-800 font-medium text-xs flex items-center justify-center gap-1.5 shadow-2xs"
+            className="h-11 px-3.5 rounded-xl border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100/70 text-emerald-800 font-semibold text-xs flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap cursor-pointer"
           >
-            <RotateCw className="w-3.5 h-3.5 text-emerald-700" />
-            {isFlipped ? "Show Front" : "Show Back (QR)"}
+            <RotateCw className="w-4 h-4 text-emerald-700 shrink-0" />
+            <span>{isFlipped ? "Show Front" : "Show Back (QR)"}</span>
           </Button>
 
           {/* Download Flat Card (PNG) */}
@@ -528,10 +528,10 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
             type="button"
             variant="outline"
             onClick={() => setViewMode("classic")}
-            className="h-10 rounded-xl border-emerald-300 bg-emerald-100/60 hover:bg-emerald-200/70 text-emerald-900 font-semibold text-xs flex items-center justify-center gap-1.5 shadow-2xs"
+            className="h-11 px-3.5 rounded-xl border-emerald-300 bg-emerald-100/60 hover:bg-emerald-200/70 text-emerald-900 font-semibold text-xs flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap cursor-pointer"
           >
-            <Download className="w-3.5 h-3.5 text-emerald-800" />
-            Download (2D)
+            <Download className="w-4 h-4 text-emerald-800 shrink-0" />
+            <span>Download (2D)</span>
           </Button>
 
           {/* Add to Mobile Wallet */}
@@ -539,10 +539,10 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
             type="button"
             variant="outline"
             onClick={() => setShowWalletModal(true)}
-            className="h-10 rounded-xl border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-medium text-xs flex items-center justify-center gap-1.5 shadow-2xs"
+            className="h-11 px-3.5 rounded-xl border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-semibold text-xs flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap cursor-pointer"
           >
-            <Smartphone className="w-3.5 h-3.5 text-gray-600" />
-            Save to Wallet
+            <Smartphone className="w-4 h-4 text-gray-600 shrink-0" />
+            <span>Save to Wallet</span>
           </Button>
 
           {/* Share Card */}
@@ -550,10 +550,10 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
             type="button"
             variant="outline"
             onClick={handleShare}
-            className="h-10 rounded-xl border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-medium text-xs flex items-center justify-center gap-1.5 shadow-2xs"
+            className="h-11 px-3.5 rounded-xl border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-semibold text-xs flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap cursor-pointer"
           >
-            <Share2 className="w-3.5 h-3.5 text-gray-600" />
-            Share Card
+            <Share2 className="w-4 h-4 text-gray-600 shrink-0" />
+            <span>Share Card</span>
           </Button>
 
           {/* Copy Public Link */}
@@ -561,14 +561,14 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
             type="button"
             variant="outline"
             onClick={handleCopyVerificationLink}
-            className="h-10 rounded-xl border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-medium text-xs flex items-center justify-center gap-1.5 shadow-2xs"
+            className="h-11 px-3.5 rounded-xl border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-semibold text-xs flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap cursor-pointer"
           >
             {copiedLink ? (
-              <Check className="w-3.5 h-3.5 text-emerald-600" />
+              <Check className="w-4 h-4 text-emerald-600 shrink-0" />
             ) : (
-              <ExternalLink className="w-3.5 h-3.5 text-gray-600" />
+              <ExternalLink className="w-4 h-4 text-gray-600 shrink-0" />
             )}
-            Copy Link
+            <span>Copy Link</span>
           </Button>
 
           {/* Public Verification Page */}
@@ -576,10 +576,10 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
             type="button"
             variant="outline"
             onClick={() => window.open(verificationUrl, "_blank")}
-            className="col-span-2 sm:col-span-1 h-10 rounded-xl border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-medium text-xs flex items-center justify-center gap-1.5 shadow-2xs"
+            className="h-11 px-3.5 rounded-xl border-gray-200 bg-white hover:bg-gray-50 text-gray-700 font-semibold text-xs flex items-center justify-center gap-1.5 shadow-2xs whitespace-nowrap cursor-pointer"
           >
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-700" />
-            Verify Page
+            <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+            <span>Verify Page</span>
           </Button>
         </div>
       )}
