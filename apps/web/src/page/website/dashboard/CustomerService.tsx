@@ -19,7 +19,7 @@ import { showToast } from "@/components/ui/ToastComponent";
 export default function CustomerService() {
   const handleComingSoon = (channel: string) => {
     showToast({
-      variant: "info",
+      variant: "warning",
       title: `${channel} Support Coming Soon`,
       description: "This channel is currently undergoing maintenance. Please connect with our team on WhatsApp for instant resolution.",
     });

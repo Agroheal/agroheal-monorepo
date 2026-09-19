@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { type ReactNode } from "react";
 import { ShieldCheck, Calculator } from "lucide-react";
 
 export type IconComponent = React.ComponentType<{ className?: string }>;

@@ -110,7 +110,7 @@ export default function TransactionLedger() {
       });
     } catch (err) {
       showToast({
-        variant: "destructive",
+        variant: "error",
         title: "Refresh Failed",
         description: "Could not refresh ledger data. Please try again.",
       });
@@ -402,7 +402,7 @@ export default function TransactionLedger() {
           variant:
             statusStr === "COMPLETED" || statusStr === "PAID" || statusStr === "SUCCESS" || statusStr === "CONFIRMED"
               ? "success"
-              : "info",
+              : "warning",
           title: "Transaction Requeried",
           description: `Current transaction status: ${statusStr}. Your ledger has been synchronized.`,
         });

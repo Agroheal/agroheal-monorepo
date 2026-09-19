@@ -38,6 +38,7 @@ const Checkout = () => {
   const parsedSlots = rawUrlSlots !== null ? parseInt(rawUrlSlots, 10) : 1;
   const initialSlots = isGreenCardOnly ? 0 : (!isNaN(parsedSlots) && parsedSlots >= 0 ? parsedSlots : 1);
 
+  const urlCategory = searchParams.get("category");
   const [slotQuantity, setSlotQuantity] = useState(initialSlots);
   const [category, setCategory] = useState(
     urlCategory && PROJECT_CATEGORIES.includes(urlCategory)
@@ -49,9 +50,9 @@ const Checkout = () => {
   const [hasPriorSlots, setHasPriorSlots] = useState<boolean>(false);
 
   const isFirstSlotPurchase = !hasPriorSlots;
-  const { subtotal: slotsSubtotal } = slotQuantity > 0
-    ? calculateSlotSubtotal(slotQuantity, hasPriorSlots)
-    : { subtotal: 0, setupLevy: 0, slotBaseTotal: 0 };
+  const slotsSubtotal = slotQuantity > 0
+    ? calculateSlotSubtotal(slotQuantity, hasPriorSlots).subtotal
+    : 0;
 
   const greenCardFee = isGreenCardOnly || !hasGreenCard ? GREEN_CARD_FEE : 0;
   const totalPrice = slotsSubtotal + greenCardFee;

@@ -440,7 +440,7 @@ const Dashboard = () => {
                     className="mt-2.5 sm:mt-4 w-full rounded-xl border border-emerald-800 bg-emerald-800 hover:bg-emerald-700 text-white px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer"
                   >
                     <Link to={stat.actionTo}>
-                      {stat.actionLabel ?? (stat.label === "Start Learning" ? "View Modules" : stat.label)}
+                      {stat.actionLabel || stat.label}
                     </Link>
                   </Button>
                 ))}
