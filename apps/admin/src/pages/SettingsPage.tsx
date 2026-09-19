@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LegalDocEditor } from "@/components/admin/LegalDocEditor";
 import { NextStepModalConfigEditor } from "@/components/admin/NextStepModalConfigEditor";
+import { PlatformEconomicsEditor } from "@/components/admin/PlatformEconomicsEditor";
 import { StatusBanner } from "@/components/admin/StatusBanner";
 
 export default function SettingsPage() {
@@ -18,6 +19,12 @@ export default function SettingsPage() {
     <div className="flex flex-col gap-6 max-w-6xl mx-auto pb-12">
       <StatusBanner variant="success" message={successMessage} />
       <StatusBanner variant="error" message={errorMessage} />
+
+      {/* Dynamic Platform Economics & Parameters */}
+      <PlatformEconomicsEditor
+        onSuccess={(msg) => flash(setSuccessMessage, msg)}
+        onError={(msg) => flash(setErrorMessage, msg)}
+      />
 
       <NextStepModalConfigEditor
         onSuccess={(msg) => flash(setSuccessMessage, msg)}

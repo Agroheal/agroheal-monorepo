@@ -152,6 +152,19 @@ export const adminApiClient = {
         body: JSON.stringify(payload),
       }),
   },
+  configs: {
+    getConfigs: () => apiRequest<any>("admin/configs"),
+    updateConfigs: (payload: any) =>
+      apiRequest<any>("admin/configs", {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      }),
+    updateAdminPermission: (id: string, canManageConfigs: boolean) =>
+      apiRequest<any>(`admin/users/${id}/permissions`, {
+        method: "PUT",
+        body: JSON.stringify({ canManageConfigs }),
+      }),
+  },
 };
 
 export default adminApiClient;
