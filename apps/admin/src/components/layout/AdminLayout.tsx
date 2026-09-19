@@ -1,5 +1,15 @@
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, CreditCard, Settings as SettingsIcon, Sprout, LogOut, MapPinned, Lock } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  CreditCard,
+  Settings as SettingsIcon,
+  Sprout,
+  LogOut,
+  MapPinned,
+  Lock,
+  Landmark,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -21,8 +31,9 @@ import { useAdminAuth } from "@/hooks/useAdminAuth";
 const navItems = [
   { label: "Dashboard", path: "/", icon: LayoutDashboard },
   { label: "Members", path: "/members", icon: Users },
+  { label: "Farm Management", path: "/farm-assignments", icon: Sprout },
   { label: "Payments", path: "/payments", icon: CreditCard },
-  { label: "Farm Assignments", path: "/farm-assignments", icon: MapPinned },
+  { label: "Treasury & Payouts", path: "/treasury", icon: Landmark },
   { label: "Settings", path: "/settings", icon: SettingsIcon },
 ];
 
@@ -31,7 +42,7 @@ function isItemActive(path: string, pathname: string) {
 }
 
 export default function AdminLayout() {
-  const { profile, isReadOnly, isSupport } = useAdminAuth();
+  const { profile, isReadOnly, isSupport, isCoordinator, hasTreasuryAccess } = useAdminAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -41,7 +52,12 @@ export default function AdminLayout() {
   };
 
   const visibleNavItems = navItems.filter((item) => {
-    if (isSupport && item.path === "/settings") return false;
+    // Support cannot see Treasury or Settings
+    if (isSupport && (item.path === "/settings" || item.path === "/treasury")) return false;
+    // Coordinator can only see Dashboard and Farm Management
+    if (isCoordinator && (item.path === "/settings" || item.path === "/treasury" || item.path === "/payments")) return false;
+    // Treasury requires elevated access (super_admin, admin, reviewer)
+    if (item.path === "/treasury" && !hasTreasuryAccess) return false;
     return true;
   });
 

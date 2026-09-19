@@ -16,8 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
-import GreenCardImage from "@/components/webComponents/GreenCardImage";
-import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
+import { DigitalGreenCard, formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import { SITE_URL } from "@/config/Index";
 
 interface VerificationData {
@@ -288,23 +287,13 @@ export const VerifyCard: React.FC = () => {
 
               {/* Card Visualization */}
               <div className="pt-2">
-                <div className="rounded-2xl bg-gradient-to-br from-emerald-950 via-green-900 to-emerald-950 p-2 sm:p-4 shadow-md">
-                  <GreenCardImage
-                    memberName={data.fullName}
-                    memberId={data.memberId}
-                    memberSince={data.memberSince}
-                    qrValue={`${SITE_URL}/verify-card/${encodeURIComponent(data.memberId)}`}
-                    fileName={data.memberId}
-                    qrRenderer={(value, size) => (
-                      <QRCode
-                        value={value}
-                        size={size}
-                        bgColor="#ffffff"
-                        fgColor="#064e3b"
-                      />
-                    )}
-                  />
-                </div>
+                <DigitalGreenCard
+                  memberName={data.fullName}
+                  memberId={data.memberId}
+                  memberSince={data.memberSince}
+                  isActive={data.valid}
+                  showControls={true}
+                />
               </div>
 
               {/* Security Seal Footer */}

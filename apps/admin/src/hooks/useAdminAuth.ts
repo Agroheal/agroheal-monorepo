@@ -5,6 +5,7 @@ import {
   UserRole,
   isPlatformAdmin,
   canAccessAdminPortal,
+  canAccessTreasury,
   SUPER_DEV_EMAIL,
 } from "@shared";
 
@@ -84,9 +85,12 @@ export const useAdminAuth = () => {
     profile?.email?.toLowerCase() === SUPER_DEV_EMAIL.toLowerCase() ||
     profile?.role === UserRole.SUPER_ADMIN;
   const isAdmin = isPlatformAdmin(profile?.role, profile?.email);
+  const isReviewer = profile?.role === UserRole.REVIEWER;
+  const isCoordinator = profile?.role === UserRole.COORDINATOR;
   const isSupport = profile?.role === UserRole.SUPPORT;
   const canAccessAdmin = canAccessAdminPortal(profile?.role, profile?.email);
-  const isReadOnly = !isSuperDeveloper;
+  const hasTreasuryAccess = canAccessTreasury(profile?.role, profile?.email);
+  const isReadOnly = isSupport;
 
   return {
     session,
@@ -94,8 +98,11 @@ export const useAdminAuth = () => {
     loading,
     isAdmin,
     isSuperDeveloper,
+    isReviewer,
+    isCoordinator,
     isSupport,
     canAccessAdmin,
+    hasTreasuryAccess,
     isReadOnly,
   };
 };

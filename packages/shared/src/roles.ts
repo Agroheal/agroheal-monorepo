@@ -6,8 +6,9 @@
 export const UserRole = {
   SUPER_ADMIN: "super_admin",
   ADMIN: "admin",
-  SUPPORT: "support",
+  REVIEWER: "reviewer",
   COORDINATOR: "coordinator",
+  SUPPORT: "support",
   MEMBER: "user",
 } as const;
 
@@ -27,6 +28,10 @@ export function parseUserRole(role?: string | null): UserRole {
       return UserRole.SUPER_ADMIN;
     case "admin":
       return UserRole.ADMIN;
+    case "reviewer":
+    case "accountant":
+    case "auditor":
+      return UserRole.REVIEWER;
     case "support":
       return UserRole.SUPPORT;
     case "coordinator":
@@ -48,11 +53,32 @@ export function isPlatformAdmin(role?: string | null, email?: string | null): bo
 }
 
 /**
- * Checks if a user has access to the Admin Portal (super_admin, admin, support)
+ * Checks if a user has access to the Admin Portal (super_admin, admin, reviewer, coordinator, support)
  */
 export function canAccessAdminPortal(role?: string | null, email?: string | null): boolean {
   if (isPlatformAdmin(role, email)) return true;
-  return parseUserRole(role) === UserRole.SUPPORT;
+  const parsed = parseUserRole(role);
+  return (
+    parsed === UserRole.SUPPORT ||
+    parsed === UserRole.COORDINATOR ||
+    parsed === UserRole.REVIEWER
+  );
+}
+
+/**
+ * Checks if a user has access to sensitive Financial Treasury, Solvency Shield, and Payout Disbursals.
+ * Strictly: super_admin, admin, and reviewer. (Support and Coordinator are strictly excluded).
+ */
+export function canAccessTreasury(role?: string | null, email?: string | null): boolean {
+  if (email && email.trim().toLowerCase() === SUPER_DEV_EMAIL.toLowerCase()) {
+    return true;
+  }
+  const parsed = parseUserRole(role);
+  return (
+    parsed === UserRole.SUPER_ADMIN ||
+    parsed === UserRole.ADMIN ||
+    parsed === UserRole.REVIEWER
+  );
 }
 
 /**

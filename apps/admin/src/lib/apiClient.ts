@@ -104,6 +104,54 @@ export const adminApiClient = {
       }>("admin/stats"),
     getTreasuryAudit: () => apiRequest<any>("admin/treasury-audit"),
   },
+  cycles: {
+    draftHarvestYield: (payload: {
+      farmGroupId: string;
+      totalHarvestRevenue: number;
+      yieldKg?: number;
+      continuationCost?: number;
+      notes?: string;
+    }) => apiRequest<any>("cycles/draft", { method: "POST", body: JSON.stringify(payload) }),
+    approveHarvestCycle: (cycleId: string, payload?: { notes?: string }) =>
+      apiRequest<any>(`cycles/${cycleId}/approve`, { method: "POST", body: JSON.stringify(payload || {}) }),
+    distributeDividends: (cycleId: string) =>
+      apiRequest<any>(`cycles/${cycleId}/distribute`, { method: "POST" }),
+    getFarmCycles: (farmGroupId: string) =>
+      apiRequest<any[]>(`cycles/farm/${farmGroupId}`),
+  },
+  withdrawals: {
+    listWithdrawals: () => apiRequest<any[]>("admin/withdrawals"),
+    approveWithdrawal: (id: string) =>
+      apiRequest<any>(`admin/withdrawals/${id}/approve`, { method: "POST" }),
+    rejectWithdrawal: (id: string, reason?: string) =>
+      apiRequest<any>(`admin/withdrawals/${id}/reject`, {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      }),
+    evaluateSolvencyShield: (payload: { liquidBankBalance: number; withdrawalIds?: string[] }) =>
+      apiRequest<{
+        liquidBankBalance: number;
+        totalPendingLiability: number;
+        liquidityCoverageRatio: number;
+        isSolvent: boolean;
+        shortfall: number;
+        pendingWithdrawalsCount: number;
+        recommendedAction: string;
+      }>("admin/withdrawals/solvency-shield", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    batchDisburse: (payload: { liquidBankBalance: number; withdrawalIds: string[] }) =>
+      apiRequest<{
+        disbursedCount: number;
+        totalDisbursed: number;
+        clearedIds: string[];
+        solvencyShield: any;
+      }>("admin/withdrawals/batch-disburse", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+  },
 };
 
 export default adminApiClient;

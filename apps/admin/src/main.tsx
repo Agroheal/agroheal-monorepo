@@ -11,6 +11,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import MembersPage from "@/pages/MembersPage";
 import PaymentsPage from "@/pages/PaymentsPage";
 import FarmAssignmentsPage from "@/pages/FarmAssignmentsPage";
+import TreasuryPage from "@/pages/TreasuryPage";
 import SettingsPage from "@/pages/SettingsPage";
 
 const router = createBrowserRouter([
@@ -24,8 +25,9 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <DashboardPage /> },
           { path: "members", element: <MembersPage /> },
-          { path: "payments", element: <PaymentsPage /> },
           { path: "farm-assignments", element: <FarmAssignmentsPage /> },
+          { path: "payments", element: <PaymentsPage /> },
+          { path: "treasury", element: <TreasuryPage /> },
           { path: "settings", element: <SettingsPage /> },
         ],
       },
