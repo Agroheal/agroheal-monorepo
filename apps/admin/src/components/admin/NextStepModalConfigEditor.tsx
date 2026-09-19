@@ -92,14 +92,14 @@ const DEFAULT_CONFIG: NextStepConfig = {
     step3: {
       title: "Unlock 7-Level Matrix Harvest Dividends",
       subtitle:
-        "Sponsor 5 direct partners to expand your payout depth and maximize cooperative spillover.",
+        "Sponsor direct partners to expand your payout depth (Directs + 1 Rule) and maximize cooperative spillover.",
       targetCount: 5,
       badgeText: "Milestone 3 of 3 · Expansion",
       benefits: [
-        "1 Direct Partner unlocks Level 1 matrix dividends",
-        "5 Direct Partners unlocks all 7 matrix levels (up to 97,655 network positions)",
+        "Directs + 1 Rule: 1 Direct Partner immediately unlocks down to Level 2 (30 network positions)",
+        "Each additional Direct Partner unlocks +1 Matrix Level (6 Directs unlocks all 7 levels up to 97,655 positions)",
+        "5 Direct Partners unlocks Level 6 and qualifies you for Matrix Bank Withdrawals",
         "Earn ₦1,000 Green Card bounty + 10% (₦500) per slot leased by direct partners",
-        "Qualify for AgroHeal Cooperative Community Leadership & bonus pools",
       ],
       buttonText: "Copy Referral Link & Share",
       targetRoute: "/dashboard/compound-referrals",

@@ -70,30 +70,30 @@ export const MIN_PQV_FOR_MATRIX_WITHDRAWAL = 5000;
 export const PQV_WINDOW_DAYS = 30;
 export const MIN_DIRECT_REFERRAL_WITHDRAWAL = 2000;
 
-export const MATRIX_COMMISSIONS = [
-  { level: 1, percentage: 5.0, amount: 250, maxMembers: 5, potential: 1250, requiredDirects: 5 },
-  { level: 2, percentage: 3.5, amount: 175, maxMembers: 25, potential: 4375, requiredDirects: 10 },
-  { level: 3, percentage: 3.0, amount: 150, maxMembers: 125, potential: 18750, requiredDirects: 15 },
-  { level: 4, percentage: 2.5, amount: 125, maxMembers: 625, potential: 78125, requiredDirects: 20 },
-  { level: 5, percentage: 2.5, amount: 125, maxMembers: 3125, potential: 390625, requiredDirects: 25 },
-  { level: 6, percentage: 2.5, amount: 125, maxMembers: 15625, potential: 1953125, requiredDirects: 30 },
-  { level: 7, percentage: 2.5, amount: 125, maxMembers: 78125, potential: 9765625, requiredDirects: 35 },
+export const MATRIX_COMMISSIONS_TIERS = [
+  { level: 1, percentage: 5.0, amount: 250, maxMembers: 5, potential: 1250, requiredDirects: 0 },
+  { level: 2, percentage: 3.5, amount: 175, maxMembers: 25, potential: 4375, requiredDirects: 1 },
+  { level: 3, percentage: 3.0, amount: 150, maxMembers: 125, potential: 18750, requiredDirects: 2 },
+  { level: 4, percentage: 2.5, amount: 125, maxMembers: 625, potential: 78125, requiredDirects: 3 },
+  { level: 5, percentage: 2.5, amount: 125, maxMembers: 3125, potential: 390625, requiredDirects: 4 },
+  { level: 6, percentage: 2.5, amount: 125, maxMembers: 15625, potential: 1953125, requiredDirects: 5 },
+  { level: 7, percentage: 2.5, amount: 125, maxMembers: 78125, potential: 9765625, requiredDirects: 6 },
 ];
 
 export const getUnlockedMatrixLevel = (directCount: number): number => {
-  return Math.min(7, Math.floor(directCount / 5));
+  if (directCount <= 0) return 0;
+  return Math.min(7, directCount + 1);
 };
 
 export const getNextMatrixLevelTarget = (directCount: number) => {
-  const currentLevel = Math.min(7, Math.floor(directCount / 5));
+  const currentLevel = directCount <= 0 ? 0 : Math.min(7, directCount + 1);
   if (currentLevel >= 7) {
-    return { nextLevel: 7, requiredDirects: 35, remainingDirects: 0, progressPercent: 100, isMax: true };
+    return { nextLevel: 7, requiredDirects: 6, remainingDirects: 0, progressPercent: 100, isMax: true };
   }
-  const nextLevel = currentLevel + 1;
-  const requiredDirects = nextLevel * 5;
+  const nextLevel = currentLevel === 0 ? 2 : currentLevel + 1;
+  const requiredDirects = nextLevel - 1;
   const remainingDirects = Math.max(0, requiredDirects - directCount);
-  const tierProgress = directCount - currentLevel * 5;
-  const progressPercent = Math.min(100, Math.round((tierProgress / 5) * 100));
+  const progressPercent = Math.min(100, Math.round((directCount / requiredDirects) * 100));
   return { nextLevel, requiredDirects, remainingDirects, progressPercent, isMax: false };
 };
 
@@ -1003,15 +1003,14 @@ const CompoundReferrals: React.FC = () => {
                   <AlertCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-amber-950 text-sm">Matrix Depth Protection Gate: Level 0</span>
+                      <span className="font-bold text-amber-950 text-sm">Matrix Depth Gate: Directs + 1 Rule</span>
                       <Badge className="bg-amber-200/90 text-amber-900 border-amber-300 text-[10px]">
-                        {directReferralsCount} of 5 Direct Recruits
+                        {directReferralsCount} Direct Partners Sponsored
                       </Badge>
                     </div>
                     <p className="text-amber-800/90 leading-relaxed">
-                      Per cooperative matrix rules, each batch of <strong>5 direct recruits unlocks the next matrix level</strong>.
-                      You have sponsored <strong>{directReferralsCount}/5</strong> direct partners needed for Level 1.
-                      Deeper downline and spillover harvest payouts remain <strong>locked</strong> until you sponsor your first 5 direct partners ({5 - directReferralsCount} more needed). Personal <strong>₦1,000 direct referral bonuses are never locked</strong>.
+                      Under the <strong>Directs + 1 Depth Gating Rule</strong>, sponsoring <strong>1 direct partner immediately unlocks down to Level 2</strong> (30 network positions), and each additional direct partner unlocks +1 level (6 direct partners unlocks all 7 levels up to 97,655 positions).
+                      Sponsor your first direct partner to unlock Level 2 matrix dividends. Personal <strong>₦1,000 direct referral bonuses are never locked</strong>.
                     </p>
                   </div>
                 </div>

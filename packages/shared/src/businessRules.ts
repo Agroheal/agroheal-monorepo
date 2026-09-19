@@ -27,8 +27,8 @@ export const RETAIL_DIRECT_MARGIN_PERCENT = 12; // Up to 12% direct margin on re
 // ── 4. MULTILEVEL MATRIX DISTRIBUTION (5×7 SPILLOVER) ──
 export const MATRIX_DIMENSION = 5; // 5-wide forced matrix
 export const MATRIX_MAX_DEPTH = 7; // 7 levels deep
-export const DIRECTS_PER_LEVEL_UNLOCK = 5; // Sponsor 5 active direct partners to unlock each tier
-export const TOTAL_DIRECTS_FOR_ALL_LEVELS = 35; // 5 * 7 = 35 directs for full 7-level depth
+export const DIRECTS_PER_LEVEL_UNLOCK = 1; // Each direct unlocks +1 level under Directs + 1 rule
+export const TOTAL_DIRECTS_FOR_ALL_LEVELS = 6; // 6 directs unlocks all 7 levels (1 direct -> level 2, 6 directs -> level 7)
 export const MONTHLY_PQV_REQUIREMENT = 5000; // ₦5,000 rolling 30-day Personal Qualifying Volume
 export const TOTAL_POTENTIAL_MATRIX_COMMISSIONS = 12212500; // ₦12,212,500 across 7 matrix tiers
 
@@ -46,18 +46,19 @@ export interface MatrixCommissionTier {
 }
 
 export const MATRIX_COMMISSIONS_TIERS: readonly MatrixCommissionTier[] = [
-  { level: 1, percentage: 5.0, amount: 250, maxMembers: 5, potential: 1250, requiredDirects: 5 },
-  { level: 2, percentage: 3.5, amount: 175, maxMembers: 25, potential: 4375, requiredDirects: 10 },
-  { level: 3, percentage: 3.0, amount: 150, maxMembers: 125, potential: 18750, requiredDirects: 15 },
-  { level: 4, percentage: 2.5, amount: 125, maxMembers: 625, potential: 78125, requiredDirects: 20 },
-  { level: 5, percentage: 2.5, amount: 125, maxMembers: 3125, potential: 390625, requiredDirects: 25 },
-  { level: 6, percentage: 2.5, amount: 125, maxMembers: 15625, potential: 1953125, requiredDirects: 30 },
-  { level: 7, percentage: 2.5, amount: 125, maxMembers: 78125, potential: 9765625, requiredDirects: 35 },
+  { level: 1, percentage: 5.0, amount: 250, maxMembers: 5, potential: 1250, requiredDirects: 0 },
+  { level: 2, percentage: 3.5, amount: 175, maxMembers: 25, potential: 4375, requiredDirects: 1 },
+  { level: 3, percentage: 3.0, amount: 150, maxMembers: 125, potential: 18750, requiredDirects: 2 },
+  { level: 4, percentage: 2.5, amount: 125, maxMembers: 625, potential: 78125, requiredDirects: 3 },
+  { level: 5, percentage: 2.5, amount: 125, maxMembers: 3125, potential: 390625, requiredDirects: 4 },
+  { level: 6, percentage: 2.5, amount: 125, maxMembers: 15625, potential: 1953125, requiredDirects: 5 },
+  { level: 7, percentage: 2.5, amount: 125, maxMembers: 78125, potential: 9765625, requiredDirects: 6 },
 ] as const;
 
 // ── 5. HELPER FUNCTIONS ──
 export const getUnlockedMatrixLevel = (directCount: number): number => {
-  return Math.min(MATRIX_MAX_DEPTH, Math.floor(Math.max(0, directCount) / DIRECTS_PER_LEVEL_UNLOCK));
+  if (directCount <= 0) return 0;
+  return Math.min(MATRIX_MAX_DEPTH, directCount + 1);
 };
 
 export const calculateSlotSubtotal = (

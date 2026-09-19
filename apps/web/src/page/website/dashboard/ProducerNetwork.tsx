@@ -204,7 +204,7 @@ export const ProducerNetwork: React.FC = () => {
               <div className="text-[11px] text-emerald-100/90">
                 {unlockedLevel < 7 ? (
                   <span>
-                    Sponsor <strong className="text-amber-300">{5 - (directReferralsCount % 5)} more</strong> to unlock Level {unlockedLevel + 1}
+                    Sponsor <strong className="text-amber-300">{Math.max(1, (unlockedLevel === 0 ? 1 : unlockedLevel) - directReferralsCount)} more</strong> to unlock Level {unlockedLevel === 0 ? 2 : unlockedLevel + 1} (Directs + 1 Rule)
                   </span>
                 ) : (
                   <span className="text-amber-300 font-bold">★ All 7 Matrix Levels Unlocked!</span>
