@@ -12,6 +12,13 @@
     - Enhance interactive 3D card tilt/perspective on mouse move and device gyro orientation.
     - Smooth card flip animation to reveal QR verification code, cooperative terms summary, and security holographic watermark.
 
+- [ ] **Automated Multi-Channel Notification Engine (In-App Bell / SMS / WhatsApp / Email)**:
+  - **Coordinator Slot Purchase Alerts**: Instant real-time alerts when a member purchases and is assigned slots in their farm cluster.
+  - **Harvest Close & Dividend Payout Alerts**: Automated alerts to verified slot owners when a harvest cycle closes and funds post to wallets.
+  - **MLM Commission & Spillover Alerts**: Push/SMS/Email notifications when direct bonuses or matrix commissions are earned.
+  - **Treasury & Withdrawal Status Alerts**: Instant notifications when bank withdrawal requests are queued, approved by Solvency Shield, and disbursed.
+  - **Monthly PQV Qualification Reminders**: Gentle nudge alerts before month-end for members nearing the ₦5,000 PQV threshold.
+
 ---
 
 ## Active Roadmap & Progression

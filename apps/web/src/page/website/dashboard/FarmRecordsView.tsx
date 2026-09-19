@@ -45,6 +45,13 @@ interface FarmRecord {
   updated_by?: string;
   updated_by_name?: string;
   updated_at?: string;
+  is_legacy?: boolean;
+  verified_member?: boolean;
+  verified_coordinator?: boolean;
+  verified_admin?: boolean;
+  verified_member_at?: string;
+  verified_coordinator_at?: string;
+  verified_admin_at?: string;
 }
 
 interface AuthUserRow {
@@ -1006,6 +1013,91 @@ const FarmRecordsView = () => {
     }
     showToast({ variant: "success", title: "Record deleted" });
     fetchRecords();
+  };
+
+  const handleToggleVerification = async (
+    record: FarmRecord,
+    type: "member" | "coordinator" | "admin"
+  ) => {
+    const isOwner = Boolean(
+      currentUserEmail &&
+      record.email &&
+      currentUserEmail.toLowerCase() === record.email.toLowerCase()
+    );
+
+    if (type === "member" && !isOwner && !isAdmin && !isSuperAdmin) {
+      showToast({
+        variant: "error",
+        title: "Permission Denied",
+        description: "Only the slot owner or Platform Admin can confirm member verification.",
+      });
+      return;
+    }
+    if (type === "coordinator" && !isAssignedCoordinatorOfThisFarm && !isAdmin && !isSuperAdmin) {
+      showToast({
+        variant: "error",
+        title: "Permission Denied",
+        description: "Only the Farm Coordinator or Platform Admin can confirm coordinator verification.",
+      });
+      return;
+    }
+    if (type === "admin" && !isAdmin && !isSuperAdmin) {
+      showToast({
+        variant: "error",
+        title: "Permission Denied",
+        description: "Only a Platform Admin can confirm admin verification.",
+      });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    let updatePayload: Partial<FarmRecord> = {};
+
+    if (type === "member") {
+      const nextVal = !record.verified_member;
+      updatePayload = {
+        verified_member: nextVal,
+        verified_member_at: nextVal ? now : undefined,
+      };
+    } else if (type === "coordinator") {
+      const nextVal = !record.verified_coordinator;
+      updatePayload = {
+        verified_coordinator: nextVal,
+        verified_coordinator_at: nextVal ? now : undefined,
+      };
+    } else if (type === "admin") {
+      const nextVal = !record.verified_admin;
+      updatePayload = {
+        verified_admin: nextVal,
+        verified_admin_at: nextVal ? now : undefined,
+      };
+    }
+
+    const { error } = await supabase
+      .from("farm_records")
+      .update(updatePayload)
+      .eq("id", record.id);
+
+    if (error) {
+      showToast({
+        variant: "error",
+        title: "Verification update failed",
+        description: error.message,
+      });
+      return;
+    }
+
+    setRecords((prev) =>
+      prev.map((r) => (r.id === record.id ? { ...r, ...updatePayload } : r))
+    );
+
+    showToast({
+      variant: "success",
+      title: "Verification Updated",
+      description: `Record marked as ${
+        updatePayload[`verified_${type}` as keyof FarmRecord] ? "Confirmed" : "Pending"
+      } for ${type}.`,
+    });
   };
 
   const handleAddExpense = () => {
@@ -2364,6 +2456,7 @@ const FarmRecordsView = () => {
                         <th className="text-left p-2">Total Contributed</th>
                         <th className="text-left p-2">Email</th>
                         <th className="text-left p-2">Recorded By / Audit</th>
+                        <th className="text-center p-2 min-w-[140px]">Legacy Status</th>
                         {canManageRecords && (
                           <th className="text-left p-2">Actions</th>
                         )}
@@ -2425,6 +2518,65 @@ const FarmRecordsView = () => {
                               updatedAt={record.updated_at}
                             />
                           </td>
+                          <td className="p-2 text-center">
+                            {record.is_legacy ? (
+                              <div className="flex flex-col gap-1 items-center justify-center">
+                                <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
+                                  Legacy Record
+                                </span>
+                                <div className="flex items-center gap-1 mt-0.5">
+                                  {/* Member */}
+                                  <button
+                                    type="button"
+                                    disabled={!((currentUserEmail && record.email && currentUserEmail.toLowerCase() === record.email.toLowerCase()) || isAdmin || isSuperAdmin)}
+                                    onClick={() => handleToggleVerification(record, "member")}
+                                    title={`Member: ${record.verified_member ? "Verified" : "Pending"}${record.verified_member_at ? ` on ${new Date(record.verified_member_at).toLocaleDateString()}` : ""}`}
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-all ${
+                                      record.verified_member
+                                        ? "bg-green-100 text-green-800 border-green-300"
+                                        : "bg-gray-50 text-gray-400 border-gray-200 hover:border-gray-400"
+                                    } ${((currentUserEmail && record.email && currentUserEmail.toLowerCase() === record.email.toLowerCase()) || isAdmin || isSuperAdmin) ? "cursor-pointer" : "cursor-default"}`}
+                                  >
+                                    {record.verified_member ? "✓" : "○"} Mem
+                                  </button>
+
+                                  {/* Coordinator */}
+                                  <button
+                                    type="button"
+                                    disabled={!(isAssignedCoordinatorOfThisFarm || isAdmin || isSuperAdmin)}
+                                    onClick={() => handleToggleVerification(record, "coordinator")}
+                                    title={`Coordinator: ${record.verified_coordinator ? "Verified" : "Pending"}${record.verified_coordinator_at ? ` on ${new Date(record.verified_coordinator_at).toLocaleDateString()}` : ""}`}
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-all ${
+                                      record.verified_coordinator
+                                        ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                                        : "bg-gray-50 text-gray-400 border-gray-200 hover:border-gray-400"
+                                    } ${(isAssignedCoordinatorOfThisFarm || isAdmin || isSuperAdmin) ? "cursor-pointer" : "cursor-default"}`}
+                                  >
+                                    {record.verified_coordinator ? "✓" : "○"} Coord
+                                  </button>
+
+                                  {/* Admin */}
+                                  <button
+                                    type="button"
+                                    disabled={!(isAdmin || isSuperAdmin)}
+                                    onClick={() => handleToggleVerification(record, "admin")}
+                                    title={`Admin: ${record.verified_admin ? "Verified" : "Pending"}${record.verified_admin_at ? ` on ${new Date(record.verified_admin_at).toLocaleDateString()}` : ""}`}
+                                    className={`px-1.5 py-0.5 rounded text-[10px] font-semibold border transition-all ${
+                                      record.verified_admin
+                                        ? "bg-purple-100 text-purple-800 border-purple-300"
+                                        : "bg-gray-50 text-gray-400 border-gray-200 hover:border-gray-400"
+                                    } ${(isAdmin || isSuperAdmin) ? "cursor-pointer" : "cursor-default"}`}
+                                  >
+                                    {record.verified_admin ? "✓" : "○"} Admin
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                ✓ Live
+                              </span>
+                            )}
+                          </td>
                           {canManageRecords && (
                             <td className="p-2">
                               <div className="flex gap-1">
@@ -2481,6 +2633,7 @@ const FarmRecordsView = () => {
                             .reduce((s, r) => s + getRecordTotal(r), 0)
                             .toLocaleString()}
                         </td>
+                        <td className="p-2" />
                         <td className="p-2" />
                         <td className="p-2" />
                         {canManageRecords && <td className="p-2" />}
