@@ -72,11 +72,20 @@ const AUTHORITATIVE_CLUSTERS = [
   },
 ];
 
+const CYCLE_STAGE_OPTIONS = [
+  { value: "PLANNING", label: "Stage 1: Planning & Bagging (20%)" },
+  { value: "GROWING", label: "Stage 2: Colonization / Incubation (50%)" },
+  { value: "HARVESTING", label: "Stage 3: Fruiting & Harvest (80%)" },
+  { value: "AUDITING", label: "Stage 4: Wholesale & Audit (95%)" },
+  { value: "DISTRIBUTED", label: "Stage 5: Dividends Paid (100%)" },
+];
+
 interface LiveCycle {
   id: string;
   farm_group_id: string;
   cycle_number: number;
-  status: "PLANNING" | "GROWING" | "HARVESTED" | "AUDITED" | "DISTRIBUTED";
+  stage?: "PLANNING" | "GROWING" | "HARVESTING" | "AUDITING" | "DISTRIBUTED";
+  status: "PLANNING" | "GROWING" | "HARVESTED" | "AUDITED" | "DISTRIBUTED" | "pending_approval" | "approved" | "distributed" | "active" | string;
   start_date: string;
   projected_harvest_date: string;
   actual_harvest_date?: string;
@@ -110,6 +119,7 @@ export default function FarmAssignmentsPage() {
   // ── TAB 1: PRODUCTION & HARVEST CYCLES STATE ──
   const [cyclesLoading, setCyclesLoading] = useState(false);
   const [cyclesByFarm, setCyclesByFarm] = useState<Record<string, LiveCycle>>({});
+  const [updatingStageClusterId, setUpdatingStageClusterId] = useState<string | null>(null);
 
   // Draft Modal State
   const [draftModalCluster, setDraftModalCluster] = useState<typeof AUTHORITATIVE_CLUSTERS[0] | null>(null);
@@ -239,6 +249,62 @@ export default function FarmAssignmentsPage() {
       flash(setErrorMessage, err.message || "Dividend distribution failed.");
     } finally {
       setDistributingId(null);
+    }
+  };
+
+  const handleStageChange = async (clusterId: string, newStage: string) => {
+    if (!isAdmin && !isSuperDeveloper) {
+      flash(setErrorMessage, "Only Platform Admins and Super Developers can advance cycle stages.");
+      return;
+    }
+
+    setUpdatingStageClusterId(clusterId);
+    setErrorMessage("");
+    try {
+      await adminApiClient.cycles.updateStage(clusterId, newStage);
+      flash(setSuccessMessage, `Crop stage advanced to ${newStage} for cluster ${clusterId}.`);
+      await loadFarmCycles();
+    } catch (err: any) {
+      console.warn("adminApiClient stage update failed, attempting direct Supabase update:", err);
+      try {
+        const existing = cyclesByFarm[clusterId];
+        const statusMap: Record<string, string> = {
+          PLANNING: "active",
+          GROWING: "active",
+          HARVESTING: "harvested",
+          AUDITING: "approved",
+          DISTRIBUTED: "distributed",
+        };
+        if (existing?.id) {
+          const { error: updateErr } = await supabase
+            .from("farm_cycles")
+            .update({
+              stage: newStage,
+              status: statusMap[newStage] || existing.status,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", existing.id);
+          if (updateErr) throw updateErr;
+        } else {
+          const { error: insertErr } = await supabase
+            .from("farm_cycles")
+            .insert({
+              farm_group_id: clusterId,
+              cycle_number: 1,
+              stage: newStage,
+              status: statusMap[newStage] || "active",
+              total_bags: 2000,
+              created_at: new Date().toISOString(),
+            });
+          if (insertErr) throw insertErr;
+        }
+        flash(setSuccessMessage, `Crop stage advanced to ${newStage} for cluster ${clusterId}.`);
+        await loadFarmCycles();
+      } catch (dbErr: any) {
+        flash(setErrorMessage, dbErr.message || "Failed to update cycle stage.");
+      }
+    } finally {
+      setUpdatingStageClusterId(null);
     }
   };
 
@@ -485,6 +551,53 @@ export default function FarmAssignmentsPage() {
                         </div>
                       )}
                     </div>
+
+                    {/* Admin Season / Production Stage Selector */}
+                    <div className="pt-3 border-t border-border/40 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-foreground flex items-center gap-1.5">
+                          <Sprout className="w-3.5 h-3.5 text-primary" />
+                          Crop Production Stage
+                        </span>
+                        {updatingStageClusterId === cluster.id ? (
+                          <span className="text-[10px] text-primary flex items-center gap-1 font-medium">
+                            <Loader2 className="w-2.5 h-2.5 animate-spin" /> Updating...
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground">
+                            {isAdmin || isSuperDeveloper ? "Admin Controlled" : "Live Status"}
+                          </span>
+                        )}
+                      </div>
+
+                      {isAdmin || isSuperDeveloper ? (
+                        <Select
+                          value={cycle?.stage || (status === "DISTRIBUTED" ? "DISTRIBUTED" : status === "AUDITED" ? "AUDITING" : status === "HARVESTED" ? "HARVESTING" : status === "GROWING" ? "GROWING" : "PLANNING")}
+                          onValueChange={(val) => handleStageChange(cluster.id, val)}
+                          disabled={updatingStageClusterId === cluster.id}
+                        >
+                          <SelectTrigger className="h-8 text-xs bg-muted/40 border-border/60">
+                            <SelectValue placeholder="Advance crop stage..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CYCLE_STAGE_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value} className="text-xs">
+                                {opt.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <div className="px-3 py-1.5 rounded-lg bg-muted/40 border border-border/40 text-xs font-medium text-foreground flex items-center justify-between">
+                          <span>
+                            {CYCLE_STAGE_OPTIONS.find(
+                              (s) => s.value === (cycle?.stage || status)
+                            )?.label || (cycle?.stage || status)}
+                          </span>
+                          <Lock className="w-3 h-3 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Action Buttons Toolbar */}
@@ -502,7 +615,7 @@ export default function FarmAssignmentsPage() {
                     )}
 
                     {/* Approve Action (Reviewer / Maker-Checker) */}
-                    {status === "HARVESTED" && (
+                    {(status === "HARVESTED" || cycle?.stage === "HARVESTING") && (
                       <Button
                         size="sm"
                         disabled={!canApprove}
@@ -515,7 +628,7 @@ export default function FarmAssignmentsPage() {
                     )}
 
                     {/* Distribute Dividends Action */}
-                    {status === "AUDITED" && (
+                    {(status === "AUDITED" || cycle?.stage === "AUDITING") && (
                       <Button
                         size="sm"
                         disabled={distributingId === cycle.id || (!isAdmin && !isSuperDeveloper)}

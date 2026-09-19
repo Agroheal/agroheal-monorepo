@@ -338,6 +338,8 @@ export const apiClient = {
           farmName: string;
           category: string;
           slots: number;
+          currentStage?: string;
+          cycleNumber?: number;
         }>;
       }>("cycles/my-slots"),
     getFarmCycles: (farmGroupId: string) =>

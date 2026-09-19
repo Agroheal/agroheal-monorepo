@@ -118,6 +118,11 @@ export const adminApiClient = {
       apiRequest<any>(`cycles/${cycleId}/distribute`, { method: "POST" }),
     getFarmCycles: (farmGroupId: string) =>
       apiRequest<any[]>(`cycles/farm/${farmGroupId}`),
+    updateStage: (farmGroupId: string, stage: string) =>
+      apiRequest<any>(`cycles/farm/${encodeURIComponent(farmGroupId)}/stage`, {
+        method: "PUT",
+        body: JSON.stringify({ stage }),
+      }),
   },
   withdrawals: {
     listWithdrawals: () => apiRequest<any[]>("admin/withdrawals"),

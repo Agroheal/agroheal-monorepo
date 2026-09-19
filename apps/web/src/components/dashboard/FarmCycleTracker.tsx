@@ -21,6 +21,8 @@ export interface FarmAllocation {
   farmName: string;
   category: string;
   slots: number;
+  currentStage?: string;
+  cycleNumber?: number;
 }
 
 export interface MySlotsData {
@@ -109,8 +111,10 @@ export const FarmCycleTracker: React.FC = () => {
         const grossEst = slotsCount * 10000;
         const netDividendEst = slotsCount * 2400; // 40% authoritative dividend
 
-        // Defaulting to active growing stage (Stage 2)
-        const currentStageIndex = 1;
+        // Dynamic stage resolution from live farm cycle
+        const stageKey = (farm.currentStage || "GROWING").toUpperCase();
+        const foundIndex = CYCLE_STAGES.findIndex((s) => s.key === stageKey);
+        const currentStageIndex = foundIndex !== -1 ? foundIndex : 1;
         const currentStage = CYCLE_STAGES[currentStageIndex];
 
         return (
@@ -132,7 +136,7 @@ export const FarmCycleTracker: React.FC = () => {
                         {farm.farmName}
                       </CardTitle>
                       <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-xs">
-                        Cycle 1 Active
+                        Cycle {farm.cycleNumber || 1} Active
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">
