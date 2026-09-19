@@ -990,90 +990,90 @@ const Checkout = () => {
                     <Label className="text-sm font-semibold text-foreground block">
                       Select Payment Method
                     </Label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <div
+                      className={`grid grid-cols-1 sm:grid-cols-2 ${
+                        walletBalance > 0 ? "xl:grid-cols-3" : ""
+                      } gap-3.5`}
+                    >
                       {/* Flutterwave Card */}
                       <div
                         onClick={() => setPaymentMethod("flutterwave")}
-                        className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                        className={`cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between gap-3 select-none ${
                           paymentMethod === "flutterwave"
-                            ? "border-green-800 bg-green-50/50 shadow-sm"
+                            ? "border-green-800 bg-green-50/60 shadow-sm"
                             : "border-border hover:border-gray-300 bg-card"
                         }`}
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                                paymentMethod === "flutterwave"
-                                  ? "bg-green-800 text-white"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              <CreditCard className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-sm text-foreground">
-                                Flutterwave
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Card, Transfer, USSD
-                              </p>
-                            </div>
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div
+                            className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center transition-colors ${
+                              paymentMethod === "flutterwave"
+                                ? "bg-green-800 text-white shadow-sm"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            <CreditCard className="w-5 h-5 shrink-0" />
                           </div>
-                          <input
-                            type="radio"
-                            name="paymentMethod"
-                            checked={paymentMethod === "flutterwave"}
-                            onChange={() => setPaymentMethod("flutterwave")}
-                            className="mt-1 text-green-800 focus:ring-green-800"
-                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-sm text-foreground truncate">
+                              Flutterwave
+                            </p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              Card, Transfer, USSD
+                            </p>
+                          </div>
                         </div>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          checked={paymentMethod === "flutterwave"}
+                          onChange={() => setPaymentMethod("flutterwave")}
+                          className="w-4 h-4 shrink-0 text-green-800 focus:ring-green-800 accent-green-800 cursor-pointer"
+                        />
                       </div>
 
                       {/* Wallet Balance Card */}
                       <div
                         onClick={() => setPaymentMethod("wallet")}
-                        className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                        className={`cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between gap-3 select-none ${
                           paymentMethod === "wallet"
-                            ? "border-green-800 bg-green-50/50 shadow-sm"
+                            ? "border-green-800 bg-green-50/60 shadow-sm"
                             : "border-border hover:border-gray-300 bg-card"
                         }`}
                       >
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                                paymentMethod === "wallet"
-                                  ? "bg-green-800 text-white"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              <Wallet className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <p className="font-semibold text-sm text-foreground">
-                                  Wallet Balance
-                                </p>
-                                {walletBalance >= totalPrice && (
-                                  <span className="bg-green-100 text-green-800 text-[10px] font-bold px-1.5 py-0.5 rounded">
-                                    Ready
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-xs font-semibold text-green-700">
-                                ₦{walletBalance.toLocaleString()} available
-                              </p>
-                            </div>
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div
+                            className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center transition-colors ${
+                              paymentMethod === "wallet"
+                                ? "bg-green-800 text-white shadow-sm"
+                                : "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            <Wallet className="w-5 h-5 shrink-0" />
                           </div>
-                          <input
-                            type="radio"
-                            name="paymentMethod"
-                            checked={paymentMethod === "wallet"}
-                            onChange={() => setPaymentMethod("wallet")}
-                            className="mt-1 text-green-800 focus:ring-green-800"
-                          />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="font-semibold text-sm text-foreground">
+                                Wallet Balance
+                              </p>
+                              {walletBalance >= totalPrice && (
+                                <span className="bg-green-100 text-green-800 text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0">
+                                  Ready
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs font-semibold text-green-700 truncate">
+                              ₦{walletBalance.toLocaleString()} available
+                            </p>
+                          </div>
                         </div>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          checked={paymentMethod === "wallet"}
+                          onChange={() => setPaymentMethod("wallet")}
+                          className="w-4 h-4 shrink-0 text-green-800 focus:ring-green-800 accent-green-800 cursor-pointer"
+                        />
                       </div>
 
                       {/* Split Payment Card (Combination) */}
@@ -1082,48 +1082,48 @@ const Checkout = () => {
                           onClick={() => {
                             setPaymentMethod("split");
                             if (walletAmountToUse <= 0) {
-                              setWalletAmountToUse(Math.min(walletBalance, totalPrice));
+                              setWalletAmountToUse(
+                                Math.min(walletBalance, totalPrice)
+                              );
                             }
                           }}
-                          className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
+                          className={`cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between gap-3 select-none sm:col-span-2 xl:col-span-1 ${
                             paymentMethod === "split"
-                              ? "border-green-800 bg-green-50/50 shadow-sm"
+                              ? "border-green-800 bg-green-50/60 shadow-sm"
                               : "border-border hover:border-gray-300 bg-card"
                           }`}
                         >
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                              <div
-                                className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                                  paymentMethod === "split"
-                                    ? "bg-green-800 text-white"
-                                    : "bg-muted text-muted-foreground"
-                                }`}
-                              >
-                                <Coins className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-1.5">
-                                  <p className="font-semibold text-sm text-foreground">
-                                    Wallet + Card
-                                  </p>
-                                  <span className="bg-amber-100 text-amber-900 text-[10px] font-bold px-1.5 py-0.5 rounded">
-                                    Split
-                                  </span>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  Use ₦{Math.min(walletBalance, totalPrice).toLocaleString()} balance
-                                </p>
-                              </div>
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div
+                              className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center transition-colors ${
+                                paymentMethod === "split"
+                                  ? "bg-green-800 text-white shadow-sm"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              <Coins className="w-5 h-5 shrink-0" />
                             </div>
-                            <input
-                              type="radio"
-                              name="paymentMethod"
-                              checked={paymentMethod === "split"}
-                              onChange={() => setPaymentMethod("split")}
-                              className="mt-1 text-green-800 focus:ring-green-800"
-                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <p className="font-semibold text-sm text-foreground">
+                                  Wallet + Card
+                                </p>
+                                <span className="bg-amber-100 text-amber-900 text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0">
+                                  Split
+                                </span>
+                              </div>
+                              <p className="text-xs text-muted-foreground truncate">
+                                Use ₦{Math.min(walletBalance, totalPrice).toLocaleString()} balance
+                              </p>
+                            </div>
                           </div>
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            checked={paymentMethod === "split"}
+                            onChange={() => setPaymentMethod("split")}
+                            className="w-4 h-4 shrink-0 text-green-800 focus:ring-green-800 accent-green-800 cursor-pointer"
+                          />
                         </div>
                       )}
                     </div>
