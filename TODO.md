@@ -66,6 +66,16 @@
 ---
 
 ## Future Architecture & Enhancements (TODO for Later)
+- [ ] **Farm Production Cycle Transparency & Yield Statements (Member Dashboard)**:
+  - Dynamically display detailed biological and financial cycle data on `FarmCycleTracker.tsx` / `MyFarmSlots.tsx` when an admin or coordinator updates a cycle's stage:
+    - **Cultivation (`PLANNING` / `GROWING`)**: Render biological progress (planting start date, estimated harvest window, total cluster bags in production, and member's allocated bags at $2\times\text{slots}$).
+    - **Harvest & Audit (`HARVESTING` / `AUDITING`)**: Render real-time cluster harvest metrics (actual total kg harvested, gross produce revenue, continuation cost deduction, and net distributable profit pool).
+    - **Dividend Distribution (`DISTRIBUTED`)**: Render the member's exact 40% proportional dividend statement (dividend per slot, total payout amount, distribution date, and wallet credit status).
+
+- [ ] **Transaction History & Ledger Parity for Farm Contributions**:
+  - In `TransactionLedger.tsx`, display the month count and coverage breakdown (`p.months`) alongside `farm_setup`, `farm_support`, and `absentee_fine` contributions.
+  - Bridge historical contributions from `farm_records` (`months_farm_setup`, `months_farm_support`, `absentee_fine`) into the unified wallet transaction ledger so pre-web historical payments are visible to members in their transaction history.
+
 - [ ] **Group Farm Assignment Mechanism: Dynamic Auto-Assign Resolver vs. Farm Group Embedded in Referral URL**:
   - **Option A (Dynamic Auto-Assign Resolver)**:
     - When a new member purchases a farm slot, the backend resolver checks the sponsor's group farm and assigns the member to the sponsor's first unfilled/unmaxed cluster (up to the 1,000-slot cap).
@@ -76,4 +86,5 @@
   - **Hybrid Resolution Strategy**:
     - If `farm` query parameter exists in the signup/checkout URL, bind directly to that specific farm group (Option B).
     - If `farm` parameter is omitted, fall back to the dynamic auto-assignment resolver following the sponsor's lineage (Option A).
+
 
