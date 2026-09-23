@@ -263,36 +263,54 @@ export const GreenCardImage = ({
               </text>
             </g>
 
-            {/* ── MIDDLE ROW: EMV CHIP & VERIFIED BADGE ── */}
-            {/* Gold EMV Microchip */}
-            <g transform="translate(64, 210)">
+            {/* ── MIDDLE ROW: COMMUNITY SECURITY EMBLEM & VERIFIED BADGE ── */}
+            {/* Official Community Security Crest */}
+            <g transform="translate(64, 216)">
               <rect
                 x="0"
                 y="0"
-                width="118"
-                height="92"
-                rx="14"
-                fill="url(#chipGoldGrad)"
-                stroke="#d97706"
+                width="200"
+                height="78"
+                rx="16"
+                fill="#022013"
+                fillOpacity="0.8"
+                stroke="#6ee7b7"
                 strokeWidth="1.5"
+                strokeOpacity="0.5"
               />
-              <g stroke="#78350f" strokeWidth="1.5" strokeOpacity="0.5">
-                <line x1="39" y1="0" x2="39" y2="92" />
-                <line x1="79" y1="0" x2="79" y2="92" />
-                <line x1="0" y1="46" x2="118" y2="46" />
-                <rect x="42" y="32" width="34" height="28" rx="6" fill="#fef08a" fillOpacity="0.4" />
-              </g>
-            </g>
-
-            {/* Contactless Waves */}
-            <g transform="translate(200, 238)" stroke="#fde68a" strokeWidth="2.5" fill="none" strokeLinecap="round" opacity="0.85">
-              <path d="M 0,10 A 16,16 0 0,1 0,36" />
-              <path d="M 8,4 A 26,26 0 0,1 8,42" />
-              <path d="M 16,-2 A 36,36 0 0,1 16,48" />
+              <circle cx="42" cy="39" r="22" fill="#10b981" fillOpacity="0.25" stroke="#34d399" strokeWidth="1.5" />
+              <path
+                d="M 35,35 L 42,31 L 49,35 L 49,43 C 49,47 42,50 42,50 C 42,50 35,47 35,43 Z"
+                fill="#34d399"
+                fillOpacity="0.9"
+              />
+              <path d="M 39,41 L 41,43 L 46,38" fill="none" stroke="#022013" strokeWidth="1.8" strokeLinecap="round" />
+              <text
+                x="76"
+                y="33"
+                fill="#6ee7b7"
+                fontFamily="monospace"
+                fontSize="11"
+                fontWeight="700"
+                letterSpacing="2"
+              >
+                COMMUNITY
+              </text>
+              <text
+                x="76"
+                y="52"
+                fill="#fde68a"
+                fontFamily="system-ui, -apple-system, sans-serif"
+                fontSize="14"
+                fontWeight="800"
+                letterSpacing="1.2"
+              >
+                LEAP PASS
+              </text>
             </g>
 
             {/* Official Verified Secure Hologram */}
-            <g transform="translate(270, 234)">
+            <g transform="translate(284, 232)">
               <rect
                 x="0"
                 y="0"

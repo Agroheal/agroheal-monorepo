@@ -355,26 +355,26 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
                 </div>
               </div>
 
-              {/* ── CARD FRONT: MIDDLE ROW (EMV CHIP & PRISMATIC SEAL) ── */}
+              {/* ── CARD FRONT: MIDDLE ROW (COMMUNITY SECURITY EMBLEM & PRISMATIC SEAL) ── */}
               <div className="relative z-10 flex items-center justify-between my-auto py-1">
-                {/* Realistic Gold EMV Smart Microchip */}
-                <div className="relative w-11 h-9 sm:w-14 sm:h-11 rounded-md sm:rounded-lg bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-600 border border-amber-300 shadow-md p-1 overflow-hidden">
-                  <div className="w-full h-full rounded-[3px] border border-amber-800/30 grid grid-cols-3 grid-rows-3 gap-[1px]">
-                    <div className="border-r border-b border-amber-800/40" />
-                    <div className="border-b border-amber-800/40" />
-                    <div className="border-l border-b border-amber-800/40" />
-                    <div className="border-r border-amber-800/40" />
-                    <div className="rounded-full bg-amber-600/30 mx-auto my-auto w-2 h-2" />
-                    <div className="border-l border-amber-800/40" />
-                    <div className="border-r border-t border-amber-800/40" />
-                    <div className="border-t border-amber-800/40" />
-                    <div className="border-l border-t border-amber-800/40" />
+                {/* Official Community Pass Security Seal */}
+                <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-950/80 to-emerald-900/60 border border-emerald-400/30 backdrop-blur-xs shadow-inner">
+                  <div className="w-5 h-5 rounded-lg bg-emerald-400/20 flex items-center justify-center border border-emerald-400/40">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
+                  </div>
+                  <div>
+                    <span className="block text-[8px] font-mono tracking-widest text-emerald-300/80 uppercase leading-none">
+                      COMMUNITY PASS
+                    </span>
+                    <span className="block text-[10px] sm:text-[11px] font-bold tracking-wider font-mono text-amber-300 leading-tight">
+                      LEAP SECURE ID
+                    </span>
                   </div>
                 </div>
 
                 {/* Holographic Security Emblem */}
                 <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-xs flex items-center gap-1.5 shadow-inner">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <Award className="w-4 h-4 text-emerald-400" />
                   <span className="text-[10px] sm:text-xs font-semibold text-emerald-100 tracking-wide">
                     VERIFIED SECURE
                   </span>

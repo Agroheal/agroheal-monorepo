@@ -912,9 +912,19 @@ export default function TransactionLedger() {
             {/* Middle: EMV Chip & Financial Balances */}
             <div className="relative z-10 py-1 space-y-2.5">
               <div className="flex items-center justify-between">
-                {/* Gold Smart Chip */}
-                <div className="w-10 h-7 rounded-md bg-gradient-to-br from-amber-200 via-amber-300 to-amber-500 border border-amber-200/90 shadow-xs flex items-center justify-center p-0.5 relative overflow-hidden">
-                  <div className="w-full h-full border border-amber-600/40 rounded-xs grid grid-cols-2 grid-rows-2 opacity-60" />
+                {/* Realistic Gold EMV Smart Microchip (ATM / Credit Card Chip) */}
+                <div className="relative w-12 h-9 sm:w-14 sm:h-10 rounded-md sm:rounded-lg bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-600 border border-amber-300 shadow-md p-1 overflow-hidden shrink-0">
+                  <div className="w-full h-full rounded-[3px] border border-amber-800/40 grid grid-cols-3 grid-rows-3 gap-[1px]">
+                    <div className="border-r border-b border-amber-800/40" />
+                    <div className="border-b border-amber-800/40" />
+                    <div className="border-l border-b border-amber-800/40" />
+                    <div className="border-r border-amber-800/40" />
+                    <div className="rounded-full bg-amber-700/40 mx-auto my-auto w-2 h-2" />
+                    <div className="border-l border-amber-800/40" />
+                    <div className="border-r border-t border-amber-800/40" />
+                    <div className="border-t border-amber-800/40" />
+                    <div className="border-l border-t border-amber-800/40" />
+                  </div>
                 </div>
 
                 <span className="text-[9px] font-mono text-emerald-200/60 uppercase tracking-wider">
