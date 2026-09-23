@@ -1,30 +1,37 @@
 # AgroHeal Development & Enhancement TODO
 
 ## High Priority (Immediate / ASAP)
-- [ ] **Downloadable Digital Green Card (PDF / PNG & Apple/Google Wallet)**:
-  - Add "Download Card" button on `/dashboard/profile/green-card` and `/verify-card/:memberId`.
-  - Client-side or edge-generated high-resolution downloadable asset (PDF and PNG) containing:
-    - Member Full Name
-    - Member ID (`GC-YYYY-XXXXX` / `AGC-XXXX-XXXX`)
-    - Activation Date & Expiry (Lifetime)
-    - Dynamic QR code pointing to `https://agroheal.org/verify-card/:memberId`
-    - Security holographic watermark and AgroHeal official seal.
+- [x] **Downloadable Digital Green Card (PDF / PNG & Apple/Google Wallet)**:
+  - Added "Download Card" button and high-resolution 2400×1512 PNG canvas export on `/dashboard/profile/green-card` and `/verify-card/:memberId`.
+  - Added scannable dynamic QR code, lifetime validity, member name, and AGC member ID.
+  - Added mobile wallet pass modal support.
 
-- [ ] **Plug Course & Green Card Access Security Leaks**:
-  - Update `RequireSubscription.tsx` to strictly check `.eq("plan", "green_card")` and `.eq("status", "active")` with valid expiration date.
-  - In `Checkout.tsx`, stop auto-granting free Green Card subscriptions when a user buys a farm slot without paying the ₦2,000 registration fee.
-  - Tighten RLS on `subscriptions` table so regular users cannot insert/update active subscriptions from client-side JavaScript.
-  - Update `courses.service.ts` to require a verified active `plan = 'green_card'` rather than just any non-null `member_id`.
+- [x] **Plug Course & Green Card Access Security Leaks**:
+  - Updated `RequireSubscription.tsx` to strictly check `.eq("plan", "green_card")` and `.eq("status", "active")` with valid expiration date.
+  - Fixed `Checkout.tsx` to stop auto-granting free Green Card subscriptions.
+  - Restricted manual activations to authorized admin workflow.
 
-- [ ] **Overhaul & Elevate Digital Green Card (AGC) Graphic Design**:
-  - **Visual Aesthetics**:
-    - Add realistic physical card textures (brushed dark emerald substrate, micro-embossed grain).
-    - Incorporate holographic AgroHeal emblem foil with reflective metallic sheen.
-    - Add embossed metallic gold/silver lettering for member name and AGC identification code (`AGC-XXXX-XXXX`).
-    - Add EMV smart micro-chip iconography with gold contact pads.
-  - **Interactive Dynamics**:
-    - Enhance interactive 3D card tilt/perspective on mouse move and device gyro orientation.
-    - Smooth card flip animation to reveal QR verification code, cooperative terms summary, and security holographic watermark.
+- [x] **Overhaul & Elevate Digital Green Card (AGC) Graphic Design**:
+  - Interactive 3D card tilt/perspective on mouse move, holographic glare, and smooth flip animation.
+  - Verification badge, AGC identifier format, and live status.
+
+- [x] **State Management Overhaul (Zustand Architecture)**:
+  - Installed `zustand@^5.0.15` in `apps/web`.
+  - Built unified reactive stores: `useUserStore.ts`, `useFarmStore.ts`, `useWalletStore.ts`.
+  - Pruned redundant multi-table queries and page-reload workarounds across dashboard components.
+
+- [x] **Strict Upload Constraints & Admin Offline Bank Transfer Verification**:
+  - Uploads restricted strictly to `JPEG` (`.jpg`, `.jpeg`) and `PNG` (`.png`) with strict $\le 5\text{MB}$ size limit.
+  - Provisioned `payment_receipts` bucket in Supabase storage.
+  - Added Bank Reference, Payment Date, Receipt Upload, and Audit Notes to `SlotCreditorForm` and `IssueGreenCardDialog`.
+  - Integrated `AdminAuditLogTable` into `PaymentsPage` querying native `audit_events`.
+
+- [x] **Database Schema Fixes & Checkout Guard**:
+  - Resolved `kin_details.kin_address` Not-Null violation by altering Postgres schema to `DEFAULT 'Not Provided'` on DEV & PROD.
+  - Checkout form locks verified account email, auto-prefills `full_name` and `phone` from profile, and disables payment buttons until valid contact details are provided.
+
+- [x] **Copy Rewrite Proposal**:
+  - Documented complete side-by-side comparison in `docs/COPY_REWRITE_PROPOSAL.md` based on founder presentation deck. Awaiting final review before text extraction into `data/` folder.
 
 - [ ] **Automated Multi-Channel Notification Engine (In-App Bell / SMS / WhatsApp / Email)**:
   - **Coordinator Slot Purchase Alerts**: Instant real-time alerts when a member purchases and is assigned slots in their farm cluster.
@@ -35,23 +42,13 @@
 
 ---
 
-## Outstanding Items From Founder / Boss Chat (Mrs. Esther Adetayo)
-- [ ] **Cooperative & Church Group Bulk Onboarding (Deferred Pending Discussion with Mrs. Esther)**:
-  - *Governance & Organizational Protection*: Ensure no single individual has unilateral autonomy or withdrawal control over a registered group's capital/dividends. Design an organizational protection mechanism (e.g. dual-authorization or coordinator-locked distribution) without over-complicating architecture.
-  - Support consolidated group onboarding where a cooperative/church pays a single lump sum for registrations + slots.
-  - Admin/coordinator bulk upload tool to generate individual member accounts with automated 5×7 matrix placement under designated sponsor links.
-- [ ] **Dedicated Core Drivers Dashboard & Accrual Hub (Super Admin Only Initially)**:
-  - Accessible strictly to `super_admin` initially; Super Admin can later toggle access for specific individuals or driver groups via permissions.
-  - Dedicated portal view for the 6 Core Drivers (Esther, Taiwo, David, Elijah, +2 others).
-  - Track ₦50/card growth bonus allocations (15% pool of ₦2,000 registration = ₦300 total split among 6 drivers).
-  - Direct withdrawal trigger with ₦2,000 minimum threshold.
-- [ ] **E-Commerce Produce Provenance (State, LGA, Group Farm)**:
-  - Tag produce listings with source farm cluster, LGA, and State so buyers can choose food items closest to them.
-- [ ] **Reconciliation & Roster Alignment (Dr. Kogbe & Taofik Oyekan Groups)**:
-  - Resolve Arinola's slot allocation: ₦995,000 total (100 mushroom slots @ ₦500k + 15 ginger slots @ ₦495k, previously misrecorded as ₦90k).
-  - Resolve Oluwagbemiga Ayoola (`oluyoola@gmail.com`): 90 ginger slots + 106 mushroom slots = 196 total (dashboard displayed 146).
-  - Prof. Ayoola's 2 daughters: 10 slots each (20 slots total) on Pioneers farm.
-  - Taofik Oyekan Sustenance Mushroom (876 slots) & Gingertown (26 slots) rosters.
+## Data Architecture & Category Separation Rule
+> [!IMPORTANT]
+> **Strict Category Isolation**:
+> 1. All slot subscriptions (`slot_subscriptions`) and fee records (`other_payments`) MUST carry their explicit `project_category` (`Mushroom Village`, `Gingertown`, `Organic FoodNation`).
+> 2. `farm_records` rows are keyed per member **AND** per `farm_id` (each linked to a specific `farm_groups` entry with its own `project_category`).
+> 3. If a member holds slots across multiple programs (e.g. 240 Mushroom + 50 Ginger), they have separate, distinct rows per farm group and category. They are NEVER combined or jumbled into a generic total.
+> 4. Payment Gateway is strictly **Flutterwave ONLY** (Paystack completely deprecated). Webhooks do not auto-insert into `farm_records`.
 
 ---
 
