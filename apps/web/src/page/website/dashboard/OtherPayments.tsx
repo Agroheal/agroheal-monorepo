@@ -360,9 +360,7 @@ const OtherPayments = () => {
                     <option value="" disabled>
                       Select Project Category
                     </option>
-                    {PROJECT_CATEGORIES.filter(
-                      (cat) => cat !== "Mushroom Village",
-                    ).map((cat) => (
+                    {PROJECT_CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>
                         {cat}
                       </option>

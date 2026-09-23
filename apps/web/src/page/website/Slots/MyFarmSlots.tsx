@@ -9,7 +9,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabaseClient';
 
 const MyFarmSlots: React.FC = () => {
-  const { user, profile } = useAuth();
+  const { session, profile } = useAuth();
+  const user = session?.user;
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
@@ -20,7 +21,8 @@ const MyFarmSlots: React.FC = () => {
   }, [user]);
 
   const fetchSubscriptions = async () => {
-    if (!user) {
+    const currentUser = user || (await supabase.auth.getUser()).data.user;
+    if (!currentUser) {
       setLoading(false);
       return;
     }
@@ -30,14 +32,14 @@ const MyFarmSlots: React.FC = () => {
       const { data: slotSubs, error: slotErr } = await supabase
         .from("slot_subscriptions")
         .select("id, slots, amount, status, project_category, farm_group_id, created_at")
-        .eq("user_id", user.id)
+        .eq("user_id", currentUser.id)
         .eq("status", "active");
 
       // 2. Also check if user has records in farm_records (assigned farm cluster)
       const { data: farmRecords } = await supabase
         .from("farm_records")
         .select("id, farm_id, farm_slots, bags_allocated, setup_fee_paid, support_fee_paid, project_category, created_at")
-        .eq("email", user.email || "");
+        .eq("email", currentUser.email || "");
 
       // 3. Fetch farm groups to resolve names & coordinators
       const { data: farmGroups } = await supabase

@@ -95,7 +95,7 @@ export const ProducerNetwork: React.FC = () => {
 
       // 2. Fetch slots held by user
       const { data: subs } = await supabase
-        .from("subscriptions")
+        .from("slot_subscriptions")
         .select("slots, status")
         .eq("user_id", user.id);
 
