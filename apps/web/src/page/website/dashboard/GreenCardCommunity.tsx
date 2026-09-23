@@ -123,11 +123,11 @@ export const GreenCardCommunity: React.FC = () => {
             <Badge className="bg-amber-100 text-amber-900 border-amber-200 text-xs px-3 py-1 font-bold">
               Membership Credential Required
             </Badge>
-            <h1 className="text-2xl font-black text-gray-900">
-              Activate Your Digital Green Card
+            <h1 className="text-2xl font-black text-gray-900 uppercase">
+              Activate Your Community Digital Pass
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-sm mx-auto">
-              Your official AgroHeal Green Card unlocks verified community membership, lifetime curriculum access, and ₦1,000 direct referral rewards.
+              Your official AgroHeal Community Digital Pass unlocks verified community membership, lifetime curriculum access, and ₦1,000 direct referral rewards.
             </p>
           </div>
 
@@ -155,7 +155,7 @@ export const GreenCardCommunity: React.FC = () => {
             className="w-full h-12 bg-gradient-to-r from-emerald-800 to-green-900 hover:from-emerald-900 hover:to-green-950 text-white rounded-2xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
           >
             <IdCard className="w-5 h-5" />
-            <span>Get Your Green Card — ₦2,000</span>
+            <span>Get Your Community Digital Pass — ₦2,000</span>
           </Button>
         </div>
       </div>
@@ -184,8 +184,8 @@ export const GreenCardCommunity: React.FC = () => {
               </span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
-              AgroHeal Digital Green Card (AGC)
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white uppercase">
+              COMMUNITY DIGITAL PASS
             </h1>
 
             <p className="text-xs sm:text-sm text-emerald-100/85 leading-relaxed">

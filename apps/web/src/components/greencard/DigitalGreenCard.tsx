@@ -164,8 +164,8 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-gray-900 text-sm sm:text-base tracking-tight">
-                AgroHeal Green Card (AGC)
+              <span className="font-bold text-gray-900 text-sm sm:text-base tracking-tight uppercase">
+                Community Digital Pass
               </span>
               {isActive ? (
                 <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-xs">
@@ -180,7 +180,7 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
               )}
             </div>
             <p className="text-xs text-gray-500">
-              Official Digital Credential & Identification
+              Official Community Credential & Identification
             </p>
           </div>
         </div>
@@ -336,7 +336,7 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
                       AGROHEAL
                     </span>
                     <span className="block text-[9px] sm:text-[10px] font-medium tracking-wider text-emerald-200/90 uppercase">
-                      LEAP Community Verified Pass
+                      LEAP Community Digital Pass
                     </span>
                   </div>
                 </div>
@@ -364,7 +364,7 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
                   </div>
                   <div>
                     <span className="block text-[8px] font-mono tracking-widest text-emerald-300/80 uppercase leading-none">
-                      COMMUNITY PASS
+                      COMMUNITY DIGITAL PASS
                     </span>
                     <span className="block text-[10px] sm:text-[11px] font-bold tracking-wider font-mono text-amber-300 leading-tight">
                       LEAP SECURE ID
@@ -447,7 +447,7 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
               <div className="w-full mt-4 sm:mt-5">
                 <div className="w-full h-9 sm:h-12 bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-y border-white/15 flex items-center px-4">
                   <span className="text-[8px] sm:text-[9px] font-mono tracking-widest text-neutral-400/80 truncate">
-                    AGROHEAL LEAP COMMUNITY - VERIFIED PASS • NON-TRANSFERABLE
+                    AGROHEAL LEAP COMMUNITY - DIGITAL PASS • NON-TRANSFERABLE
                   </span>
                 </div>
               </div>

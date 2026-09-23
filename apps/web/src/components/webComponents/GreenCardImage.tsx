@@ -219,7 +219,7 @@ export const GreenCardImage = ({
                 fontWeight="600"
                 letterSpacing="2"
               >
-                LEAP COMMUNITY VERIFIED PASS
+                LEAP COMMUNITY DIGITAL PASS
               </text>
             </g>
 
@@ -305,7 +305,7 @@ export const GreenCardImage = ({
                 fontWeight="800"
                 letterSpacing="1.2"
               >
-                LEAP PASS
+                COMMUNITY DIGITAL PASS
               </text>
             </g>
 

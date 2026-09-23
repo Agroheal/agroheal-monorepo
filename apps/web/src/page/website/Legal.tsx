@@ -93,7 +93,7 @@ const legalSections: LegalSectionItem[] = [
     icon: Sprout,
     badge: "Farm Operations",
     summary:
-      "Binding operational terms for practical cluster farming, ₦5,000 slot setup, Cycle 1 biological doubling, and up to 40% projected quarterly harvest distributions.",
+      "Binding operational terms for practical cluster farming, DIY Group Farm autonomy, Farm Manager recruitment, automated contract expenditures, and daily WhatsApp reporting.",
     clauses: [
       {
         number: "2.1",
@@ -158,10 +158,32 @@ const legalSections: LegalSectionItem[] = [
       },
       {
         number: "2.5",
-        heading: "On-Site Farm Supervision & WhatsApp Community",
+        heading: "Farm Manager / Supervisor Recruitment & DIY Operational Governance",
         body: [
-          "A resident Agroheal Farm Supervisor oversees day-to-day nursery temperature, misting, sanitation, and harvesting operations.",
-          "Members receive photographic and biometric harvest reporting via their cluster's designated WhatsApp community channel and digital dashboard.",
+          "The Farm Manager/Supervisor is an employee of the Group Farm, recruited directly by the Group Farm and trained by Agroheal, or Agroheal may also carry out the recruitment on behalf of the Group Farm if the Group Farm so chooses.",
+          "Each Group Farm operates strictly in a DIY (Do-It-Yourself) fashion and takes full collective responsibility for its operational success or failure.",
+          "The role of Agroheal is to facilitate key success factors from farm to market/table, provide professional training, supply high-grade biological inputs, and deliver ongoing agronomic oversight functions.",
+        ],
+        highlights: [
+          "Farm Manager is an Employee of the Group Farm",
+          "Recruited by Group Farm & Trained by Agroheal",
+          "DIY Group Farm Autonomy & Primary Responsibility",
+          "Agroheal Facilitates Farm-to-Table Success & Oversight",
+        ],
+      },
+      {
+        number: "2.6",
+        heading: "Group Farm Accounts: Automated Contract Sums & Daily WhatsApp Coordination",
+        body: [
+          "For the Expenses and Expenditure portion of the Group Farm accounts, each cost item is structured as a predetermined contract sum that is automatically deducted once the farm cluster is fully set up.",
+          "All Group Farm members actively participate in continuous WhatsApp coordination to monitor what is happening on the farm on a daily basis.",
+          "Daily operational transparency is maintained through live photographic updates, videos, and growth monitoring reports provided directly by their onsite Farm Manager/Supervisor.",
+        ],
+        highlights: [
+          "Expenditures Structured as Automated Contract Sums",
+          "Deducted Once Farm Cluster is Fully Set Up",
+          "Daily Videos & Photographic Proof on WhatsApp",
+          "Continuous Onsite Reporting by Farm Manager",
         ],
       },
     ],
