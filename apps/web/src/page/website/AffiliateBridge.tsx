@@ -91,7 +91,7 @@ export default function AffiliateBridge() {
               How You Earn with Agroheal
             </h2>
             <p className="text-sm md:text-base text-gray-600 mt-2 font-light">
-              Designed for immediate member liquidity and sustainable cooperative expansion.
+              Designed for immediate member liquidity and sustainable community expansion.
             </p>
           </div>
 
@@ -241,7 +241,7 @@ export default function AffiliateBridge() {
             </span>
             <div>
               <strong className="text-gray-900 block mb-0.5 font-bold">Regulatory Notice — We Are Not An Investment Platform:</strong>
-              AgroHeal Solutions Ltd is an agricultural cooperative and direct commodity distribution ecosystem, <strong>not an investment platform or financial scheme</strong>. Commission simulations, matrix models, and bonuses are based strictly on active member direct sponsorships and verified retail consumer product sales, not passive financial yield or guaranteed investment returns.
+              AgroHeal Solutions Ltd is an agricultural community and direct commodity distribution ecosystem, <strong>not an investment platform or financial scheme</strong>. Commission simulations, matrix models, and bonuses are based strictly on active member direct sponsorships and verified retail consumer product sales, not passive financial yield or guaranteed investment returns.
             </div>
           </div>
 

@@ -85,7 +85,7 @@ export default function HowItWorksContent({
       ],
       accent: "border-emerald-600/30 bg-white",
       badge: "bg-emerald-100 text-emerald-800",
-      actionText: isDashboard ? "View Wallet & Ledger" : "Join Cooperative",
+      actionText: isDashboard ? "View Wallet & Ledger" : "Join Community",
       actionLink: isDashboard
         ? "/dashboard/transactions"
         : "/signup",
@@ -173,7 +173,7 @@ export default function HowItWorksContent({
                 Learn, Practice, Earn
               </h2>
               <p className="text-gray-600 text-sm sm:text-base mt-2">
-                A transparent, step-by-step cooperative pathway from practical agribusiness learning to harvesting returns.
+                A transparent, step-by-step community pathway from practical agribusiness learning to harvesting returns.
               </p>
             </div>
           )}
@@ -418,14 +418,14 @@ export default function HowItWorksContent({
           </div>
         </div>
       )}
-      {/* Statutory Cooperative & Non-Investment Notice */}
+      {/* Statutory Community & Non-Investment Notice */}
       <div className="mt-8 p-4 sm:p-5 rounded-2xl bg-white border border-gray-200/90 text-gray-600 text-xs sm:text-sm leading-relaxed shadow-xs flex items-start gap-3.5">
         <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 border border-amber-200">
           <ShieldCheck className="w-4 h-4 text-amber-700" />
         </div>
         <div>
           <strong className="text-gray-900 block mb-0.5 font-bold">Non-Investment Policy &amp; Regulatory Notice:</strong>
-          AgroHeal Solutions Ltd is an agricultural cooperative and practical agro-education ecosystem, <strong>not an investment platform or financial scheme</strong>. Slot acquisitions directly fund physical biological inputs and managed grow infrastructure. Projected surplus distributions (e.g. <em>&quot;up to 40%&quot;</em>) represent estimated commodity dividends derived from real biological harvests and supermarket/off-taker sales, not guaranteed fixed financial interest.
+          AgroHeal Solutions Ltd is an agricultural community and practical agro-education ecosystem, <strong>not an investment platform or financial scheme</strong>. Slot acquisitions directly fund physical biological inputs and managed grow infrastructure. Projected surplus distributions (e.g. <em>&quot;up to 40%&quot;</em>) represent estimated commodity dividends derived from real biological harvests and supermarket/off-taker sales, not guaranteed fixed financial interest.
         </div>
       </div>
     </div>

@@ -300,10 +300,10 @@ export const VerifyCard: React.FC = () => {
               <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-100 text-xs text-emerald-900 space-y-1 leading-relaxed">
                 <p className="font-semibold flex items-center gap-1.5 text-emerald-950">
                   <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                  AgroHeal Distributed Cooperative Registry
+                  AgroHeal LEAP Community Member Registry
                 </p>
                 <p className="text-emerald-800/90">
-                  This digital credential is tied directly to the AgroHeal database. Verification proves the cardholder is an active member entitled to cooperative benefits, agricultural training, and 5×7 community matrix distribution.
+                  This digital credential is tied directly to the AgroHeal database. Verification proves the cardholder is an active member entitled to community benefits, agricultural training, and 5×7 community matrix distribution.
                 </p>
               </div>
             </div>

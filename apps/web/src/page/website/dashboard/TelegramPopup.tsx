@@ -70,7 +70,7 @@ const FarmingInitiativePopup = () => {
               {/* Body */}
               <div className="px-6 py-6 space-y-4">
                 <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  Join our official Telegram community to connect directly with cooperative coordinators, receive harvest batch announcements, and attend interactive training sessions.
+                  Join our official Telegram community to connect directly with community coordinators, receive harvest batch announcements, and attend interactive training sessions.
                 </p>
 
                 {/* CTA */}

@@ -34,7 +34,7 @@ const clusters = [
     badge: "High-Value Export",
     description:
       "High-value organic ginger and medicinal rhizome production with value-added drying, grading, and oil extraction processing for both domestic wholesale and export commodity channels.",
-    features: ["Export-grade rhizomes", "Cooperative aggregation", "Premium market valuation"],
+    features: ["Export-grade rhizomes", "Community aggregation", "Premium market valuation"],
   },
 ];
 
@@ -70,7 +70,7 @@ export default function FarmSlotsBridge() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-base md:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed mb-8 font-sans font-light"
           >
-            Participate directly in real, productive organic agriculture. The cooperative handles land, organic inputs, agronomists, and security—while you receive projected quarterly harvest distributions.
+            Participate directly in real, productive organic agriculture. AgroHeal management handles land, organic inputs, agronomists, and security—while you receive projected quarterly harvest distributions.
           </motion.p>
 
           <motion.div
@@ -309,7 +309,7 @@ export default function FarmSlotsBridge() {
               How Harvest Revenue Is Distributed
             </h2>
             <p className="text-sm md:text-base text-gray-300 mt-2 font-light">
-              Clear, transparent cooperative accounting governed by smart ledgers.
+              Clear, transparent community accounting governed by smart ledgers.
             </p>
           </div>
 
@@ -371,7 +371,7 @@ export default function FarmSlotsBridge() {
             <div className="text-xs text-gray-300 leading-relaxed space-y-1">
               <strong className="text-white block font-bold text-sm">Regulatory Notice — We Are Not An Investment Platform:</strong>
               <p>
-                AgroHeal Solutions Ltd is an agricultural cooperative and participatory agro-education platform, <strong>not an investment company, financial institution, or collective investment scheme (CIS)</strong>. Farm slot contributions directly finance real biological assets (fruiting substrate bags, climate-managed grow-rooms, automated humidification racks, and farm labor). Any reference to surplus distributions (e.g. <em>"up to 40%"</em>) represents projected commodity dividends derived strictly from realized agricultural crop sales and off-taker agreements, not fixed financial interest or passive investment returns.
+                AgroHeal Solutions Ltd is an agricultural community and participatory agro-education platform, <strong>not an investment company, financial institution, or collective investment scheme (CIS)</strong>. Farm slot contributions directly finance real biological assets (fruiting substrate bags, climate-managed grow-rooms, automated humidification racks, and farm labor). Any reference to surplus distributions (e.g. <em>"up to 40%"</em>) represents projected commodity dividends derived strictly from realized agricultural crop sales and off-taker agreements, not fixed financial interest or passive investment returns.
               </p>
             </div>
           </div>

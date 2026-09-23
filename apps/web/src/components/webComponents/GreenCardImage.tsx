@@ -219,7 +219,7 @@ export const GreenCardImage = ({
                 fontWeight="600"
                 letterSpacing="2"
               >
-                COOPERATIVE DIGITAL PASS
+                LEAP COMMUNITY VERIFIED PASS
               </text>
             </g>
 

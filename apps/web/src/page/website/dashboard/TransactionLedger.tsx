@@ -635,7 +635,7 @@ export default function TransactionLedger() {
 
         {/* ── TOP DUAL CARDS (CREDIT CARD ASPECT RATIO ~1.6:1) ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-          {/* ── CARD 1 (LEFT): CONDITIONAL GREEN CARD ACTIVATION OR 5x7 MATRIX PIPELINE (LIGHT COOPERATIVE THEME) ── */}
+          {/* ── CARD 1 (LEFT): CONDITIONAL GREEN CARD ACTIVATION OR 5x7 MATRIX PIPELINE (LIGHT COMMUNITY THEME) ── */}
           {!hasGreenCard ? (
             <div className="bg-gradient-to-br from-emerald-50/90 via-white to-green-50/60 text-gray-900 rounded-3xl p-5 sm:p-5.5 border border-emerald-200/90 shadow-sm flex flex-col justify-between relative overflow-hidden space-y-3.5">
               <div className="space-y-3 relative z-10">
@@ -646,7 +646,7 @@ export default function TransactionLedger() {
                     </div>
                     <div>
                       <h3 className="font-bold text-gray-900 text-sm sm:text-base">AgroHeal Green Card (AGC)</h3>
-                      <p className="text-[11px] text-gray-500">Cooperative Identity & Profit Key</p>
+                      <p className="text-[11px] text-gray-500">Community Identity & Profit Key</p>
                     </div>
                   </div>
                   <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-200">

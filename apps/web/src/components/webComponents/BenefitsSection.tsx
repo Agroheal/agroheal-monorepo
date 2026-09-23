@@ -23,7 +23,7 @@ const benefits = [
     title:
       "Mushroom Village: Low-Cost Entry to Ownership in Gingertown & Organic FoodNation",
     description:
-      "Cycle 1 (Months 1–3) reinvests harvest proceeds to double capacity from 2 to 4 bags per slot. Cycle 2 onwards pays up to 40% projected quarterly returns from net harvest proceeds, while allocating reserves into cooperative expansion funds. (AgroHeal is an agricultural cooperative, not an investment platform).",
+      "Cycle 1 (Months 1–3) reinvests harvest proceeds to double capacity from 2 to 4 bags per slot. Cycle 2 onwards pays up to 40% projected quarterly returns from net harvest proceeds, while allocating reserves into community expansion funds. (AgroHeal is an agricultural community, not an investment platform).",
   },
 ];
 

@@ -228,13 +228,13 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
             </button>
             <div className="flex items-center gap-2 text-emerald-300 text-xs font-bold uppercase tracking-wider mb-1">
               <ShieldCheck className="w-4 h-4" />
-              Audited Cooperative Disbursal
+              Audited Community Disbursal
             </div>
             <h2 className="text-xl sm:text-2xl font-black tracking-tight">
               Request Bank Withdrawal
             </h2>
             <p className="text-xs text-emerald-100/80 mt-1">
-              Transfer cleared cooperative earnings directly to your verified commercial bank account.
+              Transfer cleared community earnings directly to your verified commercial bank account.
             </p>
           </div>
 
@@ -444,7 +444,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
 
             {/* Statutory Notice */}
             <div className="p-3 bg-gray-50 rounded-xl border border-gray-200/70 text-[11px] text-gray-500 leading-relaxed">
-              Disbursal requests are audited against cooperative transaction ledgers to guarantee solvency and anti-money laundering compliance before bank batch dispatch.
+              Disbursal requests are audited against community transaction ledgers to guarantee solvency and anti-money laundering compliance before bank batch dispatch.
             </div>
 
             {/* Submit Action */}

@@ -601,7 +601,7 @@ const DashboardLayout = () => {
                       How Agroheal Works
                     </h2>
                     <p className="text-[11px] text-emerald-300">
-                      Learn, Practice & Earn Cooperative Roadmap
+                      Learn, Practice & Earn Community Roadmap
                     </p>
                   </div>
                 </div>

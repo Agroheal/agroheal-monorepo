@@ -31,7 +31,7 @@ export default function RegulatoryNotice({
           </Link>
         </div>
         <p className="text-amber-900/95 leading-relaxed">
-          AgroHeal Solutions Ltd is an agricultural technology and cooperative enablement enterprise. We facilitate agricultural production, training, and direct distribution infrastructure for registered and emerging agricultural cooperatives and direct off-take consumer networks. We are <strong>strictly not an investment company, financial institution, or collective investment scheme (CIS)</strong>.
+          AgroHeal Solutions Ltd is an agricultural technology and community enablement enterprise. We facilitate agricultural production, training, and direct distribution infrastructure for agricultural communities and direct off-take consumer networks. We are <strong>strictly not an investment company, financial institution, or collective investment scheme (CIS)</strong>.
         </p>
         <p className="text-amber-900/90 text-[11px] sm:text-xs">
           Simulated projections, matrix commissions, and performance tiers shown on this platform are mathematical models for illustrative purposes grounded strictly in verified commodity crop sales, harvest surplus realizations, and active member Personal Qualifying Volume (PQV) — never guaranteed passive yield or fixed financial interest.

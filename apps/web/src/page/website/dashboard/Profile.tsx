@@ -407,7 +407,7 @@ export const ProfileComponent: React.FC = () => {
               <div className="space-y-1">
                 <p className="text-xs font-semibold text-gray-700">No Next of Kin record attached yet</p>
                 <p className="text-[11px] text-gray-400 max-w-xs mx-auto">
-                  Designate your primary beneficiary for cooperative farm assets and dividend disbursements.
+                  Designate your primary beneficiary for community farm assets and dividend disbursements.
                 </p>
               </div>
               <Button
@@ -433,7 +433,7 @@ export const ProfileComponent: React.FC = () => {
               to="/dashboard/legal"
               className="font-bold text-emerald-800 hover:text-emerald-950 underline underline-offset-2"
             >
-              Terms of Service, Cooperative Bylaws, and Mutual Covenant
+              Terms of Service, Community Guidelines, and Mutual Covenant
             </Link>
             .
           </p>

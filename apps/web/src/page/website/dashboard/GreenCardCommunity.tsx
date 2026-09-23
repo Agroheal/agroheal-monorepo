@@ -127,7 +127,7 @@ export const GreenCardCommunity: React.FC = () => {
               Activate Your Digital Green Card
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-sm mx-auto">
-              Your official AgroHeal Green Card unlocks verified cooperative membership, lifetime curriculum access, and ₦1,000 direct referral rewards.
+              Your official AgroHeal Green Card unlocks verified community membership, lifetime curriculum access, and ₦1,000 direct referral rewards.
             </p>
           </div>
 
@@ -177,7 +177,7 @@ export const GreenCardCommunity: React.FC = () => {
           <div className="space-y-2 max-w-xl">
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 backdrop-blur-md">
-                <ShieldCheck className="w-3.5 h-3.5" /> Official Cooperative Credential
+                <ShieldCheck className="w-3.5 h-3.5" /> Official Community Credential
               </span>
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-white/10 text-white border border-white/20">
                 Verified Active
@@ -189,7 +189,7 @@ export const GreenCardCommunity: React.FC = () => {
             </h1>
 
             <p className="text-xs sm:text-sm text-emerald-100/85 leading-relaxed">
-              Your official, verifiable membership card. Use this credential for cooperative identity verification, event accreditation, and member privilege confirmations.
+              Your official, verifiable membership card. Use this credential for community identity verification, event accreditation, and member privilege confirmations.
             </p>
           </div>
 
@@ -298,7 +298,7 @@ export const GreenCardCommunity: React.FC = () => {
               Cryptographic Fraud Prevention &amp; Real-Time Verification:
             </strong>
             <p className="text-emerald-800/90">
-              Each AgroHeal Green Card features a dynamic QR token linked directly to our immutable member registry. Third parties, cooperative banks, and harvest depots can scan the QR code using any smartphone to instantly confirm your active status, identity, and voting accreditation without exposing private credentials.
+              Each AgroHeal Green Card features a dynamic QR token linked directly to our immutable member registry. Third parties, partner institutions, and harvest depots can scan the QR code using any smartphone to instantly confirm your active status and identity without exposing private credentials.
             </p>
           </div>
         </div>

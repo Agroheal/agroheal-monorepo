@@ -46,12 +46,12 @@ const legalSections: LegalSectionItem[] = [
         number: "1.1",
         heading: "Nature & Scope of the Platform",
         body: [
-          "Agroheal Solutions Ltd. ('Agroheal') is an agricultural technology, cooperative enablement, and organic agribusiness facilitation platform registered under the Laws of the Federal Republic of Nigeria.",
+          "Agroheal Solutions Ltd. ('Agroheal') is an agricultural technology, community enablement, and organic agribusiness facilitation platform registered under the Laws of the Federal Republic of Nigeria.",
           "Agroheal provides digital agribusiness educational curriculum (LEAP Modules), coordination infrastructure for collaborative smallholder farming clusters, biological supply inputs, and off-taker linkage services.",
-          "Agroheal is strictly an agricultural production, technology, and cooperative facilitation enterprise. Agroheal is NOT a deposit-taking financial institution, microfinance bank, asset management entity, or collective investment scheme (CIS).",
+          "Agroheal is strictly an agricultural production, technology, and agribusiness facilitation enterprise. Agroheal is NOT a deposit-taking financial institution, microfinance bank, asset management entity, or collective investment scheme (CIS).",
         ],
         highlights: [
-          "Cooperative AgTech Facilitation",
+          "Agribusiness & Community Facilitation",
           "Not a Banking or Investment Fund",
         ],
       },
@@ -307,7 +307,7 @@ const legalSections: LegalSectionItem[] = [
         number: "5.2",
         heading: "Non-Investment Platform Status & Absence of Fixed Financial Returns",
         body: [
-          "Agroheal is an agricultural cooperative and practical agro-education ecosystem, NOT an investment platform, collective investment scheme (CIS), financial broker, or asset management firm.",
+          "Agroheal is an agricultural community and practical agro-education ecosystem, NOT an investment platform, collective investment scheme (CIS), financial broker, or asset management firm.",
           "Agroheal explicitly does NOT offer, promise, or guarantee fixed financial returns, interest rates, capital doubling guarantees, or fixed dividend yields.",
           "All seasonal distributions (including references such as 'up to 40%') represent estimated allocations of actual net sales of harvested agricultural produce to verified off-takers at prevailing market commodity prices.",
           "Participants should view farm slots as practical agricultural engagements, food security contributions, and biological production assets, not speculative financial paper.",

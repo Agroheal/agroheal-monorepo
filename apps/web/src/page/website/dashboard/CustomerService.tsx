@@ -134,7 +134,7 @@ export default function CustomerService() {
               <div>
                 <h3 className="font-extrabold text-gray-900 text-lg">Email Support</h3>
                 <p className="text-xs text-gray-500 mt-1">
-                  Formal helpdesk ticketing for cooperative documentation, Next-of-Kin updates, and audit requests.
+                  Formal helpdesk ticketing for community documentation, Next-of-Kin updates, and audit requests.
                 </p>
               </div>
 

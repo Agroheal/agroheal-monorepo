@@ -32,7 +32,7 @@ const FAQS: FaqItem[] = [
     category: "greencard",
     question: "What is the AgroHeal Green Card (AGC) and what does the ₦2,000 fee cover?",
     answer:
-      "The AgroHeal Green Card (AGC) is your official, verifiable digital cooperative credential. The one-time ₦2,000 activation fee grants permanent lifetime access to the LEAP organic farming training library, unlocks your unique affiliate referral link, accredits you for cooperative general assemblies and depot distributions, and gives you permanent placement in the 5×7 community matrix.",
+      "The AgroHeal Green Card (AGC) is your official, verifiable digital community credential. The one-time ₦2,000 activation fee grants permanent lifetime access to the LEAP organic farming training library, unlocks your unique affiliate referral link, accredits you for community meetings and depot distributions, and gives you permanent placement in the 5×7 community matrix.",
     tags: ["green card", "agc", "2000", "activation", "cost", "fee", "membership"],
   },
   {
@@ -48,7 +48,7 @@ const FAQS: FaqItem[] = [
     category: "greencard",
     question: "How do third parties or farm depots verify my Green Card?",
     answer:
-      "Every AgroHeal Green Card includes a dynamic QR code linked directly to our public verification portal (/verify-card/:memberId). Farm managers, cooperative banks, and off-take depots can scan the code with any standard smartphone to instantly confirm your active status and identity without exposing sensitive private details.",
+      "Every AgroHeal Green Card includes a dynamic QR code linked directly to our public verification portal (/verify-card/:memberId). Farm managers, partner institutions, and off-take depots can scan the code with any standard smartphone to instantly confirm your active status and identity without exposing sensitive private details.",
     tags: ["qr code", "verify", "scan", "authentication"],
   },
 
@@ -58,7 +58,7 @@ const FAQS: FaqItem[] = [
     category: "slots",
     question: "How much does a Group Farm Slot cost and what is included?",
     answer:
-      "Each Group Farm Slot requires a one-time capital commitment of ₦5,000. 70% (₦3,500) covers fruiting house setup, racking structures, biological inputs, farm labor, and 2 initial mature oyster mushroom fruiting bags; 10% (₦500) is paid as an instant sponsor bounty; and 20% (₦1,000) is retained in the cooperative administrative reserve. There are zero monthly maintenance fees.",
+      "Each Group Farm Slot requires a one-time capital commitment of ₦5,000. 70% (₦3,500) covers fruiting house setup, racking structures, biological inputs, farm labor, and 2 initial mature oyster mushroom fruiting bags; 10% (₦500) is paid as an instant sponsor bounty; and 20% (₦1,000) is retained in the community administrative reserve. There are zero monthly maintenance fees.",
     tags: ["slots", "5000", "cost", "mushrooms", "pricing", "breakdown"],
   },
   {
@@ -74,8 +74,8 @@ const FAQS: FaqItem[] = [
     category: "slots",
     question: "Is AgroHeal an investment company or ponzi scheme?",
     answer:
-      "AgroHeal is strictly an agricultural cooperative operating under Nigerian cooperative laws, not an investment platform, collective investment scheme, or bank. Distributions are based strictly on biological harvest yields and verified off-take market sales to supermarkets, food processors, and hotels. There are no fixed, guaranteed, or compound interest returns.",
-    tags: ["investment", "ponzi", "risk", "legality", "cooperative"],
+      "AgroHeal is strictly an agricultural and agribusiness development community, not an investment platform, collective investment scheme, or bank. Distributions are based strictly on biological harvest yields and verified off-take market sales to supermarkets, food processors, and hotels. There are no fixed, guaranteed, or compound interest returns.",
+    tags: ["investment", "ponzi", "risk", "legality", "community"],
   },
 
   // ── 5x7 Matrix ──
@@ -92,7 +92,7 @@ const FAQS: FaqItem[] = [
     category: "matrix",
     question: "What are the requirements to unlock Matrix Spillover withdrawals?",
     answer:
-      "To prevent passive free-riding and maintain cooperative economic vitality, matrix spillover withdrawals require two conditions: (1) You must have at least 5 personally sponsored direct active referrals, and (2) You must maintain an active rolling 30-day Personal Qualifying Volume (PQV) of at least ₦5,000 (achieved through slot purchases or cooperative product subscriptions).",
+      "To prevent passive free-riding and maintain community economic vitality, matrix spillover withdrawals require two conditions: (1) You must have at least 5 personally sponsored direct active referrals, and (2) You must maintain an active rolling 30-day Personal Qualifying Volume (PQV) of at least ₦5,000 (achieved through slot purchases or community product subscriptions).",
     tags: ["matrix unlock", "pqv", "5 referrals", "qualifications", "gate"],
   },
   {
@@ -136,16 +136,16 @@ const FAQS: FaqItem[] = [
     category: "bylaws",
     question: "What happens to my farm slots and earnings if I am incapacitated or deceased?",
     answer:
-      "Under Article 7 of the official AgroHeal Cooperative Bylaws, your membership identity, active production slots, accumulated ledger balances, and quarterly dividend rights do not expire. They legally transfer in full to the designated Next-of-Kin recorded in your profile settings upon presentation of verified legal proof.",
-    tags: ["next of kin", "heritage", "bylaws", "inheritance", "death"],
+      "Under the official AgroHeal Community Guidelines, your membership identity, active production slots, accumulated ledger balances, and quarterly dividend rights do not expire. They legally transfer in full to the designated Next-of-Kin recorded in your profile settings upon presentation of verified legal proof.",
+    tags: ["next of kin", "heritage", "guidelines", "inheritance", "death"],
   },
   {
     id: "bylaws-2",
     category: "bylaws",
     question: "Can I have multiple AgroHeal accounts?",
     answer:
-      "No. To safeguard matrix integrity and comply with cooperative governance, each participant must maintain a single authentic member identity linked to their phone number and BVN/NUBAN. Duplicate or bot-generated accounts are strictly prohibited and subject to immediate forfeiture.",
-    tags: ["multiple accounts", "rules", "bylaws", "compliance"],
+      "No. To safeguard matrix integrity and comply with community governance, each participant must maintain a single authentic member identity linked to their phone number and BVN/NUBAN. Duplicate or bot-generated accounts are strictly prohibited and subject to immediate forfeiture.",
+    tags: ["multiple accounts", "rules", "guidelines", "compliance"],
   },
 ];
 
@@ -183,7 +183,7 @@ export default function KnowledgeBase() {
           <div className="relative z-10 max-w-2xl space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 backdrop-blur-md">
               <BookOpen className="w-3.5 h-3.5" />
-              <span>Cooperative Resource Center</span>
+              <span>Community Resource Center</span>
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
@@ -226,7 +226,7 @@ export default function KnowledgeBase() {
             { id: "slots", label: "Farm Slots", icon: Sprout },
             { id: "matrix", label: "5×7 Matrix", icon: Users },
             { id: "wallet", label: "Wallet & Ledger", icon: Wallet },
-            { id: "bylaws", label: "Bylaws & Heritage", icon: ShieldCheck },
+            { id: "bylaws", label: "Guidelines & Heritage", icon: ShieldCheck },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeCategory === tab.id;
@@ -347,7 +347,7 @@ export default function KnowledgeBase() {
             >
               <Link to="/dashboard/legal">
                 <FileText className="w-3.5 h-3.5 mr-1.5" />
-                Cooperative Bylaws
+                Community Guidelines
               </Link>
             </Button>
           </div>

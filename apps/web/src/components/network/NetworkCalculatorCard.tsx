@@ -97,7 +97,7 @@ export const NetworkCalculatorCard: React.FC<NetworkCalculatorCardProps> = ({
           <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
           <p className="text-[11px] text-emerald-200/80 leading-relaxed">
             <strong className="text-emerald-100 font-semibold">
-              Cooperative Notice:
+              Community Notice:
             </strong>{" "}
             {complianceNotice}
           </p>

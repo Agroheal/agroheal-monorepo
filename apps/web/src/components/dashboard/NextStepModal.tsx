@@ -83,8 +83,8 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
       benefits: [
         "2 physical fruiting bags allocated directly to your member account",
         "Cycle 1 biological doubling (2 bags produce 4 bags retained in farm)",
-        "Up to 40% projected quarterly cooperative harvest dividends from Cycle 2 onward",
-        "Secures your locked placement in the 5×7 Cooperative Matrix",
+        "Up to 40% projected quarterly community harvest dividends from Cycle 2 onward",
+        "Secures your locked placement in the 5×7 Community Matrix",
       ],
       buttonText: "Secure Farm Slot (₦5,000)",
       targetRoute: "/dashboard/farm-operations/buy-slots",
@@ -92,7 +92,7 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
     step3: {
       title: "Unlock 7-Level Matrix Harvest Dividends",
       subtitle:
-        "Sponsor direct partners to expand your payout depth (Directs + 1 Rule) and maximize cooperative spillover.",
+        "Sponsor direct partners to expand your payout depth (Directs + 1 Rule) and maximize community spillover.",
       targetCount: 5,
       badgeText: "Milestone 3 of 3 · Expansion",
       benefits: [

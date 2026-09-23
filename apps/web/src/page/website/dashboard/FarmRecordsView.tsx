@@ -1772,7 +1772,7 @@ const FarmRecordsView = () => {
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-amber-800/90 leading-relaxed">
-                You are viewing this farm group within your personal member portal. To maintain strict cooperative audit separation and ledger integrity, adding or editing member contributions, expenses, and sales from the member portal is reserved exclusively for the assigned Farm Coordinator. Platform administrators and staff should manage records and perform system-wide audits via the <strong>Admin Portal</strong>.
+                You are viewing this farm group within your personal member portal. To maintain strict community audit separation and ledger integrity, adding or editing member contributions, expenses, and sales from the member portal is reserved exclusively for the assigned Farm Coordinator. Platform administrators and staff should manage records and perform system-wide audits via the <strong>Admin Portal</strong>.
               </p>
             </div>
           </div>

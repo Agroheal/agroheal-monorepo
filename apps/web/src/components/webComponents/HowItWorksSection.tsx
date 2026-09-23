@@ -22,7 +22,7 @@ const steps = [
     icon: Coins,
     title: "Earn",
     description:
-      "Engage in managed cooperative cluster farming. Cycle 1 doubles biological capacity from 2 to 4 fruiting bags per slot, and from Cycle 2 onward, receive up to 40% projected quarterly harvest distributions from net produce sales (AgroHeal is an agricultural cooperative, not an investment platform).",
+      "Engage in managed community cluster farming. Cycle 1 doubles biological capacity from 2 to 4 fruiting bags per slot, and from Cycle 2 onward, receive up to 40% projected quarterly harvest distributions from net produce sales (AgroHeal is an agricultural community, not an investment platform).",
     color: "bg-[#e8b130] text-white",
   },
 ];

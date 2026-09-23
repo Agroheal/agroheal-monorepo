@@ -336,7 +336,7 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
                       AGROHEAL
                     </span>
                     <span className="block text-[9px] sm:text-[10px] font-medium tracking-wider text-emerald-200/90 uppercase">
-                      Cooperative Digital Pass
+                      LEAP Community Verified Pass
                     </span>
                   </div>
                 </div>
@@ -447,7 +447,7 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
               <div className="w-full mt-4 sm:mt-5">
                 <div className="w-full h-9 sm:h-12 bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-y border-white/15 flex items-center px-4">
                   <span className="text-[8px] sm:text-[9px] font-mono tracking-widest text-neutral-400/80 truncate">
-                    AGROHEAL COOPERATIVE FEDERATION • LEAP VERIFIED PASS • NON-TRANSFERABLE
+                    AGROHEAL LEAP COMMUNITY - VERIFIED PASS • NON-TRANSFERABLE
                   </span>
                 </div>
               </div>
@@ -471,7 +471,7 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
                   </div>
 
                   <p className="text-[8px] sm:text-[9px] text-emerald-200/60 leading-tight">
-                    Issued under AgroHeal Cooperative Bylaws. Not a banking deposit instrument.
+                    Issued by Agroheal LEAP Community. Not a banking deposit instrument.
                     Confirms active participation in LEAP group farming clusters and 5×7 community matrix dividends.
                   </p>
                 </div>

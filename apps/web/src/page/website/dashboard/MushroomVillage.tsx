@@ -272,7 +272,7 @@ const MushroomVillage = () => {
                 <div className="flex items-center justify-between border-b border-gray-100 pb-3">
                   <div>
                     <p className="font-semibold text-gray-900">Admin & Operations (20%)</p>
-                    <p className="text-xs text-gray-500">Cooperative administration & oversight</p>
+                    <p className="text-xs text-gray-500">Community administration & oversight</p>
                   </div>
                   <p className="font-bold text-gray-900">₦1,000</p>
                 </div>
