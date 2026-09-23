@@ -61,10 +61,13 @@ const BuySlots: React.FC = () => {
             <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-4">
               <Sprout className="w-6 h-6 text-emerald-600" />
             </div>
-            <CardTitle className="text-xl">Organic Oyster Mushroom</CardTitle>
-            <CardDescription>
-              Climate-controlled house allocation. 60–90 day harvest cycle.
+            <CardTitle className="text-xl">Mushroom Village</CardTitle>
+            <CardDescription className="font-semibold text-emerald-700">
+              Organic Mushrooms
             </CardDescription>
+            <p className="text-xs text-slate-500">
+              Climate-controlled house allocation. 60–90 day harvest cycle.
+            </p>
           </CardHeader>
           <CardContent className="flex-1 space-y-4">
             <div className="bg-emerald-50/70 border border-emerald-100/80 rounded-xl p-4 space-y-3">
@@ -151,58 +154,128 @@ const BuySlots: React.FC = () => {
           </CardFooter>
         </Card>
 
-        {/* Coming Soon: Ginger */}
-        <Card className="border-slate-200 bg-slate-50/50 flex flex-col opacity-80">
+        {/* Gingertown */}
+        <Card className="border-amber-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col bg-amber-50/15">
           <div className="absolute top-0 right-0 p-4">
-            <Badge variant="secondary" className="bg-amber-100 text-amber-800 hover:bg-amber-100">Coming Soon</Badge>
+            <Badge variant="secondary" className="bg-amber-100 text-amber-800 border border-amber-200">
+              Funded via Proceeds · Opens Q2
+            </Badge>
           </div>
           <CardHeader>
-            <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mb-4 grayscale">
+            <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mb-4">
               <Leaf className="w-6 h-6 text-amber-600" />
             </div>
-            <CardTitle className="text-xl text-slate-700">Ginger & High-Value Spices</CardTitle>
-            <CardDescription>
-              Next Season Planting. High yield export-grade spices.
+            <CardTitle className="text-xl text-slate-800">Gingertown</CardTitle>
+            <CardDescription className="font-semibold text-amber-800">
+              Organic Ginger (& Stevia)
             </CardDescription>
+            <p className="text-xs text-slate-500">
+              Commercial rhizome & medicinal herb cluster.
+            </p>
           </CardHeader>
-          <CardContent className="flex-1">
-            <div className="bg-slate-100 p-4 rounded-lg flex items-center justify-center h-24 border border-dashed border-slate-300">
-              <p className="text-sm text-slate-500 font-medium text-center">
-                Pricing & details will be revealed closer to planting season.
-              </p>
+          <CardContent className="flex-1 space-y-4">
+            <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  Contribution Per Slot
+                </span>
+                <div className="flex items-baseline justify-end gap-1">
+                  <span className="text-lg font-bold text-amber-950">₦33,000</span>
+                  <span className="text-xs text-slate-500 font-normal">/ slot</span>
+                </div>
+              </div>
+
+              <div className="border-t border-amber-200/70 pt-2.5 space-y-1.5">
+                <p className="text-xs font-bold text-amber-900">
+                  To be funded from Mushroom Village proceeds
+                </p>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  So from the second quarter, the farms will be opened and other details of expenses will appear on their group farm accounts.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-white/80 border border-amber-100 text-xs text-slate-600 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Allocation Model:</span>
+                <span className="font-semibold text-amber-900">Mushroom Cycle 2 Proceeds</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Opening Schedule:</span>
+                <span className="font-semibold text-slate-800">Second Quarter (Q2)</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Expense Records:</span>
+                <span className="font-semibold text-slate-800">Group Farm Accounts</span>
+              </div>
             </div>
           </CardContent>
           <CardFooter>
-            <Button variant="outline" className="w-full" onClick={() => alert('You have been added to the waitlist!')}>
-              Join Waitlist / Notify Me
+            <Button variant="outline" className="w-full border-amber-200 bg-amber-50/60 text-amber-900 cursor-default font-medium" disabled>
+              To Be Funded From Mushroom Village Proceeds
             </Button>
           </CardFooter>
         </Card>
 
-        {/* Coming Soon: Organic Food Nation */}
-        <Card className="border-slate-200 bg-slate-50/50 flex flex-col opacity-70">
+        {/* Organic FoodNation */}
+        <Card className="border-emerald-200 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col bg-emerald-50/15">
           <div className="absolute top-0 right-0 p-4">
-            <Badge variant="outline" className="text-slate-500">In Incubation</Badge>
+            <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 border border-emerald-200">
+              Funded via Proceeds · Opens Q2
+            </Badge>
           </div>
           <CardHeader>
-            <div className="w-12 h-12 bg-slate-200 rounded-lg flex items-center justify-center mb-4">
-              <Wheat className="w-6 h-6 text-slate-500" />
+            <div className="w-12 h-12 bg-emerald-100 rounded-lg flex items-center justify-center mb-4">
+              <Wheat className="w-6 h-6 text-emerald-700" />
             </div>
-            <CardTitle className="text-xl text-slate-700">Organic Food Nation</CardTitle>
-            <CardDescription>
-              Land Prep phase. Organic vegetables & poultry feed.
+            <CardTitle className="text-xl text-slate-800">Organic FoodNation</CardTitle>
+            <CardDescription className="font-semibold text-emerald-800">
+              Organic Food Crops & Livestock
             </CardDescription>
+            <p className="text-xs text-slate-500">
+              Integrated staple crops, vegetables, and livestock cluster.
+            </p>
           </CardHeader>
-          <CardContent className="flex-1">
-             <div className="bg-slate-100 p-4 rounded-lg flex items-center justify-center h-24 border border-dashed border-slate-300">
-              <p className="text-sm text-slate-500 font-medium text-center">
-                Infrastructure development currently underway.
-              </p>
+          <CardContent className="flex-1 space-y-4">
+            <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                  Contribution Per Slot
+                </span>
+                <div className="flex items-baseline justify-end gap-1">
+                  <span className="text-lg font-bold text-emerald-950">₦15,000</span>
+                  <span className="text-xs text-slate-500 font-normal">/ slot</span>
+                </div>
+              </div>
+
+              <div className="border-t border-emerald-200/70 pt-2.5 space-y-1.5">
+                <p className="text-xs font-bold text-emerald-900">
+                  To be funded from Mushroom Village proceeds
+                </p>
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  So from the second quarter, the farms will be opened and other details of expenses will appear on their group farm accounts.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-white/80 border border-emerald-100 text-xs text-slate-600 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Allocation Model:</span>
+                <span className="font-semibold text-emerald-900">Mushroom Cycle 2 Proceeds</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Opening Schedule:</span>
+                <span className="font-semibold text-slate-800">Second Quarter (Q2)</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Expense Records:</span>
+                <span className="font-semibold text-slate-800">Group Farm Accounts</span>
+              </div>
             </div>
           </CardContent>
           <CardFooter>
-            <Button variant="ghost" className="w-full" disabled>
-              Available Q4 2024
+            <Button variant="outline" className="w-full border-emerald-200 bg-emerald-50/60 text-emerald-900 cursor-default font-medium" disabled>
+              To Be Funded From Mushroom Village Proceeds
             </Button>
           </CardFooter>
         </Card>

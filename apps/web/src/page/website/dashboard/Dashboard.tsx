@@ -704,26 +704,26 @@ const Dashboard = () => {
                   className="w-full rounded-2xl border border-emerald-700 bg-emerald-800 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-emerald-700 text-left flex items-center justify-between shadow-xs"
                 >
                   <div>
-                    <p className="font-bold text-white">Mushroom Village (Flagship)</p>
-                    <p className="text-xs text-emerald-100/90 font-normal">₦5,000/slot · Active commercial production</p>
+                    <p className="font-bold text-white">Mushroom Village</p>
+                    <p className="text-xs text-emerald-100/90 font-normal">Organic Mushrooms · Active commercial production</p>
                   </div>
                   <span className="text-xs font-bold uppercase bg-emerald-950/60 px-2 py-0.5 rounded text-emerald-200">Open</span>
                 </button>
 
                 <div className="w-full rounded-2xl border border-gray-200 bg-gray-50/90 px-4 py-3 text-sm text-left flex items-center justify-between">
                   <div>
-                    <p className="font-bold text-gray-700">Ginger Town Farm</p>
-                    <p className="text-xs text-gray-500">Funded via Mushroom Cycle 2 returns</p>
+                    <p className="font-bold text-gray-700">Gingertown</p>
+                    <p className="text-xs text-gray-500">Organic Ginger (& Stevia) · ₦33,000/slot · Funded via Mushroom proceeds</p>
                   </div>
-                  <span className="text-[10px] font-bold uppercase bg-amber-100 text-amber-800 px-2 py-0.5 rounded border border-amber-200">Cycle 2 Funded</span>
+                  <span className="text-[10px] font-bold uppercase bg-amber-100 text-amber-800 px-2 py-0.5 rounded border border-amber-200">Opens Q2</span>
                 </div>
 
                 <div className="w-full rounded-2xl border border-gray-200 bg-gray-50/90 px-4 py-3 text-sm text-left flex items-center justify-between">
                   <div>
                     <p className="font-bold text-gray-700">Organic FoodNation</p>
-                    <p className="text-xs text-gray-500">Integrated food cluster expansion</p>
+                    <p className="text-xs text-gray-500">Organic Food Crops & Livestock · ₦15,000/slot · Funded via Mushroom proceeds</p>
                   </div>
-                  <span className="text-[10px] font-bold uppercase bg-gray-200 text-gray-600 px-2 py-0.5 rounded">Expansion Phase</span>
+                  <span className="text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded border border-emerald-200">Opens Q2</span>
                 </div>
               </div>
             </div>

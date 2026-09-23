@@ -876,25 +876,25 @@ const Checkout = () => {
                       required
                     >
                       <option value="Mushroom Village">
-                        Mushroom Village (Active Cluster)
+                        Mushroom Village - Organic Mushrooms (Active Cluster)
                       </option>
                       <option
                         value="Ginger Town"
                         disabled
                         className="text-muted-foreground bg-muted/40"
                       >
-                        Ginger Town (Coming Soon)
+                        Gingertown - Organic Ginger (& Stevia) (Funded via Proceeds · Opens Q2)
                       </option>
                       <option
                         value="Organic FoodNation (1 Million Hectares against Hunger)"
                         disabled
                         className="text-muted-foreground bg-muted/40"
                       >
-                        Organic FoodNation (In Incubation)
+                        Organic FoodNation - Organic Food Crops & Livestock (Funded via Proceeds · Opens Q2)
                       </option>
                     </select>
                     <p className="text-[11px] text-muted-foreground mb-4">
-                      Currently, only the <strong>Mushroom Village</strong> cluster is open for active slot allocation.
+                      Currently, only the <strong>Mushroom Village</strong> cluster is open for active slot allocation. Gingertown (₦33,000/slot) and Organic FoodNation (₦15,000/slot) are to be funded from Mushroom Village proceeds and opened from the second quarter.
                     </p>
                     {errors.category && (
                       <p className="text-xs text-red-500 -mt-2 mb-4">
