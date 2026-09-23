@@ -26,6 +26,7 @@ export const GreenCardCommunity: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [hasGreenCard, setHasGreenCard] = useState(false);
+  const [hasFarmSlots, setHasFarmSlots] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [fullName, setFullName] = useState<string>("");
   const [memberId, setMemberId] = useState<string>("");
@@ -67,6 +68,17 @@ export const GreenCardCommunity: React.FC = () => {
           (!!greenCard && (!greenCard.expires_at || new Date(greenCard.expires_at) > new Date()));
 
         if (!isActive) {
+          const { data: slotSubs } = await supabase
+            .from("slot_subscriptions")
+            .select("slots")
+            .eq("user_id", user.id)
+            .eq("status", "active");
+
+          const slotsCount = (slotSubs || []).reduce(
+            (sum, s) => sum + (Number(s.slots) || 0),
+            0,
+          );
+          setHasFarmSlots(slotsCount > 0);
           setHasGreenCard(false);
           setLoading(false);
           return;
@@ -124,13 +136,19 @@ export const GreenCardCommunity: React.FC = () => {
 
           <div className="space-y-2">
             <Badge className="bg-amber-100 text-amber-900 border-amber-200 text-xs px-3 py-1 font-bold">
-              Membership Credential Required
+              {hasFarmSlots
+                ? "Farm Operations Active • Credential Required"
+                : "Membership Credential Required"}
             </Badge>
             <h1 className="text-2xl font-black text-gray-900 uppercase">
-              Activate Your Community Digital Pass
+              {hasFarmSlots
+                ? "Unlock Official Green Card Credential"
+                : "Activate Your Community Digital Pass"}
             </h1>
             <p className="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-sm mx-auto">
-              Your official AgroHeal Community Digital Pass unlocks verified community membership, lifetime curriculum access, and ₦1,000 direct referral rewards.
+              {hasFarmSlots
+                ? "Your Farm Operations and slot allocations are verified and active! To unlock your official Green Card Digital ID, QR accreditation, 5×7 matrix placement, and community benefits, complete your one-time ₦2,000 credential fee."
+                : "Your official AgroHeal Community Digital Pass unlocks verified community membership, lifetime curriculum access, and ₦1,000 direct referral rewards."}
             </p>
           </div>
 

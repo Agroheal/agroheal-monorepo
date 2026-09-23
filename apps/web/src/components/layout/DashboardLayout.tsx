@@ -24,7 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "./NotificationBell";
 import HowItWorksContent from "@/components/webComponents/HowItWorksContent";
 import UserAvatar from "@/components/ui/UserAvatar";
-import PhoneModal from "@/page/website/dashboard/PhoneModal";
+import ProfileCompletionModal from "@/components/dashboard/ProfileCompletionModal";
 
 const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
 
@@ -466,14 +466,43 @@ const DashboardLayout = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
   const { session, profile } = useAuth();
-  const [phoneMissing, setPhoneMissing] = useState<boolean>(false);
+  const [profileIncomplete, setProfileIncomplete] = useState<boolean>(false);
+  const [kinData, setKinData] = useState<{
+    kin_name?: string;
+    kin_address?: string;
+    kin_number?: string;
+  } | null>(null);
 
   useEffect(() => {
-    if (profile && (!profile.phone || String(profile.phone).trim().length < 10)) {
-      setPhoneMissing(true);
-    } else if (profile?.phone) {
-      setPhoneMissing(false);
-    }
+    let isMounted = true;
+    const checkCompleteness = async () => {
+      if (!profile?.id) return;
+
+      const isPhoneMissing =
+        !profile.phone || String(profile.phone).trim().length < 10;
+
+      const { data: kin } = await supabase
+        .from("kin_details")
+        .select("kin_name, kin_number, kin_address")
+        .eq("user_id", profile.id)
+        .maybeSingle();
+
+      if (!isMounted) return;
+
+      setKinData(kin);
+      const isKinMissing =
+        !kin?.kin_name ||
+        !kin?.kin_number ||
+        String(kin.kin_number).trim().length < 10;
+
+      setProfileIncomplete(isPhoneMissing || isKinMissing);
+    };
+
+    checkCompleteness();
+
+    return () => {
+      isMounted = false;
+    };
   }, [profile]);
 
   const isSuperDeveloper =
@@ -745,11 +774,13 @@ const DashboardLayout = () => {
         </main>
       </div>
 
-      {phoneMissing && profile && (
-        <PhoneModal
+      {profileIncomplete && profile && (
+        <ProfileCompletionModal
           userId={profile.id}
+          initialPhone={profile.phone}
+          initialKin={kinData}
           onComplete={() => {
-            setPhoneMissing(false);
+            setProfileIncomplete(false);
             window.location.reload();
           }}
         />

@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { LoaderCircle } from "lucide-react";
-import { Toaster, toast } from "react-hot-toast";
+import { Toaster } from "react-hot-toast";
 import { supabase } from "@/lib/supabaseClient";
-import KinModal from "./KinModal";
+import ProfileCompletionModal from "@/components/dashboard/ProfileCompletionModal";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 const KinDetails = () => {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [phone, setPhone] = useState<string>("");
   const [initialData, setInitialData] = useState<{
     kin_name?: string;
     kin_address?: string;
@@ -28,37 +28,21 @@ const KinDetails = () => {
         return;
       }
 
-      // Check if phone exists; if not, redirect back to dashboard
       const { data: profileData } = await supabase
         .from("profiles")
         .select("phone")
         .eq("id", user.id)
         .maybeSingle();
 
-      if (!profileData?.phone) {
-        toast("Please add your phone number first.");
-        navigate("/dashboard", { replace: true });
-        return;
-      }
-
+      setPhone(profileData?.phone || "");
       setUserId(user.id);
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("kin_details")
         .select("kin_name, kin_address, kin_number")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      if (error) {
-        console.error("Failed to load Kin or POD details", error);
-      }
-
-      setInitialData(
-        data || {
-          kin_name: "",
-          kin_address: "",
-          kin_number: "",
-        },
-      );
+      setInitialData(data || null);
       setLoading(false);
     };
 
@@ -66,7 +50,7 @@ const KinDetails = () => {
   }, [navigate]);
 
   if (loading) {
-    return <LoadingSpinner message="Loading Kin or POD details..." />;
+    return <LoadingSpinner message="Loading Profile & Next of Kin details..." />;
   }
 
   if (!userId) {
@@ -76,9 +60,11 @@ const KinDetails = () => {
   return (
     <>
       <Toaster />
-      <KinModal
+      <ProfileCompletionModal
         userId={userId}
-        initialData={initialData ?? undefined}
+        initialPhone={phone}
+        initialKin={initialData}
+        canDismiss={true}
         onComplete={() => navigate("/dashboard", { replace: true })}
         onClose={() => navigate("/dashboard", { replace: true })}
       />

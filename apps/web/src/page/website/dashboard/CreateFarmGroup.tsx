@@ -21,8 +21,12 @@ const CreateFarmGroup = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanedFarmName = cleanName(farmName);
-    if (!cleanedFarmName) return;
+    const rawName = cleanName(farmName);
+    if (!rawName) return;
+
+    // Harmonize name: e.g. "Heritage Farm" + "Mushroom Village" -> "Heritage Farm [Mushroom Village]"
+    const baseName = rawName.replace(/\s*\[.*?\]$/, "").replace(/\s*\(.*?\)$/, "").trim();
+    const cleanedFarmName = `${baseName} [${category}]`;
     setLoading(true);
 
     const {
@@ -193,6 +197,12 @@ const CreateFarmGroup = () => {
             className="h-11"
             required
           />
+          {farmName.trim() && (
+            <p className="text-xs text-emerald-800 font-medium bg-emerald-50 border border-emerald-200/60 p-2 rounded-lg">
+              <strong>Standardized Name:</strong>{" "}
+              {farmName.replace(/\s*\[.*?\]$/, "").replace(/\s*\(.*?\)$/, "").trim()} [{category}]
+            </p>
+          )}
         </div>
 
         <Button

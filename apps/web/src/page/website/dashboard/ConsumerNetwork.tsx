@@ -88,6 +88,7 @@ export const ConsumerNetwork: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [directReferralsCount, setDirectReferralsCount] = useState<number>(0);
   const [unlockedLevel, setUnlockedLevel] = useState<number>(0);
+  const [hasGreenCard, setHasGreenCard] = useState<boolean>(true);
   const [calcOrdersPerMember, setCalcOrdersPerMember] = useState<number>(1);
   const [commissionTableOpen, setCommissionTableOpen] = useState(false);
 
@@ -106,6 +107,30 @@ export const ConsumerNetwork: React.FC = () => {
         setLoading(false);
         return;
       }
+
+      // Check Green Card Status
+      const [{ data: prof }, { data: greenCardSub }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("member_id")
+          .eq("id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("subscriptions")
+          .select("expires_at")
+          .eq("user_id", user.id)
+          .eq("status", "active")
+          .eq("plan", "green_card")
+          .maybeSingle(),
+      ]);
+
+      const isCardActive = Boolean(
+        prof?.member_id ||
+          (greenCardSub &&
+            (!greenCardSub.expires_at ||
+              new Date(greenCardSub.expires_at).getTime() > Date.now())),
+      );
+      setHasGreenCard(isCardActive);
 
       // 1. Check API qualifications if available
       try {
@@ -375,6 +400,36 @@ export const ConsumerNetwork: React.FC = () => {
             </Link>
           </div>
         </div>
+
+        {!hasGreenCard && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-800 shrink-0 mt-0.5">
+                <Lock className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                  <span>Green Card Membership Required for 5×7 Matrix Placement</span>
+                  <span className="bg-amber-200 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                    Locked
+                  </span>
+                </h4>
+                <p className="text-xs text-gray-600 mt-1 max-w-2xl leading-relaxed">
+                  Your farm operations are active, but your account currently does not have an active Green Card subscription. Green Card credentials unlock official 5×7 matrix auto-placement, ₦1,000 direct referral rewards, and retail upline commissions across all 7 levels.
+                </p>
+              </div>
+            </div>
+            <Button
+              asChild
+              className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shrink-0 shadow-md"
+            >
+              <Link to="/subscribe">
+                <Sparkles className="w-4 h-4 mr-1.5" />
+                Activate Green Card (₦2,000)
+              </Link>
+            </Button>
+          </div>
+        )}
 
         {/* Collapsible Content */}
         <AnimatePresence initial={false}>

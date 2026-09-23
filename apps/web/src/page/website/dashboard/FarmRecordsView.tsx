@@ -1655,9 +1655,23 @@ const FarmRecordsView = () => {
           <div className="flex flex-col gap-2.5">
             <div className="flex flex-col md:flex-row gap-3 items-start md:items-center flex-wrap">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-0.5">
-                  {farm?.name || "No"} Records
-                </h2>
+                {(() => {
+                  const match = farm?.name ? farm.name.match(/^(.+?)\s*\[(.+?)\]$/) : null;
+                  const baseName = match ? match[1] : (farm?.name || "No");
+                  const clusterBadge = match ? match[2] : farm?.project_category;
+                  return (
+                    <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        {baseName} Records
+                      </h2>
+                      {clusterBadge && (
+                        <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs px-2.5 py-0.5 rounded-lg shadow-2xs">
+                          [{clusterBadge}]
+                        </span>
+                      )}
+                    </div>
+                  );
+                })()}
                 <p className="text-gray-600 text-xs">
                   {farm?.project_category} • Bookkeeping and finance tracking
                 </p>

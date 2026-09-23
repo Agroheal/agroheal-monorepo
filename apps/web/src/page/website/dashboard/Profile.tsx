@@ -23,8 +23,7 @@ import { SITE_URL } from "@/config/Index";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
-import PhoneModal from "./PhoneModal";
-import KinModal from "./KinModal";
+import ProfileCompletionModal from "@/components/dashboard/ProfileCompletionModal";
 import toast, { Toaster } from "react-hot-toast";
 import UserAvatar from "@/components/ui/UserAvatar";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
@@ -53,8 +52,7 @@ export const ProfileComponent: React.FC = () => {
   const [kin, setKin] = useState<KinData | null>(null);
   const [loading, setLoading] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [showPhoneModal, setShowPhoneModal] = useState(false);
-  const [showKinModal, setShowKinModal] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -316,10 +314,10 @@ export const ProfileComponent: React.FC = () => {
               </div>
             </div>
             <button
-              onClick={() => setShowPhoneModal(true)}
+              onClick={() => setShowCompletionModal(true)}
               className="text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 transition-colors"
             >
-              Edit Phone
+              Edit Details
             </button>
           </div>
 
@@ -377,7 +375,7 @@ export const ProfileComponent: React.FC = () => {
               </div>
             </div>
             <button
-              onClick={() => setShowKinModal(true)}
+              onClick={() => setShowCompletionModal(true)}
               className="text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 transition-colors"
             >
               {kin?.kin_name ? "Update Next of Kin" : "Add Next of Kin"}
@@ -411,7 +409,7 @@ export const ProfileComponent: React.FC = () => {
                 </p>
               </div>
               <Button
-                onClick={() => setShowKinModal(true)}
+                onClick={() => setShowCompletionModal(true)}
                 className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-8 px-4 rounded-xl font-bold"
               >
                 Configure Next of Kin
@@ -441,24 +439,16 @@ export const ProfileComponent: React.FC = () => {
       </div>
 
 
-      {/* Modals */}
-      {showPhoneModal && profile && (
-        <PhoneModal
+      {/* Unified Profile Completion Modal */}
+      {showCompletionModal && profile && (
+        <ProfileCompletionModal
           userId={profile.id}
+          initialPhone={profile.phone || ""}
+          initialKin={kin}
+          canDismiss={true}
+          onClose={() => setShowCompletionModal(false)}
           onComplete={() => {
-            setShowPhoneModal(false);
-            fetchProfile();
-          }}
-        />
-      )}
-
-      {showKinModal && profile && (
-        <KinModal
-          userId={profile.id}
-          initialData={kin ?? undefined}
-          onClose={() => setShowKinModal(false)}
-          onComplete={() => {
-            setShowKinModal(false);
+            setShowCompletionModal(false);
             fetchProfile();
           }}
         />

@@ -28,9 +28,7 @@ import { SITE_URL } from "@/config/Index";
 import { Toaster, toast } from "react-hot-toast";
 import FarmingInitiativePopup from "./TelegramPopup";
 import ShareReferralModal from "@/components/webComponents/shareModal";
-import PhoneModal from "./PhoneModal";
 import FarmCycleTracker from "@/components/dashboard/FarmCycleTracker";
-import KinModal from "./KinModal";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import NextStepModal from "@/components/dashboard/NextStepModal";
@@ -80,8 +78,6 @@ const Dashboard = () => {
   >([]);
   const [showShareModal, setShowShareModal] = useState(false);
   const [profileError, setProfileError] = useState(false);
-  const [showPhoneModal, setShowPhoneModal] = useState<boolean>(false);
-  const [showKinModal, setShowKinModal] = useState<boolean>(false);
   const [showSecureSlotModal, setShowSecureSlotModal] =
     useState<boolean>(false);
   const [hasGreenCard, setHasGreenCard] = useState<boolean>(false);
@@ -105,10 +101,6 @@ const Dashboard = () => {
       if (selectError || !profileData) {
         setProfileError(true);
         return;
-      }
-
-      if (!profileData.phone) {
-        setShowPhoneModal(true);
       }
 
       // Fetch all independent data in parallel
@@ -163,16 +155,6 @@ const Dashboard = () => {
             kin_number: "",
           },
         );
-
-        // Only show Kin modal if kin details are missing AND user has a phone number
-        if (
-          (!kinData?.kin_name ||
-            !kinData?.kin_address ||
-            !kinData?.kin_number) &&
-          profileData.phone
-        ) {
-          setShowKinModal(true);
-        }
       }
 
       profileData.referrals = referrals || [];
@@ -1098,26 +1080,6 @@ const Dashboard = () => {
         onClose={() => setShowShareModal(false)}
         referralCode={profile?.referral_code ?? ""}
       />
-      {showPhoneModal && profile && (
-        <PhoneModal
-          userId={profile.id}
-          onComplete={() => {
-            setShowPhoneModal(false);
-            setProfile((prev) => (prev ? { ...prev, phone: true } : prev));
-          }}
-        />
-      )}
-      {showKinModal && profile && kinDetails !== null && (
-        <KinModal
-          userId={profile.id}
-          initialData={kinDetails}
-          onComplete={(updatedData) => {
-            setShowKinModal(false);
-            setKinDetails(updatedData);
-          }}
-          onClose={() => setShowKinModal(false)}
-        />
-      )}
       {profile && (
         <NextStepModal
           hasGreenCard={Boolean(profile.member_id || hasGreenCard)}

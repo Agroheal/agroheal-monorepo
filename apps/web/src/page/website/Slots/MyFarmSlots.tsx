@@ -271,12 +271,19 @@ const MyFarmSlots: React.FC = () => {
                   <Sprout className="w-6 h-6 text-emerald-600" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-bold text-slate-900">{sub.farm_name}</h3>
-                    <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">
-                      {sub.category}
-                    </Badge>
-                  </div>
+                  {(() => {
+                    const match = sub.farm_name.match(/^(.+?)\s*\[(.+?)\]$/);
+                    const displayName = match ? match[1] : sub.farm_name;
+                    const displayCategory = match ? match[2] : sub.category;
+                    return (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="text-lg font-bold text-slate-900">{displayName}</h3>
+                        <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-xs">
+                          [{displayCategory}]
+                        </Badge>
+                      </div>
+                    );
+                  })()}
                   <p className="text-sm text-slate-500">
                     Your Stake: <span className="font-semibold text-slate-700">{sub.slots_held} Slots</span> ({sub.fruiting_bags} bags)
                   </p>
