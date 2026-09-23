@@ -43,17 +43,28 @@ export const GreenCardCommunity: React.FC = () => {
           return;
         }
 
-        // 1. Check Green Card Subscription status
-        const { data: greenCard } = await supabase
-          .from("subscriptions")
-          .select("expires_at, started_at")
-          .eq("user_id", user.id)
-          .eq("status", "active")
-          .eq("plan", "green_card")
-          .maybeSingle();
+        // 1. Fetch Green Card Subscription & Profile in parallel
+        const [
+          { data: greenCard },
+          { data: profile }
+        ] = await Promise.all([
+          supabase
+            .from("subscriptions")
+            .select("expires_at, started_at")
+            .eq("user_id", user.id)
+            .eq("status", "active")
+            .eq("plan", "green_card")
+            .maybeSingle(),
+          supabase
+            .from("profiles")
+            .select("referral_code, member_id, full_name, created_at")
+            .eq("id", user.id)
+            .maybeSingle()
+        ]);
 
         const isActive =
-          !!greenCard && new Date(greenCard.expires_at) > new Date();
+          Boolean(profile?.member_id) ||
+          (!!greenCard && (!greenCard.expires_at || new Date(greenCard.expires_at) > new Date()));
 
         if (!isActive) {
           setHasGreenCard(false);
@@ -62,27 +73,19 @@ export const GreenCardCommunity: React.FC = () => {
         }
 
         setHasGreenCard(true);
-        if (greenCard?.started_at) {
+        if (greenCard?.started_at || profile?.created_at) {
           setMemberSince(
-            new Date(greenCard.started_at).toLocaleDateString("en-US", {
+            new Date(greenCard?.started_at || profile?.created_at || Date.now()).toLocaleDateString("en-US", {
               month: "long",
               year: "numeric",
             })
           );
         }
 
-        // 2. Fetch Profile details
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("referral_code, member_id, full_name")
-          .eq("id", user.id)
-          .maybeSingle();
-
         setFullName(profile?.full_name ?? "");
         if (profile?.referral_code) {
           setReferralCode(profile.referral_code);
         }
-
         if (profile?.member_id) {
           setMemberId(profile.member_id);
         } else {

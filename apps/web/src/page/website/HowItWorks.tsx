@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles } from "lucide-react";
+import { Sparkles, FileText, ArrowDownToLine } from "lucide-react";
 import { CTASection } from "@/components/webComponents/CTASection";
 import HowItWorksContent from "@/components/webComponents/HowItWorksContent";
 
@@ -35,6 +35,19 @@ export default function HowItWorks() {
               farming, and commercial off-taker networks together into one seamless
               platform: <strong>Learn, Practice, Earn</strong>.
             </p>
+
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <a
+                href="/documents/AgroHeal_Green_Card_Presentation.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-green-850 hover:bg-green-750 text-white font-semibold text-sm transition-all shadow-md hover:shadow-lg"
+              >
+                <FileText className="w-4 h-4 text-[#d1ef75]" />
+                <span>View Green Card Ecosystem Presentation (PDF)</span>
+                <ArrowDownToLine className="w-4 h-4 ml-0.5" />
+              </a>
+            </div>
           </motion.div>
 
           {/* Reusable Core Content */}

@@ -46,11 +46,10 @@ const PhoneModal = ({
             <Phone className="w-6 h-6 text-green-800" />
           </div>
           <h2 className="text-lg font-bold text-gray-900">
-            Add Your Phone Number
+            Mandatory Contact Phone Number
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            We need your phone number to keep you updated on your farming
-            journey.
+          <p className="text-xs sm:text-sm text-gray-600 mt-1.5 leading-relaxed">
+            A referrer must be able to contact his or her referrals. Please provide your active phone number to proceed to your AgroHeal dashboard.
           </p>
         </div>
 

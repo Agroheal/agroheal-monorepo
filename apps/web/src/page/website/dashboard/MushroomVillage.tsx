@@ -390,8 +390,8 @@ const MushroomVillage = () => {
                 </li>
                 <li>
                   <span className="font-semibold">Farm Setup:</span> ₦3,500 per
-                  slot. This funds seed, irrigation, land preparation, and farm
-                  establishment.
+                  slot. This covers Mushroom farm establishment including mushroom bags,
+                  fruiting house construction, logistics and human resources.
                 </li>
                 <li>
                   <span className="font-semibold">

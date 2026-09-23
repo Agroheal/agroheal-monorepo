@@ -188,6 +188,21 @@ const BuySlots: React.FC = () => {
                 </p>
               </div>
             </div>
+
+            <div className="p-3.5 rounded-xl bg-white/80 border border-amber-100 text-xs text-slate-600 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Allocation Model:</span>
+                <span className="font-semibold text-amber-900">Mushroom Cycle 2 Proceeds</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Opening Schedule:</span>
+                <span className="font-semibold text-slate-800">Second Quarter (Q2)</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Expense Records:</span>
+                <span className="font-semibold text-slate-800">Group Farm Accounts</span>
+              </div>
+            </div>
           </CardContent>
           <CardFooter>
             <Button variant="outline" className="w-full border-amber-200 bg-amber-50/60 text-amber-900 cursor-default font-medium" disabled>
@@ -231,6 +246,21 @@ const BuySlots: React.FC = () => {
                 <p className="text-[11px] text-slate-600 leading-relaxed">
                   So from the second quarter, the farms will be opened and other details of expenses will appear on their group farm accounts.
                 </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-white/80 border border-emerald-100 text-xs text-slate-600 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Allocation Model:</span>
+                <span className="font-semibold text-emerald-900">Mushroom Cycle 2 Proceeds</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Opening Schedule:</span>
+                <span className="font-semibold text-slate-800">Second Quarter (Q2)</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-slate-500 font-medium">Expense Records:</span>
+                <span className="font-semibold text-slate-800">Group Farm Accounts</span>
               </div>
             </div>
           </CardContent>

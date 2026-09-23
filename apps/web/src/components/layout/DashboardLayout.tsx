@@ -24,6 +24,7 @@ import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "./NotificationBell";
 import HowItWorksContent from "@/components/webComponents/HowItWorksContent";
 import UserAvatar from "@/components/ui/UserAvatar";
+import PhoneModal from "@/page/website/dashboard/PhoneModal";
 
 const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
 
@@ -465,6 +466,15 @@ const DashboardLayout = () => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
   const { session, profile } = useAuth();
+  const [phoneMissing, setPhoneMissing] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (profile && (!profile.phone || String(profile.phone).trim().length < 10)) {
+      setPhoneMissing(true);
+    } else if (profile?.phone) {
+      setPhoneMissing(false);
+    }
+  }, [profile]);
 
   const isSuperDeveloper =
     session?.user?.email?.toLowerCase() === "developerelijah360@gmail.com";
@@ -734,6 +744,16 @@ const DashboardLayout = () => {
           />
         </main>
       </div>
+
+      {phoneMissing && profile && (
+        <PhoneModal
+          userId={profile.id}
+          onComplete={() => {
+            setPhoneMissing(false);
+            window.location.reload();
+          }}
+        />
+      )}
     </div>
   );
 };

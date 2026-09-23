@@ -181,7 +181,7 @@ export default function TransactionLedger() {
           .select("id, slots, started_at, plan, status, expires_at")
           .eq("user_id", user.id),
         supabase
-          .from("otherPayments")
+          .from("other_payments")
           .select("id, amount, payment_type, created_at, status, reference")
           .eq("user_id", user.id),
         supabase

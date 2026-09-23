@@ -24,20 +24,31 @@ const RequireSubscription = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      const { data: sub } = await supabase
-        .from("subscriptions")
-        .select("expires_at, plan, status")
-        .eq("user_id", user.id)
-        .eq("plan", "green_card")
-        .eq("status", "active")
-        .order("expires_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const [
+        { data: sub },
+        { data: profile }
+      ] = await Promise.all([
+        supabase
+          .from("subscriptions")
+          .select("expires_at, plan, status")
+          .eq("user_id", user.id)
+          .eq("plan", "green_card")
+          .eq("status", "active")
+          .order("expires_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("profiles")
+          .select("member_id")
+          .eq("id", user.id)
+          .maybeSingle(),
+      ]);
 
-      const isActive = Boolean(
+      const isSubActive = Boolean(
         sub && (!sub.expires_at || new Date(sub.expires_at).getTime() > Date.now())
       );
-      setHasActiveSubscription(isActive);
+      const isCardHolder = Boolean(profile?.member_id || isSubActive);
+      setHasActiveSubscription(isCardHolder);
       setLoading(false);
     };
 

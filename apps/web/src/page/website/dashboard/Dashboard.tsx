@@ -396,7 +396,7 @@ const Dashboard = () => {
                 How Agroheal Works: Learn, Practice & Earn
               </h2>
               <p className="text-xs text-emerald-200/90 mt-0.5">
-                Master organic agriculture, activate Wealth Creation farm slots, and receive projected quarterly harvest dividends.
+                Secure practical farm slots (₦5,000/slot) for Mushroom Group Farming and share in quarterly harvest dividends.
               </p>
             </div>
           </div>
@@ -1120,7 +1120,7 @@ const Dashboard = () => {
       )}
       {profile && (
         <NextStepModal
-          hasGreenCard={Boolean(profile.member_id)}
+          hasGreenCard={Boolean(profile.member_id || hasGreenCard)}
           totalSlots={totalSlotsPurchased}
           directReferralsCount={profile.referrals?.length ?? 0}
           referralCode={profile.referral_code ?? ""}

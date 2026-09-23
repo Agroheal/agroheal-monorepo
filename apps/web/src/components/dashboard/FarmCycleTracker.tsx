@@ -91,13 +91,13 @@ export const FarmCycleTracker: React.FC = () => {
           </div>
           <h3 className="text-base font-semibold text-foreground">No Farm Production Slots Active</h3>
           <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            You do not hold active production slots yet. Secure practical farm slots (₦5,000/slot) to sponsor commercial mushroom or ginger clusters and receive quarterly harvest dividends.
+            You do not hold active production slots yet. Secure practical farm slots (₦5,000/slot) for Mushroom Group Farming and share in quarterly harvest dividends.
           </p>
           <a
             href="/dashboard/mushroom-village"
             className="inline-flex items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:underline pt-1"
           >
-            Sponsor Mushroom Village Slots <ChevronRight className="w-4 h-4" />
+            Secure Mushroom Village Slots <ChevronRight className="w-4 h-4" />
           </a>
         </CardContent>
       </Card>

@@ -12,6 +12,8 @@ import {
   ShieldCheck,
   ArrowRight,
   GraduationCap,
+  FileText,
+  ArrowDownToLine,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AgrohealImages } from "@/constant/Image";
@@ -418,8 +420,34 @@ export default function HowItWorksContent({
           </div>
         </div>
       )}
+      {/* Official Presentation Deck Download Banner */}
+      <div className="mt-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#0d2818] via-[#10331f] to-[#0a1e12] text-white border border-emerald-800/50 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5 text-[#d1ef75]" />
+          </div>
+          <div>
+            <h3 className="text-sm sm:text-base font-bold text-white">
+              Green Card Ecosystem Presentation Deck
+            </h3>
+            <p className="text-xs text-emerald-200/90 mt-0.5">
+              Read through our complete plain-language visual guide, model architecture, and community roadmap.
+            </p>
+          </div>
+        </div>
+        <a
+          href="/documents/AgroHeal_Green_Card_Presentation.pdf"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#d1ef75] hover:bg-[#bce055] text-emerald-950 font-bold text-xs shrink-0 transition-colors shadow-xs"
+        >
+          <span>Download Presentation (PDF)</span>
+          <ArrowDownToLine className="w-4 h-4" />
+        </a>
+      </div>
+
       {/* Statutory Community & Non-Investment Notice */}
-      <div className="mt-8 p-4 sm:p-5 rounded-2xl bg-white border border-gray-200/90 text-gray-600 text-xs sm:text-sm leading-relaxed shadow-xs flex items-start gap-3.5">
+      <div className="mt-6 p-4 sm:p-5 rounded-2xl bg-white border border-gray-200/90 text-gray-600 text-xs sm:text-sm leading-relaxed shadow-xs flex items-start gap-3.5">
         <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 border border-amber-200">
           <ShieldCheck className="w-4 h-4 text-amber-700" />
         </div>
