@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Coins,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +66,14 @@ const Checkout = () => {
     email: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const isFormValid = Boolean(
+    cleanName(formData.firstName).length >= 2 &&
+    cleanName(formData.lastName).length >= 2 &&
+    cleanEmail(formData.email) &&
+    normalizePhoneNumber(formData.phone).length >= 10 &&
+    category
+  );
 
   // ── Load Flutterwave script ───────────────────────────────────────────────
   useEffect(() => {
@@ -821,19 +830,20 @@ const Checkout = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="email">Email Address</Label>
+                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60 flex items-center gap-1">
+                        <Lock className="w-2.5 h-2.5" /> Verified Account Email
+                      </span>
+                    </div>
                     <Input
                       id="email"
                       name="email"
                       type="email"
                       placeholder="john@example.com"
                       value={formData.email}
-                      onChange={(e) => {
-                        handleInputChange(e);
-                        if (errors.email)
-                          setErrors((prev) => ({ ...prev, email: "" }));
-                      }}
-                      className={errors.email ? "border-red-500" : ""}
+                      readOnly
+                      className="bg-muted/50 cursor-not-allowed font-medium text-foreground select-none"
                     />
                     {errors.email && (
                       <p className="text-xs text-red-500 mt-1">
@@ -1229,17 +1239,28 @@ const Checkout = () => {
                 </div>
 
                 <div className="mt-8 space-y-3">
+                  {!isFormValid && (
+                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/90 text-amber-900 text-xs flex items-center gap-2.5 shadow-2xs">
+                      <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+                      <span>
+                        Please provide your full legal name and valid contact phone number (at least 10 digits) above to enable payment.
+                      </span>
+                    </div>
+                  )}
+
                   {paymentMethod === "flutterwave" ? (
                     <Button
                       onClick={handleFlutterwave}
-                      disabled={isProcessing}
-                      className="w-full h-12 bg-green-800 hover:bg-green-900 text-white font-semibold"
+                      disabled={isProcessing || !isFormValid}
+                      className="w-full h-12 bg-green-800 hover:bg-green-900 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isProcessing ? (
                         <span className="flex items-center gap-2">
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                           Processing Flutterwave...
                         </span>
+                      ) : !isFormValid ? (
+                        "Complete Contact Details to Pay"
                       ) : (
                         `Pay ₦${totalPrice.toLocaleString()} with Flutterwave`
                       )}
@@ -1247,7 +1268,7 @@ const Checkout = () => {
                   ) : paymentMethod === "wallet" ? (
                     <Button
                       onClick={handleWalletPayment}
-                      disabled={isProcessing || walletBalance < totalPrice}
+                      disabled={isProcessing || !isFormValid || walletBalance < totalPrice}
                       className="w-full h-12 bg-green-800 hover:bg-green-900 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isProcessing ? (
@@ -1255,6 +1276,8 @@ const Checkout = () => {
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                           Deducting Balance & Securing Slot...
                         </span>
+                      ) : !isFormValid ? (
+                        "Complete Contact Details to Pay"
                       ) : walletBalance >= totalPrice ? (
                         `Pay ₦${totalPrice.toLocaleString()} from Wallet Balance`
                       ) : (
@@ -1264,14 +1287,16 @@ const Checkout = () => {
                   ) : (
                     <Button
                       onClick={handleSplitPayment}
-                      disabled={isProcessing || walletAmountToUse <= 0}
-                      className="w-full h-12 bg-green-800 hover:bg-green-900 text-white font-semibold"
+                      disabled={isProcessing || !isFormValid || walletAmountToUse <= 0}
+                      className="w-full h-12 bg-green-800 hover:bg-green-900 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isProcessing ? (
                         <span className="flex items-center gap-2">
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                           Processing Split Payment...
                         </span>
+                      ) : !isFormValid ? (
+                        "Complete Contact Details to Pay"
                       ) : (
                         `Pay ₦${Math.max(0, totalPrice - walletAmountToUse).toLocaleString()} via Card (+ ₦${walletAmountToUse.toLocaleString()} from Wallet)`
                       )}
