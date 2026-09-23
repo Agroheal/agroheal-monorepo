@@ -41,20 +41,6 @@ export { getUnlockedMatrixLevel };
 
 const UPCOMING_PRODUCTS = [
   {
-    id: "prod-1",
-    name: "AgroHeal Mushroom Break",
-    subtitle: "Mushroom-Enriched Sweet-Corn Flakes",
-    tagline: "Break Fast. Break Better.",
-    category: "Functional Breakfast Cereals",
-    image: "/products/mushroom-break.jpg",
-    price: 4500,
-    directCommission: 540,
-    uplinePool: 967.5,
-    tag: "Enriched Breakfast",
-    desc: "Crispy sweet-corn flakes fortified with organically grown oyster mushroom extract. A nourishing, nutrient-dense breakfast for home, school, and work.",
-    inStock: "Coming Soon",
-  },
-  {
     id: "prod-2",
     name: "AgroHeal Mushroom Power (100g)",
     subtitle: "100% Pure Oyster Mushroom Powder",
@@ -67,6 +53,20 @@ const UPCOMING_PRODUCTS = [
     tag: "Flagship Superfood",
     desc: "Pure, natural 100% oyster mushroom powder rich in essential beta-glucans, plant proteins, and immune-supporting antioxidants. Perfect for meals and smoothies.",
     inStock: "Welcome Product",
+  },
+  {
+    id: "prod-1",
+    name: "AgroHeal Mushroom Break",
+    subtitle: "Mushroom-Enriched Sweet-Corn Flakes",
+    tagline: "Break Fast. Break Better.",
+    category: "Functional Breakfast Cereals",
+    image: "/products/mushroom-break.jpg",
+    price: 4500,
+    directCommission: 540,
+    uplinePool: 967.5,
+    tag: "Enriched Breakfast",
+    desc: "Crispy sweet-corn flakes fortified with organically grown oyster mushroom extract. A nourishing, nutrient-dense breakfast for home, school, and work.",
+    inStock: "Coming Soon",
   },
   {
     id: "prod-3",
