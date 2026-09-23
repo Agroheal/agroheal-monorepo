@@ -883,7 +883,7 @@ const Checkout = () => {
                         disabled
                         className="text-muted-foreground bg-muted/40"
                       >
-                        Gingertown - Organic Ginger (& Stevia) (Funded via Proceeds · Opens Q2)
+                        Gingertown - Organic Ginger (Funded via Proceeds · Opens Q2)
                       </option>
                       <option
                         value="Organic FoodNation (1 Million Hectares against Hunger)"
