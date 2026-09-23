@@ -6,168 +6,22 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sprout, DollarSign, TrendingUp, AlertCircle, Eye, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/lib/supabaseClient';
+import { useFarmStore } from '@/store/useFarmStore';
 
 const MyFarmSlots: React.FC = () => {
   const { session, profile } = useAuth();
   const user = session?.user;
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const { clusters, loading, fetchFarmData } = useFarmStore();
   const [expandedCluster, setExpandedCluster] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchSubscriptions();
-  }, [user]);
-
-  const fetchSubscriptions = async () => {
-    const currentUser = user || (await supabase.auth.getUser()).data.user;
-    if (!currentUser) {
-      setLoading(false);
-      return;
+    if (user?.id) {
+      fetchFarmData(user.id, user.email || profile?.email);
     }
-    setLoading(true);
-    try {
-      // 1. Query user's slot subscriptions
-      const { data: slotSubs, error: slotErr } = await supabase
-        .from("slot_subscriptions")
-        .select("id, slots, amount, status, project_category, farm_group_id, created_at")
-        .eq("user_id", currentUser.id)
-        .eq("status", "active");
+  }, [user?.id, user?.email, profile?.email, fetchFarmData]);
 
-      // 2. Also check if user has records in farm_records (assigned farm cluster)
-      const { data: farmRecords } = await supabase
-        .from("farm_records")
-        .select("id, farm_id, farm_slots, bags_allocated, setup_fee_paid, support_fee_paid, project_category, created_at")
-        .eq("email", currentUser.email || "");
-
-      // 3. Fetch farm groups to resolve names & coordinators
-      const { data: farmGroups } = await supabase
-        .from("farm_groups")
-        .select("id, name, slug, project_category, coordinator_id");
-
-      const groupsMap = new Map<string, any>();
-      (farmGroups || []).forEach((fg) => {
-        groupsMap.set(fg.id, fg);
-      });
-
-      // Collect unique farm IDs to fetch expenses & sales
-      const relevantFarmIds = new Set<string>();
-      (slotSubs || []).forEach((s) => {
-        if (s.farm_group_id) relevantFarmIds.add(s.farm_group_id);
-      });
-      (farmRecords || []).forEach((fr) => {
-        if (fr.farm_id) relevantFarmIds.add(fr.farm_id);
-      });
-
-      const farmIdList = Array.from(relevantFarmIds);
-
-      // 4. Fetch expenses and sales for these farms if any
-      const expensesMap: Record<string, any[]> = {};
-      const salesMap: Record<string, any[]> = {};
-
-      if (farmIdList.length > 0) {
-        const [{ data: expData }, { data: saleData }] = await Promise.all([
-          supabase.from("farm_expenses").select("*").in("farm_id", farmIdList).order("created_at", { ascending: false }).limit(20),
-          supabase.from("farm_sales").select("*").in("farm_id", farmIdList).order("sale_date", { ascending: false }).limit(20),
-        ]);
-
-        (expData || []).forEach((e: any) => {
-          if (!expensesMap[e.farm_id]) expensesMap[e.farm_id] = [];
-          expensesMap[e.farm_id].push({
-            date: e.created_at ? new Date(e.created_at).toLocaleDateString() : "",
-            description: e.description || e.category || "Operating expense",
-            amount: Number(e.amount) || 0,
-          });
-        });
-
-        (saleData || []).forEach((s: any) => {
-          if (!salesMap[s.farm_id]) salesMap[s.farm_id] = [];
-          salesMap[s.farm_id].push({
-            date: s.sale_date || (s.created_at ? new Date(s.created_at).toLocaleDateString() : ""),
-            produce: s.produce_name || "Produce harvest",
-            quantity: s.quantity ? `${s.quantity} ${s.unit || "kg"}` : "",
-            amount: Number(s.amount) || 0,
-          });
-        });
-      }
-
-      // 5. Build consolidated cluster items
-      const clusterItems: any[] = [];
-
-      (slotSubs || []).forEach((s: any) => {
-        const farm = s.farm_group_id ? groupsMap.get(s.farm_group_id) : null;
-        const farmName = farm ? farm.name : (s.project_category || "Mushroom Village Cluster");
-        const farmId = s.farm_group_id || farm?.id || s.id;
-        const category = farm?.project_category || s.project_category || "Mushroom Village";
-        const slotsCount = Number(s.slots) || 1;
-        const bagsCount = slotsCount * 2;
-        const farmExpenses = expensesMap[farmId] || [];
-        const farmSales = salesMap[farmId] || [];
-        const totalExp = farmExpenses.reduce((sum, item) => sum + item.amount, 0);
-        const totalSale = farmSales.reduce((sum, item) => sum + item.amount, 0);
-
-        clusterItems.push({
-          id: s.id,
-          farm_id: farmId,
-          farm_name: farmName,
-          category,
-          slots_held: slotsCount,
-          fruiting_bags: bagsCount,
-          status: s.status || "active",
-          coordinator_id: farm?.coordinator_id || null,
-          financials: {
-            contributions: Number(s.amount) || slotsCount * 5000,
-            expenses: totalExp,
-            sales: totalSale,
-            net_balance: totalSale - totalExp,
-          },
-          expenses: farmExpenses,
-          sales: farmSales,
-        });
-      });
-
-      (farmRecords || []).forEach((fr: any) => {
-        const alreadyIncluded = clusterItems.some((ci) => ci.farm_id === fr.farm_id);
-        if (!alreadyIncluded) {
-          const farm = fr.farm_id ? groupsMap.get(fr.farm_id) : null;
-          const farmName = farm ? farm.name : "Assigned Group Farm";
-          const slotsCount = Number(fr.farm_slots) || 1;
-          const bagsCount = Number(fr.bags_allocated) || slotsCount * 2;
-          const farmExpenses = expensesMap[fr.farm_id] || [];
-          const farmSales = salesMap[fr.farm_id] || [];
-          const totalExp = farmExpenses.reduce((sum, item) => sum + item.amount, 0);
-          const totalSale = farmSales.reduce((sum, item) => sum + item.amount, 0);
-
-          clusterItems.push({
-            id: fr.id,
-            farm_id: fr.farm_id,
-            farm_name: farmName,
-            category: farm?.project_category || fr.project_category || "Mushroom Village",
-            slots_held: slotsCount,
-            fruiting_bags: bagsCount,
-            status: "active",
-            coordinator_id: farm?.coordinator_id || null,
-            financials: {
-              contributions: (Number(fr.setup_fee_paid) || 0) + (Number(fr.support_fee_paid) || 0) || slotsCount * 5000,
-              expenses: totalExp,
-              sales: totalSale,
-              net_balance: totalSale - totalExp,
-            },
-            expenses: farmExpenses,
-            sales: farmSales,
-          });
-        }
-      });
-
-      setSubscriptions(clusterItems);
-    } catch (error) {
-      console.error("Error fetching subscriptions:", error);
-      setSubscriptions([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const subscriptions = clusters;
 
   const toggleCluster = (id: string) => {
     if (expandedCluster === id) {

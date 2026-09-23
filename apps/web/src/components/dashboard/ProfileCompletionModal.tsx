@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabaseClient";
 import { cleanName, normalizePhoneNumber } from "@shared/dataSanitizers";
 import { motion, AnimatePresence } from "framer-motion";
+import { useUserStore } from "@/store/useUserStore";
 
 export interface ProfileCompletionModalProps {
   userId: string;
@@ -144,13 +145,15 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
         console.warn("Could not check existing kin_details:", kinFetchError);
       }
 
+      const finalKinAddress = cleanedKinAddress || "Not Provided";
+
       if (existingKin?.id) {
         const { error: kinUpdateError } = await supabase
           .from("kin_details")
           .update({
             kin_name: cleanedKinName,
             kin_number: normalizedKinPhone,
-            kin_address: cleanedKinAddress || null,
+            kin_address: finalKinAddress,
             date_updated: now,
           })
           .eq("user_id", userId);
@@ -163,13 +166,22 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
             user_id: userId,
             kin_name: cleanedKinName,
             kin_number: normalizedKinPhone,
-            kin_address: cleanedKinAddress || null,
+            kin_address: finalKinAddress,
             date_created: now,
             date_updated: now,
           });
 
         if (kinInsertError) throw kinInsertError;
       }
+
+      // Sync immediately with global Zustand store
+      useUserStore.getState().updateProfileLocally(profileUpdates);
+      useUserStore.getState().setKinDetailsLocally({
+        kin_name: cleanedKinName,
+        kin_number: normalizedKinPhone,
+        kin_address: finalKinAddress,
+      });
+      useUserStore.getState().fetchProfile(userId);
 
       toast.success("Profile & Beneficiary details successfully recorded!");
       onComplete();

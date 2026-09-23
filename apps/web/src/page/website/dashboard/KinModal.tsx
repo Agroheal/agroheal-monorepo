@@ -73,12 +73,14 @@ const KinModal = ({
 
     let error = null;
 
+    const finalKinAddress = cleanedKinAddress || "Not Provided";
+
     if (existing?.id) {
       const result = await supabase
         .from("kin_details")
         .update({
           kin_name: cleanedKinName,
-          kin_address: cleanedKinAddress,
+          kin_address: finalKinAddress,
           kin_number: normalizedKinNumber,
           date_updated: now,
         })
@@ -88,7 +90,7 @@ const KinModal = ({
       const result = await supabase.from("kin_details").insert({
         user_id: userId,
         kin_name: cleanedKinName,
-        kin_address: cleanedKinAddress,
+        kin_address: finalKinAddress,
         kin_number: normalizedKinNumber,
         date_created: now,
         date_updated: now,
