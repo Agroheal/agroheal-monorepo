@@ -6,7 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MemberCombobox } from "@/components/admin/MemberCombobox";
 import { ProgramPills } from "@/components/admin/MemberBadges";
+import { ReceiptUploadField } from "@/components/admin/ReceiptUploadField";
 import { creditSlots } from "@/lib/adminActions";
+import { uploadPaymentReceipt } from "@/lib/receiptUpload";
 import { computeSlotCreditBreakdown } from "@/lib/pricing";
 import { assignSlotsToFarmGroup, fetchFarmGroups, type FarmGroup } from "@/lib/farmAssignment";
 import type { Member } from "@/types/admin";
@@ -40,6 +42,10 @@ export function SlotCreditorForm({ members, onCredited, onSuccess, onError }: Pr
   const [slots, setSlots] = useState(1);
   const [farmGroups, setFarmGroups] = useState<FarmGroup[]>([]);
   const [farmGroupId, setFarmGroupId] = useState(NO_FARM_GROUP);
+  const [transactionRef, setTransactionRef] = useState("");
+  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -87,7 +93,20 @@ export function SlotCreditorForm({ members, onCredited, onSuccess, onError }: Pr
 
     setLoading(true);
     try {
-      await creditSlots({ user_id: memberId, slots, project_category: category });
+      let receiptUrl: string | undefined;
+      if (receiptFile) {
+        receiptUrl = await uploadPaymentReceipt(receiptFile, memberId);
+      }
+
+      await creditSlots({
+        user_id: memberId,
+        slots,
+        project_category: category,
+        transaction_ref: transactionRef.trim() || undefined,
+        payment_date: paymentDate ? new Date(paymentDate).toISOString() : undefined,
+        receipt_url: receiptUrl,
+        notes: notes.trim() || undefined,
+      });
       await assignFarmRecord();
       onSuccess(
         `Successfully credited ${slots} ${category} slots!` +
@@ -98,6 +117,9 @@ export function SlotCreditorForm({ members, onCredited, onSuccess, onError }: Pr
       setSlots(1);
       setMemberId("");
       setFarmGroupId(NO_FARM_GROUP);
+      setTransactionRef("");
+      setReceiptFile(null);
+      setNotes("");
       onCredited();
     } catch (err) {
       onError(err instanceof Error ? err.message : "Failed to credit farm slots.");
@@ -174,6 +196,64 @@ export function SlotCreditorForm({ members, onCredited, onSuccess, onError }: Pr
               Picking a farm here creates (or tops up) the member's record on that coordinator's dashboard in the
               same step — no separate manual entry needed.
             </p>
+          </div>
+
+          <div className="border-t border-border pt-3 space-y-4">
+            <span className="block text-xs font-semibold text-foreground uppercase tracking-wider">
+              Offline / Bank Transfer Verification
+            </span>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Bank Reference / NIP Session ID
+                </label>
+                <Input
+                  type="text"
+                  placeholder="e.g. 100004240923120000 / TRF-83921"
+                  value={transactionRef}
+                  onChange={(e) => setTransactionRef(e.target.value)}
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Unique bank transaction reference or deposit slip number.
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Payment Date
+                </label>
+                <Input
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                />
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Date the offline bank payment was received.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <ReceiptUploadField
+                label="Upload Transfer Receipt"
+                helperText="Strictly JPEG (.jpg, .jpeg) or PNG (.png) only &bull; Max 5MB"
+                selectedFile={receiptFile}
+                onFileSelect={setReceiptFile}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Audit Notes / Remarks (Optional)
+              </label>
+              <Input
+                type="text"
+                placeholder="e.g. Paid via direct transfer to Zenith Bank account; verified by Admin"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+            </div>
           </div>
 
           <div className="space-y-1 rounded-lg bg-background/60 p-3 text-xs">

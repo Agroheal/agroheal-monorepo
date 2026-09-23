@@ -182,20 +182,33 @@ export async function resetPassword(input: { user_id: string; email: string }) {
   };
 }
 
-export async function creditSlots(input: { user_id: string; slots: number; project_category: string }) {
+export async function creditSlots(input: {
+  user_id: string;
+  slots: number;
+  project_category: string;
+  transaction_ref?: string;
+  payment_date?: string;
+  receipt_url?: string;
+  notes?: string;
+}) {
   await assertAuditAuthorized();
   const safeSlots = parsePositiveInt(input.slots, 1);
   const sanitizedInput = {
     user_id: input.user_id,
     slots: safeSlots,
     project_category: input.project_category,
+    transaction_ref: input.transaction_ref?.trim() || `ADMIN_CREDIT_${Date.now()}`,
+    payment_date: input.payment_date || new Date().toISOString(),
+    receipt_url: input.receipt_url || null,
+    notes: input.notes?.trim() || null,
   };
 
   const edgeResult = await invokeAdminAction("credit_slots", sanitizedInput);
   if (edgeResult.ok) return edgeResult.data;
   if (edgeResult.definitive) throw new Error(edgeResult.message);
 
-  const reference = `ADMIN_CREDIT_${Date.now()}`;
+  const reference = sanitizedInput.transaction_ref;
+  const paymentDate = sanitizedInput.payment_date;
 
   const { error: slotErr } = await supabase.from("slot_subscriptions").insert({
     user_id: sanitizedInput.user_id,
@@ -204,12 +217,14 @@ export async function creditSlots(input: { user_id: string; slots: number; proje
     slots: sanitizedInput.slots,
     status: "active",
     project_category: sanitizedInput.project_category,
-    last_payment_date: new Date().toISOString(),
-    next_payment_date: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
+    reference: reference,
+    last_payment_date: paymentDate,
+    next_payment_date: new Date(new Date(paymentDate).setDate(new Date(paymentDate).getDate() + 30)).toISOString(),
   });
   if (slotErr) throw new Error(friendlyDbError(slotErr, "Failed to credit farm slots."));
 
-  const { error: payErr } = await supabase.from("other_payments").insert([
+  // Log in other_payments for audit continuity
+  await supabase.from("other_payments").insert([
     {
       user_id: input.user_id,
       payment_type: "farm_setup",
@@ -219,6 +234,11 @@ export async function creditSlots(input: { user_id: string; slots: number; proje
       project_category: input.project_category,
       status: "success",
       transaction_ref: reference,
+      metadata: {
+        receipt_url: sanitizedInput.receipt_url,
+        notes: sanitizedInput.notes,
+        payment_date: paymentDate,
+      },
     },
     {
       user_id: input.user_id,
@@ -229,9 +249,37 @@ export async function creditSlots(input: { user_id: string; slots: number; proje
       project_category: input.project_category,
       status: "success",
       transaction_ref: reference,
+      metadata: {
+        receipt_url: sanitizedInput.receipt_url,
+        notes: sanitizedInput.notes,
+        payment_date: paymentDate,
+      },
     },
   ]);
-  if (payErr) throw new Error(friendlyDbError(payErr, "Failed to log slot payment records."));
+
+  // Record Admin Audit Event
+  try {
+    const { data: authUser } = await supabase.auth.getUser();
+    await supabase.from("audit_events").insert({
+      user_id: authUser?.user?.id || null,
+      action: "MANUAL_SLOT_CREDIT",
+      entity_type: "slot_subscriptions",
+      entity_id: input.user_id,
+      payload: {
+        admin_email: authUser?.user?.email,
+        target_user_id: input.user_id,
+        slots: sanitizedInput.slots,
+        project_category: sanitizedInput.project_category,
+        amount: sanitizedInput.slots * SLOT_FEE,
+        transaction_ref: reference,
+        payment_date: paymentDate,
+        receipt_url: sanitizedInput.receipt_url,
+        notes: sanitizedInput.notes,
+      },
+    });
+  } catch (auditErr) {
+    console.warn("Failed to write to audit_events:", auditErr);
+  }
 
   return null;
 }
@@ -280,46 +328,60 @@ export async function updateMember(input: {
  * The one action with a 3-tier chain in the old code: DB RPC first (fastest,
  * atomic), then the Edge Function, then a fully client-side fallback.
  */
-export async function activateGreenCard(input: { user_id: string; existing_member_id?: string }) {
+export async function activateGreenCard(input: {
+  user_id: string;
+  existing_member_id?: string;
+  transaction_ref?: string;
+  payment_date?: string;
+  receipt_url?: string;
+  notes?: string;
+}) {
   await assertAuditAuthorized();
   let resolvedMemberId = input.existing_member_id || "";
+  const txRef = input.transaction_ref?.trim() || `ADMIN_GC_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const paymentDate = input.payment_date || new Date().toISOString();
 
   const { data: rpcRes, error: rpcErr } = await supabase.rpc("admin_activate_green_card", {
     p_user_id: input.user_id,
     p_credit_referrer: true,
   });
   if (!rpcErr && rpcRes?.success) {
-    return { member_id: rpcRes.member_id || resolvedMemberId || "Assigned" };
+    resolvedMemberId = rpcRes.member_id || resolvedMemberId || "Assigned";
+  } else {
+    const edgeResult = await invokeAdminAction<{ member_id?: string }>("activate_green_card", {
+      user_id: input.user_id,
+      transaction_ref: txRef,
+      payment_date: paymentDate,
+      receipt_url: input.receipt_url,
+      notes: input.notes,
+    });
+    if (edgeResult.ok) {
+      resolvedMemberId = edgeResult.data.member_id || resolvedMemberId || "Assigned";
+    } else if (edgeResult.definitive) {
+      throw new Error(edgeResult.message);
+    } else {
+      const { data: memberId } = await supabase.rpc("get_or_create_green_card_member_id", {
+        p_user_id: input.user_id,
+        p_join_year: new Date().getFullYear(),
+      });
+      resolvedMemberId = memberId || resolvedMemberId || "AGC-NEW-2026";
+
+      const oneYearFromNow = new Date();
+      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+
+      await supabase.from("subscriptions").delete().eq("user_id", input.user_id).eq("plan", "green_card");
+      const { error: subErr } = await supabase.from("subscriptions").insert({
+        user_id: input.user_id,
+        plan: "green_card",
+        status: "active",
+        started_at: paymentDate,
+        expires_at: oneYearFromNow.toISOString(),
+      });
+      if (subErr) throw new Error(friendlyDbError(subErr, "Failed to activate Green Card."));
+    }
   }
 
-  const edgeResult = await invokeAdminAction<{ member_id?: string }>("activate_green_card", {
-    user_id: input.user_id,
-  });
-  if (edgeResult.ok) {
-    return { member_id: edgeResult.data.member_id || resolvedMemberId || "Assigned" };
-  }
-  if (edgeResult.definitive) throw new Error(edgeResult.message);
-
-  const { data: memberId } = await supabase.rpc("get_or_create_green_card_member_id", {
-    p_user_id: input.user_id,
-    p_join_year: new Date().getFullYear(),
-  });
-  resolvedMemberId = memberId || resolvedMemberId || "AGC-NEW-2026";
-
-  const oneYearFromNow = new Date();
-  oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-
-  await supabase.from("subscriptions").delete().eq("user_id", input.user_id).eq("plan", "green_card");
-  const { error: subErr } = await supabase.from("subscriptions").insert({
-    user_id: input.user_id,
-    plan: "green_card",
-    status: "active",
-    started_at: new Date().toISOString(),
-    expires_at: oneYearFromNow.toISOString(),
-  });
-  if (subErr) throw new Error(friendlyDbError(subErr, "Failed to activate Green Card."));
-
-  const txRef = `ADMIN_GC_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  // Record payment in other_payments for financial audit continuity
   await supabase.from("other_payments").insert({
     user_id: input.user_id,
     payment_type: "green_card_offline",
@@ -328,7 +390,35 @@ export async function activateGreenCard(input: { user_id: string; existing_membe
     project_category: "Green Card Membership (Admin Offline Activation)",
     status: "success",
     transaction_ref: txRef,
+    metadata: {
+      receipt_url: input.receipt_url || null,
+      notes: input.notes || null,
+      payment_date: paymentDate,
+    },
   });
+
+  // Record Admin Audit Event
+  try {
+    const { data: authUser } = await supabase.auth.getUser();
+    await supabase.from("audit_events").insert({
+      user_id: authUser?.user?.id || null,
+      action: "MANUAL_GREEN_CARD_ACTIVATION",
+      entity_type: "subscriptions",
+      entity_id: input.user_id,
+      payload: {
+        admin_email: authUser?.user?.email,
+        target_user_id: input.user_id,
+        member_id: resolvedMemberId,
+        amount: 2000,
+        transaction_ref: txRef,
+        payment_date: paymentDate,
+        receipt_url: input.receipt_url || null,
+        notes: input.notes || null,
+      },
+    });
+  } catch (auditErr) {
+    console.warn("Failed to write to audit_events:", auditErr);
+  }
 
   return { member_id: resolvedMemberId };
 }

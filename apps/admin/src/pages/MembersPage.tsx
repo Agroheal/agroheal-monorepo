@@ -108,7 +108,11 @@ export default function MembersPage() {
     flash(setSuccessMessage, `Exported ${filteredMembers.length} member records to ${filename}`);
   };
 
-  const handleActivateGreenCard = async (member: Member, skipConfirm = false) => {
+  const handleActivateGreenCard = async (
+    member: Member,
+    skipConfirm = false,
+    offlineDetails?: { transactionRef?: string; paymentDate?: string; receiptUrl?: string; notes?: string },
+  ) => {
     if (isReadOnly) {
       flash(setErrorMessage, "System is in Read-Only Audit Mode. Green Card activations are restricted to Super Developer (developerelijah360@gmail.com).");
       return;
@@ -124,6 +128,10 @@ export default function MembersPage() {
       const result = await activateGreenCard({
         user_id: member.id,
         existing_member_id: member.member_id !== "No ID Assigned" ? member.member_id : undefined,
+        transaction_ref: offlineDetails?.transactionRef,
+        payment_date: offlineDetails?.paymentDate,
+        receipt_url: offlineDetails?.receiptUrl,
+        notes: offlineDetails?.notes,
       });
       const resolvedMemberId = result.member_id;
       flash(setSuccessMessage, `Green Card successfully issued to ${member.full_name}! Member ID: ${resolvedMemberId}`);
@@ -316,7 +324,7 @@ export default function MembersPage() {
         onOpenChange={setIsIssueModalOpen}
         members={members}
         activatingMemberId={activatingMemberId}
-        onConfirm={(m) => handleActivateGreenCard(m, true)}
+        onConfirm={(m, details) => handleActivateGreenCard(m, true, details)}
       />
 
       <IssuedGreenCardSuccessDialog

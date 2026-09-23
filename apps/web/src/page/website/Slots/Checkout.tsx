@@ -97,17 +97,43 @@ const Checkout = () => {
         // Fetch profile
         const { data: profile } = await supabase
           .from("profiles")
-          .select("first_name, last_name, phone, email, referral_earnings, wallet_balance")
+          .select("full_name, phone, email, referral_earnings, wallet_balance")
           .eq("id", user.id)
-          .single();
+          .maybeSingle();
+
+        let extractedFirstName = "";
+        let extractedLastName = "";
+
+        if (profile?.full_name) {
+          const parts = profile.full_name.trim().split(/\s+/);
+          extractedFirstName = parts[0] || "";
+          extractedLastName = parts.slice(1).join(" ") || "";
+        }
+
+        // Fallbacks from user metadata
+        if (!extractedFirstName && user.user_metadata?.first_name) {
+          extractedFirstName = String(user.user_metadata.first_name).trim();
+        }
+        if (!extractedLastName && user.user_metadata?.last_name) {
+          extractedLastName = String(user.user_metadata.last_name).trim();
+        }
+        if (!extractedFirstName && user.user_metadata?.full_name) {
+          const parts = String(user.user_metadata.full_name).trim().split(/\s+/);
+          extractedFirstName = parts[0] || "";
+          extractedLastName = extractedLastName || parts.slice(1).join(" ") || "";
+        }
+
+        const resolvedPhone = profile?.phone || (user.user_metadata?.phone as string) || "";
+        const resolvedEmail = user.email || profile?.email || "";
+
+        setFormData((prev) => ({
+          firstName: prev.firstName || extractedFirstName,
+          lastName: prev.lastName || extractedLastName,
+          phone: prev.phone || resolvedPhone,
+          email: resolvedEmail || prev.email,
+        }));
 
         if (profile) {
-          setFormData((prev) => ({
-            firstName: prev.firstName || profile.first_name || "",
-            lastName: prev.lastName || profile.last_name || "",
-            phone: prev.phone || profile.phone || "",
-            email: prev.email || profile.email || user.email || "",
-          }));
           const bal = Number(profile.referral_earnings ?? profile.wallet_balance ?? 0);
           setWalletBalance(bal);
           setWalletAmountToUse(Math.min(bal, totalPrice));
@@ -210,6 +236,21 @@ const Checkout = () => {
         variant: "destructive",
       });
       return null;
+    }
+
+    // Auto-save full_name and phone to profiles if previously empty
+    try {
+      const combinedName = `${cleanFirstName} ${cleanLastName}`.trim();
+      await supabase
+        .from("profiles")
+        .update({
+          full_name: combinedName,
+          phone: normalizedPhone,
+        })
+        .eq("id", user.id)
+        .or("phone.is.null,full_name.is.null");
+    } catch (profileSyncErr) {
+      console.warn("Non-blocking profile sync error:", profileSyncErr);
     }
 
     return data;

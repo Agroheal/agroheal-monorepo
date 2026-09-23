@@ -113,20 +113,25 @@ export const ProfileComponent: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file || !profile?.id) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file (PNG, JPG, or WebP)");
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/pjpeg", "image/x-png"];
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    const isExtAllowed = ["jpg", "jpeg", "png"].includes(ext);
+    const isMimeAllowed = allowedTypes.includes(file.type.toLowerCase());
+
+    if (!isMimeAllowed || !isExtAllowed) {
+      toast.error("Only JPEG (.jpg, .jpeg) and PNG (.png) images are allowed");
       return;
     }
 
-    if (file.size > 3 * 1024 * 1024) {
-      toast.error("Image file size must be less than 3MB");
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image file size must be 5MB or less");
       return;
     }
 
     setUploadingAvatar(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
-      const filePath = `${profile.id}/avatar_${Date.now()}.${ext}`;
+      const cleanExt = ext === "jpeg" ? "jpg" : ext;
+      const filePath = `${profile.id}/avatar_${Date.now()}.${cleanExt}`;
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
@@ -231,7 +236,7 @@ export const ProfileComponent: React.FC = () => {
               <input
                 type="file"
                 ref={fileInputRef}
-                accept="image/png,image/jpeg,image/webp,image/jpg"
+                accept="image/png,image/jpeg,image/jpg"
                 onChange={handleAvatarSelect}
                 className="hidden"
               />
