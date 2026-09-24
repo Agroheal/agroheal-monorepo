@@ -16,6 +16,7 @@ import { cleanName, cleanEmail, normalizePhoneNumber, parsePositiveInt } from "@
 import { exportToExcel } from "@shared/excelExport";
 import { useAuth } from "@/hooks/useAuth";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import FarmRecordsSkeleton from "@/components/dashboard/FarmRecordsSkeleton";
 
 interface FarmRecord {
   id: string;
@@ -1374,7 +1375,7 @@ const FarmRecordsView = () => {
     setFormData((prev) => ({ ...prev, [field]: val }));
 
   if (loading) {
-    return <LoadingSpinner message="Loading farm records..." />;
+    return <FarmRecordsSkeleton />;
   }
 
   if (!farm)

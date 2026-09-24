@@ -31,6 +31,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import NetworkSkeleton from "@/components/dashboard/NetworkSkeleton";
 import NetworkCalculatorCard from "@/components/network/NetworkCalculatorCard";
 import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
 import {
@@ -123,7 +124,7 @@ export const ProducerNetwork: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Loading Producer Network & Production Engine..." />;
+    return <NetworkSkeleton title="Producer Network" />;
   }
 
   return (

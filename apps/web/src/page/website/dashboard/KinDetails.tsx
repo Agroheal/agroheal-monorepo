@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 import { supabase } from "@/lib/supabaseClient";
 import ProfileCompletionModal from "@/components/dashboard/ProfileCompletionModal";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import ProfileSkeleton from "@/components/dashboard/ProfileSkeleton";
 
 const KinDetails = () => {
   const [loading, setLoading] = useState(true);
@@ -50,7 +51,7 @@ const KinDetails = () => {
   }, [navigate]);
 
   if (loading) {
-    return <LoadingSpinner message="Loading Profile & Next of Kin details..." />;
+    return <ProfileSkeleton />;
   }
 
   if (!userId) {

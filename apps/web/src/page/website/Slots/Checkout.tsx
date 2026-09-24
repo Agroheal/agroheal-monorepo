@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
@@ -65,6 +66,8 @@ const Checkout = () => {
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [walletAmountToUse, setWalletAmountToUse] = useState<number>(0);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true);
+  const [currentUser, setCurrentUser] = useState<{ id: string; email?: string } | null>(null);
+  const [isEditingContact, setIsEditingContact] = useState<boolean>(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -74,10 +77,7 @@ const Checkout = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const isFormValid = Boolean(
-    cleanName(formData.firstName).length >= 2 &&
-    cleanName(formData.lastName).length >= 2 &&
-    cleanEmail(formData.email) &&
-    normalizePhoneNumber(formData.phone).length >= 10 &&
+    (cleanEmail(formData.email) || currentUser?.email) &&
     category
   );
 
@@ -124,6 +124,7 @@ const Checkout = () => {
             .eq("status", "active"),
         ]);
 
+        setCurrentUser(user);
         setMemberCreatedAt(profile?.created_at || user.created_at || null);
 
         let extractedFirstName = "";
@@ -148,15 +149,22 @@ const Checkout = () => {
           extractedLastName = extractedLastName || parts.slice(1).join(" ") || "";
         }
 
-        const resolvedPhone = profile?.phone || (user.user_metadata?.phone as string) || "";
         const resolvedEmail = user.email || profile?.email || "";
+        if (!extractedFirstName && resolvedEmail) {
+          extractedFirstName = resolvedEmail.split("@")[0] || "Member";
+        }
+        if (!extractedLastName) {
+          extractedLastName = "Member";
+        }
 
-        setFormData((prev) => ({
-          firstName: prev.firstName || extractedFirstName,
-          lastName: prev.lastName || extractedLastName,
-          phone: prev.phone || resolvedPhone,
-          email: resolvedEmail || prev.email,
-        }));
+        const resolvedPhone = profile?.phone || (user.user_metadata?.phone as string) || "";
+
+        setFormData({
+          firstName: extractedFirstName,
+          lastName: extractedLastName,
+          phone: resolvedPhone,
+          email: resolvedEmail,
+        });
 
         if (profile) {
           const bal = Number(profile.referral_earnings ?? profile.wallet_balance ?? 0);
@@ -269,25 +277,20 @@ const Checkout = () => {
   };
 
   const handleWalletPayment = async () => {
-    const cleanFirstName = cleanName(formData.firstName);
-    const cleanLastName = cleanName(formData.lastName);
-    const normalizedEmail = cleanEmail(formData.email);
-    const normalizedPhone = normalizePhoneNumber(formData.phone);
-
-    const newErrors: Record<string, string> = {};
-    if (!cleanFirstName) newErrors.firstName = "First name is required";
-    if (!cleanLastName) newErrors.lastName = "Last name is required";
-    if (!normalizedEmail) newErrors.email = "Email address is required";
-    if (!normalizedPhone || normalizedPhone.length < 10) {
-      newErrors.phone = "Enter a valid phone number (at least 10 digits)";
-    }
-    if (!category) newErrors.category = "Please select a project category";
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    const resolvedEmail = cleanEmail(formData.email) || currentUser?.email;
+    if (!resolvedEmail) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields marked in red.",
+        title: "Session Error",
+        description: "User session email not found. Please refresh or sign in again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!category) {
+      setErrors({ category: "Please select a project category" });
+      toast({
+        title: "Category Required",
+        description: "Please select a project category.",
         variant: "destructive",
       });
       return;
@@ -380,24 +383,20 @@ const Checkout = () => {
   };
 
   const handleFlutterwave = async () => {
-    const cleanFirstName = cleanName(formData.firstName);
-    const cleanLastName = cleanName(formData.lastName);
-    const normalizedEmail = cleanEmail(formData.email);
-    const normalizedPhone = normalizePhoneNumber(formData.phone);
-
-    const newErrors: Record<string, string> = {};
-    if (!cleanFirstName && !formData.email) newErrors.firstName = "Name is required";
-    if (!normalizedEmail) newErrors.email = "Email address is required";
-    if (!normalizedPhone || normalizedPhone.length < 10) {
-      newErrors.phone = "Enter a valid phone number (at least 10 digits)";
-    }
-    if (!category) newErrors.category = "Please select a project category";
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    const resolvedEmail = cleanEmail(formData.email) || currentUser?.email;
+    if (!resolvedEmail) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields marked in red.",
+        title: "Session Error",
+        description: "User session email not found. Please refresh or sign in again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!category) {
+      setErrors({ category: "Please select a project category" });
+      toast({
+        title: "Category Required",
+        description: "Please select a project category.",
         variant: "destructive",
       });
       return;
@@ -574,24 +573,20 @@ const Checkout = () => {
   };
 
   const handleSplitPayment = async () => {
-    const cleanFirstName = cleanName(formData.firstName);
-    const cleanLastName = cleanName(formData.lastName);
-    const normalizedEmail = cleanEmail(formData.email);
-    const normalizedPhone = normalizePhoneNumber(formData.phone);
-
-    const newErrors: Record<string, string> = {};
-    if (!cleanFirstName && !formData.email) newErrors.firstName = "Name is required";
-    if (!normalizedEmail) newErrors.email = "Email address is required";
-    if (!normalizedPhone || normalizedPhone.length < 10) {
-      newErrors.phone = "Enter a valid phone number (at least 10 digits)";
-    }
-    if (!category) newErrors.category = "Please select a project category";
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    const resolvedEmail = cleanEmail(formData.email) || currentUser?.email;
+    if (!resolvedEmail) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in all required fields marked in red.",
+        title: "Session Error",
+        description: "User session email not found. Please refresh or sign in again.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!category) {
+      setErrors({ category: "Please select a project category" });
+      toast({
+        title: "Category Required",
+        description: "Please select a project category.",
         variant: "destructive",
       });
       return;
@@ -806,95 +801,103 @@ const Checkout = () => {
               <div className="bg-card rounded-2xl p-6 md:p-8 shadow-soft border border-border/50">
                 <h2 className="font-display text-xl font-semibold text-foreground mb-6 flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-primary" />
-                  Billing Details
+                  Account & Order Details
                 </h2>
 
                 <div className="space-y-5">
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input
-                        id="firstName"
-                        name="firstName"
-                        placeholder="John"
-                        value={formData.firstName}
-                        onChange={(e) => {
-                          handleInputChange(e);
-                          if (errors.firstName)
-                            setErrors((prev) => ({ ...prev, firstName: "" }));
-                        }}
-                        className={errors.firstName ? "border-red-500" : ""}
-                      />
-                      {errors.firstName && (
-                        <p className="text-xs text-red-500 mt-1">
-                          {errors.firstName}
-                        </p>
+                  {isLoadingProfile ? (
+                    <div className="p-5 rounded-2xl border border-border/60 bg-muted/30 space-y-3 animate-pulse">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-10 h-10 rounded-full" />
+                        <div className="space-y-1.5 flex-1">
+                          <Skeleton className="h-4 w-36" />
+                          <Skeleton className="h-3 w-48" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-emerald-50/50 rounded-2xl p-5 border border-emerald-200/80">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <div className="w-11 h-11 rounded-2xl bg-emerald-800 text-white font-bold flex items-center justify-center text-sm shadow-xs shrink-0">
+                            {(formData.firstName?.[0] || formData.email?.[0] || currentUser?.email?.[0] || "M").toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-gray-900 text-sm truncate">
+                                {formData.firstName || formData.lastName
+                                  ? `${formData.firstName} ${formData.lastName}`.trim()
+                                  : currentUser?.email?.split("@")[0] || "Member"}
+                              </p>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+                                Verified Member
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 font-mono truncate flex items-center gap-1 mt-0.5">
+                              <Lock className="w-3 h-3 text-emerald-600 shrink-0" />
+                              {formData.email || currentUser?.email}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingContact((prev) => !prev)}
+                          className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 underline underline-offset-2 shrink-0 cursor-pointer"
+                        >
+                          {isEditingContact ? "Done" : "Edit details"}
+                        </button>
+                      </div>
+
+                      {formData.phone && !isEditingContact && (
+                        <div className="mt-3 pt-3 border-t border-emerald-100 flex items-center justify-between text-xs text-gray-600">
+                          <span>Contact Phone: <strong className="font-mono text-gray-900">{formData.phone}</strong></span>
+                          <span className="text-[10px] text-emerald-700">Receipt SMS / Call</span>
+                        </div>
+                      )}
+
+                      {isEditingContact && (
+                        <div className="mt-4 pt-4 border-t border-emerald-100 space-y-3.5">
+                          <div className="grid sm:grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <Label htmlFor="firstName" className="text-xs">First Name</Label>
+                              <Input
+                                id="firstName"
+                                name="firstName"
+                                placeholder="First name"
+                                value={formData.firstName}
+                                onChange={handleInputChange}
+                                className="h-9 text-xs bg-white"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <Label htmlFor="lastName" className="text-xs">Last Name</Label>
+                              <Input
+                                id="lastName"
+                                name="lastName"
+                                placeholder="Last name"
+                                value={formData.lastName}
+                                onChange={handleInputChange}
+                                className="h-9 text-xs bg-white"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="phone" className="text-xs">Phone Number (optional)</Label>
+                            <Input
+                              id="phone"
+                              name="phone"
+                              type="tel"
+                              placeholder="e.g. 08012345678"
+                              value={formData.phone}
+                              onChange={handleInputChange}
+                              className="h-9 text-xs bg-white"
+                            />
+                          </div>
+                        </div>
                       )}
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        name="lastName"
-                        placeholder="Doe"
-                        value={formData.lastName}
-                        onChange={(e) => {
-                          handleInputChange(e);
-                          if (errors.lastName)
-                            setErrors((prev) => ({ ...prev, lastName: "" }));
-                        }}
-                        className={errors.lastName ? "border-red-500" : ""}
-                      />
-                      {errors.lastName && (
-                        <p className="text-xs text-red-500 mt-1">
-                          {errors.lastName}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="email">Email Address</Label>
-                      <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/60 flex items-center gap-1">
-                        <Lock className="w-2.5 h-2.5" /> Verified Account Email
-                      </span>
-                    </div>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="john@example.com"
-                      value={formData.email}
-                      readOnly
-                      className="bg-muted/50 cursor-not-allowed font-medium text-foreground select-none"
-                    />
-                    {errors.email && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {errors.email}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      name="phone"
-                      type="tel"
-                      placeholder="+234 800 000 0000"
-                      value={formData.phone}
-                      onChange={(e) => {
-                        handleInputChange(e);
-                        if (errors.phone)
-                          setErrors((prev) => ({ ...prev, phone: "" }));
-                      }}
-                      className={errors.phone ? "border-red-500" : ""}
-                    />
-                    {errors.phone && (
-                      <p className="text-xs text-red-500 mt-1">
-                        {errors.phone}
-                      </p>
-                    )}
-                  </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="category">Project Category</Label>
                     <select
@@ -1262,12 +1265,10 @@ const Checkout = () => {
                 </div>
 
                 <div className="mt-8 space-y-3">
-                  {!isFormValid && (
+                  {!category && (
                     <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/90 text-amber-900 text-xs flex items-center gap-2.5 shadow-2xs">
                       <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
-                      <span>
-                        Please provide your full legal name and valid contact phone number (at least 10 digits) above to enable payment.
-                      </span>
+                      <span>Please select a Project Category above to proceed with payment.</span>
                     </div>
                   )}
 
@@ -1283,7 +1284,7 @@ const Checkout = () => {
                           Processing Flutterwave...
                         </span>
                       ) : !isFormValid ? (
-                        "Complete Contact Details to Pay"
+                        "Select Project Category to Pay"
                       ) : (
                         `Pay ₦${totalPrice.toLocaleString()} with Flutterwave`
                       )}
@@ -1300,7 +1301,7 @@ const Checkout = () => {
                           Deducting Balance & Securing Slot...
                         </span>
                       ) : !isFormValid ? (
-                        "Complete Contact Details to Pay"
+                        "Select Project Category to Pay"
                       ) : walletBalance >= totalPrice ? (
                         `Pay ₦${totalPrice.toLocaleString()} from Wallet Balance`
                       ) : (
@@ -1319,7 +1320,7 @@ const Checkout = () => {
                           Processing Split Payment...
                         </span>
                       ) : !isFormValid ? (
-                        "Complete Contact Details to Pay"
+                        "Select Project Category to Pay"
                       ) : (
                         `Pay ₦${Math.max(0, totalPrice - walletAmountToUse).toLocaleString()} via Card (+ ₦${walletAmountToUse.toLocaleString()} from Wallet)`
                       )}

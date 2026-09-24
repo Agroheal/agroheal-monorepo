@@ -11,6 +11,7 @@ import { Toaster } from "react-hot-toast";
 import type { User } from "@supabase/supabase-js";
 import { parsePositiveInt } from "@shared/dataSanitizers";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import PaymentFormSkeleton from "@/components/dashboard/PaymentFormSkeleton";
 
 const MushroomVillage = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -220,7 +221,7 @@ const MushroomVillage = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Preparing Mushroom Village..." />;
+    return <PaymentFormSkeleton />;
   }
 
   return (

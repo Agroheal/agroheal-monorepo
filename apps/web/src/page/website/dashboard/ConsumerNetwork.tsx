@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import NetworkSkeleton from "@/components/dashboard/NetworkSkeleton";
 import NetworkCalculatorCard from "@/components/network/NetworkCalculatorCard";
 import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
 import {
@@ -163,7 +164,7 @@ export const ConsumerNetwork: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Loading Consumer Network & Commission Engine..." />;
+    return <NetworkSkeleton title="Consumer Network" />;
   }
 
   return (

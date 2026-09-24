@@ -37,6 +37,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import OrganogramSkeleton from "@/components/dashboard/OrganogramSkeleton";
 import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
 import { SITE_URL } from "@/config/Index";
 
@@ -699,9 +700,7 @@ const CompoundReferrals: React.FC = () => {
   }, [downlineList, searchQuery, directoryFilter]);
 
   if (loading) {
-    return (
-      <LoadingSpinner message="Loading 5×7 Organogram matrix & qualifications..." />
-    );
+    return <OrganogramSkeleton />;
   }
 
   return (

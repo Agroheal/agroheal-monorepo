@@ -21,6 +21,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import DigitalGreenCard, { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import GreenCardSkeleton from "@/components/dashboard/GreenCardSkeleton";
 
 export const GreenCardCommunity: React.FC = () => {
   const navigate = useNavigate();
@@ -122,7 +123,7 @@ export const GreenCardCommunity: React.FC = () => {
   }, [navigate]);
 
   if (loading) {
-    return <LoadingSpinner message="Loading your Digital Green Card..." />;
+    return <GreenCardSkeleton />;
   }
 
   // ── INACTIVE / UNLOCKED SCREEN ──

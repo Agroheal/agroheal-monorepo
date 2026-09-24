@@ -27,6 +27,7 @@ import ProfileCompletionModal from "@/components/dashboard/ProfileCompletionModa
 import toast, { Toaster } from "react-hot-toast";
 import UserAvatar from "@/components/ui/UserAvatar";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import ProfileSkeleton from "@/components/dashboard/ProfileSkeleton";
 
 interface UserProfile {
   id: string;
@@ -185,7 +186,7 @@ export const ProfileComponent: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Loading your profile..." />;
+    return <ProfileSkeleton />;
   }
 
   const agcIdFormatted = formatAgcId(profile?.member_id);

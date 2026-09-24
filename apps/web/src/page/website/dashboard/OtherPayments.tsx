@@ -21,6 +21,7 @@ import { PROJECT_CATEGORIES } from "@/constant/projectCategories";
 import type { User } from "@supabase/supabase-js";
 import { parsePositiveInt } from "@shared/dataSanitizers";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import PaymentFormSkeleton from "@/components/dashboard/PaymentFormSkeleton";
 import PaymentGuidancePopup from "@/components/webComponents/PaymentGuidancePopup";
 
 type PaymentType = "farm_setup" | "farm_support" | "absentee_fine" | "";
@@ -275,7 +276,7 @@ const OtherPayments = () => {
   };
 
   if (loading) {
-    return <LoadingSpinner message="Loading payment details..." />;
+    return <PaymentFormSkeleton />;
   }
 
   return (
