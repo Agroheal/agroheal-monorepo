@@ -75,9 +75,9 @@ export const ProducerNetwork: React.FC = () => {
         return;
       }
 
-      // 1. Fetch user qualifications
+      // 1. Fetch user qualifications (fast-fail)
       try {
-        const apiQuals = await apiClient.genealogy.getQualifications();
+        const apiQuals = await apiClient.genealogy.getQualifications({ timeout: 2500 });
         if (apiQuals?.matrixSpilloverWallet?.directReferralsCount !== undefined) {
           const cnt = Number(apiQuals.matrixSpilloverWallet.directReferralsCount);
           setDirectReferralsCount(cnt);
@@ -93,11 +93,19 @@ export const ProducerNetwork: React.FC = () => {
         setUnlockedLevel(getUnlockedMatrixLevel(cnt));
       }
 
-      // 2. Fetch slots held by user
-      const { data: subs } = await supabase
-        .from("slot_subscriptions")
-        .select("slots, status")
-        .eq("user_id", user.id);
+      // 2 & 3. Fetch slots held by user and approved productions in parallel
+      const [{ data: subs }, { data: productions }] = await Promise.all([
+        supabase
+          .from("slot_subscriptions")
+          .select("slots, status")
+          .eq("user_id", user.id),
+        supabase
+          .from("farm_records")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("status", "approved")
+          .limit(10),
+      ]);
 
       const totalSlots = (subs || []).reduce((acc: number, curr: any) => {
         if (curr.status === "active" || curr.status === "paid" || curr.status === "completed") {
@@ -106,19 +114,7 @@ export const ProducerNetwork: React.FC = () => {
         return acc;
       }, 0);
       setSlotsHeld(totalSlots);
-
-      // 3. Fetch approved productions / harvest batches if any
-      try {
-        const { data: productions } = await supabase
-          .from("farm_records")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("status", "approved")
-          .limit(10);
-        setApprovedProductions(productions || []);
-      } catch {
-        setApprovedProductions([]);
-      }
+      setApprovedProductions(productions || []);
     } catch (err) {
       console.error("[ProducerNetwork] Failed to load producer data:", err);
     } finally {

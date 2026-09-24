@@ -139,8 +139,8 @@ export default function TransactionLedger() {
       let apiLedgerEntries: any[] = [];
       try {
         const [summaryRes, ledgerRes] = await Promise.allSettled([
-          apiClient.wallet.getSummary(),
-          apiClient.wallet.getLedger(),
+          apiClient.wallet.getSummary({ timeout: 3000 }),
+          apiClient.wallet.getLedger({ timeout: 3000 }),
         ]);
 
         if (summaryRes.status === "fulfilled" && summaryRes.value) {

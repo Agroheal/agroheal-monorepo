@@ -132,9 +132,9 @@ export const ConsumerNetwork: React.FC = () => {
       );
       setHasGreenCard(isCardActive);
 
-      // 1. Check API qualifications if available
+      // 1. Check API qualifications if available (fast-fail)
       try {
-        const apiQuals = await apiClient.genealogy.getQualifications();
+        const apiQuals = await apiClient.genealogy.getQualifications({ timeout: 2500 });
         if (apiQuals?.matrixSpilloverWallet?.directReferralsCount !== undefined) {
           const cnt = Number(apiQuals.matrixSpilloverWallet.directReferralsCount);
           setDirectReferralsCount(cnt);

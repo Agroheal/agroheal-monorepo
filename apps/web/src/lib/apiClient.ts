@@ -43,9 +43,13 @@ async function getAuthHeaders(): Promise<HeadersInit> {
   return headers;
 }
 
+export interface ApiRequestOptions extends RequestInit {
+  timeout?: number;
+}
+
 async function apiRequest<T = any>(
   endpoint: string,
-  options: RequestInit = {}
+  options: ApiRequestOptions = {}
 ): Promise<T> {
   // Guarantee the endpoint is properly resolved under /api/v1
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint.slice(1) : endpoint;
@@ -60,8 +64,9 @@ async function apiRequest<T = any>(
     },
   };
 
+  const timeoutMs = options.timeout ?? 5000;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const response = await fetch(url, {
@@ -178,7 +183,7 @@ export const apiClient = {
           position: number;
         }>;
       }>("genealogy/matrix"),
-    getQualifications: () =>
+    getQualifications: (options?: ApiRequestOptions) =>
       apiRequest<{
         directReferralWallet: {
           isWithdrawable: boolean;
@@ -210,7 +215,7 @@ export const apiClient = {
           progressPercent: number;
           isMax: boolean;
         };
-      }>("genealogy/qualifications"),
+      }>("genealogy/qualifications", options),
   },
 
   /**
@@ -218,7 +223,7 @@ export const apiClient = {
    * GET /api/v1/wallet/...
    */
   wallet: {
-    getSummary: () =>
+    getSummary: (options?: ApiRequestOptions) =>
       apiRequest<{
         directReferralWallet: {
           balance: number;
@@ -237,8 +242,8 @@ export const apiClient = {
           status: string;
         };
         totalEarnings: number;
-      }>("wallet/summary"),
-    getLedger: () => apiRequest<any[]>("wallet/ledger"),
+      }>("wallet/summary", options),
+    getLedger: (options?: ApiRequestOptions) => apiRequest<any[]>("wallet/ledger", options),
   },
 
   /**

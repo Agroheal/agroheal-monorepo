@@ -97,6 +97,23 @@ export const getNextMatrixLevelTarget = (directCount: number) => {
   return { nextLevel, requiredDirects, remainingDirects, progressPercent, isMax: false };
 };
 
+// In-Memory Session Cache: Enables instantaneous (0ms) render when navigating between tabs
+interface GenealogyCacheEntry {
+  treeRoot: OrganogramNode;
+  allMembersRoster: OrganogramNode[];
+  userSlotsHeld: number;
+  directReferralsCount: number;
+  activePqv30d: number;
+  pqvDaysRemaining: number;
+  isProjectSubscribed: boolean;
+  currentUserProfile: any;
+  userFarms: Array<{ id: string; name: string; project_category?: string }>;
+  timestamp: number;
+}
+
+const genealogyMemoryCache = new Map<string, GenealogyCacheEntry>();
+const CACHE_TTL_MS = 60_000; // 1-minute TTL for instant navigation
+
 const CompoundReferrals: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -133,11 +150,8 @@ const CompoundReferrals: React.FC = () => {
     loadMemberGenealogy();
   }, []);
 
-  const loadMemberGenealogy = async (customRootUserId?: string) => {
+  const loadMemberGenealogy = async (customRootUserId?: string, forceRefresh = false) => {
     try {
-      if (!customRootUserId) setLoading(true);
-      else setRefreshing(true);
-
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setLoading(false);
@@ -147,11 +161,35 @@ const CompoundReferrals: React.FC = () => {
 
       const authId = user.id;
       setCurrentUserId(authId);
+      const rootToLoad = customRootUserId || authId;
 
-      // 1. Attempt to fetch qualifications & schedule from Express API v1 (/api/v1/genealogy/qualifications)
-      let apiQuals: any = null;
+      // Check In-Memory Cache first for instant 0ms render when switching tabs
+      if (!forceRefresh && !customRootUserId) {
+        const cached = genealogyMemoryCache.get(authId);
+        if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+          setCurrentUserProfile(cached.currentUserProfile);
+          setReferralCode(cached.currentUserProfile?.referral_code || cached.currentUserProfile?.member_id || "");
+          setUserSlotsHeld(cached.userSlotsHeld);
+          setDirectReferralsCount(cached.directReferralsCount);
+          setActivePqv30d(cached.activePqv30d);
+          setPqvDaysRemaining(cached.pqvDaysRemaining);
+          setIsProjectSubscribed(cached.isProjectSubscribed);
+          setUserFarms(cached.userFarms);
+          setActiveRootNode(cached.treeRoot);
+          setDownlineList(cached.allMembersRoster);
+          setBreadcrumbs([{ id: cached.treeRoot.id, name: "My Organogram Tree", memberId: cached.treeRoot.memberId }]);
+          setLoading(false);
+          setRefreshing(false);
+          return;
+        }
+      }
+
+      if (!customRootUserId) setLoading(true);
+      else setRefreshing(true);
+
+      // Fast, non-blocking telemetry from Express API with 2.5s timeout (prevents hanging)
       try {
-        apiQuals = await apiClient.genealogy.getQualifications();
+        const apiQuals = await apiClient.genealogy.getQualifications({ timeout: 2500 });
         if (apiQuals?.matrixSpilloverWallet) {
           if (apiQuals.matrixSpilloverWallet.directReferralsCount !== undefined) {
             setDirectReferralsCount(Number(apiQuals.matrixSpilloverWallet.directReferralsCount));
@@ -164,63 +202,50 @@ const CompoundReferrals: React.FC = () => {
           }
         }
       } catch (apiErr: any) {
-        console.info("[CompoundReferrals] Express Genealogy API unavailable, relying on database records:", apiErr.message);
+        console.info("[CompoundReferrals] Express Genealogy API fast fallback:", apiErr.message);
       }
 
-      // 2. Fetch Profile from Database
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", authId)
-        .maybeSingle();
+      // Parallelize All Independent Root Database Queries (Single Network Round-Trip)
+      const now = new Date();
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(now.getDate() - PQV_WINDOW_DAYS);
 
+      const [
+        profileRes,
+        slotSubsRes,
+        directRefsRes,
+        paymentsRes,
+        subDataRes,
+        coDataRes,
+        coordFarmsRes,
+        publicFarmsRes,
+      ] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", authId).maybeSingle(),
+        supabase.from("slot_subscriptions").select("slots, amount, status").eq("user_id", authId),
+        supabase.from("profiles").select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals").eq("referred_by", authId),
+        supabase.from("other_payments").select("amount, created_at").eq("user_id", authId),
+        supabase.from("subscriptions").select("id").eq("user_id", authId).eq("status", "active").limit(1),
+        supabase.from("checkout").select("id").eq("user_id", authId).eq("status", "paid").limit(1),
+        supabase.from("farm_groups").select("id, name, project_category").eq("coordinator_id", authId),
+        supabase.from("farm_groups").select("id, name, project_category").limit(10),
+      ]);
+
+      const profile = profileRes.data;
       if (profile) {
         setCurrentUserProfile(profile);
         setReferralCode(profile.referral_code || profile.member_id || "");
       }
 
-      // 2. Fetch User Slot Subscriptions
-      const { data: slotSubs } = await supabase
-        .from("slot_subscriptions")
-        .select("slots, amount, status")
-        .eq("user_id", authId);
-
-      const totalSlots = (slotSubs || []).reduce((sum, s) => sum + (Number(s.slots) || 0), 0);
+      const totalSlots = (slotSubsRes.data || []).reduce((sum, s) => sum + (Number(s.slots) || 0), 0);
       setUserSlotsHeld(totalSlots);
 
-      // 3. Fetch Direct Referrals
-      const { data: directRefs } = await supabase
-        .from("profiles")
-        .select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals")
-        .eq("referred_by", authId);
-
-      const directCount = directRefs ? directRefs.length : 0;
+      const directCount = directRefsRes.data ? directRefsRes.data.length : 0;
       setDirectReferralsCount(directCount);
 
-      // 4. Fetch 30-Day PQV
-      const now = new Date();
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(now.getDate() - PQV_WINDOW_DAYS);
-
-      let paymentsData: any[] = [];
-      const { data: opData } = await supabase
-        .from("otherPayments")
-        .select("amount, created_at")
-        .eq("user_id", authId);
-
-      if (opData && opData.length > 0) {
-        paymentsData = opData;
-      } else {
-        const { data: opData2 } = await supabase
-          .from("other_payments")
-          .select("amount, created_at")
-          .eq("user_id", authId);
-        if (opData2) paymentsData = opData2;
-      }
-
+      // Compute 30-Day PQV
       let activePqv = 0;
       let latestPqvDate: Date | null = null;
-      for (const p of paymentsData) {
+      for (const p of paymentsRes.data || []) {
         const pDate = new Date(p.created_at);
         if (pDate >= thirtyDaysAgo && pDate <= now) {
           activePqv += Number(p.amount) || 0;
@@ -229,62 +254,57 @@ const CompoundReferrals: React.FC = () => {
       }
       setActivePqv30d(activePqv);
 
+      let daysRemaining = 30;
       if (latestPqvDate) {
         const expiry = new Date(latestPqvDate);
         expiry.setDate(expiry.getDate() + PQV_WINDOW_DAYS);
-        const diff = Math.max(0, Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-        setPqvDaysRemaining(diff);
+        daysRemaining = Math.max(0, Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+        setPqvDaysRemaining(daysRemaining);
       }
 
-      // Check active project subscription
-      const { data: subData } = await supabase
-        .from("subscriptions")
-        .select("id")
-        .eq("user_id", authId)
-        .eq("status", "active")
-        .limit(1);
+      const isSubscribed = Boolean(
+        (subDataRes.data && subDataRes.data.length > 0) ||
+        (coDataRes.data && coDataRes.data.length > 0)
+      );
+      setIsProjectSubscribed(isSubscribed);
 
-      const { data: coData } = await supabase
-        .from("checkout")
-        .select("id")
-        .eq("user_id", authId)
-        .eq("status", "paid")
-        .limit(1);
-
-      setIsProjectSubscribed(Boolean((subData && subData.length > 0) || (coData && coData.length > 0)));
-
-      // 5. Fetch user-associated farms for referral link targeting
-      try {
-        const { data: coordFarms } = await supabase
-          .from("farm_groups")
-          .select("id, name, project_category")
-          .eq("coordinator_id", authId);
-
-        const memberEmail = user.email || profile?.email;
-        let memberFarms: any[] = [];
-        if (memberEmail) {
+      // Fetch user-associated farms
+      let memberFarms: any[] = [];
+      const memberEmail = user.email || profile?.email;
+      if (memberEmail) {
+        try {
           const { data: mRecords } = await supabase
             .from("farm_records")
             .select("farm_id, farm_groups!inner(id, name, project_category)")
             .eq("email", memberEmail);
           memberFarms = (mRecords || []).map((r: any) => r.farm_groups).filter(Boolean);
+        } catch {
+          // ignore fallback
         }
-
-        const { data: publicFarms } = await supabase
-          .from("farm_groups")
-          .select("id, name, project_category")
-          .limit(10);
-
-        const allFarms = [...(coordFarms || []), ...memberFarms, ...(publicFarms || [])];
-        const uniqueFarms = Array.from(new Map(allFarms.map((f: any) => [f.id, f])).values());
-        setUserFarms(uniqueFarms as Array<{ id: string; name: string; project_category?: string }>);
-      } catch (fErr) {
-        console.info("[CompoundReferrals] Farm groups fetch fallback", fErr);
       }
 
-      // 6. Build Organogram Subtree for target root
-      const rootToLoad = customRootUserId || authId;
-      await buildSubtree(rootToLoad, authId === rootToLoad);
+      const allFarms = [...(coordFarmsRes.data || []), ...memberFarms, ...(publicFarmsRes.data || [])];
+      const uniqueFarms = Array.from(new Map(allFarms.map((f: any) => [f.id, f])).values()) as Array<{ id: string; name: string; project_category?: string }>;
+      setUserFarms(uniqueFarms);
+
+      // Build Subtree using High-Performance Batch Queries
+      const subtreeResult = await buildSubtree(rootToLoad, authId === rootToLoad);
+
+      // Write to In-Memory Cache if loading self root
+      if (subtreeResult && rootToLoad === authId) {
+        genealogyMemoryCache.set(authId, {
+          treeRoot: subtreeResult.builtRoot,
+          allMembersRoster: subtreeResult.allRoster,
+          userSlotsHeld: totalSlots,
+          directReferralsCount: directCount,
+          activePqv30d: activePqv,
+          pqvDaysRemaining: daysRemaining,
+          isProjectSubscribed: isSubscribed,
+          currentUserProfile: profile,
+          userFarms: uniqueFarms,
+          timestamp: Date.now(),
+        });
+      }
     } catch (err: any) {
       console.error("Failed to load genealogy", err);
       toast.error(err.message || "Failed to load genealogy");
@@ -295,58 +315,72 @@ const CompoundReferrals: React.FC = () => {
   };
 
   /**
-   * Builds an Organogram tree node and up to 5 child slots
-   */
-  /**
    * Builds an Organogram tree node and up to 5 child slots,
    * integrating direct referrals and balanced round-robin upline spillover.
+   * Uses high-performance SQL batching (.in queries) to eliminate N+1 latency.
    */
   const buildSubtree = async (targetId: string, isSelf: boolean) => {
     setActiveRootId(targetId);
 
-    // 1. Fetch target node profile
-    const { data: rootProfile } = await supabase
-      .from("profiles")
-      .select("id, full_name, email, phone, member_id, referred_by, total_referrals, created_at")
-      .eq("id", targetId)
-      .maybeSingle();
+    // 1. Fetch target node profile, slots, and downline children in 1 parallel network round-trip!
+    const [rootProfileRes, rootSlotsRes, childrenProfilesRes] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, full_name, email, phone, member_id, referred_by, total_referrals, created_at")
+        .eq("id", targetId)
+        .maybeSingle(),
+      supabase
+        .from("slot_subscriptions")
+        .select("slots")
+        .eq("user_id", targetId),
+      supabase
+        .from("profiles")
+        .select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals")
+        .eq("referred_by", targetId)
+        .order("created_at", { ascending: true })
+        .limit(100),
+    ]);
 
+    const rootProfile = rootProfileRes.data;
     if (!rootProfile) {
       toast.error("Target member profile not found.");
-      return;
+      return null;
     }
 
-    // 2. Target slots
-    const { data: rootSlots } = await supabase
-      .from("slot_subscriptions")
-      .select("slots")
-      .eq("user_id", targetId);
-    const slotsCount = (rootSlots || []).reduce((sum, s) => sum + (Number(s.slots) || 0), 0);
-
-    // 3. Fetch direct referrals (downline)
-    const { data: childrenProfiles } = await supabase
-      .from("profiles")
-      .select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals")
-      .eq("referred_by", targetId)
-      .order("created_at", { ascending: true })
-      .limit(100);
+    const slotsCount = (rootSlotsRes.data || []).reduce((sum, s) => sum + (Number(s.slots) || 0), 0);
+    const childrenProfiles = childrenProfilesRes.data || [];
 
     const childrenNodes: OrganogramNode[] = [];
     const allRoster: OrganogramNode[] = [];
 
-    if (childrenProfiles && childrenProfiles.length > 0) {
+    // 2. High-Performance BATCH Query for all children's slots and grandchildren counts!
+    // Replaces 2*N sequential queries with 2 single batch queries.
+    if (childrenProfiles.length > 0) {
+      const childIds = childrenProfiles.map((cp) => cp.id);
+
+      const [childSlotsRes, grandChildrenRes] = await Promise.all([
+        supabase.from("slot_subscriptions").select("user_id, slots").in("user_id", childIds),
+        supabase.from("profiles").select("referred_by").in("referred_by", childIds),
+      ]);
+
+      const slotsMap = new Map<string, number>();
+      for (const row of childSlotsRes.data || []) {
+        const cur = slotsMap.get(row.user_id) || 0;
+        slotsMap.set(row.user_id, cur + (Number(row.slots) || 0));
+      }
+
+      const grandChildrenCountMap = new Map<string, number>();
+      for (const row of grandChildrenRes.data || []) {
+        if (row.referred_by) {
+          const cur = grandChildrenCountMap.get(row.referred_by) || 0;
+          grandChildrenCountMap.set(row.referred_by, cur + 1);
+        }
+      }
+
       for (let i = 0; i < childrenProfiles.length; i++) {
         const cp = childrenProfiles[i];
-        const { data: cSlots } = await supabase
-          .from("slot_subscriptions")
-          .select("slots")
-          .eq("user_id", cp.id);
-        const cSlotCount = (cSlots || []).reduce((sum, s) => sum + (Number(s.slots) || 0), 0);
-
-        const { count: grandChildrenCount } = await supabase
-          .from("profiles")
-          .select("id", { count: "exact", head: true })
-          .eq("referred_by", cp.id);
+        const cSlotCount = slotsMap.get(cp.id) || 0;
+        const grandChildrenCount = grandChildrenCountMap.get(cp.id) || 0;
 
         // In the 5x7 matrix, ONLY members who hold at least 1 farm slot occupy matrix positions (Leg 1-5)!
         // Members who only paid ₦2,000 Green Card remain direct enrollees (Leg 0) until they subscribe to a slot.
@@ -365,91 +399,104 @@ const CompoundReferrals: React.FC = () => {
           position: assignedLeg,
           level: 1,
           slotsHeld: cSlotCount,
-          directReferralsCount: grandChildrenCount || 0,
+          directReferralsCount: grandChildrenCount,
           createdAt: cp.created_at,
           hasGreenCard: Boolean(cp.member_id),
           isSpillover: false,
           children: [],
         };
 
-        // All direct referrals are preserved in the directory roster
         allRoster.push(memberItem);
-
         if (assignedLeg > 0) {
           childrenNodes.push(memberItem);
         }
       }
     }
 
-    // 4. Balanced Round-Robin Spillover from Upline:
+    // 3. Balanced Round-Robin Spillover from Upline (Batch Evaluated)
     // If target has fewer than 5 active legs and has an upline sponsor, check if the upline
     // has overflow beyond their 5 frontline slots (Index >= 5).
     // The overflow is evenly distributed to frontline children via (index - 5) % 5.
     if (childrenNodes.length < 5 && rootProfile.referred_by) {
       try {
         const uplineId = rootProfile.referred_by;
-        const { data: uplineProfile } = await supabase
-          .from("profiles")
-          .select("id, full_name, member_id")
-          .eq("id", uplineId)
-          .maybeSingle();
+        const [uplineProfileRes, uplineChildrenRes] = await Promise.all([
+          supabase.from("profiles").select("id, full_name, member_id").eq("id", uplineId).maybeSingle(),
+          supabase.from("profiles").select("id, full_name, email, phone, member_id, created_at").eq("referred_by", uplineId).order("created_at", { ascending: true }).limit(100),
+        ]);
 
-        const { data: uplineChildren } = await supabase
-          .from("profiles")
-          .select("id, full_name, email, phone, member_id, created_at")
-          .eq("referred_by", uplineId)
-          .order("created_at", { ascending: true })
-          .limit(100);
+        const uplineProfile = uplineProfileRes.data;
+        const uplineChildren = uplineChildrenRes.data || [];
 
-        if (uplineChildren && uplineChildren.length > 5) {
-          // Identify frontline slot holders of the upline
+        if (uplineChildren.length > 5) {
+          const uplineChildIds = uplineChildren.map((uc) => uc.id);
+          const { data: ucSlotsData } = await supabase
+            .from("slot_subscriptions")
+            .select("user_id, slots")
+            .in("user_id", uplineChildIds);
+
+          const uplineSlotsMap = new Map<string, number>();
+          for (const row of ucSlotsData || []) {
+            const cur = uplineSlotsMap.get(row.user_id) || 0;
+            uplineSlotsMap.set(row.user_id, cur + (Number(row.slots) || 0));
+          }
+
           const uplineSlotChildren: any[] = [];
           for (const uc of uplineChildren) {
-            const { data: ucSlots } = await supabase
-              .from("slot_subscriptions")
-              .select("slots")
-              .eq("user_id", uc.id);
-            const ucSlotsCount = (ucSlots || []).reduce((sum, s) => sum + (Number(s.slots) || 0), 0);
+            const ucSlotsCount = uplineSlotsMap.get(uc.id) || 0;
             if (ucSlotsCount > 0) {
               uplineSlotChildren.push({ ...uc, slotsHeld: ucSlotsCount });
             }
           }
 
-          // Determine target's leg position under upline (0 to 4)
           const myLegIndex = uplineSlotChildren.findIndex((u) => u.id === targetId);
           if (myLegIndex >= 0 && myLegIndex < 5) {
-            // Any upline slot child at index >= 5 with (i - 5) % 5 === myLegIndex spills into this node
+            const candidateSpillovers: any[] = [];
             for (let i = 5; i < uplineSlotChildren.length; i++) {
-              if ((i - 5) % 5 === myLegIndex && childrenNodes.length < 5) {
+              if ((i - 5) % 5 === myLegIndex && childrenNodes.length + candidateSpillovers.length < 5) {
                 const spillCandidate = uplineSlotChildren[i];
-                if (!allRoster.some((m) => m.id === spillCandidate.id)) {
-                  const { count: spillGrandChildren } = await supabase
-                    .from("profiles")
-                    .select("id", { count: "exact", head: true })
-                    .eq("referred_by", spillCandidate.id);
-
-                  const spillNode: OrganogramNode = {
-                    id: spillCandidate.id,
-                    fullName: spillCandidate.full_name || "Spillover Partner",
-                    email: spillCandidate.email || "",
-                    phone: spillCandidate.phone || null,
-                    memberId: formatAgcId(spillCandidate.member_id),
-                    parentId: targetId,
-                    position: childrenNodes.length + 1,
-                    level: 1,
-                    slotsHeld: spillCandidate.slotsHeld,
-                    directReferralsCount: spillGrandChildren || 0,
-                    createdAt: spillCandidate.created_at,
-                    hasGreenCard: Boolean(spillCandidate.member_id),
-                    isSpillover: true,
-                    sponsorName: uplineProfile?.full_name || "Upline Sponsor",
-                    children: [],
-                  };
-
-                  childrenNodes.push(spillNode);
-                  allRoster.push(spillNode);
+                if (!allRoster.some((m) => m.id === spillCandidate.id) && !candidateSpillovers.some((m) => m.id === spillCandidate.id)) {
+                  candidateSpillovers.push(spillCandidate);
                 }
               }
+            }
+
+            const spillCandidateIds = candidateSpillovers.map((s) => s.id);
+            const spillGrandChildrenMap = new Map<string, number>();
+            if (spillCandidateIds.length > 0) {
+              const { data: spillGrandChildrenData } = await supabase
+                .from("profiles")
+                .select("referred_by")
+                .in("referred_by", spillCandidateIds);
+              for (const row of spillGrandChildrenData || []) {
+                if (row.referred_by) {
+                  const cur = spillGrandChildrenMap.get(row.referred_by) || 0;
+                  spillGrandChildrenMap.set(row.referred_by, cur + 1);
+                }
+              }
+            }
+
+            for (const spillCandidate of candidateSpillovers) {
+              const spillGrandChildren = spillGrandChildrenMap.get(spillCandidate.id) || 0;
+              const spillNode: OrganogramNode = {
+                id: spillCandidate.id,
+                fullName: spillCandidate.full_name || "Spillover Partner",
+                email: spillCandidate.email || "",
+                phone: spillCandidate.phone || null,
+                memberId: formatAgcId(spillCandidate.member_id),
+                parentId: targetId,
+                position: childrenNodes.length + 1,
+                level: 1,
+                slotsHeld: spillCandidate.slotsHeld,
+                directReferralsCount: spillGrandChildren,
+                createdAt: spillCandidate.created_at,
+                hasGreenCard: Boolean(spillCandidate.member_id),
+                isSpillover: true,
+                sponsorName: uplineProfile?.full_name || "Upline Sponsor",
+                children: [],
+              };
+              childrenNodes.push(spillNode);
+              allRoster.push(spillNode);
             }
           }
         }
@@ -468,7 +515,7 @@ const CompoundReferrals: React.FC = () => {
       position: 1,
       level: 0,
       slotsHeld: slotsCount,
-      directReferralsCount: childrenProfiles ? childrenProfiles.length : 0,
+      directReferralsCount: childrenProfiles.length,
       createdAt: rootProfile.created_at,
       hasGreenCard: Boolean(rootProfile.member_id),
       isSpillover: false,
@@ -488,6 +535,8 @@ const CompoundReferrals: React.FC = () => {
         return [...prev, { id: builtRoot.id, name: builtRoot.fullName, memberId: builtRoot.memberId }];
       });
     }
+
+    return { builtRoot, allRoster };
   };
 
   // Search by Email or Member ID
