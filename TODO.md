@@ -11,16 +11,29 @@
     - **Coordinator Alerts**: Instant notification to cluster coordinators when a new member is assigned to their farm group.
   - **Delivery Logging & Fallbacks**: Log delivery status to `audit_events` or notification tables; integrate In-App bell notification fallback.
 
-- [x] **Core Driver Growth Bonus Automated Distribution (₦50 across all 7 Core Drivers)**:
-  - Implemented automated distribution function `public.distribute_core_driver_bonuses(p_member_id, p_source_user_id)`.
-  - Active Postgres trigger `trig_subscriptions_gc_core_driver` on `subscriptions` table credits ₦50 to each of the 7 core drivers (Elijah, Esther, Taiwo, David, Fortune, Tony, Nathaniel) and logs `CORE_DRIVER_BONUS` to `wallet_ledger` on all activations (online, webhook, or admin).
-  - Configured statutory growth pool of ₦350/card (7 seats × ₦50 uniform share) effective from September 6, 2026 activations onwards.
-  - Reconciled all 5 active Green Cards from Sept 6 on PROD (35 ledger records, ₦250 credited per driver) and 1 on DEV (₦50 credited per driver).
-  - Integrated complete transaction ledger visibility in user dashboard (`TransactionLedger.tsx`, `useWalletStore.ts`) and super admin hub (`CoreDriversPage.tsx` with detailed modal) displaying exact reference IDs, timestamps, and card numbers.
+- [x] **Tiered Green Card Pricing (₦1,000 Legacy vs. ₦2,000 Post-Sept 6 Accounts)**:
+  - Added business rules `LEGACY_GREEN_CARD_FEE = 1000`, `GREEN_CARD_FEE = 2000`, and `LEGACY_CUTOFF_DATE = "2026-09-06T00:00:00.000Z"`.
+  - Updated `isLegacyMember` and `getGreenCardFee` helpers in `@shared/businessRules` and re-exported in `@/lib/pricing`.
+  - Web frontend dynamically checks registration date: passes ₦1,000 (legacy) or ₦2,000 (standard) to Flutterwave checkout, displays dynamic badges in `Subscribe.tsx`, `Checkout.tsx`, `NextStepModal.tsx`, `JourneyProgressionHeader.tsx`, and `Dashboard.tsx`.
+  - Applied SQL migration `legacy_pricing_and_audit_trail.sql` to both **PROD** and **DEV** Supabase databases: `admin_activate_green_card` RPC dynamically checks `profiles.created_at`, records fee in `other_payments.metadata`, and writes to `audit_events`.
 
-- [x] **Complete Elimination of System Audit Mode**:
-  - Removed single-email blocking check (`currentUser.email !== "developerelijah360@gmail.com"`) from `Checkout.tsx`, `MushroomVillage.tsx`, `OtherPayments.tsx`, `adminActions.ts`, `farmAssignment.ts`, `MembersPage.tsx`, and `LegalDocEditor.tsx`.
-  - Removed all amber audit banners from `AdminLayout.tsx` and `FarmManagement.tsx`.
+- [x] **Complete Administrative Audit Trail & Elimination of 1-Click Bypass**:
+  - Removed unverified 1-click `[Issue]` bypass buttons from `MemberTable.tsx`, `MemberCard.tsx`, and `EditMemberDialog.tsx`.
+  - Mandatory offline payment proof enforced: admins must use `IssueGreenCardDialog` requiring bank reference / NIP Session ID or uploaded receipt image.
+  - Implemented centralized `recordAuditEvent` helper in `adminActions.ts` logging authorizing admin ID, email, role, full name, timestamp, and user agent.
+  - Auditing active across: `activateGreenCard`, `creditSlots`, `createMember`, `updateMember` (with before/after diff), `resetPassword`, `updateConfig`, and `assignSlotsToFarmGroup`.
+  - Upgraded `AdminAuditLogTable.tsx` with filter tabs (`All Events`, `💳 Green Cards`, `🌱 Slot Credits`, `👤 Member Accounts`, `🚜 Operations & Config`), rate tier tags (`₦1,000 • Legacy` vs `₦2,000 • Standard`), in-app receipt modal, and Excel export.
+
+- [x] **Combined Onboarding Prompt (Green Card + Farm Slot Fast-Track)**:
+  - Updated `NextStepModal.tsx` and `Subscribe.tsx` with toggle to optionally add 1 Farm Slot (₦5,000) at the time of Green Card registration.
+  - Dynamically calculates bundled checkout (₦6,000 for legacy vs. ₦7,000 for new members) so users with budget can complete both steps simultaneously.
+
+- [x] **Core Driver Growth Bonus Reversal & Database Calibration**:
+  - Successfully reversed the unverified September offline activation bonuses (₦250 deducted across 35 ledger records) on PROD DB.
+  - Reconciled core driver wallet balances; drivers retain only genuine referral earnings and historical balances.
+  - Created auth account for the 7th driver (`gkygmr56@gmail.com` / Nathaniel Omokanye) to ensure clean distribution.
+
+- [ ] **Custom SMTP & Reliable Transactional Email Delivery (Top Priority)**:
 
 - [x] **Farm Coordinator Role Permissions & Isolation**:
   - Farm Coordinators strictly prohibited from assigning slots; slot allocation is exclusively reserved for Platform Administrators.
