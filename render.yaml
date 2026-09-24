@@ -3,7 +3,7 @@ services:
   - type: web
     name: agroheal-frontend
     runtime: static
-    buildCommand: yarn install && yarn web:build
+    buildCommand: npm install && npm run web:build
     staticPublishPath: ./apps/web/dist
     routes:
       - type: rewrite
@@ -25,7 +25,7 @@ services:
   - type: web
     name: agroheal-admin
     runtime: static
-    buildCommand: yarn install && yarn admin:build
+    buildCommand: npm install && npm run admin:build
     staticPublishPath: ./apps/admin/dist
     routes:
       - type: rewrite
