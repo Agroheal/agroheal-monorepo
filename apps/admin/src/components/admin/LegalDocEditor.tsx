@@ -43,7 +43,7 @@ export function LegalDocEditor({ onSuccess, onError }: Props) {
 
   const handleSave = async () => {
     if (isReadOnly) {
-      onError("System is in Read-Only Audit Mode. Configuration changes are restricted to Super Developer (developerelijah360@gmail.com).");
+      onError("Support role is Read-Only. Configuration changes require Administrator privileges.");
       return;
     }
 

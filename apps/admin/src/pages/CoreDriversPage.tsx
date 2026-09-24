@@ -151,9 +151,11 @@ export default function CoreDriversPage() {
       // 5. Build enriched driver list
       const enrichedDrivers: CoreDriver[] = STATIC_CORE_DRIVERS.map((driver) => {
         const prof = profileMap.get(driver.email.toLowerCase());
-        const totalEarned = totalCards * driver.sharePerCard;
+        const totalEarned = (prof?.id && ledgerMap.has(prof.id))
+          ? (ledgerMap.get(prof.id) || 0)
+          : totalCards * driver.sharePerCard;
         const totalWithdrawn = 0; // Can be wired to withdrawal table when ready
-        const availableBalance = totalEarned - totalWithdrawn;
+        const availableBalance = Number(prof?.wallet_balance ?? (totalEarned - totalWithdrawn));
         const isEligible = availableBalance >= MIN_WITHDRAWAL_THRESHOLD;
         const portalAccess = allowedEmails.includes(driver.email.toLowerCase());
 
@@ -231,8 +233,9 @@ export default function CoreDriversPage() {
           {
             user_id: selectedDriverForPayout.profileId,
             amount: payoutAmount,
+            entry_type: "DEBIT",
             category: "WITHDRAWAL",
-            status: "PENDING_DISBURSEMENT",
+            status: "PENDING",
             description: `Core Driver Growth Bonus Payout to ${selectedDriverForPayout.name}`,
           },
         ]);

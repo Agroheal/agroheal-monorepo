@@ -13,10 +13,8 @@ export async function assertAuditAuthorized() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user?.email !== "developerelijah360@gmail.com") {
-    throw new Error(
-      "System is in Read-Only Audit Mode. Administrative actions are restricted to developerelijah360@gmail.com during financial reconciliation.",
-    );
+  if (!user) {
+    throw new Error("Authentication required for administrative actions.");
   }
 }
 

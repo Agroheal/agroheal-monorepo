@@ -59,23 +59,11 @@ const MushroomVillage = () => {
     setSlots((current) => Math.min(MAX_SLOTS, current + 1));
   const decreaseSlots = () => setSlots((current) => Math.max(1, current - 1));
 
-  const isReadOnly = user?.email !== "developerelijah360@gmail.com";
-
   const handlePayment = async () => {
     if (!user) {
       showToast({
         title: "Login Required",
         description: "Please login to continue with Mushroom Village payment.",
-        variant: "error",
-      });
-      return;
-    }
-
-    if (isReadOnly) {
-      showToast({
-        title: "System in Audit Mode",
-        description:
-          "Mushroom Village payments are temporarily paused during financial reconciliation. Only developerelijah360@gmail.com can test transactions.",
         variant: "error",
       });
       return;
@@ -354,25 +342,14 @@ const MushroomVillage = () => {
                 </div>
               </div>
 
-              {isReadOnly && (
-                <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900 flex items-start gap-2">
-                  <Lock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                  <span>
-                    <strong>Audit Mode:</strong> Payments are temporarily paused during financial reconciliation.
-                  </span>
-                </div>
-              )}
-
               <Button
-                disabled={isProcessing || isReadOnly}
+                disabled={isProcessing}
                 onClick={handlePayment}
                 className="mt-6 w-full"
               >
                 {isProcessing
                   ? "Processing payment..."
-                  : isReadOnly
-                    ? "Payments Paused (Audit Mode)"
-                    : "Pay Mushroom Village Fee"}
+                  : "Pay Mushroom Village Fee"}
               </Button>
             </div>
           </div>

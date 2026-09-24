@@ -114,7 +114,7 @@ export default function MembersPage() {
     offlineDetails?: { transactionRef?: string; paymentDate?: string; receiptUrl?: string; notes?: string },
   ) => {
     if (isReadOnly) {
-      flash(setErrorMessage, "System is in Read-Only Audit Mode. Green Card activations are restricted to Super Developer (developerelijah360@gmail.com).");
+      flash(setErrorMessage, "Support role is Read-Only. Green Card activations require Administrator privileges.");
       return;
     }
 
@@ -154,7 +154,7 @@ export default function MembersPage() {
   const handleSaveMemberProfile = async (values: EditMemberValues) => {
     if (!editingMember) return;
     if (isReadOnly) {
-      flash(setErrorMessage, "System is in Read-Only Audit Mode. Member profile edits are restricted to Super Developer (developerelijah360@gmail.com).");
+      flash(setErrorMessage, "Support role is Read-Only. Member profile edits require Administrator privileges.");
       return;
     }
 
@@ -182,7 +182,7 @@ export default function MembersPage() {
 
   const handlePasswordReset = async (member: Member) => {
     if (isReadOnly) {
-      flash(setErrorMessage, "System is in Read-Only Audit Mode. Password resets are restricted to Super Developer (developerelijah360@gmail.com).");
+      flash(setErrorMessage, "Support role is Read-Only. Password resets require Administrator privileges.");
       return;
     }
 

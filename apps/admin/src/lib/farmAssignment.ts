@@ -37,10 +37,8 @@ export async function assignSlotsToFarmGroup(input: {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (user?.email !== "developerelijah360@gmail.com") {
-    throw new Error(
-      "System is in Read-Only Audit Mode. Farm assignments are restricted to developerelijah360@gmail.com during financial reconciliation.",
-    );
+  if (!user) {
+    throw new Error("Authentication required for farm assignments.");
   }
 
   const farmGroupId = input.farmGroupId;

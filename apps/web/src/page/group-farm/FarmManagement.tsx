@@ -50,7 +50,6 @@ const FarmManagement = () => {
   const [userEmail, setUserEmail] = useState<string>("");
 
   const isSuperDeveloper = userEmail.toLowerCase() === "developerelijah360@gmail.com";
-  const isReadOnly = !isSuperDeveloper;
 
   const fetchFarmAndRecords = async () => {
     if (!farmSlug) return;
@@ -122,14 +121,6 @@ const FarmManagement = () => {
   };
 
   const handleSave = async () => {
-    if (isReadOnly) {
-      showToast({
-        variant: "error",
-        title: "Read-Only Audit Mode",
-        description: "Farm record modifications are restricted during the system audit.",
-      });
-      return;
-    }
     const cleanedName = cleanName(formData.name);
     if (!farm || !cleanedName) {
       showToast({
@@ -140,12 +131,17 @@ const FarmManagement = () => {
       return;
     }
 
+    const existingRecord = editingId ? records.find((r) => r.id === editingId) : null;
+    const slotsToSave = isSuperDeveloper
+      ? parsePositiveInt(formData.farm_slots)
+      : (existingRecord ? existingRecord.farm_slots : 0);
+
     const data = {
       farm_id: farm.id,
       name: cleanedName,
       email: cleanEmail(formData.email) || null,
       phone: normalizePhoneNumber(formData.phone) || null,
-      farm_slots: parsePositiveInt(formData.farm_slots),
+      farm_slots: slotsToSave,
       months_farm_setup: parsePositiveInt(formData.months_farm_setup),
       months_farm_support: parsePositiveInt(formData.months_farm_support),
       absentee_fine: parsePositiveInt(formData.absentee_fine),
@@ -179,14 +175,6 @@ const FarmManagement = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (isReadOnly) {
-      showToast({
-        variant: "error",
-        title: "Read-Only Audit Mode",
-        description: "Record deletion is restricted during the system audit.",
-      });
-      return;
-    }
     if (!confirm("Delete this record?")) return;
     const { error } = await supabase.from("farm_records").delete().eq("id", id);
     if (error) {
@@ -300,19 +288,6 @@ const FarmManagement = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <Toaster />
-      {isReadOnly && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3.5 mb-6 text-xs sm:text-sm text-amber-800 flex items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-2">
-            <Lock className="w-4 h-4 shrink-0 text-amber-600" />
-            <span>
-              <strong>Read-Only Audit Mode:</strong> System is undergoing financial reconciliation. Farm record modifications are restricted to Super Developer (<code className="font-semibold">developerelijah360@gmail.com</code>).
-            </span>
-          </div>
-          <span className="shrink-0 text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded font-mono font-bold tracking-wider">
-            AUDIT ACTIVE
-          </span>
-        </div>
-      )}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -336,16 +311,10 @@ const FarmManagement = () => {
       >
         <Button
           onClick={handleAdd}
-          disabled={isReadOnly}
           className="bg-green-800 hover:bg-green-700"
-          title={isReadOnly ? "Record creation locked during financial audit" : undefined}
         >
-          {isReadOnly ? (
-            <Lock className="w-4 h-4 mr-2" />
-          ) : (
-            <Plus className="w-4 h-4 mr-2" />
-          )}
-          {isReadOnly ? "Audit Mode Active (Locked)" : "Add Member Record"}
+          <Plus className="w-4 h-4 mr-2" />
+          Add Member Record
         </Button>
       </motion.div>
 
@@ -390,14 +359,28 @@ const FarmManagement = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="farm_slots">No. of Farm Slots</Label>
+                  <div className="flex items-center justify-between mb-1">
+                    <Label htmlFor="farm_slots">No. of Farm Slots</Label>
+                    {!isSuperDeveloper && (
+                      <span className="text-[10px] text-muted-foreground bg-gray-100 px-1.5 py-0.5 rounded font-medium">
+                        Admin Only
+                      </span>
+                    )}
+                  </div>
                   <Input
                     id="farm_slots"
                     type="number"
                     min={0}
+                    disabled={!isSuperDeveloper}
                     value={formData.farm_slots || 0}
                     onChange={(e) => set("farm_slots", Number(e.target.value))}
+                    className={!isSuperDeveloper ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""}
                   />
+                  {!isSuperDeveloper && (
+                    <p className="text-[10px] text-gray-500 mt-1">
+                      Slots are assigned by Platform Admins. Coordinators log expenses & revenue.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="months_farm_setup">
@@ -544,8 +527,6 @@ const FarmManagement = () => {
                               onClick={() => handleEdit(record)}
                               variant="outline"
                               size="sm"
-                              disabled={isReadOnly}
-                              title={isReadOnly ? "Editing locked during audit" : undefined}
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
@@ -554,8 +535,6 @@ const FarmManagement = () => {
                               variant="outline"
                               size="sm"
                               className="text-red-600 hover:text-red-700"
-                              disabled={isReadOnly}
-                              title={isReadOnly ? "Deletion locked during audit" : undefined}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>

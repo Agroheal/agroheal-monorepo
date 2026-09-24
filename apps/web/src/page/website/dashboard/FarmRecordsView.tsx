@@ -438,9 +438,9 @@ const FarmRecordsView = () => {
   const isAssignedCoordinatorOfThisFarm = Boolean(
     farm && currentUserId && farm.coordinator_id === currentUserId
   );
-  const canManageRecords = false; // Locked: slot adjustments go through Mrs. Esther -> Super Admin
-  const canManageExpenses = isAssignedCoordinatorOfThisFarm; // Active: coordinators log inputs & labor
-  const canManageSales = false; // Locked: unlocks when Platform Admin opens harvest season
+  const canManageRecords = false; // Locked: slot adjustments managed strictly via Platform Admin
+  const canManageExpenses = isAssignedCoordinatorOfThisFarm || isAdmin; // Active: coordinators log inputs & labor
+  const canManageSales = isAssignedCoordinatorOfThisFarm || isAdmin; // Active: coordinators log produce sales revenue
   const isPlatformStaffInPersonalDashboard = Boolean(
     (isAdmin || isSuperAdmin || isSupport) && !isAssignedCoordinatorOfThisFarm
   );

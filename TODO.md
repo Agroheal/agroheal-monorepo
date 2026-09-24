@@ -1,6 +1,29 @@
 # AgroHeal Development & Enhancement TODO
 
 ## High Priority (Immediate / ASAP)
+- [ ] **Custom SMTP & Reliable Transactional Email Delivery (Top Priority)**:
+  - **Custom SMTP Provider Setup**: Configure dedicated transactional email infrastructure (Resend, SendGrid, AWS SES, or custom SMTP) to eliminate Supabase default rate-limits (3-4 emails/hour restriction) and deliver emails from verified domain `@agroheal.com` / `@agroheal.ng`.
+  - **Essential Automated Email Triggers**:
+    - **Authentication**: High-deliverability signup verification, welcome email, and password recovery with direct magic tokens.
+    - **Green Card Activation**: Instant branded congratulations receipt with Digital AGC Member ID, QR code, and personal referral link.
+    - **Slot Purchase Receipts**: Immediate transaction receipt for online Flutterwave and offline admin approvals with project category and slot count.
+    - **Farm Operations & Harvests**: Notifications to members when assigned to a farm cluster and when harvest dividends post to their wallets.
+    - **Coordinator Alerts**: Instant notification to cluster coordinators when a new member is assigned to their farm group.
+  - **Delivery Logging & Fallbacks**: Log delivery status to `audit_events` or notification tables; integrate In-App bell notification fallback.
+
+- [x] **Core Driver Growth Bonus Automated Distribution (₦50/card)**:
+  - Implemented automated distribution function `public.distribute_core_driver_bonuses(p_member_id, p_source_user_id)`.
+  - Active Postgres trigger `trig_subscriptions_gc_core_driver` on `subscriptions` table credits ₦50 to each of the 6 core drivers and logs `CORE_DRIVER_BONUS` to `wallet_ledger` on all activations (online, webhook, or admin).
+  - Reconciled existing 43 active Green Cards on PROD & DEV (258 ledger entries inserted, ₦2,150 credited per driver).
+
+- [x] **Complete Elimination of System Audit Mode**:
+  - Removed single-email blocking check (`currentUser.email !== "developerelijah360@gmail.com"`) from `Checkout.tsx`, `MushroomVillage.tsx`, `OtherPayments.tsx`, `adminActions.ts`, `farmAssignment.ts`, `MembersPage.tsx`, and `LegalDocEditor.tsx`.
+  - Removed all amber audit banners from `AdminLayout.tsx` and `FarmManagement.tsx`.
+
+- [x] **Farm Coordinator Role Permissions & Isolation**:
+  - Farm Coordinators strictly prohibited from assigning slots; slot allocation is exclusively reserved for Platform Administrators.
+  - Coordinators empowered to log daily farm expenses and produce harvest sales revenue (`farm_sales`).
+
 - [x] **Downloadable Digital Green Card (PDF / PNG & Apple/Google Wallet)**:
   - Added "Download Card" button and high-resolution 2400×1512 PNG canvas export on `/dashboard/profile/green-card` and `/verify-card/:memberId`.
   - Added scannable dynamic QR code, lifetime validity, member name, and AGC member ID.

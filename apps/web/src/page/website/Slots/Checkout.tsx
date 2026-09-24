@@ -374,8 +374,7 @@ const Checkout = () => {
     const normalizedPhone = normalizePhoneNumber(formData.phone);
 
     const newErrors: Record<string, string> = {};
-    if (!cleanFirstName) newErrors.firstName = "First name is required";
-    if (!cleanLastName) newErrors.lastName = "Last name is required";
+    if (!cleanFirstName && !formData.email) newErrors.firstName = "Name is required";
     if (!normalizedEmail) newErrors.email = "Email address is required";
     if (!normalizedPhone || normalizedPhone.length < 10) {
       newErrors.phone = "Enter a valid phone number (at least 10 digits)";
@@ -393,20 +392,6 @@ const Checkout = () => {
     }
 
     setErrors({}); // Clear errors if valid
-
-    // Read-only audit mode guard
-    const {
-      data: { user: currentUser },
-    } = await supabase.auth.getUser();
-    if (currentUser && currentUser.email !== "developerelijah360@gmail.com") {
-      toast({
-        title: "System in Audit Mode",
-        description:
-          "Slot purchases are temporarily paused during financial reconciliation. Only developerelijah360@gmail.com can test transactions.",
-        variant: "destructive",
-      });
-      return;
-    }
 
     if (!window.FlutterwaveCheckout) {
       toast({
@@ -583,8 +568,7 @@ const Checkout = () => {
     const normalizedPhone = normalizePhoneNumber(formData.phone);
 
     const newErrors: Record<string, string> = {};
-    if (!cleanFirstName) newErrors.firstName = "First name is required";
-    if (!cleanLastName) newErrors.lastName = "Last name is required";
+    if (!cleanFirstName && !formData.email) newErrors.firstName = "Name is required";
     if (!normalizedEmail) newErrors.email = "Email address is required";
     if (!normalizedPhone || normalizedPhone.length < 10) {
       newErrors.phone = "Enter a valid phone number (at least 10 digits)";
@@ -617,20 +601,6 @@ const Checkout = () => {
 
     if (cardAmountToPay <= 0) {
       await handleWalletPayment();
-      return;
-    }
-
-    // Read-only audit mode guard
-    const {
-      data: { user: currentUser },
-    } = await supabase.auth.getUser();
-    if (currentUser && currentUser.email !== "developerelijah360@gmail.com") {
-      toast({
-        title: "System in Audit Mode",
-        description:
-          "Slot purchases are temporarily paused during financial reconciliation. Only developerelijah360@gmail.com can test transactions.",
-        variant: "destructive",
-      });
       return;
     }
 

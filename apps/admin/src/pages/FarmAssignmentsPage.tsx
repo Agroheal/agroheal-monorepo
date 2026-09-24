@@ -321,8 +321,8 @@ export default function FarmAssignmentsPage() {
   }, []);
 
   const handleAssign = async (gap: FarmAssignmentGap) => {
-    if (isReadOnly) {
-      flash(setErrorMessage, "Support role is Read-Only. Farm assignments require Platform Admin privileges.");
+    if (isReadOnly || isCoordinator) {
+      flash(setErrorMessage, "Coordinators cannot assign slots. Farm slot assignments require Platform Admin privileges.");
       return;
     }
 
@@ -924,16 +924,16 @@ export default function FarmAssignmentsPage() {
                         <td className="px-4 py-3">
                           <Button
                             size="sm"
-                            disabled={isReadOnly || assigningKey === key || !selectedFarm[key]}
+                            disabled={isReadOnly || isCoordinator || assigningKey === key || !selectedFarm[key]}
                             onClick={() => handleAssign(gap)}
                             className="text-xs h-8"
                           >
                             {assigningKey === key ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : isReadOnly ? (
+                            ) : (isReadOnly || isCoordinator) ? (
                               <Lock className="h-3.5 w-3.5 mr-1" />
                             ) : null}
-                            {isReadOnly ? "Locked" : "Assign"}
+                            {isCoordinator ? "Admin Only" : isReadOnly ? "Locked" : "Assign"}
                           </Button>
                         </td>
                       </tr>

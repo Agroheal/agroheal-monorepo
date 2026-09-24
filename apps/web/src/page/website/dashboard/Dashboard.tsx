@@ -32,6 +32,7 @@ import FarmCycleTracker from "@/components/dashboard/FarmCycleTracker";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import NextStepModal from "@/components/dashboard/NextStepModal";
+import JourneyProgressionHeader from "@/components/dashboard/JourneyProgressionHeader";
 
 interface ReferralProps {
   id: string;
@@ -362,6 +363,17 @@ const Dashboard = () => {
       </div>
 
       <div className="px-4 md:px-8 -mt-8 pb-12 max-w-[96%] mx-auto">
+        {/* Journey Progression Infographic Banner */}
+        <JourneyProgressionHeader
+          hasGreenCard={hasGreenCard}
+          memberId={profile?.member_id as string}
+          totalSlots={totalSlotsPurchased}
+          directReferralsCount={profile?.total_referrals || 0}
+          referralCode={profile?.referral_code}
+          walletBalance={Number(profile?.wallet_balance || profile?.referral_earnings || 0)}
+          onOpenShareModal={() => setShowShareModal(true)}
+        />
+
         {/* How It Works Quick Access Banner */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
