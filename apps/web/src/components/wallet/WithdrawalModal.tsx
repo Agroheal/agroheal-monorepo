@@ -53,6 +53,7 @@ interface WithdrawalModalProps {
   onClose: () => void;
   directReferralBalance: number;
   matrixBalance: number;
+  walletBalance?: number;
   isMatrixQualified: boolean;
   savedBankName?: string;
   savedAccountNumber?: string;
@@ -70,6 +71,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
   onClose,
   directReferralBalance,
   matrixBalance,
+  walletBalance = 0,
   isMatrixQualified,
   savedBankName,
   savedAccountNumber,
@@ -103,7 +105,9 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
   if (!isOpen) return null;
 
   const currentAvailableBalance =
-    walletType === "DIRECT_REFERRAL" ? directReferralBalance : matrixBalance;
+    walletType === "DIRECT_REFERRAL"
+      ? Math.max(directReferralBalance, walletBalance || 0)
+      : matrixBalance;
 
   const handleMaxAmount = () => {
     setAmount(currentAvailableBalance.toString());

@@ -24,7 +24,7 @@ export interface CoreDriver {
   id: string;
   name: string;
   email: string;
-  roleTitle: string;
+  roleTitle?: string;
   sharePerCard: number;
   profileId?: string;
   memberId?: string;
@@ -41,49 +41,42 @@ const STATIC_CORE_DRIVERS = [
     id: "driver-1",
     name: "Elijah Ajibade",
     email: "developerelijah360@gmail.com",
-    roleTitle: "Chief Systems Architect & Co-founder",
     sharePerCard: 50,
   },
   {
     id: "driver-2",
     name: "Esther Adetayo",
     email: "estherbola888@gmail.com",
-    roleTitle: "Founder & Commercial Lead",
     sharePerCard: 50,
   },
   {
     id: "driver-3",
     name: "Taiwo Oluwadahunsola",
     email: "ifoodeconomy@gmail.com",
-    roleTitle: "Core Operations Driver",
     sharePerCard: 50,
   },
   {
     id: "driver-4",
     name: "David Omokanye",
     email: "davidomokanye141@gmail.com",
-    roleTitle: "Core Agronomy & Field Operations",
     sharePerCard: 50,
   },
   {
     id: "driver-5",
     name: "Fortune Etuk",
     email: "efortunefb@gmail.com",
-    roleTitle: "Regional Expansion & Community Growth",
     sharePerCard: 50,
   },
   {
     id: "driver-6",
     name: "Tony Inyang",
     email: "tonyinyang118@gmail.com",
-    roleTitle: "Institutional Partnerships & Enterprise",
     sharePerCard: 50,
   },
   {
     id: "driver-7",
     name: "Nathaniel Omokanye",
     email: "gkygmr56@gmail.com",
-    roleTitle: "Core Growth & Strategic Operations",
     sharePerCard: 50,
   },
 ];
@@ -294,8 +287,7 @@ export default function CoreDriversPage() {
   const filteredDrivers = drivers.filter(
     (d) =>
       d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      d.roleTitle.toLowerCase().includes(searchQuery.toLowerCase())
+      d.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -381,7 +373,6 @@ export default function CoreDriversPage() {
             <thead className="bg-muted/40 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border">
               <tr>
                 <th className="px-4 py-3">Core Driver</th>
-                <th className="px-4 py-3">Role / Designation</th>
                 <th className="px-4 py-3 text-right">Share / Card</th>
                 <th className="px-4 py-3 text-right">Total Accrued</th>
                 <th className="px-4 py-3 text-right">Available Balance</th>
@@ -396,9 +387,6 @@ export default function CoreDriversPage() {
                   <td className="px-4 py-3.5">
                     <div className="font-medium text-foreground">{driver.name}</div>
                     <div className="text-xs text-muted-foreground font-mono">{driver.email}</div>
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <span className="text-xs text-muted-foreground">{driver.roleTitle}</span>
                   </td>
                   <td className="px-4 py-3.5 text-right font-mono text-xs">
                     ₦{driver.sharePerCard}

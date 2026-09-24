@@ -105,6 +105,7 @@ export const appRouter = createBrowserRouter([
         children: [
           { index: true, element: <Dashboard /> },
           { path: "transactions", element: <TransactionLedger /> },
+          { path: "wallet", element: <Navigate to="/dashboard/transactions" replace /> },
 
           // Farm Operations (strict nested domain structure)
           {

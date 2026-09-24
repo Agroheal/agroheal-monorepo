@@ -70,6 +70,7 @@ export default function TransactionLedger() {
   } | null>(null);
   const [directReferralEarnings, setDirectReferralEarnings] = useState<number>(0);
   const [matrixEarnings, setMatrixEarnings] = useState<number>(0);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
   const [directReferralsCount, setDirectReferralsCount] = useState<number>(0);
   const [activePqv30d, setActivePqv30d] = useState<number>(0);
   const [pqvDaysRemaining, setPqvDaysRemaining] = useState<number>(30);
@@ -93,9 +94,15 @@ export default function TransactionLedger() {
   const canSubscribeWithWallet = !isProjectSubscribed && directReferralEarnings >= 10000;
   const hasGreenCard = Boolean(memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING"));
 
-  // Clear financial balances
-  const availableBalance = (isDirectReferralWithdrawable ? directReferralEarnings : 0) + (isMatrixQualified ? matrixEarnings : 0);
-  const ledgerBalance = directReferralEarnings + matrixEarnings;
+  // Clear financial balances (incorporating direct referral earnings, matrix earnings, and platform wallet balance)
+  const availableBalance = Math.max(
+    walletBalance,
+    (isDirectReferralWithdrawable ? directReferralEarnings : 0) + (isMatrixQualified ? matrixEarnings : 0)
+  );
+  const ledgerBalance = Math.max(
+    walletBalance,
+    directReferralEarnings + matrixEarnings
+  );
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -170,7 +177,7 @@ export default function TransactionLedger() {
       ] = await Promise.all([
         supabase
           .from("profiles")
-          .select("member_id, full_name, email, referral_earnings, slot_bonus, total_referrals, created_at, bank_name, bank_account_number, bank_account_name, bank_code")
+          .select("member_id, full_name, email, referral_earnings, slot_bonus, wallet_balance, total_referrals, created_at, bank_name, bank_account_number, bank_account_name, bank_code")
           .eq("id", user.id)
           .maybeSingle(),
         supabase
@@ -212,6 +219,9 @@ export default function TransactionLedger() {
         ? Number(apiSummary.directReferralWallet.balance)
         : Number(profile?.referral_earnings || 0);
       setDirectReferralEarnings(refEarnings);
+
+      const wBal = Number(profile?.wallet_balance) || 0;
+      setWalletBalance(wBal);
 
       if (apiSummary?.matrixSpilloverWallet?.balance === undefined && profile?.slot_bonus) {
         setMatrixEarnings(Number(profile.slot_bonus || 0));
@@ -1022,22 +1032,22 @@ export default function TransactionLedger() {
               )}
 
               <Button
-                disabled={!isDirectReferralWithdrawable && !isMatrixQualified}
+                disabled={availableBalance < 2000}
                 onClick={() => {
                   setIsWithdrawModalOpen(true);
                 }}
                 className={`w-full h-9 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
-                  (isDirectReferralWithdrawable || isMatrixQualified)
+                  availableBalance >= 2000
                     ? "bg-emerald-700 hover:bg-emerald-600 text-white shadow-xs cursor-pointer"
                     : "bg-white/10 text-gray-400 border border-white/10 cursor-not-allowed"
                 }`}
               >
                 <ArrowUpRight className="w-3.5 h-3.5 mr-1" />
-                {isDirectReferralWithdrawable
+                {availableBalance >= 2000
                   ? `Withdraw Available Funds (₦${availableBalance.toLocaleString()})`
-                  : !isProjectSubscribed
+                  : !isProjectSubscribed && walletBalance < 2000
                   ? "Withdrawal Locked (Project Subscription Required)"
-                  : `Accumulate ₦${(2000 - directReferralEarnings).toLocaleString()} More to Withdraw`}
+                  : `Accumulate ₦${(2000 - availableBalance).toLocaleString()} More to Withdraw (Min. ₦2,000)`}
               </Button>
             </div>
           </div>
@@ -1275,6 +1285,7 @@ export default function TransactionLedger() {
           onClose={() => setIsWithdrawModalOpen(false)}
           directReferralBalance={directReferralEarnings}
           matrixBalance={matrixEarnings}
+          walletBalance={walletBalance}
           isMatrixQualified={isMatrixQualified}
           savedBankName={userProfile?.bank_name}
           savedAccountNumber={userProfile?.bank_account_number}
