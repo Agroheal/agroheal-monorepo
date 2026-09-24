@@ -95,25 +95,20 @@ const Dashboard = () => {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profileData, error: selectError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      if (selectError || !profileData) {
-        setProfileError(true);
-        return;
-      }
-
-      // Fetch all independent data in parallel
+      // Fetch all dashboard data in a single parallel round-trip
       const [
+        { data: profileData, error: selectError },
         { data: kinData, error: kinError },
         { data: referrals },
         { data: subscriptions },
         { data: checkoutsData },
         { data: greenCardSub },
       ] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle(),
         supabase
           .from("kin_details")
           .select("kin_name, kin_address, kin_number")
@@ -143,6 +138,11 @@ const Dashboard = () => {
           .limit(1)
           .maybeSingle(),
       ]);
+
+      if (selectError || !profileData) {
+        setProfileError(true);
+        return;
+      }
 
       const isSubActive = Boolean(
         greenCardSub && (!greenCardSub.expires_at || new Date(greenCardSub.expires_at).getTime() > Date.now())

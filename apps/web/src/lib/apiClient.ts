@@ -118,8 +118,8 @@ export const apiClient = {
    * GET/POST /api/v1/member/...
    */
   member: {
-    getProfile: () => apiRequest<any>("member/profile"),
-    getDigitalCard: () =>
+    getProfile: (options?: ApiRequestOptions) => apiRequest<any>("member/profile", options),
+    getDigitalCard: (options?: ApiRequestOptions) =>
       apiRequest<{
         id: string;
         fullName: string;
@@ -130,7 +130,7 @@ export const apiClient = {
         isVerified: boolean;
         issueDate: string;
         verificationUrl: string;
-      }>("member/digital-card"),
+      }>("member/digital-card", options),
     activateGreenCard: (data: {
       paymentReference: string;
       amount?: number;

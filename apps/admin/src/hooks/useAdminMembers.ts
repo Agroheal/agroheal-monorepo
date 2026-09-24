@@ -72,11 +72,27 @@ export function useAdminMembers() {
       const otherPayments = (otherPayRes.data || []) as RawPaymentRow[];
       const subscriptions = (subscriptionsRes?.data || []) as RawSubscriptionRow[];
 
+      // High-performance O(1) index maps to replace nested O(N*M) filters
+      const activeSlotsByUser = new Map<string, RawSlotRow[]>();
+      for (const s of slots) {
+        if (s.status === "active") {
+          const list = activeSlotsByUser.get(s.user_id);
+          if (list) list.push(s);
+          else activeSlotsByUser.set(s.user_id, [s]);
+        }
+      }
+
+      const now = new Date();
+      const activeGreenCardsByUser = new Map<string, RawSubscriptionRow>();
+      for (const sub of subscriptions) {
+        if (sub.status === "active" && (!sub.expires_at || new Date(sub.expires_at) > now)) {
+          activeGreenCardsByUser.set(sub.user_id, sub);
+        }
+      }
+
       const mappedMembers: Member[] = profiles.map((p) => {
-        const userSlots = slots.filter((s) => s.user_id === p.id && s.status === "active");
-        const userGreenCard = subscriptions.find(
-          (s) => s.user_id === p.id && s.status === "active" && new Date(s.expires_at) > new Date(),
-        );
+        const userSlots = activeSlotsByUser.get(p.id) || [];
+        const userGreenCard = activeGreenCardsByUser.get(p.id);
         const hasGreenCard = Boolean(userGreenCard || (p.member_id && p.member_id.startsWith("AGC-")));
 
         const programMap: Record<string, { category: string; slots: number; status: string }> = {};

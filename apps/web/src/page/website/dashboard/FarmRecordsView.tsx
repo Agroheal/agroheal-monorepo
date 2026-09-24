@@ -586,32 +586,26 @@ const FarmRecordsView = () => {
     }
     setCurrentUserEmail(user.email);
 
-    // First: fetch all farm groups this user is associated with (as member or coordinator)
-    // 1. Groups where user is a coordinator
-    const { data: coordFarms } = await supabase
-      .from("farm_groups")
-      .select("*")
-      .eq("coordinator_id", user.id);
+    // First: fetch all farm groups this user is associated with in a single parallel round-trip
+    const [
+      coordFarmsRes,
+      memberRecordsRes,
+      slotSubsRes,
+      platformFarmsRes,
+    ] = await Promise.all([
+      supabase.from("farm_groups").select("*").eq("coordinator_id", user.id),
+      supabase.from("farm_records").select("farm_id, farm_groups!inner(*)").eq("email", user.email),
+      supabase.from("slot_subscriptions").select("project_category").eq("user_id", user.id),
+      (isAdmin || isSupport) ? supabase.from("farm_groups").select("*") : Promise.resolve({ data: [] }),
+    ]);
 
-    // 2. Groups where user is a member in farm_records
-    const { data: memberRecords } = await supabase
-      .from("farm_records")
-      .select("farm_id, farm_groups!inner(*)")
-      .eq("email", user.email);
-
-    const memberFarms =
-      memberRecords?.map(
-        (r) => r.farm_groups as unknown as FarmRecord["farm_groups"],
-      ) || [];
-
-    // 3. Farm groups matching categories where user holds slot subscriptions
-    const { data: userSlotSubs } = await supabase
-      .from("slot_subscriptions")
-      .select("project_category")
-      .eq("user_id", user.id);
+    const coordFarms = coordFarmsRes.data || [];
+    const memberFarms = (memberRecordsRes.data || []).map(
+      (r: any) => r.farm_groups as unknown as FarmRecord["farm_groups"],
+    ).filter(Boolean);
 
     const subscribedCategories = Array.from(
-      new Set((userSlotSubs || []).map((s: { project_category?: string }) => s.project_category).filter(Boolean))
+      new Set((slotSubsRes.data || []).map((s: { project_category?: string }) => s.project_category).filter(Boolean))
     );
 
     let slotSubFarms: FarmRecord["farm_groups"][] = [];
@@ -623,15 +617,10 @@ const FarmRecordsView = () => {
       slotSubFarms = (catFarms || []) as unknown as FarmRecord["farm_groups"][];
     }
 
-    // 4. If admin, super_admin, or support, also fetch all farm groups across the platform
-    let platformFarms: FarmRecord["farm_groups"][] = [];
-    if (isAdmin || isSupport) {
-      const { data: allFarms } = await supabase.from("farm_groups").select("*");
-      platformFarms = (allFarms || []) as unknown as FarmRecord["farm_groups"][];
-    }
+    const platformFarms = (platformFarmsRes.data || []) as unknown as FarmRecord["farm_groups"][];
 
     // Combine and deduplicate
-    const combinedFarms = [...(coordFarms || []), ...memberFarms, ...slotSubFarms, ...platformFarms];
+    const combinedFarms = [...coordFarms, ...memberFarms, ...slotSubFarms, ...platformFarms];
     const uniqueFarms = Array.from(
       new Map(combinedFarms.map((f) => [f.id, f])).values(),
     ) as Array<{ id: string; name: string; coordinator_id: string; project_category: string }>;

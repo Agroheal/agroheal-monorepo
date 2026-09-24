@@ -100,12 +100,29 @@ const Checkout = () => {
         } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Fetch profile
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("full_name, phone, email, referral_earnings, wallet_balance, created_at")
-          .eq("id", user.id)
-          .maybeSingle();
+        // Fetch profile, Green Card status, and active slots concurrently in a single parallel round-trip
+        const [
+          { data: profile },
+          { data: subs },
+          { count, data: slotsData },
+        ] = await Promise.all([
+          supabase
+            .from("profiles")
+            .select("full_name, phone, email, referral_earnings, wallet_balance, created_at")
+            .eq("id", user.id)
+            .maybeSingle(),
+          supabase
+            .from("subscriptions")
+            .select("expires_at, status, plan")
+            .eq("user_id", user.id)
+            .eq("plan", "green_card")
+            .eq("status", "active"),
+          supabase
+            .from("slot_subscriptions")
+            .select("id", { count: "exact" })
+            .eq("user_id", user.id)
+            .eq("status", "active"),
+        ]);
 
         setMemberCreatedAt(profile?.created_at || user.created_at || null);
 
@@ -148,13 +165,6 @@ const Checkout = () => {
         }
 
         // Check active Green Card subscription strictly on plan = 'green_card'
-        const { data: subs } = await supabase
-          .from("subscriptions")
-          .select("expires_at, status, plan")
-          .eq("user_id", user.id)
-          .eq("plan", "green_card")
-          .eq("status", "active");
-
         const userHasGreenCard = Boolean(
           subs &&
             subs.some(
@@ -164,12 +174,6 @@ const Checkout = () => {
         setHasGreenCard(userHasGreenCard);
 
         // Check if user already owns any slots
-        const { count, data: slotsData } = await supabase
-          .from("slot_subscriptions")
-          .select("id", { count: "exact" })
-          .eq("user_id", user.id)
-          .eq("status", "active");
-
         setHasPriorSlots(Boolean((count && count > 0) || (slotsData && slotsData.length > 0)));
       } catch (err) {
         console.error("Error loading profile in checkout:", err);
