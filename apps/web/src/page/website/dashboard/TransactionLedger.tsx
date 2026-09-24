@@ -34,6 +34,7 @@ import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import { exportToExcel } from "@shared/excelExport";
 import { AgrohealImages } from "@/constant/Image";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import WithdrawalModal from "@/components/wallet/WithdrawalModal";
 
 interface LedgerItem {
@@ -754,9 +755,13 @@ export default function TransactionLedger() {
                     <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block">
                       Accrued Matrix Dividends
                     </span>
-                    <p className="text-2xl font-extrabold text-emerald-950 font-mono">
-                      ₦{matrixEarnings.toLocaleString()}
-                    </p>
+                    {loading ? (
+                      <Skeleton className="h-8 w-32 my-1" />
+                    ) : (
+                      <p className="text-2xl font-extrabold text-emerald-950 font-mono">
+                        ₦{matrixEarnings.toLocaleString()}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right text-xs">
                     <span className="text-gray-500 text-[11px]">Active Depth:</span>{" "}
@@ -972,9 +977,13 @@ export default function TransactionLedger() {
                   <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">
                     Available Balance
                   </span>
-                  <p className="text-xl sm:text-2xl font-black font-mono text-white tracking-tight">
-                    ₦{availableBalance.toLocaleString()}
-                  </p>
+                  {loading ? (
+                    <Skeleton className="h-8 w-32 bg-white/20 my-1" />
+                  ) : (
+                    <p className="text-xl sm:text-2xl font-black font-mono text-white tracking-tight">
+                      ₦{availableBalance.toLocaleString()}
+                    </p>
+                  )}
                   <span className="text-[10px] text-emerald-200/70 block">
                     Immediately Withdrawable
                   </span>
@@ -984,9 +993,13 @@ export default function TransactionLedger() {
                   <span className="text-[10px] text-gray-300 font-bold uppercase tracking-wider block">
                     Ledger Balance
                   </span>
-                  <p className="text-xl sm:text-2xl font-black font-mono text-gray-200 tracking-tight">
-                    ₦{ledgerBalance.toLocaleString()}
-                  </p>
+                  {loading ? (
+                    <Skeleton className="h-8 w-32 bg-white/20 my-1" />
+                  ) : (
+                    <p className="text-xl sm:text-2xl font-black font-mono text-gray-200 tracking-tight">
+                      ₦{ledgerBalance.toLocaleString()}
+                    </p>
+                  )}
                   <span className="text-[10px] text-gray-400 block">
                     Total Cumulative Posted
                   </span>
@@ -1131,11 +1144,28 @@ export default function TransactionLedger() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
-                  <tr>
-                    <td colSpan={6} className="py-12">
-                      <LoadingSpinner message="Loading financial ledger..." />
-                    </td>
-                  </tr>
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td className="py-4 px-5">
+                        <Skeleton className="h-4 w-24" />
+                      </td>
+                      <td className="py-4 px-5">
+                        <Skeleton className="h-4 w-48" />
+                      </td>
+                      <td className="py-4 px-5">
+                        <Skeleton className="h-6 w-24 rounded-full" />
+                      </td>
+                      <td className="py-4 px-5">
+                        <Skeleton className="h-4 w-28" />
+                      </td>
+                      <td className="py-4 px-5 text-right">
+                        <Skeleton className="h-4 w-20 ml-auto" />
+                      </td>
+                      <td className="py-4 px-5 text-center">
+                        <Skeleton className="h-6 w-16 mx-auto rounded-full" />
+                      </td>
+                    </tr>
+                  ))
                 ) : filteredTransactions.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-12 text-center text-gray-400">

@@ -31,6 +31,7 @@ import ShareReferralModal from "@/components/webComponents/shareModal";
 import FarmCycleTracker from "@/components/dashboard/FarmCycleTracker";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import NextStepModal from "@/components/dashboard/NextStepModal";
 import JourneyProgressionHeader from "@/components/dashboard/JourneyProgressionHeader";
 import { isLegacyMember, getGreenCardFee, formatNaira } from "@shared/businessRules";
@@ -255,7 +256,7 @@ const Dashboard = () => {
   }
 
   if (!profile) {
-    return <LoadingSpinner message="Loading your overview..." />;
+    return <DashboardSkeleton />;
   }
 
   const stats = [
