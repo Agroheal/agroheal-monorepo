@@ -40,7 +40,7 @@ interface LedgerItem {
   id: string;
   date: string;
   type: "CREDIT" | "DEBIT";
-  category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION";
+  category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION" | "CORE_DRIVER_BONUS";
   amount: number;
   description: string;
   status: "COMPLETED" | "PENDING" | "FAILED";
@@ -166,6 +166,7 @@ export default function TransactionLedger() {
         { data: subscriptions },
         { data: otherPayments },
         { data: checkouts },
+        { data: dbWalletLedger },
       ] = await Promise.all([
         supabase
           .from("profiles")
@@ -189,6 +190,11 @@ export default function TransactionLedger() {
           .select("id, amount, created_at, payment_reference, status")
           .eq("user_id", user.id)
           .limit(20),
+        supabase
+          .from("wallet_ledger")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false }),
       ]);
 
       if (profile) {
@@ -322,6 +328,24 @@ export default function TransactionLedger() {
             description: "Online Platform Payment",
             status: isCCompleted ? "COMPLETED" : isCFailed ? "FAILED" : "PENDING",
             reference: c.payment_reference || `CHK-${c.id.slice(0, 8)}`,
+          });
+        }
+      });
+
+      // 5. Official wallet_ledger entries (CORE_DRIVER_BONUS, wallet transactions)
+      (dbWalletLedger || []).forEach((entry: any) => {
+        const ref = entry.reference_id || entry.id?.slice(0, 8) || "N/A";
+        if (!items.some((it) => it.id === entry.id || (entry.category === "CORE_DRIVER_BONUS" && it.reference === ref))) {
+          const isDebit = entry.entry_type === "DEBIT";
+          items.push({
+            id: entry.id || `ledger-${ref}`,
+            date: entry.created_at || new Date().toISOString(),
+            type: isDebit ? "DEBIT" : "CREDIT",
+            category: entry.category || "CORE_DRIVER_BONUS",
+            amount: Math.abs(Number(entry.amount) || 0),
+            description: entry.description || "Core Driver Growth Pool Share",
+            status: entry.status === "FAILED" ? "FAILED" : entry.status === "PENDING" ? "PENDING" : "COMPLETED",
+            reference: ref,
           });
         }
       });
@@ -1064,6 +1088,7 @@ export default function TransactionLedger() {
                   Pending Transactions {transactions.some((t) => t.status === "PENDING") ? `(${transactions.filter((t) => t.status === "PENDING").length})` : ""}
                 </option>
                 <option value="REFERRAL_BONUS">Referral Bonuses</option>
+                <option value="CORE_DRIVER_BONUS">Core Driver Growth Bonuses</option>
                 <option value="SLOT_PURCHASE">Slot Purchases</option>
                 <option value="SUBSCRIPTION">Subscriptions</option>
                 <option value="CREDIT">Credits Only</option>
@@ -1121,8 +1146,12 @@ export default function TransactionLedger() {
                         {t.description}
                       </td>
                       <td className="py-4 px-5 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold bg-gray-100 text-gray-700">
-                          {t.category.replace(/_/g, " ")}
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold ${
+                          t.category === "CORE_DRIVER_BONUS"
+                            ? "bg-amber-100 text-amber-900 border border-amber-300"
+                            : "bg-gray-100 text-gray-700"
+                        }`}>
+                          {t.category === "CORE_DRIVER_BONUS" ? "Growth Driver Bonus" : t.category.replace(/_/g, " ")}
                         </span>
                       </td>
                       <td className="py-4 px-5 whitespace-nowrap font-mono text-[11px] text-gray-500">

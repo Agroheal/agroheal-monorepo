@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Award,
   AlertCircle,
+  History,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { StatCard } from "@/components/admin/StatCard";
@@ -48,42 +49,42 @@ const STATIC_CORE_DRIVERS = [
     name: "Esther Adetayo",
     email: "estherbola888@gmail.com",
     roleTitle: "Founder & Commercial Lead",
-    sharePerCard: 41.67,
+    sharePerCard: 50,
   },
   {
     id: "driver-3",
     name: "Taiwo Oluwadahunsola",
     email: "ifoodeconomy@gmail.com",
     roleTitle: "Core Operations Driver",
-    sharePerCard: 41.67,
+    sharePerCard: 50,
   },
   {
     id: "driver-4",
     name: "David Omokanye",
     email: "davidomokanye141@gmail.com",
     roleTitle: "Core Agronomy & Field Operations",
-    sharePerCard: 41.67,
+    sharePerCard: 50,
   },
   {
     id: "driver-5",
     name: "Fortune Etuk",
     email: "efortunefb@gmail.com",
     roleTitle: "Regional Expansion & Community Growth",
-    sharePerCard: 41.67,
+    sharePerCard: 50,
   },
   {
     id: "driver-6",
     name: "Tony Inyang",
     email: "tonyinyang118@gmail.com",
     roleTitle: "Institutional Partnerships & Enterprise",
-    sharePerCard: 41.67,
+    sharePerCard: 50,
   },
   {
     id: "driver-7",
     name: "Nathaniel Omokanye",
     email: "gkygmr56@gmail.com",
     roleTitle: "Core Growth & Strategic Operations",
-    sharePerCard: 41.67,
+    sharePerCard: 50,
   },
 ];
 
@@ -100,6 +101,9 @@ export default function CoreDriversPage() {
   const [selectedDriverForPayout, setSelectedDriverForPayout] = useState<CoreDriver | null>(null);
   const [payoutAmount, setPayoutAmount] = useState<number>(0);
   const [isProcessingPayout, setIsProcessingPayout] = useState(false);
+  const [selectedDriverForLedger, setSelectedDriverForLedger] = useState<CoreDriver | null>(null);
+  const [driverLedgerEntries, setDriverLedgerEntries] = useState<any[]>([]);
+  const [loadingDriverLedger, setLoadingDriverLedger] = useState<boolean>(false);
 
   const flash = (fn: (v: string) => void, text: string) => {
     fn(text);
@@ -261,7 +265,31 @@ export default function CoreDriversPage() {
     }
   };
 
-  const totalPoolAccrued = activeGreenCardsCount * 300; // ₦300 pool (15% of ₦2,000)
+  const handleOpenLedger = async (driver: CoreDriver) => {
+    setSelectedDriverForLedger(driver);
+    setLoadingDriverLedger(true);
+    try {
+      if (driver.profileId) {
+        const { data, error } = await supabase
+          .from("wallet_ledger")
+          .select("*")
+          .eq("user_id", driver.profileId)
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+        setDriverLedgerEntries(data || []);
+      } else {
+        setDriverLedgerEntries([]);
+      }
+    } catch (err: any) {
+      console.error("Failed to load driver ledger:", err);
+      flash(setErrorMessage, `Failed to load ledger: ${err.message}`);
+    } finally {
+      setLoadingDriverLedger(false);
+    }
+  };
+
+  const totalPoolAccrued = activeGreenCardsCount * 350; // ₦350 pool (7 seats × ₦50)
 
   const filteredDrivers = drivers.filter(
     (d) =>
@@ -284,7 +312,7 @@ export default function CoreDriversPage() {
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Real-time tracking and allocation of the 15% Green Card Growth Pool (₦300/card: ₦50 for Lead Architect, ₦41.67 across 6 driver seats).
+            Real-time tracking and allocation of the Green Card Growth Pool (₦350/card: ₦50 uniform share across all 7 core driver seats).
           </p>
         </div>
 
@@ -310,13 +338,13 @@ export default function CoreDriversPage() {
         <StatCard
           label="Total Growth Pool Accrued"
           value={`₦${totalPoolAccrued.toLocaleString()}`}
-          footer="₦300/card statutory pool (15%)"
+          footer="₦350/card statutory pool (17.5%)"
           icon={TrendingUp}
         />
         <StatCard
           label="Growth Pool Distribution"
-          value="₦50 / ₦41.67"
-          footer="₦50 Lead Architect, ₦41.67 for 6 driver seats"
+          value="₦50 / Seat"
+          footer="₦50 uniform across all 7 driver seats"
           icon={Award}
         />
         <StatCard
@@ -408,19 +436,31 @@ export default function CoreDriversPage() {
                     </button>
                   </td>
                   <td className="px-4 py-3.5 text-right">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      disabled={!driver.isEligibleForWithdrawal}
-                      onClick={() => {
-                        setSelectedDriverForPayout(driver);
-                        setPayoutAmount(driver.availableBalance);
-                      }}
-                      className="text-xs h-8 gap-1 text-primary border-primary/30 hover:bg-primary/10 disabled:opacity-40"
-                    >
-                      Disburse
-                      <ArrowUpRight className="h-3 w-3" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleOpenLedger(driver)}
+                        className="text-xs h-8 gap-1 text-muted-foreground hover:text-foreground hover:bg-muted"
+                        title="View Detailed Transaction Ledger"
+                      >
+                        <History className="h-3.5 w-3.5" />
+                        Ledger
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={!driver.isEligibleForWithdrawal}
+                        onClick={() => {
+                          setSelectedDriverForPayout(driver);
+                          setPayoutAmount(driver.availableBalance);
+                        }}
+                        className="text-xs h-8 gap-1 text-primary border-primary/30 hover:bg-primary/10 disabled:opacity-40"
+                      >
+                        Disburse
+                        <ArrowUpRight className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -495,6 +535,138 @@ export default function CoreDriversPage() {
                 className="bg-primary text-primary-foreground"
               >
                 {isProcessingPayout ? "Processing..." : `Confirm ₦${payoutAmount.toLocaleString()} Payout`}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Driver Ledger History Modal */}
+      {selectedDriverForLedger && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in">
+          <div className="w-full max-w-2xl rounded-xl border border-border bg-card p-6 shadow-xl space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-border pb-3 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                  <History className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground">Driver Transaction History</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedDriverForLedger.name} • {selectedDriverForLedger.email}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedDriverForLedger(null)}
+                className="text-muted-foreground hover:text-foreground text-sm"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 bg-muted/20 p-3 rounded-lg border border-border shrink-0 text-xs">
+              <div>
+                <span className="text-muted-foreground block">Growth Share</span>
+                <span className="font-bold text-foreground font-mono">₦{selectedDriverForLedger.sharePerCard} / card</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block">Total Accrued</span>
+                <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                  ₦{selectedDriverForLedger.totalEarned.toLocaleString()}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground block">Wallet Balance</span>
+                <span className="font-bold text-foreground font-mono">
+                  ₦{selectedDriverForLedger.availableBalance.toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto flex-1 border border-border rounded-lg">
+              {loadingDriverLedger ? (
+                <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
+                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                  Loading driver ledger...
+                </div>
+              ) : driverLedgerEntries.length === 0 ? (
+                <div className="text-center py-12 text-sm text-muted-foreground">
+                  No ledger transactions found for this driver yet.
+                </div>
+              ) : (
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-muted/40 font-semibold text-muted-foreground uppercase tracking-wider border-b border-border sticky top-0">
+                    <tr>
+                      <th className="px-3 py-2.5">Date</th>
+                      <th className="px-3 py-2.5">Type & Reference</th>
+                      <th className="px-3 py-2.5">Description</th>
+                      <th className="px-3 py-2.5 text-right">Amount</th>
+                      <th className="px-3 py-2.5 text-right">Balance After</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {driverLedgerEntries.map((entry) => (
+                      <tr key={entry.id} className="hover:bg-muted/30">
+                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground font-mono text-[11px]">
+                          {new Date(entry.created_at).toLocaleDateString("en-NG", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </td>
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <Badge
+                              variant="outline"
+                              className={
+                                entry.entry_type === "DEBIT"
+                                  ? "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20 text-[10px]"
+                                  : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-[10px]"
+                              }
+                            >
+                              {entry.category === "CORE_DRIVER_BONUS" ? "Growth Bonus" : entry.category || entry.entry_type}
+                            </Badge>
+                            {entry.reference_id && (
+                              <span className="font-mono text-[10px] text-muted-foreground">
+                                {entry.reference_id}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-foreground font-medium max-w-xs truncate" title={entry.description}>
+                          {entry.description || "Growth Pool Share"}
+                        </td>
+                        <td
+                          className={`px-3 py-2 text-right font-mono font-bold whitespace-nowrap ${
+                            entry.entry_type === "DEBIT" ? "text-red-600" : "text-emerald-600 dark:text-emerald-400"
+                          }`}
+                        >
+                          {entry.entry_type === "DEBIT" ? "-" : "+"}₦{Number(entry.amount || 0).toLocaleString()}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono text-muted-foreground whitespace-nowrap">
+                          {entry.balance_after != null ? `₦${Number(entry.balance_after).toLocaleString()}` : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-border shrink-0">
+              <span className="text-xs text-muted-foreground">
+                Showing {driverLedgerEntries.length} recorded ledger transaction{driverLedgerEntries.length === 1 ? "" : "s"}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedDriverForLedger(null)}
+              >
+                Close
               </Button>
             </div>
           </div>

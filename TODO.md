@@ -11,10 +11,12 @@
     - **Coordinator Alerts**: Instant notification to cluster coordinators when a new member is assigned to their farm group.
   - **Delivery Logging & Fallbacks**: Log delivery status to `audit_events` or notification tables; integrate In-App bell notification fallback.
 
-- [x] **Core Driver Growth Bonus Automated Distribution (₦50/card)**:
+- [x] **Core Driver Growth Bonus Automated Distribution (₦50 across all 7 Core Drivers)**:
   - Implemented automated distribution function `public.distribute_core_driver_bonuses(p_member_id, p_source_user_id)`.
-  - Active Postgres trigger `trig_subscriptions_gc_core_driver` on `subscriptions` table credits ₦50 to each of the 6 core drivers and logs `CORE_DRIVER_BONUS` to `wallet_ledger` on all activations (online, webhook, or admin).
-  - Reconciled existing 43 active Green Cards on PROD & DEV (258 ledger entries inserted, ₦2,150 credited per driver).
+  - Active Postgres trigger `trig_subscriptions_gc_core_driver` on `subscriptions` table credits ₦50 to each of the 7 core drivers (Elijah, Esther, Taiwo, David, Fortune, Tony, Nathaniel) and logs `CORE_DRIVER_BONUS` to `wallet_ledger` on all activations (online, webhook, or admin).
+  - Configured statutory growth pool of ₦350/card (7 seats × ₦50 uniform share) effective from September 6, 2026 activations onwards.
+  - Reconciled all 5 active Green Cards from Sept 6 on PROD (35 ledger records, ₦250 credited per driver) and 1 on DEV (₦50 credited per driver).
+  - Integrated complete transaction ledger visibility in user dashboard (`TransactionLedger.tsx`, `useWalletStore.ts`) and super admin hub (`CoreDriversPage.tsx` with detailed modal) displaying exact reference IDs, timestamps, and card numbers.
 
 - [x] **Complete Elimination of System Audit Mode**:
   - Removed single-email blocking check (`currentUser.email !== "developerelijah360@gmail.com"`) from `Checkout.tsx`, `MushroomVillage.tsx`, `OtherPayments.tsx`, `adminActions.ts`, `farmAssignment.ts`, `MembersPage.tsx`, and `LegalDocEditor.tsx`.

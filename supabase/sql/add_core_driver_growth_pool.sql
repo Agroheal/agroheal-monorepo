@@ -1,4 +1,4 @@
--- Migration: Add Core Driver Growth Pool Auto-Distribution (₦50 for Lead Architect, ₦41.67 across 6 core drivers)
+-- Migration: Add Core Driver Growth Pool Auto-Distribution (₦50 across all 7 core drivers, ₦350 total pool)
 -- Date: 2026-09-24
 
 -- 1. Create or replace distribute_core_driver_bonuses function
@@ -13,7 +13,7 @@ AS $$
 DECLARE
   v_driver RECORD;
   v_new_bal NUMERIC;
-  v_amount NUMERIC;
+  v_amount NUMERIC := 50.00;
   v_driver_emails TEXT[] := ARRAY[
     'developerelijah360@gmail.com',
     'estherbola888@gmail.com',
@@ -24,18 +24,13 @@ DECLARE
     'gkygmr56@gmail.com'
   ];
 BEGIN
-  -- For each of the 7 core drivers
+  -- For each of the 7 core drivers (all receive ₦50.00 per activated Green Card)
   FOR v_driver IN
     SELECT id, email, wallet_balance
     FROM public.profiles
     WHERE lower(email) = ANY(v_driver_emails)
   LOOP
-    -- Elijah gets ₦50.00; the other 6 drivers divide ₦250 equally (₦41.67 each)
-    IF lower(v_driver.email) = 'developerelijah360@gmail.com' THEN
-      v_amount := 50.00;
-    ELSE
-      v_amount := 41.67;
-    END IF;
+    v_amount := 50.00;
 
     -- Check if bonus already recorded for this driver and member_id to avoid double-crediting
     IF NOT EXISTS (

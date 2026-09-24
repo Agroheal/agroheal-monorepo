@@ -5,7 +5,7 @@ export interface LedgerItem {
   id: string;
   date: string;
   type: "CREDIT" | "DEBIT";
-  category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION";
+  category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION" | "CORE_DRIVER_BONUS";
   amount: number;
   description: string;
   status: "COMPLETED" | "PENDING" | "FAILED";
@@ -53,6 +53,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         { data: referralData },
         { data: slotSubs },
         { data: otherPayments },
+        { data: walletLedgerData },
       ] = await Promise.all([
         supabase
           .from("profiles")
@@ -71,6 +72,11 @@ export const useWalletStore = create<WalletState>((set, get) => ({
           .from("other_payments")
           .select("id, amount, status, category, reference, created_at, metadata")
           .eq("user_id", userId),
+        supabase
+          .from("wallet_ledger")
+          .select("*")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false }),
       ]);
 
       const walletBalance = Number(profileData?.wallet_balance) || 0;
@@ -80,47 +86,71 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       // Build unified transaction ledger
       const items: LedgerItem[] = [];
 
-      // 1. Referral credits
+      // 1. Official wallet_ledger entries (including CORE_DRIVER_BONUS, direct credits)
+      (walletLedgerData || []).forEach((entry: any) => {
+        const isDebit = entry.entry_type === "DEBIT";
+        items.push({
+          id: entry.id || `ledger-${entry.reference_id || Math.random()}`,
+          date: entry.created_at || new Date().toISOString(),
+          type: isDebit ? "DEBIT" : "CREDIT",
+          category: (entry.category === "CORE_DRIVER_BONUS" ? "CORE_DRIVER_BONUS" : (entry.category || "REFERRAL_BONUS")) as any,
+          amount: Math.abs(Number(entry.amount) || 0),
+          description: entry.description || "Wallet Ledger Transaction",
+          status: entry.status === "FAILED" ? "FAILED" : entry.status === "PENDING" ? "PENDING" : "COMPLETED",
+          reference: entry.reference_id || entry.id?.slice(0, 8) || "N/A",
+        });
+      });
+
+      // 2. Referral credits (if not already captured in ledger)
       (referralData || []).forEach((ref: any) => {
-        items.push({
-          id: `ref-${ref.id}`,
-          date: ref.created_at || new Date().toISOString(),
-          type: "CREDIT",
-          category: "REFERRAL_BONUS",
-          amount: 1000,
-          description: `Direct Referral Reward (${ref.full_name || "New Member"})`,
-          status: "COMPLETED",
-          reference: `REF-${ref.id.slice(0, 8)}`,
-        });
+        const refCode = `REF-${ref.id.slice(0, 8)}`;
+        if (!items.some((it) => it.reference === refCode)) {
+          items.push({
+            id: `ref-${ref.id}`,
+            date: ref.created_at || new Date().toISOString(),
+            type: "CREDIT",
+            category: "REFERRAL_BONUS",
+            amount: 1000,
+            description: `Direct Referral Reward (${ref.full_name || "New Member"})`,
+            status: "COMPLETED",
+            reference: refCode,
+          });
+        }
       });
 
-      // 2. Slot subscriptions
+      // 3. Slot subscriptions
       (slotSubs || []).forEach((sub: any) => {
-        items.push({
-          id: `sub-${sub.id}`,
-          date: sub.created_at || new Date().toISOString(),
-          type: "DEBIT",
-          category: "SLOT_PURCHASE",
-          amount: Number(sub.amount) || 0,
-          description: `Farm Slot Subscription (${sub.project_category || "Mushroom"})`,
-          status: sub.status === "active" ? "COMPLETED" : "PENDING",
-          reference: sub.reference || `SUB-${sub.id.slice(0, 8)}`,
-        });
+        const subCode = sub.reference || `SUB-${sub.id.slice(0, 8)}`;
+        if (!items.some((it) => it.reference === subCode)) {
+          items.push({
+            id: `sub-${sub.id}`,
+            date: sub.created_at || new Date().toISOString(),
+            type: "DEBIT",
+            category: "SLOT_PURCHASE",
+            amount: Number(sub.amount) || 0,
+            description: `Farm Slot Subscription (${sub.project_category || "Mushroom"})`,
+            status: sub.status === "active" ? "COMPLETED" : "PENDING",
+            reference: subCode,
+          });
+        }
       });
 
-      // 3. Other payments (Green Card, miscellaneous)
+      // 4. Other payments (Green Card, miscellaneous)
       (otherPayments || []).forEach((pay: any) => {
-        const isWithdrawal = pay.category === "withdrawal";
-        items.push({
-          id: `pay-${pay.id}`,
-          date: pay.created_at || new Date().toISOString(),
-          type: isWithdrawal ? "DEBIT" : "CREDIT",
-          category: isWithdrawal ? "WITHDRAWAL" : "SUBSCRIPTION",
-          amount: Number(pay.amount) || 0,
-          description: pay.metadata?.description || (isWithdrawal ? "Wallet Withdrawal" : "Community Payment"),
-          status: pay.status === "completed" ? "COMPLETED" : pay.status === "failed" ? "FAILED" : "PENDING",
-          reference: pay.reference || `PAY-${pay.id.slice(0, 8)}`,
-        });
+        const payCode = pay.reference || `PAY-${pay.id.slice(0, 8)}`;
+        if (!items.some((it) => it.reference === payCode)) {
+          const isWithdrawal = pay.category === "withdrawal";
+          items.push({
+            id: `pay-${pay.id}`,
+            date: pay.created_at || new Date().toISOString(),
+            type: isWithdrawal ? "DEBIT" : "CREDIT",
+            category: isWithdrawal ? "WITHDRAWAL" : "SUBSCRIPTION",
+            amount: Number(pay.amount) || 0,
+            description: pay.metadata?.description || (isWithdrawal ? "Wallet Withdrawal" : "Community Payment"),
+            status: pay.status === "completed" ? "COMPLETED" : pay.status === "failed" ? "FAILED" : "PENDING",
+            reference: payCode,
+          });
+        }
       });
 
       // Sort chronological descending
