@@ -9,7 +9,7 @@ import { benefits, included } from "@/helpers/dashboard.helpers";
 import { supabase } from "@/lib/supabaseClient";
 import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
-import { CheckCircle, ArrowRight, Sparkles } from "lucide-react";
+import { CheckCircle, ArrowRight, Sparkles, Sprout } from "lucide-react";
 import { FLUTTERWAVE_KEYS } from "@/config/Index";
 import * as Sentry from "@sentry/react";
 import PaymentGuidancePopup from "@/components/webComponents/PaymentGuidancePopup";
@@ -671,6 +671,32 @@ const Subscribe = () => {
                       <p className="text-xs text-gray-400">
                         Secure payment via Flutterwave
                       </p>
+                    </div>
+
+                    {/* Fast-Track Farm Slot Bundle Callout */}
+                    <div className="mt-5 pt-4 border-t border-gray-100">
+                      <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-left">
+                        <div className="flex items-center justify-between gap-1 mb-1">
+                          <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                            <Sprout className="w-4 h-4 text-emerald-700" />
+                            Afford to start farming today?
+                          </span>
+                          <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-200/70 text-emerald-900 px-2 py-0.5 rounded-full">
+                            Fast-Track
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-gray-600 leading-snug mb-2.5">
+                          Bundle your Green Card + 1 Mushroom Farm Slot at checkout to begin biological production immediately.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => navigate("/checkout?slots=1&category=Mushroom%20Village")}
+                          className="w-full text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-white border border-emerald-300 hover:bg-emerald-100/60 rounded-lg py-2 transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-xs"
+                        >
+                          <span>Bundle Farm Slot at Checkout</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

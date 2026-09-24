@@ -220,13 +220,23 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                 </Link>
               </div>
             ) : (
-              <Button
-                size="sm"
-                onClick={() => navigate("/subscribe")}
-                className="w-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
-              >
-                Get Green Card (₦2,000)
-              </Button>
+              <div className="space-y-1.5">
+                <Button
+                  size="sm"
+                  onClick={() => navigate("/subscribe")}
+                  className="w-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                >
+                  Get Green Card (₦2,000)
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => navigate("/checkout?slots=1&category=Mushroom%20Village")}
+                  className="w-full text-[11px] font-medium text-emerald-700 dark:text-emerald-400 hover:underline flex items-center justify-center gap-1 py-0.5 text-center transition-colors cursor-pointer"
+                >
+                  <Sprout className="w-3.5 h-3.5 shrink-0" />
+                  <span>Afford both? Bundle Green Card + Slot</span>
+                </button>
+              </div>
             )}
           </div>
         </div>

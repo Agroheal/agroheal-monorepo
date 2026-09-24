@@ -130,6 +130,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
   const [config, setConfig] = useState<NextStepConfig>(DEFAULT_NEXT_STEP_CONFIG);
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [bundleSlot, setBundleSlot] = useState(false);
 
   // Fetch admin-programmed configuration from system_configs
   useEffect(() => {
@@ -206,7 +207,11 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
 
   const handlePrimaryAction = async () => {
     if (currentStep === 1) {
-      navigate(config.steps.step1.targetRoute || "/subscribe");
+      if (bundleSlot) {
+        navigate("/checkout?slots=1&category=Mushroom%20Village");
+      } else {
+        navigate(config.steps.step1.targetRoute || "/subscribe");
+      }
       handleDismiss();
     } else if (currentStep === 2) {
       navigate(config.steps.step2.targetRoute || "/dashboard/farm-operations/buy-slots");
@@ -392,7 +397,51 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
             ) : (
               <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200/80 px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-900">
                 <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
-                <span>{"priceText" in currentData ? currentData.priceText : ""}</span>
+                <span>
+                  {currentStep === 1 && bundleSlot
+                    ? "Green Card (₦2,000) + 1 Farm Slot Bundled at Checkout"
+                    : "priceText" in currentData
+                    ? currentData.priceText
+                    : ""}
+                </span>
+              </div>
+            )}
+
+            {/* Fast-Track Slot Checkbox for Step 1 */}
+            {currentStep === 1 && (
+              <div
+                onClick={() => setBundleSlot((prev) => !prev)}
+                className={`p-3.5 rounded-2xl border transition-all cursor-pointer select-none flex items-start gap-3 ${
+                  bundleSlot
+                    ? "bg-emerald-500/10 border-emerald-500/40 ring-1 ring-emerald-500/30 text-emerald-950 shadow-xs"
+                    : "bg-gray-50 border-gray-200 hover:border-emerald-300 text-gray-700"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  id="bundleSlotCheckbox"
+                  checked={bundleSlot}
+                  onChange={(e) => setBundleSlot(e.target.checked)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-0.5 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-gray-300 cursor-pointer shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <label
+                      htmlFor="bundleSlotCheckbox"
+                      className="text-xs font-bold text-gray-900 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Sprout className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span>Buy Farm Slot Too (Bundle Milestone 1 &amp; 2)</span>
+                    </label>
+                    <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0">
+                      Recommended
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-gray-600 mt-1 leading-snug">
+                    Can afford both at a go? Check this to purchase your Green Card + First Mushroom Farm Slot together in one checkout session.
+                  </p>
+                </div>
               </div>
             )}
 
@@ -411,6 +460,14 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                     <span>{benefit}</span>
                   </div>
                 ))}
+                {currentStep === 1 && bundleSlot && (
+                  <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200/70 text-xs text-emerald-950 font-medium leading-snug">
+                    <Sprout className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                    <span>
+                      <strong>Milestone 2 Bundled:</strong> 1 Mushroom Farm Slot with 2 fruiting bags, cycle doubling &amp; quarterly harvest dividends!
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -430,6 +487,11 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                       <Copy className="w-4 h-4 text-white" /> Copy Referral Link
                     </>
                   )
+                ) : currentStep === 1 && bundleSlot ? (
+                  <>
+                    <span>Get Green Card + Farm Slot Now</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
                 ) : (
                   <>
                     <span>{currentData.buttonText}</span>
