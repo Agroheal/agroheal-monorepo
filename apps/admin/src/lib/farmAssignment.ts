@@ -6,6 +6,7 @@ import {
   normalizePhoneNumber,
   parsePositiveInt,
 } from "@shared/dataSanitizers";
+import { recordAuditEvent } from "@/lib/adminActions";
 
 export interface FarmGroup {
   id: string;
@@ -75,6 +76,23 @@ export async function assignSlotsToFarmGroup(input: {
       })
       .eq("id", existing.id);
     if (updateErr) throw new Error(`Updating the farm record failed: ${updateErr.message}`);
+
+    await recordAuditEvent({
+      action: "FARM_GROUP_ASSIGNMENT",
+      entity_type: "farm_records",
+      entity_id: existing.id,
+      payload: {
+        farm_group_id: farmGroupId,
+        target_name: name,
+        target_email: email,
+        target_phone: phone,
+        slots_assigned: slots,
+        category,
+        is_update: true,
+        previous_slots: existing.farm_slots,
+        total_slots_after: newTotal,
+      },
+    });
     return;
   }
 
@@ -94,6 +112,23 @@ export async function assignSlotsToFarmGroup(input: {
     updated_at: new Date().toISOString(),
   });
   if (insertErr) throw new Error(`Creating the farm record failed: ${insertErr.message}`);
+
+  await recordAuditEvent({
+    action: "FARM_GROUP_ASSIGNMENT",
+    entity_type: "farm_records",
+    entity_id: farmGroupId,
+    payload: {
+      farm_group_id: farmGroupId,
+      target_name: name,
+      target_email: email,
+      target_phone: phone,
+      slots_assigned: slots,
+      category,
+      is_update: false,
+      previous_slots: 0,
+      total_slots_after: slots,
+    },
+  });
 }
 
 /**

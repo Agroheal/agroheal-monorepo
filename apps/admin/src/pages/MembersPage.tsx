@@ -110,15 +110,17 @@ export default function MembersPage() {
 
   const handleActivateGreenCard = async (
     member: Member,
-    skipConfirm = false,
-    offlineDetails?: { transactionRef?: string; paymentDate?: string; receiptUrl?: string; notes?: string },
+    offlineDetails?: {
+      transactionRef?: string;
+      paymentDate?: string;
+      receiptUrl?: string;
+      notes?: string;
+      amount?: number;
+      isLegacy?: boolean;
+    },
   ) => {
     if (isReadOnly) {
       flash(setErrorMessage, "Support role is Read-Only. Green Card activations require Administrator privileges.");
-      return;
-    }
-
-    if (!skipConfirm && !confirm(`Confirm offline payment (₦2,000) and issue Green Card status for ${member.full_name}?`)) {
       return;
     }
 
@@ -132,6 +134,8 @@ export default function MembersPage() {
         payment_date: offlineDetails?.paymentDate,
         receipt_url: offlineDetails?.receiptUrl,
         notes: offlineDetails?.notes,
+        amount: offlineDetails?.amount,
+        is_legacy: offlineDetails?.isLegacy,
       });
       const resolvedMemberId = result.member_id;
       flash(setSuccessMessage, `Green Card successfully issued to ${member.full_name}! Member ID: ${resolvedMemberId}`);
@@ -235,9 +239,7 @@ export default function MembersPage() {
           {showTable && (
             <MemberTable
               members={filteredMembers}
-              activatingMemberId={activatingMemberId}
               recoveryLoading={recoveryLoading}
-              onIssueGreenCard={(m) => handleActivateGreenCard(m)}
               onEdit={setEditingMember}
               onResetPassword={handlePasswordReset}
             />
@@ -249,9 +251,7 @@ export default function MembersPage() {
                 <MemberCard
                   key={m.id}
                   member={m}
-                  activatingMemberId={activatingMemberId}
                   recoveryLoading={recoveryLoading}
-                  onIssueGreenCard={(mem) => handleActivateGreenCard(mem)}
                   onEdit={setEditingMember}
                   onResetPassword={handlePasswordReset}
                 />
@@ -315,8 +315,10 @@ export default function MembersPage() {
         onOpenChange={(open) => !open && setEditingMember(null)}
         onSave={handleSaveMemberProfile}
         saving={editSaving}
-        onActivateGreenCard={(m) => handleActivateGreenCard(m)}
-        activatingMemberId={activatingMemberId}
+        onRequestIssueGreenCard={() => {
+          setEditingMember(null);
+          setIsIssueModalOpen(true);
+        }}
       />
 
       <IssueGreenCardDialog
@@ -324,7 +326,7 @@ export default function MembersPage() {
         onOpenChange={setIsIssueModalOpen}
         members={members}
         activatingMemberId={activatingMemberId}
-        onConfirm={(m, details) => handleActivateGreenCard(m, true, details)}
+        onConfirm={(m, details) => handleActivateGreenCard(m, details)}
       />
 
       <IssuedGreenCardSuccessDialog

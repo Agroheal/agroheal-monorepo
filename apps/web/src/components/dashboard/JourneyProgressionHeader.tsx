@@ -18,6 +18,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  isLegacyMember,
+  getGreenCardFee,
+  formatNaira,
+} from "@shared/businessRules";
 
 export interface JourneyProgressionHeaderProps {
   hasGreenCard: boolean;
@@ -26,6 +31,7 @@ export interface JourneyProgressionHeaderProps {
   directReferralsCount: number;
   referralCode?: string;
   walletBalance?: number;
+  createdAt?: string | null;
   onOpenShareModal?: () => void;
 }
 
@@ -36,10 +42,14 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   directReferralsCount,
   referralCode,
   walletBalance = 0,
+  createdAt,
   onOpenShareModal,
 }) => {
   const navigate = useNavigate();
   const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
+
+  const isLegacy = isLegacyMember(createdAt);
+  const activeFee = getGreenCardFee(createdAt);
 
   // Determine current active milestone
   const isStep1Done = Boolean(hasGreenCard);
@@ -90,7 +100,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
             <div className="p-3.5 rounded-xl bg-background border border-border/50">
               <div className="font-semibold text-foreground mb-1 flex items-center gap-1.5">
                 <IdCard className="w-4 h-4 text-emerald-600" />
-                <span>1. Agroheal Green Card (₦2,000)</span>
+                <span>1. Agroheal Green Card ({formatNaira(activeFee)}{isLegacy ? " - Pioneer Rate" : ""})</span>
               </div>
               <p className="text-[11px] leading-relaxed mb-2">
                 Grants verified digital membership, immediate affiliate link, and pays ₦1,000 instant commission per referral into your wallet. Accrued balance can pay for Step 2.
@@ -226,7 +236,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                   onClick={() => navigate("/subscribe")}
                   className="w-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                 >
-                  Get Green Card (₦2,000)
+                  Get Green Card ({formatNaira(activeFee)})
                 </Button>
                 <button
                   type="button"

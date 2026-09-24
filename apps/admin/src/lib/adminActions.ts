@@ -1,5 +1,11 @@
 import { supabase } from "@/lib/supabaseClient";
-import { SETUP_FEE, SLOT_FEE, SUPPORT_FEE } from "@/lib/pricing";
+import {
+  SETUP_FEE,
+  SLOT_FEE,
+  SUPPORT_FEE,
+  isLegacyMember,
+  getGreenCardFee,
+} from "@/lib/pricing";
 import {
   cleanName,
   cleanEmail,
@@ -15,6 +21,58 @@ export async function assertAuditAuthorized() {
   } = await supabase.auth.getUser();
   if (!user) {
     throw new Error("Authentication required for administrative actions.");
+  }
+}
+
+/**
+ * High-fidelity audit event recorder. Automatically enriches each event with
+ * the authorizing admin's ID, email, role, full name, timestamp, and user agent.
+ */
+export async function recordAuditEvent(input: {
+  action: string;
+  entity_type: string;
+  entity_id?: string | null;
+  payload: Record<string, unknown>;
+}): Promise<void> {
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    let adminRole = "admin";
+    let adminName = "";
+    if (user) {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("role, full_name")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (prof) {
+        adminRole = prof.role || "admin";
+        adminName = prof.full_name || "";
+      }
+    }
+
+    const enrichedPayload = {
+      ...input.payload,
+      admin_id: user?.id || null,
+      admin_email: user?.email || null,
+      admin_name: adminName || (user?.user_metadata as any)?.full_name || null,
+      admin_role: adminRole,
+      timestamp: new Date().toISOString(),
+      user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+    };
+
+    await supabase.from("audit_events").insert({
+      user_id: user?.id || null,
+      action: input.action,
+      entity_type: input.entity_type,
+      entity_id: input.entity_id || null,
+      payload: enrichedPayload,
+      user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+    });
+  } catch (err) {
+    console.warn("Failed to write to audit_events:", err);
   }
 }
 
@@ -122,62 +180,104 @@ export async function createMember(input: {
     referral_code: input.referral_code ? cleanReferralCode(input.referral_code) : undefined,
   };
 
-  const edgeResult = await invokeAdminAction<{ email: string; temp_password: string; member_id?: string }>(
+  let resultData: { email: string; temp_password: string; member_id?: string; user_id?: string };
+
+  const edgeResult = await invokeAdminAction<{ email: string; temp_password: string; member_id?: string; user_id?: string }>(
     "create_member",
     sanitizedInput,
   );
-  if (edgeResult.ok) return edgeResult.data;
-  if (edgeResult.definitive) throw new Error(edgeResult.message);
+  if (edgeResult.ok) {
+    resultData = edgeResult.data;
+  } else if (edgeResult.definitive) {
+    throw new Error(edgeResult.message);
+  } else {
+    // Fallback: Edge Function unreachable — direct profile insert (no auth
+    // user created, so the shown temp password won't actually work until
+    // the function is deployed or a real password reset is issued).
+    const generatedPassword = Math.random().toString(36).slice(-8) + "Ag!9";
 
-  // Fallback: Edge Function unreachable — direct profile insert (no auth
-  // user created, so the shown temp password won't actually work until
-  // the function is deployed or a real password reset is issued).
-  const generatedPassword = Math.random().toString(36).slice(-8) + "Ag!9";
+    let referrerId: string | null = null;
+    if (sanitizedInput.referral_code) {
+      const { data: refUser } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("referral_code", sanitizedInput.referral_code)
+        .maybeSingle();
+      if (refUser) referrerId = refUser.id;
+    }
 
-  let referrerId: string | null = null;
-  if (sanitizedInput.referral_code) {
-    const { data: refUser } = await supabase
+    const { data: newProfile, error: profErr } = await supabase
       .from("profiles")
-      .select("id")
-      .eq("referral_code", sanitizedInput.referral_code)
-      .maybeSingle();
-    if (refUser) referrerId = refUser.id;
+      .insert({
+        email: sanitizedInput.email,
+        full_name: sanitizedInput.full_name,
+        phone: sanitizedInput.phone || null,
+        referred_by: referrerId,
+      })
+      .select()
+      .single();
+
+    if (profErr) throw new Error(friendlyDbError(profErr, "Failed to register member."));
+
+    resultData = {
+      email: sanitizedInput.email,
+      temp_password: generatedPassword,
+      member_id: newProfile?.member_id || "AGC-NEW-2026",
+      user_id: newProfile?.id,
+    };
   }
 
-  const { data: newProfile, error: profErr } = await supabase
-    .from("profiles")
-    .insert({
-      email: sanitizedInput.email,
-      full_name: sanitizedInput.full_name,
-      phone: sanitizedInput.phone || null,
-      referred_by: referrerId,
-    })
-    .select()
-    .single();
+  // Record Audit Event
+  await recordAuditEvent({
+    action: "ADMIN_CREATE_MEMBER",
+    entity_type: "profiles",
+    entity_id: resultData.user_id || resultData.member_id || sanitizedInput.email,
+    payload: {
+      target_email: sanitizedInput.email,
+      target_name: sanitizedInput.full_name,
+      target_phone: sanitizedInput.phone || null,
+      referral_code: sanitizedInput.referral_code || null,
+      member_id: resultData.member_id,
+      notes: "Member profile created by Administrator",
+    },
+  });
 
-  if (profErr) throw new Error(friendlyDbError(profErr, "Failed to register member."));
-
-  return {
-    email: sanitizedInput.email,
-    temp_password: generatedPassword,
-    member_id: newProfile?.member_id || "AGC-NEW-2026",
-  };
+  return resultData;
 }
 
 export async function resetPassword(input: { user_id: string; email: string }) {
   await assertAuditAuthorized();
   const sanitizedEmail = cleanEmail(input.email);
+  let resultData: { email: string; temp_password: string };
+
   const edgeResult = await invokeAdminAction<{ email: string; temp_password: string }>("reset_password", {
     user_id: input.user_id,
     email: sanitizedEmail,
   });
-  if (edgeResult.ok) return edgeResult.data;
-  if (edgeResult.definitive) throw new Error(edgeResult.message);
+  if (edgeResult.ok) {
+    resultData = edgeResult.data;
+  } else if (edgeResult.definitive) {
+    throw new Error(edgeResult.message);
+  } else {
+    resultData = {
+      email: sanitizedEmail,
+      temp_password: Math.random().toString(36).slice(-8) + "Rx!8",
+    };
+  }
 
-  return {
-    email: sanitizedEmail,
-    temp_password: Math.random().toString(36).slice(-8) + "Rx!8",
-  };
+  // Record Audit Event
+  await recordAuditEvent({
+    action: "ADMIN_RESET_PASSWORD",
+    entity_type: "profiles",
+    entity_id: input.user_id,
+    payload: {
+      target_user_id: input.user_id,
+      target_email: sanitizedEmail,
+      notes: "Temporary password generated by Administrator",
+    },
+  });
+
+  return resultData;
 }
 
 export async function creditSlots(input: {
@@ -201,83 +301,99 @@ export async function creditSlots(input: {
     notes: input.notes?.trim() || null,
   };
 
+  let targetEmail = "";
+  let targetName = "";
+  try {
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("email, full_name")
+      .eq("id", input.user_id)
+      .maybeSingle();
+    if (prof) {
+      targetEmail = prof.email || "";
+      targetName = prof.full_name || "";
+    }
+  } catch (err) {
+    console.warn("Could not fetch profile for slot audit:", err);
+  }
+
   const edgeResult = await invokeAdminAction("credit_slots", sanitizedInput);
-  if (edgeResult.ok) return edgeResult.data;
-  if (edgeResult.definitive) throw new Error(edgeResult.message);
+  if (edgeResult.ok) {
+    // Edge Function handled the credit
+  } else if (edgeResult.definitive) {
+    throw new Error(edgeResult.message);
+  } else {
+    const reference = sanitizedInput.transaction_ref;
+    const paymentDate = sanitizedInput.payment_date;
 
-  const reference = sanitizedInput.transaction_ref;
-  const paymentDate = sanitizedInput.payment_date;
+    const { error: slotErr } = await supabase.from("slot_subscriptions").insert({
+      user_id: sanitizedInput.user_id,
+      amount: sanitizedInput.slots * SLOT_FEE,
+      slotprice: SLOT_FEE,
+      slots: sanitizedInput.slots,
+      status: "active",
+      project_category: sanitizedInput.project_category,
+      reference: reference,
+      last_payment_date: paymentDate,
+      next_payment_date: new Date(new Date(paymentDate).setDate(new Date(paymentDate).getDate() + 30)).toISOString(),
+    });
+    if (slotErr) throw new Error(friendlyDbError(slotErr, "Failed to credit farm slots."));
 
-  const { error: slotErr } = await supabase.from("slot_subscriptions").insert({
-    user_id: sanitizedInput.user_id,
-    amount: sanitizedInput.slots * SLOT_FEE,
-    slotprice: SLOT_FEE,
-    slots: sanitizedInput.slots,
-    status: "active",
-    project_category: sanitizedInput.project_category,
-    reference: reference,
-    last_payment_date: paymentDate,
-    next_payment_date: new Date(new Date(paymentDate).setDate(new Date(paymentDate).getDate() + 30)).toISOString(),
-  });
-  if (slotErr) throw new Error(friendlyDbError(slotErr, "Failed to credit farm slots."));
-
-  // Log in other_payments for audit continuity
-  await supabase.from("other_payments").insert([
-    {
-      user_id: input.user_id,
-      payment_type: "farm_setup",
-      amount: input.slots * SETUP_FEE,
-      months: 1,
-      slots: input.slots,
-      project_category: input.project_category,
-      status: "success",
-      transaction_ref: reference,
-      metadata: {
-        receipt_url: sanitizedInput.receipt_url,
-        notes: sanitizedInput.notes,
-        payment_date: paymentDate,
+    // Log in other_payments for audit continuity
+    await supabase.from("other_payments").insert([
+      {
+        user_id: input.user_id,
+        payment_type: "farm_setup",
+        amount: input.slots * SETUP_FEE,
+        months: 1,
+        slots: input.slots,
+        project_category: input.project_category,
+        status: "success",
+        transaction_ref: reference,
+        metadata: {
+          receipt_url: sanitizedInput.receipt_url,
+          notes: sanitizedInput.notes,
+          payment_date: paymentDate,
+        },
       },
-    },
-    {
-      user_id: input.user_id,
-      payment_type: "farm_support",
-      amount: input.slots * SUPPORT_FEE,
-      months: 1,
-      slots: input.slots,
-      project_category: input.project_category,
-      status: "success",
-      transaction_ref: reference,
-      metadata: {
-        receipt_url: sanitizedInput.receipt_url,
-        notes: sanitizedInput.notes,
-        payment_date: paymentDate,
+      {
+        user_id: input.user_id,
+        payment_type: "farm_support",
+        amount: input.slots * SUPPORT_FEE,
+        months: 1,
+        slots: input.slots,
+        project_category: input.project_category,
+        status: "success",
+        transaction_ref: reference,
+        metadata: {
+          receipt_url: sanitizedInput.receipt_url,
+          notes: sanitizedInput.notes,
+          payment_date: paymentDate,
+        },
       },
-    },
-  ]);
+    ]);
+  }
 
   // Record Admin Audit Event
-  try {
-    const { data: authUser } = await supabase.auth.getUser();
-    await supabase.from("audit_events").insert({
-      user_id: authUser?.user?.id || null,
-      action: "MANUAL_SLOT_CREDIT",
-      entity_type: "slot_subscriptions",
-      entity_id: input.user_id,
-      payload: {
-        admin_email: authUser?.user?.email,
-        target_user_id: input.user_id,
-        slots: sanitizedInput.slots,
-        project_category: sanitizedInput.project_category,
-        amount: sanitizedInput.slots * SLOT_FEE,
-        transaction_ref: reference,
-        payment_date: paymentDate,
-        receipt_url: sanitizedInput.receipt_url,
-        notes: sanitizedInput.notes,
-      },
-    });
-  } catch (auditErr) {
-    console.warn("Failed to write to audit_events:", auditErr);
-  }
+  await recordAuditEvent({
+    action: "MANUAL_SLOT_CREDIT",
+    entity_type: "slot_subscriptions",
+    entity_id: input.user_id,
+    payload: {
+      target_user_id: input.user_id,
+      target_email: targetEmail,
+      target_name: targetName,
+      slots: sanitizedInput.slots,
+      project_category: sanitizedInput.project_category,
+      amount: sanitizedInput.slots * SLOT_FEE,
+      setup_fee: sanitizedInput.slots * SETUP_FEE,
+      support_fee: sanitizedInput.slots * SUPPORT_FEE,
+      transaction_ref: sanitizedInput.transaction_ref,
+      payment_date: sanitizedInput.payment_date,
+      receipt_url: sanitizedInput.receipt_url,
+      notes: sanitizedInput.notes,
+    },
+  });
 
   return null;
 }
@@ -302,29 +418,67 @@ export async function updateMember(input: {
     role: input.role,
   };
 
+  // Fetch previous profile state for detailed audit diff
+  let priorProfile: Record<string, unknown> | null = null;
+  try {
+    const { data } = await supabase
+      .from("profiles")
+      .select("full_name, email, phone, member_id, referral_code, role")
+      .eq("id", input.user_id)
+      .maybeSingle();
+    priorProfile = data;
+  } catch (err) {
+    console.warn("Could not fetch previous profile for audit diff:", err);
+  }
+
   const edgeResult = await invokeAdminAction("update_member", sanitizedInput);
-  if (edgeResult.ok) return edgeResult.data;
-  if (edgeResult.definitive) throw new Error(edgeResult.message);
+  if (edgeResult.ok) {
+    // Edge function succeeded
+  } else if (edgeResult.definitive) {
+    throw new Error(edgeResult.message);
+  } else {
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        full_name: sanitizedInput.full_name,
+        email: sanitizedInput.email || null,
+        phone: sanitizedInput.phone,
+        member_id: sanitizedInput.member_id || null,
+        referral_code: sanitizedInput.referral_code || null,
+        role: sanitizedInput.role,
+      })
+      .eq("id", sanitizedInput.user_id);
 
-  const { error } = await supabase
-    .from("profiles")
-    .update({
-      full_name: sanitizedInput.full_name,
-      email: sanitizedInput.email || null,
-      phone: sanitizedInput.phone,
-      member_id: sanitizedInput.member_id || null,
-      referral_code: sanitizedInput.referral_code || null,
-      role: sanitizedInput.role,
-    })
-    .eq("id", sanitizedInput.user_id);
+    if (error) throw new Error(friendlyDbError(error, "Failed to update member profile."));
+  }
 
-  if (error) throw new Error(friendlyDbError(error, "Failed to update member profile."));
+  // Record Admin Audit Event with diff
+  await recordAuditEvent({
+    action: "ADMIN_UPDATE_MEMBER",
+    entity_type: "profiles",
+    entity_id: input.user_id,
+    payload: {
+      target_user_id: input.user_id,
+      previous_state: priorProfile,
+      updated_fields: {
+        full_name: sanitizedInput.full_name,
+        email: sanitizedInput.email,
+        phone: sanitizedInput.phone,
+        member_id: sanitizedInput.member_id,
+        referral_code: sanitizedInput.referral_code,
+        role: sanitizedInput.role,
+      },
+    },
+  });
+
   return null;
 }
 
 /**
- * The one action with a 3-tier chain in the old code: DB RPC first (fastest,
- * atomic), then the Edge Function, then a fully client-side fallback.
+ * 3-tier Green Card Activation with dynamic legacy fee calculation:
+ * - DB RPC first (fastest, atomic, applies legacy rules & distributes core driver shares)
+ * - Edge Function fallback
+ * - Client-side table write fallback
  */
 export async function activateGreenCard(input: {
   user_id: string;
@@ -333,16 +487,49 @@ export async function activateGreenCard(input: {
   payment_date?: string;
   receipt_url?: string;
   notes?: string;
+  amount?: number;
+  is_legacy?: boolean;
 }) {
   await assertAuditAuthorized();
   let resolvedMemberId = input.existing_member_id || "";
   const txRef = input.transaction_ref?.trim() || `ADMIN_GC_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
   const paymentDate = input.payment_date || new Date().toISOString();
 
+  // 1. Resolve member's creation date to determine legacy status and fee
+  let memberCreatedAt: string | null = null;
+  let targetEmail = "";
+  let targetName = "";
+  try {
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("created_at, email, full_name, member_id")
+      .eq("id", input.user_id)
+      .maybeSingle();
+    if (prof) {
+      memberCreatedAt = prof.created_at;
+      targetEmail = prof.email || "";
+      targetName = prof.full_name || "";
+      if (!resolvedMemberId && prof.member_id) {
+        resolvedMemberId = prof.member_id;
+      }
+    }
+  } catch (err) {
+    console.warn("Could not fetch profile for legacy check:", err);
+  }
+
+  const isLegacy = input.is_legacy !== undefined ? input.is_legacy : isLegacyMember(memberCreatedAt);
+  const resolvedAmount = input.amount !== undefined ? input.amount : getGreenCardFee(memberCreatedAt);
+
+  // 2. Call DB RPC
   const { data: rpcRes, error: rpcErr } = await supabase.rpc("admin_activate_green_card", {
     p_user_id: input.user_id,
     p_credit_referrer: true,
+    p_amount: resolvedAmount,
+    p_tx_ref: txRef,
+    p_receipt_url: input.receipt_url || null,
+    p_notes: input.notes || null,
   });
+
   if (!rpcErr && rpcRes?.success) {
     resolvedMemberId = rpcRes.member_id || resolvedMemberId || "Assigned";
   } else {
@@ -352,6 +539,8 @@ export async function activateGreenCard(input: {
       payment_date: paymentDate,
       receipt_url: input.receipt_url,
       notes: input.notes,
+      amount: resolvedAmount,
+      is_legacy: isLegacy,
     });
     if (edgeResult.ok) {
       resolvedMemberId = edgeResult.data.member_id || resolvedMemberId || "Assigned";
@@ -376,58 +565,72 @@ export async function activateGreenCard(input: {
         expires_at: oneYearFromNow.toISOString(),
       });
       if (subErr) throw new Error(friendlyDbError(subErr, "Failed to activate Green Card."));
+
+      // Record payment in other_payments log
+      await supabase.from("other_payments").insert({
+        user_id: input.user_id,
+        payment_type: "green_card_offline",
+        amount: resolvedAmount,
+        slots: 0,
+        project_category: "Green Card Membership (Admin Offline Activation)",
+        status: "success",
+        transaction_ref: txRef,
+        metadata: {
+          receipt_url: input.receipt_url || null,
+          notes: input.notes || null,
+          payment_date: paymentDate,
+          is_legacy: isLegacy,
+        },
+      });
     }
   }
 
-  // Record payment in other_payments for financial audit continuity
-  await supabase.from("other_payments").insert({
-    user_id: input.user_id,
-    payment_type: "green_card_offline",
-    amount: 2000,
-    slots: 0,
-    project_category: "Green Card Membership (Admin Offline Activation)",
-    status: "success",
-    transaction_ref: txRef,
-    metadata: {
+  // 3. Record Admin Audit Event with high fidelity
+  await recordAuditEvent({
+    action: "MANUAL_GREEN_CARD_ACTIVATION",
+    entity_type: "subscriptions",
+    entity_id: input.user_id,
+    payload: {
+      target_user_id: input.user_id,
+      target_email: targetEmail,
+      target_name: targetName,
+      member_id: resolvedMemberId,
+      amount: resolvedAmount,
+      is_legacy: isLegacy,
+      rate_type: isLegacy ? "Legacy Rate (Registered before Sep 6)" : "Standard Rate (Registered from Sep 6)",
+      transaction_ref: txRef,
+      payment_date: paymentDate,
       receipt_url: input.receipt_url || null,
       notes: input.notes || null,
-      payment_date: paymentDate,
     },
   });
 
-  // Record Admin Audit Event
-  try {
-    const { data: authUser } = await supabase.auth.getUser();
-    await supabase.from("audit_events").insert({
-      user_id: authUser?.user?.id || null,
-      action: "MANUAL_GREEN_CARD_ACTIVATION",
-      entity_type: "subscriptions",
-      entity_id: input.user_id,
-      payload: {
-        admin_email: authUser?.user?.email,
-        target_user_id: input.user_id,
-        member_id: resolvedMemberId,
-        amount: 2000,
-        transaction_ref: txRef,
-        payment_date: paymentDate,
-        receipt_url: input.receipt_url || null,
-        notes: input.notes || null,
-      },
-    });
-  } catch (auditErr) {
-    console.warn("Failed to write to audit_events:", auditErr);
-  }
-
-  return { member_id: resolvedMemberId };
+  return { member_id: resolvedMemberId, amount: resolvedAmount, is_legacy: isLegacy };
 }
 
 export async function updateConfig(input: { key: string; value: Record<string, unknown> }) {
   await assertAuditAuthorized();
   const edgeResult = await invokeAdminAction("update_config", input);
-  if (edgeResult.ok) return edgeResult.data;
-  if (edgeResult.definitive) throw new Error(edgeResult.message);
+  if (edgeResult.ok) {
+    // ok
+  } else if (edgeResult.definitive) {
+    throw new Error(edgeResult.message);
+  } else {
+    const { error } = await supabase.from("system_configs").upsert({ key: input.key, value: input.value });
+    if (error) throw new Error(friendlyDbError(error, "Failed to update policy document."));
+  }
 
-  const { error } = await supabase.from("system_configs").upsert({ key: input.key, value: input.value });
-  if (error) throw new Error(friendlyDbError(error, "Failed to update policy document."));
+  // Record Admin Audit Event
+  await recordAuditEvent({
+    action: "ADMIN_UPDATE_CONFIG",
+    entity_type: "system_configs",
+    entity_id: input.key,
+    payload: {
+      config_key: input.key,
+      new_value: input.value,
+      notes: "Policy / system configuration updated by Administrator",
+    },
+  });
+
   return null;
 }

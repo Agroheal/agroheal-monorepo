@@ -26,6 +26,9 @@ import {
   BASE_SLOT_PRICE as SLOT_UNIT_PRICE,
   CLUSTER_SETUP_FEE,
   GREEN_CARD_FEE,
+  LEGACY_GREEN_CARD_FEE,
+  isLegacyMember,
+  getGreenCardFee,
   calculateSlotSubtotal,
 } from "@shared/businessRules";
 
@@ -44,13 +47,16 @@ const Checkout = () => {
 
   const [hasGreenCard, setHasGreenCard] = useState<boolean>(false);
   const [hasPriorSlots, setHasPriorSlots] = useState<boolean>(false);
+  const [memberCreatedAt, setMemberCreatedAt] = useState<string | null>(null);
 
   const isFirstSlotPurchase = !hasPriorSlots;
   const slotsSubtotal = slotQuantity > 0
     ? calculateSlotSubtotal(slotQuantity, hasPriorSlots).subtotal
     : 0;
 
-  const greenCardFee = isGreenCardOnly || !hasGreenCard ? GREEN_CARD_FEE : 0;
+  const isLegacy = isLegacyMember(memberCreatedAt);
+  const activeGreenCardRate = getGreenCardFee(memberCreatedAt);
+  const greenCardFee = isGreenCardOnly || !hasGreenCard ? activeGreenCardRate : 0;
   const totalPrice = slotsSubtotal + greenCardFee;
   const isOrganicFoodNation =
     category === "Organic FoodNation (1 Million Hectares against Hunger)";
@@ -97,9 +103,11 @@ const Checkout = () => {
         // Fetch profile
         const { data: profile } = await supabase
           .from("profiles")
-          .select("full_name, phone, email, referral_earnings, wallet_balance")
+          .select("full_name, phone, email, referral_earnings, wallet_balance, created_at")
           .eq("id", user.id)
           .maybeSingle();
+
+        setMemberCreatedAt(profile?.created_at || user.created_at || null);
 
         let extractedFirstName = "";
         let extractedLastName = "";
@@ -990,9 +998,9 @@ const Checkout = () => {
                           <div className="flex items-center justify-between text-amber-900 pt-1.5 border-t border-green-200/60 font-semibold">
                             <span className="flex items-center gap-1">
                               <Shield className="w-3.5 h-3.5 text-amber-700" />
-                              Green Card Lifetime Pass (Auto-bundled)
+                              Green Card Lifetime Pass {isLegacy ? "(Pioneer Rate)" : "(Auto-bundled)"}
                             </span>
-                            <span>₦{GREEN_CARD_FEE.toLocaleString()}</span>
+                            <span>₦{activeGreenCardRate.toLocaleString()}</span>
                           </div>
                         )}
                       </div>
@@ -1375,14 +1383,14 @@ const Checkout = () => {
                     <div className="flex justify-between items-start text-xs bg-amber-50 border border-amber-200/80 p-3 rounded-xl">
                       <div>
                         <span className="text-amber-950 font-bold block">
-                          Green Card Lifetime Pass
+                          Green Card Lifetime Pass {isLegacy && <span className="text-emerald-700 ml-1">(Pioneer Rate)</span>}
                         </span>
                         <span className="text-[11px] text-amber-800">
-                          Auto-bundled (Required for payouts & ID)
+                          {isLegacy ? "Grandfathered rate (Joined before Sep 6)" : "Auto-bundled (Required for payouts & ID)"}
                         </span>
                       </div>
                       <span className="text-amber-950 font-bold">
-                        ₦{GREEN_CARD_FEE.toLocaleString()}
+                        ₦{activeGreenCardRate.toLocaleString()}
                       </span>
                     </div>
                   )}

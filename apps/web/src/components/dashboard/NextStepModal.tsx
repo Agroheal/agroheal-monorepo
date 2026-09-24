@@ -20,6 +20,11 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
 import { SITE_URL } from "@/config/Index";
 import { toast } from "react-hot-toast";
+import {
+  isLegacyMember,
+  getGreenCardFee,
+  formatNaira,
+} from "@shared/businessRules";
 
 export interface NextStepConfig {
   enabled: boolean;
@@ -115,6 +120,7 @@ export interface NextStepModalProps {
   directReferralsCount: number;
   referralCode?: string;
   forceOpen?: boolean;
+  createdAt?: string | null;
   onCloseExternal?: () => void;
 }
 
@@ -124,6 +130,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
   directReferralsCount,
   referralCode = "",
   forceOpen = false,
+  createdAt,
   onCloseExternal,
 }) => {
   const navigate = useNavigate();
@@ -131,6 +138,9 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [bundleSlot, setBundleSlot] = useState(false);
+
+  const isLegacy = isLegacyMember(createdAt);
+  const activeFee = getGreenCardFee(createdAt);
 
   // Fetch admin-programmed configuration from system_configs
   useEffect(() => {
@@ -399,7 +409,9 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                 <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
                 <span>
                   {currentStep === 1 && bundleSlot
-                    ? "Green Card (₦2,000) + 1 Farm Slot Bundled at Checkout"
+                    ? `Green Card (${formatNaira(activeFee)}) + 1 Farm Slot (₦5,000) Bundled at Checkout`
+                    : currentStep === 1
+                    ? `${formatNaira(activeFee)} One-Time Lifetime Membership${isLegacy ? " (Pioneer Rate)" : ""}`
                     : "priceText" in currentData
                     ? currentData.priceText
                     : ""}
@@ -489,7 +501,12 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                   )
                 ) : currentStep === 1 && bundleSlot ? (
                   <>
-                    <span>Get Green Card + Farm Slot Now</span>
+                    <span>Get Green Card + Farm Slot ({formatNaira(activeFee + 5000)})</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                ) : currentStep === 1 ? (
+                  <>
+                    <span>Activate Green Card Now ({formatNaira(activeFee)})</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 ) : (

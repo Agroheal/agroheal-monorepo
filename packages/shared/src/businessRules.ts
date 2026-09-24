@@ -6,7 +6,20 @@
  */
 
 // ── 1. MEMBERSHIP & ID PASSES ──
-export const GREEN_CARD_FEE = 2000; // One-time ₦2,000 Green Card lifetime pass & organic academy access
+export const GREEN_CARD_FEE = 2000; // Standard ₦2,000 Green Card lifetime pass (accounts created from Sept 6, 2026 onwards)
+export const LEGACY_GREEN_CARD_FEE = 1000; // Special ₦1,000 Green Card pass for legacy members (accounts created before Sept 6, 2026)
+export const LEGACY_CUTOFF_DATE = "2026-09-06T00:00:00.000Z";
+
+export const isLegacyMember = (createdAt?: string | Date | null): boolean => {
+  if (!createdAt) return false;
+  const createdTime = new Date(createdAt).getTime();
+  const cutoffTime = new Date(LEGACY_CUTOFF_DATE).getTime();
+  return !isNaN(createdTime) && createdTime < cutoffTime;
+};
+
+export const getGreenCardFee = (createdAt?: string | Date | null): number => {
+  return isLegacyMember(createdAt) ? LEGACY_GREEN_CARD_FEE : GREEN_CARD_FEE;
+};
 
 // ── 2. COMMERCIAL FARM SLOTS (BIOLOGICAL PRODUCTION) ──
 export const BASE_SLOT_PRICE = 5000; // ₦5,000 per slot (biological asset allocation: 2 fruiting bags)

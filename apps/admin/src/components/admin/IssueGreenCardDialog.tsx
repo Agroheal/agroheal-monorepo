@@ -7,6 +7,7 @@ import { MemberCombobox } from "@/components/admin/MemberCombobox";
 import { GreenCardBadge } from "@/components/admin/MemberBadges";
 import { ReceiptUploadField } from "@/components/admin/ReceiptUploadField";
 import { uploadPaymentReceipt } from "@/lib/receiptUpload";
+import { isLegacyMember, getGreenCardFee } from "@/lib/pricing";
 import type { Member } from "@/types/admin";
 
 export interface GreenCardOfflinePayload {
@@ -14,6 +15,8 @@ export interface GreenCardOfflinePayload {
   paymentDate?: string;
   receiptUrl?: string;
   notes?: string;
+  amount?: number;
+  isLegacy?: boolean;
 }
 
 interface Props {
@@ -34,6 +37,8 @@ export function IssueGreenCardDialog({ open, onOpenChange, members, activatingMe
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const selected = members.find((m) => m.id === selectedId);
+  const isLegacy = selected ? isLegacyMember(selected.created_at) : false;
+  const offlineFee = selected ? getGreenCardFee(selected.created_at) : 2000;
 
   const handleOpenChange = (next: boolean) => {
     if (!next) {
@@ -50,6 +55,11 @@ export function IssueGreenCardDialog({ open, onOpenChange, members, activatingMe
   const handleConfirm = async () => {
     if (!selected) return;
 
+    if (!transactionRef.trim() && !receiptFile) {
+      setUploadError("Please provide proof of payment: enter a Bank Reference / NIP Session ID or upload a transfer receipt.");
+      return;
+    }
+
     setUploading(true);
     setUploadError(null);
 
@@ -64,6 +74,8 @@ export function IssueGreenCardDialog({ open, onOpenChange, members, activatingMe
         paymentDate: paymentDate ? new Date(paymentDate).toISOString() : undefined,
         receiptUrl,
         notes: notes.trim() || undefined,
+        amount: offlineFee,
+        isLegacy,
       });
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Failed to upload receipt.");
@@ -107,7 +119,7 @@ export function IssueGreenCardDialog({ open, onOpenChange, members, activatingMe
                 <p className="leading-relaxed">
                   &bull; <strong className="text-foreground">Member:</strong> {selected.full_name} ({selected.email})
                   <br />&bull; <strong className="text-foreground">Subscription:</strong> Lifetime Permanent Agroheal Green Card Membership
-                  <br />&bull; <strong className="text-foreground">Offline Fee:</strong> ₦2,000 (Payment Confirmed)
+                  <br />&bull; <strong className="text-foreground">Offline Fee:</strong> {isLegacy ? "₦1,000 (Legacy Member Rate - Registered before Sep 6)" : "₦2,000 (Standard Rate - Registered from Sep 6)"}
                   <br />&bull; <strong className="text-foreground">Action:</strong> Assigns sequential Member ID &amp; enables
                   community benefits
                 </p>

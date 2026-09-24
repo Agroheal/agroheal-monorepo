@@ -33,6 +33,7 @@ import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import NextStepModal from "@/components/dashboard/NextStepModal";
 import JourneyProgressionHeader from "@/components/dashboard/JourneyProgressionHeader";
+import { isLegacyMember, getGreenCardFee, formatNaira } from "@shared/businessRules";
 
 interface ReferralProps {
   id: string;
@@ -59,6 +60,7 @@ interface DashboardProfile {
   referral_earnings?: number;
   slot_bonus?: number;
   phone?: string | boolean | null;
+  created_at?: string | null;
   referrals?: ReferralProps[];
   [key: string]: unknown;
 }
@@ -371,6 +373,7 @@ const Dashboard = () => {
           directReferralsCount={profile?.total_referrals || 0}
           referralCode={profile?.referral_code}
           walletBalance={Number(profile?.wallet_balance || profile?.referral_earnings || 0)}
+          createdAt={profile?.created_at}
           onOpenShareModal={() => setShowShareModal(true)}
         />
 
@@ -656,7 +659,9 @@ const Dashboard = () => {
                 asChild
                 className="flex-1 md:flex-initial h-9 rounded-xl bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold text-xs px-4 shadow-sm cursor-pointer"
               >
-                <Link to="/subscribe">Purchase a Green Card (₦2,000)</Link>
+                <Link to="/subscribe">
+                  Purchase a Green Card ({formatNaira(getGreenCardFee(profile?.created_at))})
+                </Link>
               </Button>
             )}
           </div>
@@ -1099,6 +1104,7 @@ const Dashboard = () => {
           directReferralsCount={profile.referrals?.length ?? 0}
           referralCode={profile.referral_code ?? ""}
           forceOpen={forceOpenNextStep}
+          createdAt={profile.created_at}
           onCloseExternal={() => setForceOpenNextStep(false)}
         />
       )}

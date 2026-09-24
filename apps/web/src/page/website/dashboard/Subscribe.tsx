@@ -14,14 +14,21 @@ import { FLUTTERWAVE_KEYS } from "@/config/Index";
 import * as Sentry from "@sentry/react";
 import PaymentGuidancePopup from "@/components/webComponents/PaymentGuidancePopup";
 import type { User } from "@supabase/supabase-js";
+import {
+  GREEN_CARD_FEE,
+  LEGACY_GREEN_CARD_FEE,
+  isLegacyMember,
+  getGreenCardFee,
+  formatNaira,
+} from "@shared/businessRules";
 
-const GREEN_CARD_FEE = 2000;
 const LIFETIME_YEARS = 100;
 
 const Subscribe = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [activationError, setActivationError] = useState(false);
   const [paymentReference, setPaymentReference] = useState<string | null>(null);
@@ -36,6 +43,15 @@ const Subscribe = () => {
         return;
       }
       setUser(user);
+
+      // Fetch profile creation timestamp for legacy membership validation
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("created_at")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      setUserCreatedAt(prof?.created_at || user.created_at || null);
     };
     getUser();
 
@@ -48,6 +64,9 @@ const Subscribe = () => {
       document.body.appendChild(script);
     }
   }, [navigate]);
+
+  const isLegacy = isLegacyMember(userCreatedAt);
+  const activeGreenCardFee = getGreenCardFee(userCreatedAt);
 
   const handleFlutterwavePayment = () => {
     if (!user) {
@@ -81,7 +100,7 @@ const Subscribe = () => {
       window.FlutterwaveCheckout({
         public_key: FLUTTERWAVE_KEYS,
         tx_ref: reference,
-        amount: GREEN_CARD_FEE,
+        amount: activeGreenCardFee,
         currency: "NGN",
         payment_options: "card, banktransfer, ussd",
         customer: {
@@ -618,18 +637,36 @@ const Subscribe = () => {
                     </span>
 
                     {/* Price */}
+                    {/* Price */}
                     <div className="mb-6">
-                      <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-1">
-                        Full platform access
-                      </p>
-                      <div className="flex items-baseline gap-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
+                          Full platform access
+                        </p>
+                        {isLegacy && (
+                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            Pioneer Rate (Pre-Sept 6)
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-baseline gap-2">
                         <span className="text-4xl font-bold text-gray-900">
-                          ₦2,000
+                          {formatNaira(activeGreenCardFee)}
                         </span>
+                        {isLegacy && (
+                          <span className="text-base text-gray-400 line-through">
+                            ₦2,000
+                          </span>
+                        )}
                         <span className="text-sm text-gray-400">
                           one-time
                         </span>
                       </div>
+                      {isLegacy && (
+                        <p className="text-[11px] text-emerald-700 font-medium mt-1">
+                          Grandfathered ₦1,000 rate for accounts created before Sept 6, 2026.
+                        </p>
+                      )}
                     </div>
 
                     {/* Included list */}
@@ -660,7 +697,7 @@ const Subscribe = () => {
                         </span>
                       ) : (
                         <span className="flex items-center gap-2">
-                          Get Started Now
+                          Get Started Now ({formatNaira(activeGreenCardFee)})
                           <ArrowRight className="w-4 h-4" />
                         </span>
                       )}
@@ -686,14 +723,14 @@ const Subscribe = () => {
                           </span>
                         </div>
                         <p className="text-[11px] text-gray-600 leading-snug mb-2.5">
-                          Bundle your Green Card + 1 Mushroom Farm Slot at checkout to begin biological production immediately.
+                          Bundle your Green Card ({formatNaira(activeGreenCardFee)}) + 1 Mushroom Farm Slot (₦5,000) at checkout for {formatNaira(activeGreenCardFee + 5000)} total.
                         </p>
                         <button
                           type="button"
                           onClick={() => navigate("/checkout?slots=1&category=Mushroom%20Village")}
                           className="w-full text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-white border border-emerald-300 hover:bg-emerald-100/60 rounded-lg py-2 transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-xs"
                         >
-                          <span>Bundle Farm Slot at Checkout</span>
+                          <span>Bundle Farm Slot ({formatNaira(activeGreenCardFee + 5000)})</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </button>
                       </div>

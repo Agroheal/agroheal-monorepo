@@ -29,8 +29,7 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   onSave: (values: EditMemberValues) => Promise<void> | void;
   saving: boolean;
-  onActivateGreenCard: (member: Member) => void;
-  activatingMemberId: string | null;
+  onRequestIssueGreenCard?: (member: Member) => void;
 }
 
 export function EditMemberDialog({
@@ -38,8 +37,7 @@ export function EditMemberDialog({
   onOpenChange,
   onSave,
   saving,
-  onActivateGreenCard,
-  activatingMemberId,
+  onRequestIssueGreenCard,
 }: Props) {
   const form = useForm<EditMemberValues>({
     resolver: zodResolver(editMemberSchema),
@@ -130,16 +128,14 @@ export function EditMemberDialog({
                     : "User registered but has not completed Green Card subscription payment."}
                 </span>
               </div>
-              {!member.has_green_card && (
+              {!member.has_green_card && onRequestIssueGreenCard && (
                 <Button
                   type="button"
                   size="sm"
                   className="gap-1.5 whitespace-nowrap bg-emerald-500/20 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/30"
-                  disabled={activatingMemberId === member.id}
-                  onClick={() => onActivateGreenCard(member)}
+                  onClick={() => onRequestIssueGreenCard(member)}
                 >
-                  <CreditCard className="h-3.5 w-3.5" />{" "}
-                  {activatingMemberId === member.id ? "Activating..." : "Activate Green Card"}
+                  <CreditCard className="h-3.5 w-3.5" /> Issue Green Card (With Proof)
                 </Button>
               )}
             </div>
