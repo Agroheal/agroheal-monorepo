@@ -1,4 +1,4 @@
--- Migration: Add Core Driver Growth Pool Auto-Distribution (₦50/card across 6 core drivers)
+-- Migration: Add Core Driver Growth Pool Auto-Distribution (₦50 for Lead Architect, ₦41.67 across 6 core drivers)
 -- Date: 2026-09-24
 
 -- 1. Create or replace distribute_core_driver_bonuses function
@@ -13,21 +13,30 @@ AS $$
 DECLARE
   v_driver RECORD;
   v_new_bal NUMERIC;
+  v_amount NUMERIC;
   v_driver_emails TEXT[] := ARRAY[
     'developerelijah360@gmail.com',
     'estherbola888@gmail.com',
     'ifoodeconomy@gmail.com',
     'davidomokanye141@gmail.com',
     'efortunefb@gmail.com',
-    'tonyinyang118@gmail.com'
+    'tonyinyang118@gmail.com',
+    'gkygmr56@gmail.com'
   ];
 BEGIN
-  -- For each of the 6 core drivers
+  -- For each of the 7 core drivers
   FOR v_driver IN
     SELECT id, email, wallet_balance
     FROM public.profiles
     WHERE lower(email) = ANY(v_driver_emails)
   LOOP
+    -- Elijah gets ₦50.00; the other 6 drivers divide ₦250 equally (₦41.67 each)
+    IF lower(v_driver.email) = 'developerelijah360@gmail.com' THEN
+      v_amount := 50.00;
+    ELSE
+      v_amount := 41.67;
+    END IF;
+
     -- Check if bonus already recorded for this driver and member_id to avoid double-crediting
     IF NOT EXISTS (
       SELECT 1 FROM public.wallet_ledger
@@ -35,9 +44,9 @@ BEGIN
         AND category = 'CORE_DRIVER_BONUS'
         AND reference_id = p_member_id
     ) THEN
-      -- Increment driver wallet balance by 50
+      -- Increment driver wallet balance
       UPDATE public.profiles
-      SET wallet_balance = COALESCE(wallet_balance, 0) + 50
+      SET wallet_balance = COALESCE(wallet_balance, 0) + v_amount
       WHERE id = v_driver.id
       RETURNING wallet_balance INTO v_new_bal;
 
@@ -54,13 +63,13 @@ BEGIN
         created_at
       ) VALUES (
         v_driver.id,
-        50,
+        v_amount,
         v_new_bal,
         'CREDIT',
         'CORE_DRIVER_BONUS',
         'AVAILABLE',
         p_member_id,
-        'Core Driver Growth Pool Share (₦50) - ' || COALESCE(p_member_id, 'Green Card'),
+        'Core Driver Growth Pool Share (₦' || v_amount::text || ') - ' || COALESCE(p_member_id, 'Green Card'),
         NOW()
       );
     END IF;

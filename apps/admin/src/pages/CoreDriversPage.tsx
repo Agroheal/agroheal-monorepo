@@ -48,35 +48,42 @@ const STATIC_CORE_DRIVERS = [
     name: "Esther Adetayo",
     email: "estherbola888@gmail.com",
     roleTitle: "Founder & Commercial Lead",
-    sharePerCard: 50,
+    sharePerCard: 41.67,
   },
   {
     id: "driver-3",
     name: "Taiwo Oluwadahunsola",
     email: "ifoodeconomy@gmail.com",
     roleTitle: "Core Operations Driver",
-    sharePerCard: 50,
+    sharePerCard: 41.67,
   },
   {
     id: "driver-4",
     name: "David Omokanye",
     email: "davidomokanye141@gmail.com",
     roleTitle: "Core Agronomy & Field Operations",
-    sharePerCard: 50,
+    sharePerCard: 41.67,
   },
   {
     id: "driver-5",
     name: "Fortune Etuk",
     email: "efortunefb@gmail.com",
     roleTitle: "Regional Expansion & Community Growth",
-    sharePerCard: 50,
+    sharePerCard: 41.67,
   },
   {
     id: "driver-6",
     name: "Tony Inyang",
     email: "tonyinyang118@gmail.com",
     roleTitle: "Institutional Partnerships & Enterprise",
-    sharePerCard: 50,
+    sharePerCard: 41.67,
+  },
+  {
+    id: "driver-7",
+    name: "Nathaniel Omokanye",
+    email: "gkygmr56@gmail.com",
+    roleTitle: "Core Growth & Strategic Operations",
+    sharePerCard: 41.67,
   },
 ];
 
@@ -153,7 +160,7 @@ export default function CoreDriversPage() {
         const prof = profileMap.get(driver.email.toLowerCase());
         const totalEarned = (prof?.id && ledgerMap.has(prof.id))
           ? (ledgerMap.get(prof.id) || 0)
-          : totalCards * driver.sharePerCard;
+          : 0;
         const totalWithdrawn = 0; // Can be wired to withdrawal table when ready
         const availableBalance = Number(prof?.wallet_balance ?? (totalEarned - totalWithdrawn));
         const isEligible = availableBalance >= MIN_WITHDRAWAL_THRESHOLD;
@@ -255,7 +262,6 @@ export default function CoreDriversPage() {
   };
 
   const totalPoolAccrued = activeGreenCardsCount * 300; // ₦300 pool (15% of ₦2,000)
-  const totalPerDriverShare = activeGreenCardsCount * 50;
 
   const filteredDrivers = drivers.filter(
     (d) =>
@@ -278,7 +284,7 @@ export default function CoreDriversPage() {
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Real-time tracking and allocation of the 15% Green Card Growth Pool (₦300/card split across 6 core driver seats).
+            Real-time tracking and allocation of the 15% Green Card Growth Pool (₦300/card: ₦50 for Lead Architect, ₦41.67 across 6 driver seats).
           </p>
         </div>
 
@@ -308,15 +314,15 @@ export default function CoreDriversPage() {
           icon={TrendingUp}
         />
         <StatCard
-          label="Per-Driver Allocation"
-          value={`₦${totalPerDriverShare.toLocaleString()}`}
-          footer="₦50/card for each of the 6 seats"
+          label="Growth Pool Distribution"
+          value="₦50 / ₦41.67"
+          footer="₦50 Lead Architect, ₦41.67 for 6 driver seats"
           icon={Award}
         />
         <StatCard
           label="Core Driver Seats"
           value={`${drivers.length} Active`}
-          footer="Esther, Taiwo, David, Elijah, Fortune, Tony"
+          footer="Elijah, Esther, Taiwo, David, Fortune, Tony, Nathaniel"
           icon={Users}
         />
       </div>
@@ -325,7 +331,7 @@ export default function CoreDriversPage() {
       <div className="rounded-xl border border-border bg-card shadow-xs overflow-hidden">
         <div className="p-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/20">
           <div>
-            <h2 className="text-base font-semibold text-foreground">6 Core Drivers Roster & Balances</h2>
+            <h2 className="text-base font-semibold text-foreground">7 Core Drivers Roster & Balances</h2>
             <p className="text-xs text-muted-foreground">
               Minimum withdrawal threshold is ₦{MIN_WITHDRAWAL_THRESHOLD.toLocaleString()}. Toggle portal view to allow individual driver visibility.
             </p>
