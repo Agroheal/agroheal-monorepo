@@ -324,7 +324,7 @@ const Dashboard = () => {
               Welcome, {profile?.full_name?.split(" ")[0]}
             </h1>
             <p className="text-xs sm:text-sm text-green-200 mt-0.5">
-              Organic Farming & Wealth Platform Dashboard
+              Learn to Earn Agribusiness Platform (LEAP) Dashboard
             </p>
           </div>
 
