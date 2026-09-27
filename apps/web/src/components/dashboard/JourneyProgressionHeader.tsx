@@ -103,7 +103,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                 <span>1. Agroheal Green Card ({formatNaira(activeFee)}{isLegacy ? " - Pioneer Rate" : ""})</span>
               </div>
               <p className="text-[11px] leading-relaxed mb-2">
-                Grants verified digital membership, immediate affiliate link, and pays ₦1,000 instant commission per referral into your wallet. Accrued balance can pay for Step 2.
+                Grants verified digital membership, immediate affiliate link, and pays ₦1,000 instant commission per referral into your wallet.
               </p>
               <Link
                 to="/dashboard/profile/green-card"
@@ -208,10 +208,6 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                 <span><strong>₦1,000 instant referral bounty</strong> into wallet</span>
-              </li>
-              <li className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
-                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground shrink-0" />
-                <span>Wallet balance pays forward to Step 2</span>
               </li>
             </ul>
           </div>
