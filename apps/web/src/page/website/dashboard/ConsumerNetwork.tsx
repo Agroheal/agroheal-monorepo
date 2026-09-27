@@ -393,7 +393,7 @@ export const ConsumerNetwork: React.FC = () => {
             </Button>
 
             <Link
-              to="/dashboard/compound-referrals"
+              to="/dashboard/my-network"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-2 rounded-xl border border-emerald-200 transition-colors h-9"
             >
               <Users className="w-3.5 h-3.5 text-emerald-700" />

@@ -368,7 +368,7 @@ const Checkout = () => {
       });
 
       setWalletBalance((prev) => Math.max(0, prev - totalPrice));
-      navigate("/dashboard/my-slots");
+      navigate("/dashboard/farm-operations/my-slots");
     } catch (err: any) {
       console.error("Wallet payment failed:", err);
       Sentry.captureException(err);
@@ -538,7 +538,7 @@ const Checkout = () => {
                   description: "Your slot has been secured!",
                 });
 
-                navigate("/dashboard/my-slots");
+                navigate("/dashboard/farm-operations/my-slots");
               } catch (err) {
                 console.error("Direct activation failed:", err);
                 toast({
@@ -728,7 +728,7 @@ const Checkout = () => {
                 });
 
                 setWalletBalance((prev) => Math.max(0, prev - usableWallet));
-                navigate("/dashboard/my-slots");
+                navigate("/dashboard/farm-operations/my-slots");
               } catch (finalizeErr: any) {
                 console.error("Error finalizing split payment:", finalizeErr);
                 toast({
@@ -737,7 +737,7 @@ const Checkout = () => {
                     "Card payment succeeded. If your slots do not appear immediately, support will reconcile with ref: " +
                     flwTransactionId,
                 });
-                navigate("/dashboard/my-slots");
+                navigate("/dashboard/farm-operations/my-slots");
               } finally {
                 setIsProcessing(false);
               }

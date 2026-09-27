@@ -107,7 +107,7 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
         "Earn ₦1,000 Green Card bounty + 10% (₦500) per slot leased by direct partners",
       ],
       buttonText: "Copy Referral Link & Share",
-      targetRoute: "/dashboard/compound-referrals",
+      targetRoute: "/dashboard/my-network",
     },
   },
 };
@@ -218,7 +218,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
   const handlePrimaryAction = async () => {
     if (currentStep === 1) {
       if (bundleSlot) {
-        navigate("/checkout?slots=1&category=Mushroom%20Village");
+        navigate("/dashboard/checkout?slots=1&category=Mushroom%20Village");
       } else {
         navigate(config.steps.step1.targetRoute || "/subscribe");
       }
@@ -521,7 +521,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                 <Button
                   variant="outline"
                   onClick={() => {
-                    navigate("/dashboard/compound-referrals");
+                    navigate("/dashboard/my-network");
                     handleDismiss();
                   }}
                   className="h-12 rounded-2xl bg-white hover:bg-gray-50 text-gray-800 border-gray-200 text-xs font-semibold px-4"

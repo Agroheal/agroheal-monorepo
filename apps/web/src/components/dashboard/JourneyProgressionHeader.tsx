@@ -138,7 +138,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                 Sponsoring direct members unlocks deep matrix levels under the Directs + 1 rule (5 directs unlocks down to Level 6 and full matrix dividends).
               </p>
               <Link
-                to="/dashboard/compound-referrals"
+                to="/dashboard/my-network"
                 className="text-primary hover:underline text-[11px] font-semibold inline-flex items-center gap-1"
               >
                 5×7 Tree &amp; Matrix Rules <ArrowRight className="w-3 h-3" />
@@ -240,7 +240,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                 </Button>
                 <button
                   type="button"
-                  onClick={() => navigate("/checkout?slots=1&category=Mushroom%20Village")}
+                  onClick={() => navigate("/dashboard/checkout?slots=1&category=Mushroom%20Village")}
                   className="w-full text-[11px] font-medium text-emerald-700 dark:text-emerald-400 hover:underline flex items-center justify-center gap-1 py-0.5 text-center transition-colors cursor-pointer"
                 >
                   <Sprout className="w-3.5 h-3.5 shrink-0" />
@@ -330,7 +330,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                   {totalSlots} Farm Slot{totalSlots > 1 ? "s" : ""} Active
                 </span>
                 <Link
-                  to="/dashboard/my-slots"
+                  to="/dashboard/farm-operations/my-slots"
                   className="font-medium text-primary hover:underline inline-flex items-center gap-1"
                 >
                   Farm Account <ArrowRight className="w-3 h-3" />
@@ -430,13 +430,13 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={onOpenShareModal ? onOpenShareModal : () => navigate("/dashboard/compound-referrals")}
+                  onClick={onOpenShareModal ? onOpenShareModal : () => navigate("/dashboard/my-network")}
                   className="flex-1 text-xs h-8"
                 >
                   Share Link
                 </Button>
                 <Link
-                  to="/dashboard/compound-referrals"
+                  to="/dashboard/my-network"
                   className="text-xs font-medium text-primary hover:underline px-2 py-1"
                 >
                   View Matrix →

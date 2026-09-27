@@ -329,7 +329,7 @@ export const GreenCardCommunity: React.FC = () => {
       {/* ── QUICK ACTION TILES ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link
-          to="/dashboard/compound-referrals"
+          to="/dashboard/my-network"
           className="bg-white rounded-2xl p-5 border border-gray-200/80 hover:border-emerald-300 hover:shadow-md transition-all group flex items-center justify-between"
         >
           <div className="flex items-center gap-3.5">

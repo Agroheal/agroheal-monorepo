@@ -727,7 +727,7 @@ const Subscribe = () => {
                         </p>
                         <button
                           type="button"
-                          onClick={() => navigate("/checkout?slots=1&category=Mushroom%20Village")}
+                          onClick={() => navigate("/dashboard/checkout?slots=1&category=Mushroom%20Village")}
                           className="w-full text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-white border border-emerald-300 hover:bg-emerald-100/60 rounded-lg py-2 transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-xs"
                         >
                           <span>Bundle Farm Slot ({formatNaira(activeGreenCardFee + 5000)})</span>

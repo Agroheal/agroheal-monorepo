@@ -167,6 +167,16 @@ export const appRouter = createBrowserRouter([
           { path: "legal", element: <Legal /> },
           { path: "help/knowledge-base", element: <KnowledgeBase /> },
           { path: "help/customer-service", element: <CustomerService /> },
+
+          // Legacy & Unprefixed Aliases (Prevents 404s)
+          { path: "my-slots", element: <Navigate to="/dashboard/farm-operations/my-slots" replace /> },
+          { path: "buy-slots", element: <Navigate to="/dashboard/farm-operations/buy-slots" replace /> },
+          { path: "slots", element: <Navigate to="/dashboard/farm-operations/buy-slots" replace /> },
+          { path: "manage-slots", element: <Navigate to="/dashboard/farm-operations/my-slots" replace /> },
+          { path: "slots-subscription", element: <Navigate to="/dashboard/farm-operations/my-slots" replace /> },
+          { path: "compound-referrals", element: <Navigate to="/dashboard/my-network" replace /> },
+          { path: "matrix", element: <Navigate to="/dashboard/my-network" replace /> },
+          { path: "subscribe", element: <Navigate to="/subscribe" replace /> },
         ],
       },
     ],
