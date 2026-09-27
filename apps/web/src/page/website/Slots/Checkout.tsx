@@ -979,7 +979,7 @@ const Checkout = () => {
                         <div className="flex items-center justify-between text-green-900 font-semibold text-sm">
                           <span>
                             {isFirstSlotPurchase
-                              ? "First Slot & Cluster Setup"
+                              ? "First Slot & Starter Pack"
                               : `${slotQuantity} Farm Slot${slotQuantity > 1 ? "s" : ""}`}
                           </span>
                           <span>
@@ -989,8 +989,8 @@ const Checkout = () => {
 
                         {isFirstSlotPurchase && (
                           <div className="text-[11px] text-green-700 space-y-0.5">
-                            <p>• ₦5,000 Farm Slot (Biological asset allocation)</p>
-                            <p>• ₦5,000 Practical Cluster Setup & Onboarding</p>
+                            <p>• ₦5,000 Farm Slot set up</p>
+                            <p>• ₦5,000 Mushroom Power 100g starter pack</p>
                           </div>
                         )}
 
@@ -1021,7 +1021,7 @@ const Checkout = () => {
                         </div>
                         <p className="text-xs text-muted-foreground leading-relaxed">
                           {isFirstSlotPurchase
-                            ? "Your starter slot package covers biological materials, physical cluster preparation, and resident supervision (₦10,000). Subsequent slots scale at ₦5,000 each with zero recurring monthly fees."
+                            ? "Your starter slot package covers biological materials, physical cluster preparation, and Mushroom Power 100g starter pack (₦10,000). Subsequent slots scale at ₦5,000 each with zero recurring monthly fees."
                             : "Subsequent slots scale at ₦5,000 each with zero recurring monthly fees. Ongoing operations are sustained via harvest yields."}
                         </p>
                       </div>

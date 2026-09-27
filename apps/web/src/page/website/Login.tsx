@@ -19,6 +19,46 @@ const Login = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [emailNotConfirmed, setEmailNotConfirmed] = useState<boolean>(false);
+  const [resending, setResending] = useState<boolean>(false);
+
+  const handleResendFromLogin = async () => {
+    if (!email) {
+      showToast({
+        variant: "error",
+        title: "Email required",
+        description: "Please enter your email address to resend confirmation.",
+      });
+      return;
+    }
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: email.trim().toLowerCase(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+      if (error) {
+        showToast({
+          variant: "error",
+          title: "Resend failed",
+          description: error.message || "Could not resend confirmation email.",
+        });
+      } else {
+        showToast({
+          variant: "success",
+          title: "Verification email sent!",
+          description: `A fresh confirmation link was sent to ${email}.`,
+        });
+      }
+    } catch (err) {
+      console.error("Resend error:", err);
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,17 +78,27 @@ const Login = () => {
         },
       });
 
-      const errorNotify = () =>
+      const isUnconfirmed = error.message.toLowerCase().includes("email not confirmed");
+      if (isUnconfirmed) {
+        setEmailNotConfirmed(true);
+        showToast({
+          variant: "error",
+          title: "Email not confirmed",
+          description: "Please check your inbox to confirm your email before signing in.",
+        });
+      } else {
+        setEmailNotConfirmed(false);
         showToast({
           variant: "error",
           title: "Sign in failed",
           description:
-            "Check that your email and password are correct. Also check your internet connection.",
+            error.message || "Check that your email and password are correct. Also check your internet connection.",
         });
-      errorNotify();
+      }
       return;
     }
 
+    setEmailNotConfirmed(false);
     const notify = () =>
       showToast({
         variant: "success",
@@ -169,6 +219,33 @@ const Login = () => {
                 </button>
               </div>
             </div>
+
+            {/* Email Not Confirmed Banner */}
+            {emailNotConfirmed && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs space-y-2"
+              >
+                <div className="font-semibold flex items-center gap-1.5 text-amber-950">
+                  <Mail className="w-4 h-4 text-amber-600 shrink-0" />
+                  Email Confirmation Required
+                </div>
+                <p className="leading-relaxed text-amber-800">
+                  Your email has not been confirmed yet. Please verify your email via the link sent to your inbox, or click below to receive a new link.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleResendFromLogin}
+                  disabled={resending}
+                  className="w-full text-xs h-9 border-amber-300 bg-white hover:bg-amber-100 text-amber-900 font-semibold rounded-lg"
+                >
+                  {resending ? "Sending fresh link..." : "Resend Confirmation Email"}
+                </Button>
+              </motion.div>
+            )}
 
             {/* Submit */}
             <div className="pt-2">

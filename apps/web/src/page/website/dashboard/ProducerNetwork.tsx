@@ -278,9 +278,9 @@ export const ProducerNetwork: React.FC = () => {
                 asChild
                 className="w-full sm:w-auto h-11 px-6 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-2"
               >
-                <Link to="/dashboard/farm-operations/buy-slots">
+                <Link to="/dashboard/checkout?category=Mushroom%20Village&slots=1">
                   <PlusCircle className="w-4 h-4" />
-                  <span>Secure Starter Slot ({formatNaira(STARTER_SLOT_TOTAL)} / ₦5k + ₦5k)</span>
+                  <span>Secure Complete Starter ({formatNaira(STARTER_SLOT_TOTAL)})</span>
                 </Link>
               </Button>
 

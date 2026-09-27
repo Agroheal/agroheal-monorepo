@@ -119,7 +119,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                 <span>2. Producer-Consumer Package (₦10,000)</span>
               </div>
               <p className="text-[11px] leading-relaxed mb-2">
-                ₦5,000 Group Farm Slot + ₦5,000 Mushroom Power 75g Starter Pack. <strong>Crucial milestone:</strong> This unlocks full external bank withdrawals for all your accumulated wallet bonuses!
+                ₦5,000 Group Farm Slot + ₦5,000 Mushroom Power 100g Starter Pack. <strong>Crucial milestone:</strong> This unlocks full external bank withdrawals for all your accumulated wallet bonuses!
               </p>
               <Link
                 to="/dashboard/mushroom-village"
@@ -310,7 +310,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>₦5,000 Mushroom Power 75g Starter Pack</span>
+                <span>₦5,000 Mushroom Power 100g Starter Pack</span>
               </li>
               <li className="flex items-center gap-1.5 font-semibold text-foreground">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />

@@ -10,5 +10,15 @@ if (!supabaseURL || !supabaseANON) {
 const supabaseUrl = supabaseURL || "https://placeholder.supabase.co";
 const supabaseAnonKey = supabaseANON || "placeholder-anon-key";
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // Custom lock pass-through to completely bypass buggy navigator.locks in mobile/tab suspension
+    lock: async (_name, _acquireTimeout, fn) => {
+      return await fn();
+    },
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+  },
+});
 

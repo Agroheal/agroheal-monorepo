@@ -178,8 +178,19 @@ export const useUserStore = create<UserState>((set, get) => ({
     if (isAuthInitialized) return;
     isAuthInitialized = true;
 
+    // Fail-safe timeout (4s) so user is never trapped in a permanent spinner
+    const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
+      setTimeout(() => {
+        console.warn("[useUserStore] Auth getSession timed out after 4s; releasing loading state.");
+        resolve({ data: { session: null } });
+      }, 4000)
+    );
+
     try {
-      const { data } = await supabase.auth.getSession();
+      const { data } = await Promise.race([
+        supabase.auth.getSession(),
+        timeoutPromise,
+      ]);
       const initialSession = data.session;
       const initialUser = initialSession?.user || null;
 
@@ -193,30 +204,32 @@ export const useUserStore = create<UserState>((set, get) => ({
         await get().fetchProfile(initialUser.id);
       }
 
-      // Listen to real-time auth changes
-      supabase.auth.onAuthStateChange(async (_event, newSession) => {
-        const newUser = newSession?.user || null;
-        set({
-          session: newSession,
-          user: newUser,
-          loading: false,
-        });
-
-        if (newUser?.id) {
-          await get().fetchProfile(newUser.id);
-        } else {
+      // Listen to real-time auth changes (deferred to next tick to prevent mutex deadlock)
+      supabase.auth.onAuthStateChange((_event, newSession) => {
+        setTimeout(async () => {
+          const newUser = newSession?.user || null;
           set({
-            profile: null,
-            kinDetails: null,
-            isProfileIncomplete: false,
-            hasGreenCard: false,
-            role: UserRole.MEMBER,
-            isAdmin: false,
-            isSuperAdmin: false,
-            isCoordinator: false,
-            isSupport: false,
+            session: newSession,
+            user: newUser,
+            loading: false,
           });
-        }
+
+          if (newUser?.id) {
+            await get().fetchProfile(newUser.id);
+          } else {
+            set({
+              profile: null,
+              kinDetails: null,
+              isProfileIncomplete: false,
+              hasGreenCard: false,
+              role: UserRole.MEMBER,
+              isAdmin: false,
+              isSuperAdmin: false,
+              isCoordinator: false,
+              isSupport: false,
+            });
+          }
+        }, 0);
       });
     } catch (err) {
       console.error("[useUserStore] initAuth error:", err);

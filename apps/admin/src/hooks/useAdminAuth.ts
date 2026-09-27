@@ -61,18 +61,34 @@ export const useAdminAuth = () => {
     };
 
     const init = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (!active) return;
-      setSession(data.session);
-      await loadProfile(data.session);
-      if (active) setLoading(false);
+      try {
+        const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
+          setTimeout(() => resolve({ data: { session: null } }), 4000)
+        );
+        const { data } = await Promise.race([
+          supabase.auth.getSession(),
+          timeoutPromise,
+        ]);
+        if (!active) return;
+        setSession(data.session);
+        if (data.session) {
+          await loadProfile(data.session);
+        }
+      } catch (err) {
+        console.error("[useAdminAuth] init error:", err);
+      } finally {
+        if (active) setLoading(false);
+      }
     };
 
     init();
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-      loadProfile(newSession);
+      setTimeout(async () => {
+        if (!active) return;
+        setSession(newSession);
+        await loadProfile(newSession);
+      }, 0);
     });
 
     return () => {

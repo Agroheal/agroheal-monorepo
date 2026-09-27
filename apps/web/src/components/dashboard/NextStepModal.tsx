@@ -80,10 +80,10 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
       targetRoute: "/subscribe",
     },
     step2: {
-      title: "Secure Your First Mushroom Farm Slot",
+      title: "Secure Your Starter Commercial Farm Slot",
       subtitle:
-        "Activate biological production in our climate-controlled grow-houses with automated commercial management.",
-      priceText: "₦5,000 Per Slot · Mushroom Village Flagship",
+        "Your starter package is ₦10,000 (₦5,000 biological farm slot + ₦5,000 cluster setup & onboarding). This establishes your first 2 verified biological oyster mushroom fruiting bags managed within our community cluster farms. Subsequent slots scale at ₦5,000 each with zero recurring monthly fees.",
+      priceText: "₦10,000 Complete Starter Package · Mushroom Village Flagship",
       badgeText: "Milestone 2 of 3 · Production",
       benefits: [
         "2 physical fruiting bags allocated directly to your member account",
@@ -91,8 +91,8 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
         "Up to 40% projected quarterly community harvest dividends from Cycle 2 onward",
         "Secures your locked placement in the 5×7 Community Matrix",
       ],
-      buttonText: "Secure Farm Slot (₦5,000)",
-      targetRoute: "/dashboard/farm-operations/buy-slots",
+      buttonText: "Secure Complete Starter (₦10,000)",
+      targetRoute: "/dashboard/checkout?category=Mushroom%20Village&slots=1",
     },
     step3: {
       title: "Unlock 7-Level Matrix Harvest Dividends",
@@ -224,7 +224,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
       }
       handleDismiss();
     } else if (currentStep === 2) {
-      navigate(config.steps.step2.targetRoute || "/dashboard/farm-operations/buy-slots");
+      navigate(config.steps.step2.targetRoute || "/dashboard/checkout?category=Mushroom%20Village&slots=1");
       handleDismiss();
     } else if (currentStep === 3) {
       // Step 3: Copy referral link
@@ -409,7 +409,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                 <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
                 <span>
                   {currentStep === 1 && bundleSlot
-                    ? `Green Card (${formatNaira(activeFee)}) + 1 Farm Slot (₦5,000) Bundled at Checkout`
+                    ? `Green Card (${formatNaira(activeFee)}) + Starter Slot (₦10,000) Bundled at Checkout`
                     : currentStep === 1
                     ? `${formatNaira(activeFee)} One-Time Lifetime Membership${isLegacy ? " (Pioneer Rate)" : ""}`
                     : "priceText" in currentData
@@ -476,7 +476,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                   <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200/70 text-xs text-emerald-950 font-medium leading-snug">
                     <Sprout className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                     <span>
-                      <strong>Milestone 2 Bundled:</strong> 1 Mushroom Farm Slot with 2 fruiting bags, cycle doubling &amp; quarterly harvest dividends!
+                      <strong>Milestone 2 Bundled:</strong> Complete Starter Package (₦10,000) with 2 fruiting bags, Mushroom Power 100g, cycle doubling &amp; quarterly harvest dividends!
                     </span>
                   </div>
                 )}

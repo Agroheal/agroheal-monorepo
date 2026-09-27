@@ -26,6 +26,8 @@ const Signup = () => {
   const [phone, setPhone] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
+  const [isEmailConfirmationPending, setIsEmailConfirmationPending] = useState<boolean>(false);
+  const [resending, setResending] = useState<boolean>(false);
   const DEFAULT_SPONSOR_CODE = "356FV1"; // Adetola Esther (Co-founder Root Sponsor)
   const queryRef = searchParams.get("ref");
   const storedRef = typeof window !== "undefined" ? localStorage.getItem("agroheal_ref") : null;
@@ -94,6 +96,7 @@ const Signup = () => {
       email: formattedEmail,
       password,
       options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
         data: {
           full_name: cleanedName,
           phone: formattedPhone,
@@ -140,19 +143,64 @@ const Signup = () => {
 
     setLoading(false);
 
-    showToast({
-      variant: "success",
-      title: "Signup successful!",
-      description: "Your account has been created.",
-    });
+    if (data.session) {
+      // Direct session granted (email confirmation disabled or auto-confirmed)
+      showToast({
+        variant: "success",
+        title: "Signup successful!",
+        description: "Your account has been created. Redirecting...",
+      });
 
-    Sentry.metrics.count("signup_completed", 1);
-    if (typeof window !== "undefined") {
-      localStorage.removeItem("agroheal_ref");
+      Sentry.metrics.count("signup_completed", 1);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("agroheal_ref");
+      }
+      setTimeout(() => {
+        navigate(redirectUrl);
+      }, 1000);
+    } else {
+      // Email confirmation is required by Supabase Auth
+      setIsEmailConfirmationPending(true);
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("agroheal_ref");
+      }
+      showToast({
+        variant: "success",
+        title: "Account created!",
+        description: "Please check your email to verify your account.",
+      });
     }
-    setTimeout(() => {
-      navigate(redirectUrl);
-    }, 1000);
+  };
+
+  const handleResendVerification = async () => {
+    if (!email) return;
+    setResending(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: cleanEmail(email),
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+      if (error) {
+        showToast({
+          variant: "error",
+          title: "Resend failed",
+          description: error.message || "Could not resend verification email.",
+        });
+      } else {
+        showToast({
+          variant: "success",
+          title: "Verification email resent!",
+          description: `A new link has been sent to ${email}.`,
+        });
+      }
+    } catch (err) {
+      console.error("Resend error:", err);
+    } finally {
+      setResending(false);
+    }
   };
 
   const fadeUp = (delay = 0) => ({
@@ -180,18 +228,59 @@ const Signup = () => {
         </motion.div>
 
         <div className="w-full max-w-[440px]">
-          {/* Heading */}
-          <motion.div {...fadeUp(0.1)} className="mb-4">
-            <h1
-              className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1"
-              style={{ fontFamily: "'Georgia', serif" }}
-            >
-              Create your Account
-            </h1>
-            <p className="text-gray-500 text-xs sm:text-sm">
-              Start your organic farming journey today
-            </p>
-          </motion.div>
+          {isEmailConfirmationPending ? (
+            <motion.div {...fadeUp(0.1)} className="text-center py-6 px-5 bg-white border border-gray-100 shadow-sm rounded-2xl">
+              <div className="w-14 h-14 bg-green-100 text-green-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Mail className="w-7 h-7" />
+              </div>
+              <h1
+                className="text-2xl font-bold text-gray-900 mb-2"
+                style={{ fontFamily: "'Georgia', serif" }}
+              >
+                Verify your Email
+              </h1>
+              <p className="text-gray-600 text-sm mb-4 leading-relaxed">
+                We've sent a verification link to{" "}
+                <span className="font-semibold text-gray-900">{email}</span>.
+              </p>
+              <div className="p-3.5 bg-green-50/80 border border-green-200/60 rounded-xl text-left text-xs text-green-900 mb-6 space-y-1.5">
+                <p className="font-semibold text-green-950">Next steps:</p>
+                <p>1. Open your inbox (check Spam or Junk if not found).</p>
+                <p>2. Click the verification link inside the email.</p>
+                <p>3. Return here and sign in to access your dashboard.</p>
+              </div>
+
+              <div className="space-y-3">
+                <Button
+                  onClick={handleResendVerification}
+                  variant="outline"
+                  className="w-full h-11 border-green-700 text-green-700 hover:bg-green-50 rounded-xl font-medium"
+                  disabled={resending}
+                >
+                  {resending ? "Sending..." : "Resend Verification Email"}
+                </Button>
+                <Link
+                  to={redirectUrl !== "/dashboard" ? `/signin?redirect=${encodeURIComponent(redirectUrl)}` : "/signin"}
+                  className="block w-full py-2.5 bg-green-800 hover:bg-green-900 text-white font-medium text-sm rounded-xl text-center transition-colors"
+                >
+                  Proceed to Sign In
+                </Link>
+              </div>
+            </motion.div>
+          ) : (
+            <>
+              {/* Heading */}
+              <motion.div {...fadeUp(0.1)} className="mb-4">
+                <h1
+                  className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1"
+                  style={{ fontFamily: "'Georgia', serif" }}
+                >
+                  Create your Account
+                </h1>
+                <p className="text-gray-500 text-xs sm:text-sm">
+                  Start your organic farming journey today
+                </p>
+              </motion.div>
 
           <motion.form
             {...fadeUp(0.2)}
@@ -379,6 +468,8 @@ const Signup = () => {
               ← Back to home
             </Link>
           </div>
+            </>
+          )}
         </div>
       </div>
 
