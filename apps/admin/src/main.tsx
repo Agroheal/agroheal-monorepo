@@ -1,7 +1,14 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { AutoUpdateWatcher } from "@/components/common/AutoUpdateWatcher";
 import "./index.css";
+
+// Auto-recover from stale chunks after new deployments
+window.addEventListener("vite:preloadError", (event) => {
+  console.warn("[AgroHeal Admin] Preload error detected. Reloading page to fetch latest deployment...", event);
+  window.location.reload();
+});
 
 import AdminLayout from "@/components/layout/AdminLayout";
 import AdminProtectedRoute from "@/routes/AdminProtectedRoute";
@@ -39,6 +46,7 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
+    <AutoUpdateWatcher />
     <RouterProvider router={router} />
   </StrictMode>,
 );

@@ -30,3 +30,7 @@ export interface PaymentLog {
   status: string;
   type: "slot_subscription" | "other_payment";
 }
+
+declare global {
+  const __APP_BUILD_TIME__: string;
+}
