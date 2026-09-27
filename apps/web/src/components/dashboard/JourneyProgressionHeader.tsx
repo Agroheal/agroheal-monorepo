@@ -132,16 +132,16 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
             <div className="p-3.5 rounded-xl bg-background border border-border/50">
               <div className="font-semibold text-foreground mb-1 flex items-center gap-1.5">
                 <Users className="w-4 h-4 text-emerald-600" />
-                <span>3. Build &amp; Compound (5 Directs)</span>
+                <span>3. Build &amp; Compound (5 Friends Goal)</span>
               </div>
               <p className="text-[11px] leading-relaxed mb-2">
-                Sponsoring direct members unlocks deep matrix levels under the Directs + 1 rule (5 directs unlocks down to Level 6 and full matrix dividends).
+                Invite friends to farm together! Earn ₦1,000 cash for each friend who joins, plus 5×7 sales commissions as your community grows down 6 levels.
               </p>
               <Link
                 to="/dashboard/my-network"
                 className="text-primary hover:underline text-[11px] font-semibold inline-flex items-center gap-1"
               >
-                5×7 Tree &amp; Matrix Rules <ArrowRight className="w-3 h-3" />
+                5×7 Community Network <ArrowRight className="w-3 h-3" />
               </Link>
             </div>
           </div>
@@ -302,7 +302,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
             <ul className="space-y-1.5 text-xs mb-4">
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>₦5,000 Group Farm Slot (Commercial Grow)</span>
+                <span>₦5,000 Group Farm Slot</span>
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
@@ -314,7 +314,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               </li>
               <li className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
                 <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground shrink-0" />
-                <span>Priority Group Farm dividends &amp; 5×7 placement</span>
+                <span>Group Farm dividends &amp; 5×7 sale commissions</span>
               </li>
             </ul>
           </div>
@@ -395,7 +395,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                   Build &amp; Compound
                 </h3>
                 <span className="text-xs font-semibold text-muted-foreground">
-                  5 Direct Partners Milestone
+                  Invite 5 Friends Goal
                 </span>
               </div>
             </div>
@@ -403,19 +403,19 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
             <ul className="space-y-1.5 text-xs mb-4">
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span><strong>Directs + 1 Rule:</strong> 1 direct unlocks Level 2</span>
+                <span><strong>Instant Cash:</strong> Get ₦1,000 every time a friend joins</span>
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>5 directs unlocks Level 6 matrix depth</span>
+                <span><strong>5×7 Commissions:</strong> Earn each time your team buys slots</span>
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>Earn ₦1,000 GC bounty + 10% slot commissions</span>
+                <span><strong>5 Friends Goal:</strong> Unlocks team earnings down 6 levels</span>
               </li>
               <li className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
                 <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground shrink-0" />
-                <span>Compounding quarterly community harvest dividends</span>
+                <span>Growing quarterly harvest profits every season</span>
               </li>
             </ul>
           </div>

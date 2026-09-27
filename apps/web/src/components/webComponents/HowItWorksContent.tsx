@@ -83,6 +83,7 @@ export default function HowItWorksContent({
       highlights: [
         "Cycle 1 Capacity Doubling (2 ➔ 4 Bags in 3 Months)",
         "Up to 40% Projected Quarterly Harvest Returns (Cycle 2 Onward)",
+        "5×7 Team Sale Commissions & Instant Direct Rewards",
         "Established Institutional & Supermarket Off-Takers",
       ],
       accent: "border-emerald-600/30 bg-white",

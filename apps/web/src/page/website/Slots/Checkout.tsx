@@ -77,8 +77,10 @@ const Checkout = () => {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const isPhoneValid = normalizePhoneNumber(formData.phone).length >= 10;
   const isFormValid = Boolean(
     (cleanEmail(formData.email) || currentUser?.email) &&
+    isPhoneValid &&
     category
   );
 
@@ -164,6 +166,9 @@ const Checkout = () => {
         }
 
         const resolvedPhone = profile?.phone || (user.user_metadata?.phone as string) || "";
+        if (!resolvedPhone || normalizePhoneNumber(resolvedPhone).length < 10) {
+          setIsEditingContact(true);
+        }
 
         setFormData({
           firstName: extractedFirstName,
@@ -252,6 +257,16 @@ const Checkout = () => {
     const cleanLastName = cleanName(formData.lastName);
     const normalizedEmail = cleanEmail(formData.email);
     const normalizedPhone = normalizePhoneNumber(formData.phone);
+
+    if (!normalizedPhone || normalizedPhone.length < 10) {
+      toast({
+        title: "Valid phone number required",
+        description: "Please provide a valid contact phone number (at least 10 digits) before making payment.",
+        variant: "destructive",
+      });
+      setIsEditingContact(true);
+      return null;
+    }
 
     const { data, error } = await supabase
       .from("checkout")
@@ -1019,10 +1034,26 @@ const Checkout = () => {
                         </button>
                       </div>
 
-                      {formData.phone && !isEditingContact && (
+                      {formData.phone && isPhoneValid && !isEditingContact && (
                         <div className="mt-3 pt-3 border-t border-emerald-100 flex items-center justify-between text-xs text-gray-600">
                           <span>Contact Phone: <strong className="font-mono text-gray-900">{formData.phone}</strong></span>
-                          <span className="text-[10px] text-emerald-700">Receipt SMS / Call</span>
+                          <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded">Compulsory &amp; Verified</span>
+                        </div>
+                      )}
+
+                      {!isPhoneValid && !isEditingContact && (
+                        <div className="mt-3 pt-3 border-t border-amber-200/90 flex items-center justify-between text-xs text-amber-800">
+                          <span className="flex items-center gap-1.5 font-medium">
+                            <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                            Contact phone number is missing (Compulsory)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingContact(true)}
+                            className="text-xs font-bold text-emerald-800 underline underline-offset-2 cursor-pointer"
+                          >
+                            Add Phone Now
+                          </button>
                         </div>
                       )}
 
@@ -1053,7 +1084,13 @@ const Checkout = () => {
                             </div>
                           </div>
                           <div className="space-y-1.5">
-                            <Label htmlFor="phone" className="text-xs">Phone Number (optional)</Label>
+                            <div className="flex items-center justify-between">
+                              <Label htmlFor="phone" className="text-xs flex items-center gap-1 font-semibold text-gray-800">
+                                <span>Contact Phone Number</span>
+                                <span className="text-rose-500 font-bold">*</span>
+                              </Label>
+                              <span className="text-[10px] text-emerald-700 font-medium">Compulsory (min 10 digits)</span>
+                            </div>
                             <Input
                               id="phone"
                               name="phone"
@@ -1061,8 +1098,12 @@ const Checkout = () => {
                               placeholder="e.g. 08012345678"
                               value={formData.phone}
                               onChange={handleInputChange}
-                              className="h-9 text-xs bg-white"
+                              className={`h-9 text-xs bg-white ${!isPhoneValid && formData.phone ? "border-amber-400" : ""}`}
+                              required
                             />
+                            {!isPhoneValid && formData.phone && (
+                              <p className="text-[11px] text-amber-700">Phone number must be at least 10 digits.</p>
+                            )}
                           </div>
                         </div>
                       )}
@@ -1491,6 +1532,15 @@ const Checkout = () => {
                 </div>
 
                 <div className="mt-8 space-y-3">
+                  {!isPhoneValid && (
+                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/90 text-amber-900 text-xs flex items-center gap-2.5 shadow-2xs">
+                      <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+                      <span>
+                        Please provide your valid contact phone number (at least 10 digits) in the contact section above to enable payment.
+                      </span>
+                    </div>
+                  )}
+
                   {!category && (
                     <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/90 text-amber-900 text-xs flex items-center gap-2.5 shadow-2xs">
                       <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
@@ -1509,7 +1559,9 @@ const Checkout = () => {
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                           Processing Flutterwave...
                         </span>
-                      ) : !isFormValid ? (
+                      ) : !isPhoneValid ? (
+                        "Provide Contact Phone to Pay"
+                      ) : !category ? (
                         "Select Project Category to Pay"
                       ) : (
                         `Pay ₦${totalPrice.toLocaleString()} with Flutterwave`

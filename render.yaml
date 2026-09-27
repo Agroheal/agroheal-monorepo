@@ -3,26 +3,15 @@ services:
   - type: web
     name: agroheal-frontend
     runtime: static
-    buildCommand: npm install && npm run web:build
+    buildCommand: yarn install && yarn web:build
     staticPublishPath: ./apps/web/dist
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
-    headers:
-      - path: /*.html
-        name: Cache-Control
-        value: no-cache, no-store, must-revalidate
-      - path: /index.html
-        name: Cache-Control
-        value: no-cache, no-store, must-revalidate
-      - path: /version.json
-        name: Cache-Control
-        value: no-cache, no-store, must-revalidate
-      - path: /assets/*
-        name: Cache-Control
-        value: public, max-age=31536000, immutable
     envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
       - key: VITE_SUPABASE_URL
         sync: false
       - key: VITE_SUPABASE_ANON_KEY
@@ -38,30 +27,18 @@ services:
   - type: web
     name: agroheal-admin
     runtime: static
-    buildCommand: npm install && npm run admin:build
+    buildCommand: yarn install && yarn admin:build
     staticPublishPath: ./apps/admin/dist
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
-    headers:
-      - path: /*.html
-        name: Cache-Control
-        value: no-cache, no-store, must-revalidate
-      - path: /index.html
-        name: Cache-Control
-        value: no-cache, no-store, must-revalidate
-      - path: /version.json
-        name: Cache-Control
-        value: no-cache, no-store, must-revalidate
-      - path: /assets/*
-        name: Cache-Control
-        value: public, max-age=31536000, immutable
     envVars:
+      - key: NODE_VERSION
+        value: 20.18.0
       - key: VITE_SUPABASE_URL
         sync: false
       - key: VITE_SUPABASE_ANON_KEY
         sync: false
       - key: VITE_API_URL
         sync: false
-
