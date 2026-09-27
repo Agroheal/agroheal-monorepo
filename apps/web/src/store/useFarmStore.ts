@@ -21,6 +21,7 @@ export interface FarmClusterItem {
   expenses: Array<{ date: string; description: string; amount: number }>;
   sales: Array<{ date: string; produce: string; quantity: string; amount: number }>;
   source: "subscription" | "farm_record" | "other_payment";
+  is_legacy?: boolean;
 }
 
 export interface FarmState {
@@ -73,13 +74,13 @@ export const useFarmStore = create<FarmState>((set, get) => ({
         userEmail
           ? supabase
               .from("farm_records")
-              .select("id, farm_id, member_name, member_email, phone_number, number_of_slots, total_amount_paid, payment_status, created_at, user_id")
-              .ilike("member_email", userEmail.trim())
+              .select("id, farm_id, name, email, phone, farm_slots, created_at, is_legacy, project_category")
+              .ilike("email", userEmail.trim())
           : Promise.resolve({ data: [] }),
         supabase
           .from("farm_records")
-          .select("id, farm_id, member_name, member_email, phone_number, number_of_slots, total_amount_paid, payment_status, created_at, user_id")
-          .eq("user_id", userId),
+          .select("id, farm_id, name, email, phone, farm_slots, created_at, is_legacy, project_category")
+          .eq("email", userEmail ? userEmail.trim() : ""),
         supabase
           .from("other_payments")
           .select("id, user_id, amount, status, category, metadata, created_at")
@@ -195,6 +196,7 @@ export const useFarmStore = create<FarmState>((set, get) => ({
           expenses: farmExpenses,
           sales: farmSales,
           source: "subscription",
+          is_legacy: Boolean(s.is_legacy),
         });
       });
 
@@ -204,7 +206,7 @@ export const useFarmStore = create<FarmState>((set, get) => ({
         const farmName = farm ? farm.name : "Assigned Farm Cluster";
         const farmId = fr.farm_id || farm?.id || fr.id;
         const category = farm?.project_category || "Mushroom Village";
-        const slotsCount = Number(fr.number_of_slots) || 0;
+        const slotsCount = Number(fr.farm_slots ?? fr.number_of_slots ?? 0);
         const bagsCount = slotsCount * 2;
 
         // Check if this record is already accounted for in slot_subscriptions
@@ -242,6 +244,7 @@ export const useFarmStore = create<FarmState>((set, get) => ({
             expenses: farmExpenses,
             sales: farmSales,
             source: "farm_record",
+            is_legacy: Boolean(fr.is_legacy),
           });
         }
       });

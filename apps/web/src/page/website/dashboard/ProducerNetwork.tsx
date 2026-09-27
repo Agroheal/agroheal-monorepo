@@ -487,33 +487,26 @@ export const ProducerNetwork: React.FC = () => {
                       <th className="py-3.5 px-4">Commission %</th>
                       <th className="py-3.5 px-4">Payout Per ₦5k Product/Slot</th>
                       <th className="py-3.5 px-4">Max Capacity (5^L)</th>
-                      <th className="py-3.5 px-4">Directs to Unlock</th>
+                      <th className="py-3.5 px-4">Qualification</th>
                       <th className="py-3.5 px-4">Your Status</th>
                       <th className="py-3.5 px-4 rounded-tr-xl">Potential Earnings</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 text-gray-700">
                     {MATRIX_COMMISSIONS.map((tier) => {
-                      const isTierUnlocked = unlockedLevel >= tier.level;
                       return (
                         <tr key={tier.level} className="hover:bg-emerald-50/40 transition-colors">
                           <td className="py-3.5 px-4 font-bold text-gray-900">Level {tier.level}</td>
                           <td className="py-3.5 px-4 font-semibold text-emerald-800">{tier.percentage.toFixed(1)}%</td>
                           <td className="py-3.5 px-4 font-bold text-gray-900">₦{tier.amount.toLocaleString()}</td>
                           <td className="py-3.5 px-4 font-mono">{tier.maxMembers.toLocaleString()} members</td>
-                          <td className="py-3.5 px-4 font-semibold text-gray-800">
-                            {tier.requiredDirects} Directs
+                          <td className="py-3.5 px-4 font-semibold text-emerald-700">
+                            Active Member
                           </td>
                           <td className="py-3.5 px-4">
-                            {isTierUnlocked ? (
-                              <span className="bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full text-[10px] inline-flex items-center gap-1">
-                                🔓 Unlocked
-                              </span>
-                            ) : (
-                              <span className="bg-amber-100 text-amber-900 font-medium px-2.5 py-0.5 rounded-full text-[10px] inline-flex items-center gap-1">
-                                🔒 Locked ({Math.max(0, tier.requiredDirects - directReferralsCount)} needed)
-                              </span>
-                            )}
+                            <span className="bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full text-[10px] inline-flex items-center gap-1">
+                              🔓 Unlocked (Level {tier.level})
+                            </span>
                           </td>
                           <td className="py-3.5 px-4 font-black text-emerald-700">
                             ₦{tier.potential.toLocaleString("en-NG", { minimumFractionDigits: 2 })}

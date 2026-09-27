@@ -135,7 +135,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                 <span>3. Build &amp; Compound (5 Friends Goal)</span>
               </div>
               <p className="text-[11px] leading-relaxed mb-2">
-                Invite friends to farm together! Earn ₦1,000 cash for each friend who joins, plus 5×7 sales commissions as your community grows down 6 levels.
+                Share with friends! Earn ₦1,000 cash for each friend who joins, earn 5×7 bonuses when your community gets farm slots, and connect 5 friends to unlock bank payouts.
               </p>
               <Link
                 to="/dashboard/my-network"
@@ -403,19 +403,19 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
             <ul className="space-y-1.5 text-xs mb-4">
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span><strong>Instant Cash:</strong> Get ₦1,000 every time a friend joins</span>
+                <span><strong>Instant ₦1,000 Cash:</strong> You get ₦1,000 every time a friend signs up</span>
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span><strong>5×7 Commissions:</strong> Earn each time your team buys slots</span>
+                <span><strong>5×7 Team Commissions:</strong> Earn cash bonuses whenever anyone in your community gets slots</span>
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span><strong>5 Friends Goal:</strong> Unlocks team earnings down 6 levels</span>
+                <span><strong>5 Friends Goal:</strong> Reach 5 friends to qualify for bank withdrawals</span>
               </li>
               <li className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
                 <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground shrink-0" />
-                <span>Growing quarterly harvest profits every season</span>
+                <span>Harvest payouts shared every 3 months</span>
               </li>
             </ul>
           </div>

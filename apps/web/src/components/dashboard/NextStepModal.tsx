@@ -95,16 +95,16 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
       targetRoute: "/dashboard/checkout?category=Mushroom%20Village&slots=1",
     },
     step3: {
-      title: "Unlock 7-Level Matrix Harvest Dividends",
+      title: "Expand Your 5×7 Community Network",
       subtitle:
-        "Sponsor direct partners to expand your payout depth (Directs + 1 Rule) and maximize community spillover.",
+        "Invite partners to farm and earn together across all 7 levels of community spillover.",
       targetCount: 5,
       badgeText: "Milestone 3 of 3 · Expansion",
       benefits: [
-        "Directs + 1 Rule: 1 Direct Partner immediately unlocks down to Level 2 (30 network positions)",
-        "Each additional Direct Partner unlocks +1 Matrix Level (6 Directs unlocks all 7 levels up to 97,655 positions)",
-        "5 Direct Partners unlocks Level 6 and qualifies you for Matrix Bank Withdrawals",
-        "Earn ₦1,000 Green Card bounty + 10% (₦500) per slot leased by direct partners",
+        "Earn ₦1,000 instant direct sponsor bounty for every member you welcome",
+        "All 7 levels of 5×7 sales commissions are permanently unlocked for active members",
+        "Earn 10% (₦500) cash reward on every practical farm slot secured by your direct partners",
+        "Sponsor 5 active partners to qualify for Matrix Community Bank Withdrawals",
       ],
       buttonText: "Copy Referral Link & Share",
       targetRoute: "/dashboard/my-network",

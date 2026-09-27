@@ -32,6 +32,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import { exportToExcel } from "@shared/excelExport";
+import { isLegacyMember } from "@shared/businessRules";
 import { AgrohealImages } from "@/constant/Image";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,16 +47,17 @@ interface LedgerItem {
   description: string;
   status: "COMPLETED" | "PENDING" | "FAILED";
   reference: string;
+  is_legacy?: boolean;
 }
 
 const MATRIX_TIERS = [
-  { level: 1, members: 5, percentage: 5.0, rewardPerSlot: 250, totalCeiling: 1250, requiredDirects: 1 },
-  { level: 2, members: 25, percentage: 3.5, rewardPerSlot: 175, totalCeiling: 4375, requiredDirects: 2 },
-  { level: 3, members: 125, percentage: 3.0, rewardPerSlot: 150, totalCeiling: 18750, requiredDirects: 3 },
-  { level: 4, members: 625, percentage: 2.5, rewardPerSlot: 125, totalCeiling: 78125, requiredDirects: 4 },
-  { level: 5, members: 3125, percentage: 2.5, rewardPerSlot: 125, totalCeiling: 390625, requiredDirects: 5 },
-  { level: 6, members: 15625, percentage: 2.5, rewardPerSlot: 125, totalCeiling: 1953125, requiredDirects: 5 },
-  { level: 7, members: 78125, percentage: 2.5, rewardPerSlot: 125, totalCeiling: 9765625, requiredDirects: 5 },
+  { level: 1, members: 5, percentage: 5.0, rewardPerSlot: 250, totalCeiling: 1250, requiredDirects: 0 },
+  { level: 2, members: 25, percentage: 3.5, rewardPerSlot: 175, totalCeiling: 4375, requiredDirects: 0 },
+  { level: 3, members: 125, percentage: 3.0, rewardPerSlot: 150, totalCeiling: 18750, requiredDirects: 0 },
+  { level: 4, members: 625, percentage: 2.5, rewardPerSlot: 125, totalCeiling: 78125, requiredDirects: 0 },
+  { level: 5, members: 3125, percentage: 2.5, rewardPerSlot: 125, totalCeiling: 390625, requiredDirects: 0 },
+  { level: 6, members: 15625, percentage: 2.5, rewardPerSlot: 125, totalCeiling: 1953125, requiredDirects: 0 },
+  { level: 7, members: 78125, percentage: 2.5, rewardPerSlot: 125, totalCeiling: 9765625, requiredDirects: 0 },
 ];
 
 export default function TransactionLedger() {
@@ -68,7 +70,10 @@ export default function TransactionLedger() {
     bank_account_number?: string;
     bank_account_name?: string;
     bank_code?: string;
+    is_legacy?: boolean;
+    created_at?: string;
   } | null>(null);
+  const [legacyFilter, setLegacyFilter] = useState<"ALL" | "RECENT" | "LEGACY">("ALL");
   const [directReferralEarnings, setDirectReferralEarnings] = useState<number>(0);
   const [matrixEarnings, setMatrixEarnings] = useState<number>(0);
   const [walletBalance, setWalletBalance] = useState<number>(0);
@@ -178,7 +183,7 @@ export default function TransactionLedger() {
       ] = await Promise.all([
         supabase
           .from("profiles")
-          .select("member_id, full_name, email, referral_earnings, slot_bonus, wallet_balance, total_referrals, created_at, bank_name, bank_account_number, bank_account_name, bank_code")
+          .select("member_id, full_name, email, referral_earnings, slot_bonus, wallet_balance, total_referrals, created_at, bank_name, bank_account_number, bank_account_name, bank_code, is_legacy")
           .eq("id", user.id)
           .maybeSingle(),
         supabase
@@ -191,13 +196,13 @@ export default function TransactionLedger() {
           .eq("user_id", user.id),
         supabase
           .from("other_payments")
-          .select("id, amount, payment_type, created_at, status, reference")
+          .select("id, amount, payment_type, created_at, status, reference, is_legacy")
           .eq("user_id", user.id),
         supabase
           .from("checkout")
-          .select("id, amount, created_at, payment_reference, status")
+          .select("id, amount, created_at, payment_reference, status, is_legacy")
           .eq("user_id", user.id)
-          .limit(20),
+          .limit(50),
         supabase
           .from("wallet_ledger")
           .select("*")
@@ -213,6 +218,8 @@ export default function TransactionLedger() {
           bank_account_number: profile.bank_account_number,
           bank_account_name: profile.bank_account_name,
           bank_code: profile.bank_code,
+          is_legacy: Boolean(profile.is_legacy),
+          created_at: profile.created_at,
         });
       }
       setMemberId(formatAgcId(profile?.member_id));
@@ -269,6 +276,7 @@ export default function TransactionLedger() {
             description: entry.description || "Wallet Transaction",
             status: entry.status === "FAILED" ? "FAILED" : entry.status === "PENDING" ? "PENDING" : "COMPLETED",
             reference: entry.reference_id || entry.id || "N/A",
+            is_legacy: Boolean(entry.is_legacy || isLegacyMember(entry.created_at)),
           });
         });
       }
@@ -284,6 +292,7 @@ export default function TransactionLedger() {
           description: `Direct Referral Bonuses (${refCount} active referrals)`,
           status: "COMPLETED",
           reference: `DIR-REF-${refCount}`,
+          is_legacy: Boolean(profile?.is_legacy || isLegacyMember(profile?.created_at)),
         });
       }
 
@@ -304,6 +313,7 @@ export default function TransactionLedger() {
             : `AgroHeal Green Card Activation (${s.plan || "Annual"})`,
           status: isSubCompleted ? "COMPLETED" : isSubFailed ? "FAILED" : "PENDING",
           reference: `SUB-${(s.id || idx).toString().slice(0, 8)}`,
+          is_legacy: Boolean(isLegacyMember(s.started_at)),
         });
       });
 
@@ -321,6 +331,7 @@ export default function TransactionLedger() {
           description: `${p.payment_type.replace(/_/g, " ").toUpperCase()} Contribution`,
           status: isPCompleted ? "COMPLETED" : isPFailed ? "FAILED" : "PENDING",
           reference: p.reference || `PAY-${p.id.slice(0, 8)}`,
+          is_legacy: Boolean(p.is_legacy || isLegacyMember(p.created_at)),
         });
       });
 
@@ -339,6 +350,7 @@ export default function TransactionLedger() {
             description: "Online Platform Payment",
             status: isCCompleted ? "COMPLETED" : isCFailed ? "FAILED" : "PENDING",
             reference: c.payment_reference || `CHK-${c.id.slice(0, 8)}`,
+            is_legacy: Boolean(c.is_legacy || isLegacyMember(c.created_at)),
           });
         }
       });
@@ -357,6 +369,7 @@ export default function TransactionLedger() {
             description: entry.description || "Core Driver Growth Pool Share",
             status: entry.status === "FAILED" ? "FAILED" : entry.status === "PENDING" ? "PENDING" : "COMPLETED",
             reference: ref,
+            is_legacy: Boolean(entry.is_legacy || isLegacyMember(entry.created_at)),
           });
         }
       });
@@ -498,7 +511,13 @@ export default function TransactionLedger() {
     }
   };
 
+  const isLegacyUser = Boolean(userProfile?.is_legacy || isLegacyMember(userProfile?.created_at));
+
   const filteredTransactions = transactions.filter((t) => {
+    if (isLegacyUser) {
+      if (legacyFilter === "LEGACY" && !t.is_legacy) return false;
+      if (legacyFilter === "RECENT" && t.is_legacy) return false;
+    }
     if (filterType === "PENDING") {
       if (t.status !== "PENDING") return false;
     } else if (filterType !== "ALL" && t.category !== filterType && t.type !== filterType) {
@@ -840,7 +859,6 @@ export default function TransactionLedger() {
                 {/* 7 Level Tabs */}
                 <div className="grid grid-cols-7 gap-1">
                   {MATRIX_TIERS.map((tier) => {
-                    const isUnlocked = directReferralsCount >= tier.requiredDirects;
                     const isSelected = selectedMatrixLevel === tier.level;
                     return (
                       <button
@@ -850,9 +868,7 @@ export default function TransactionLedger() {
                         className={`py-0.5 text-[10px] font-bold rounded border transition-all text-center ${
                           isSelected
                             ? "bg-emerald-800 text-white border-emerald-900 shadow-2xs"
-                            : isUnlocked
-                            ? "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
-                            : "bg-gray-50 text-gray-400 border-gray-200"
+                            : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
                         }`}
                       >
                         L{tier.level}
@@ -864,8 +880,6 @@ export default function TransactionLedger() {
                 {/* Active Tier mini line */}
                 {(() => {
                   const tier = MATRIX_TIERS.find((t) => t.level === selectedMatrixLevel) || MATRIX_TIERS[0];
-                  const isUnlocked = directReferralsCount >= tier.requiredDirects;
-                  const directsToUnlock = Math.max(0, tier.requiredDirects - directReferralsCount);
 
                   return (
                     <div className="p-2 rounded-xl bg-white border border-gray-200/70 text-[11px] flex items-center justify-between gap-2">
@@ -878,13 +892,9 @@ export default function TransactionLedger() {
                         </span>
                       </div>
                       <span
-                        className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                          isUnlocked
-                            ? "bg-emerald-100 text-emerald-800"
-                            : "bg-amber-100 text-amber-800"
-                        }`}
+                        className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800"
                       >
-                        {isUnlocked ? "✓ Unlocked" : `Need ${directsToUnlock} more`}
+                        ✓ Unlocked
                       </span>
                     </div>
                   );
@@ -1085,6 +1095,47 @@ export default function TransactionLedger() {
                   <span>{transactions.filter((t) => t.status === "PENDING").length} Pending</span>
                 </button>
               )}
+
+              {isLegacyUser && (
+                <div className="inline-flex items-center gap-1 p-0.5 bg-amber-50/80 border border-amber-200 rounded-xl text-xs ml-0 sm:ml-2">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 px-1.5 hidden md:inline">
+                    Pioneer:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setLegacyFilter("ALL")}
+                    className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
+                      legacyFilter === "ALL"
+                        ? "bg-white text-emerald-950 shadow-2xs border border-amber-300"
+                        : "text-amber-800 hover:text-amber-950"
+                    }`}
+                  >
+                    All ({transactions.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLegacyFilter("RECENT")}
+                    className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
+                      legacyFilter === "RECENT"
+                        ? "bg-white text-emerald-950 shadow-2xs border border-amber-300"
+                        : "text-amber-800 hover:text-amber-950"
+                    }`}
+                  >
+                    New Platform
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLegacyFilter("LEGACY")}
+                    className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
+                      legacyFilter === "LEGACY"
+                        ? "bg-amber-600 text-white shadow-2xs"
+                        : "text-amber-800 hover:text-amber-950"
+                    }`}
+                  >
+                    Pioneer Only ({transactions.filter((t) => t.is_legacy).length})
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
@@ -1183,7 +1234,12 @@ export default function TransactionLedger() {
                         })}
                       </td>
                       <td className="py-4 px-5 font-medium text-gray-800 max-w-xs truncate">
-                        {t.description}
+                        <span>{t.description}</span>
+                        {t.is_legacy && (
+                          <span className="ml-1.5 inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                            Pioneer
+                          </span>
+                        )}
                       </td>
                       <td className="py-4 px-5 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold ${

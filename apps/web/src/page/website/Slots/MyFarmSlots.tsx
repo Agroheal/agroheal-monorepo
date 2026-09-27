@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sprout, DollarSign, TrendingUp, AlertCircle, Eye, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFarmStore } from '@/store/useFarmStore';
+import { isLegacyMember } from '@shared/businessRules';
 
 const MyFarmSlots: React.FC = () => {
   const { session, profile } = useAuth();
@@ -14,6 +15,7 @@ const MyFarmSlots: React.FC = () => {
   const navigate = useNavigate();
   const { clusters, loading, fetchFarmData } = useFarmStore();
   const [expandedCluster, setExpandedCluster] = useState<string | null>(null);
+  const [clusterFilter, setClusterFilter] = useState<"ALL" | "RECENT" | "LEGACY">("ALL");
 
   useEffect(() => {
     if (user?.id) {
@@ -22,6 +24,20 @@ const MyFarmSlots: React.FC = () => {
   }, [user?.id, user?.email, profile?.email, fetchFarmData]);
 
   const subscriptions = clusters;
+
+  const isLegacy = Boolean(
+    (profile as any)?.is_legacy ||
+    isLegacyMember((profile as any)?.created_at) ||
+    clusters.some((c) => c.is_legacy)
+  );
+
+  const filteredClusters = subscriptions.filter((c) => {
+    if (isLegacy) {
+      if (clusterFilter === "LEGACY" && !c.is_legacy) return false;
+      if (clusterFilter === "RECENT" && c.is_legacy) return false;
+    }
+    return true;
+  });
 
   const toggleCluster = (id: string) => {
     if (expandedCluster === id) {
@@ -114,35 +130,93 @@ const MyFarmSlots: React.FC = () => {
 
       {/* Subscribed Clusters List */}
       <div className="space-y-6">
-        <h2 className="text-xl font-semibold text-slate-800 border-b pb-2">Active Farm Clusters</h2>
-        
-        {subscriptions.map((sub) => (
-          <Card key={sub.id} className="overflow-hidden shadow-sm border-slate-200">
-            {/* Cluster Header */}
-            <div className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
-                  <Sprout className="w-6 h-6 text-emerald-600" />
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-2">
+          <h2 className="text-xl font-semibold text-slate-800">Active Farm Clusters</h2>
+
+          {isLegacy && (
+            <div className="inline-flex items-center gap-1 p-0.5 bg-amber-50/90 border border-amber-200 rounded-xl text-xs">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 px-2 hidden sm:inline">
+                Pioneer Filter:
+              </span>
+              <button
+                type="button"
+                onClick={() => setClusterFilter("ALL")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  clusterFilter === "ALL"
+                    ? "bg-white text-emerald-950 shadow-2xs border border-amber-300"
+                    : "text-amber-800 hover:text-amber-950"
+                }`}
+              >
+                All ({subscriptions.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setClusterFilter("RECENT")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  clusterFilter === "RECENT"
+                    ? "bg-white text-emerald-950 shadow-2xs border border-amber-300"
+                    : "text-amber-800 hover:text-amber-950"
+                }`}
+              >
+                Active Platform Slots ({subscriptions.filter((c) => !c.is_legacy).length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setClusterFilter("LEGACY")}
+                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  clusterFilter === "LEGACY"
+                    ? "bg-amber-600 text-white shadow-2xs"
+                    : "text-amber-800 hover:text-amber-950"
+                }`}
+              >
+                Pioneer Clusters ({subscriptions.filter((c) => c.is_legacy).length})
+              </button>
+            </div>
+          )}
+        </div>
+
+        {filteredClusters.length === 0 ? (
+          <div className="p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200">
+            No clusters found for the selected filter.
+          </div>
+        ) : (
+          filteredClusters.map((sub) => (
+            <Card key={sub.id} className="overflow-hidden shadow-sm border-slate-200">
+              {/* Cluster Header */}
+              <div className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
+                    <Sprout className="w-6 h-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    {(() => {
+                      const match = sub.farm_name.match(/^(.+?)\s*\[(.+?)\]$/);
+                      const displayName = match ? match[1] : sub.farm_name;
+                      const displayCategory = match ? match[2] : sub.category;
+                      return (
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="text-lg font-bold text-slate-900">{displayName}</h3>
+                          <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-xs">
+                            [{displayCategory}]
+                          </Badge>
+                          {sub.is_legacy && (
+                            <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 font-bold text-xs">
+                              Pioneer Cluster Record
+                            </Badge>
+                          )}
+                        </div>
+                      );
+                    })()}
+                    <p className="text-sm text-slate-500">
+                      Your Stake: <span className="font-semibold text-slate-700">{sub.slots_held} Slots</span> ({sub.fruiting_bags} bags)
+                    </p>
+                    {sub.is_legacy && (
+                      <p className="text-xs text-amber-700 mt-0.5">
+                        Historical cluster record allocated prior to the Sept 6, 2026 digital platform launch.
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  {(() => {
-                    const match = sub.farm_name.match(/^(.+?)\s*\[(.+?)\]$/);
-                    const displayName = match ? match[1] : sub.farm_name;
-                    const displayCategory = match ? match[2] : sub.category;
-                    return (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="text-lg font-bold text-slate-900">{displayName}</h3>
-                        <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-xs">
-                          [{displayCategory}]
-                        </Badge>
-                      </div>
-                    );
-                  })()}
-                  <p className="text-sm text-slate-500">
-                    Your Stake: <span className="font-semibold text-slate-700">{sub.slots_held} Slots</span> ({sub.fruiting_bags} bags)
-                  </p>
-                </div>
-              </div>
 
               {/* Financial Pill Summary */}
               <div className="flex bg-slate-50 rounded-lg border border-slate-200 p-2 text-sm divide-x divide-slate-200 shadow-inner w-full md:w-auto">
@@ -268,7 +342,7 @@ const MyFarmSlots: React.FC = () => {
               </div>
             )}
           </Card>
-        ))}
+        )))}
       </div>
     </div>
   );
