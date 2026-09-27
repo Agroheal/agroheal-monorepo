@@ -58,6 +58,8 @@ interface WithdrawalModalProps {
   savedBankName?: string;
   savedAccountNumber?: string;
   savedAccountName?: string;
+  isLegacy?: boolean;
+  hasPurchasedStarterPack?: boolean;
   onSaveBankToProfile?: (bankDetails: {
     bankName: string;
     accountNumber: string;
@@ -76,6 +78,8 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
   savedBankName,
   savedAccountNumber,
   savedAccountName,
+  isLegacy = false,
+  hasPurchasedStarterPack = false,
   onSaveBankToProfile,
   onSuccess,
 }) => {
@@ -128,6 +132,13 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
         `Withdrawal amount exceeds your available cleared ${
           walletType === "DIRECT_REFERRAL" ? "Direct Referral" : "Matrix Spillover"
         } balance of ₦${currentAvailableBalance.toLocaleString()}.`
+      );
+      return;
+    }
+
+    if (isLegacy && !hasPurchasedStarterPack) {
+      setErrorMsg(
+        "Mushroom Starter Pack Required: As a Pioneer / Legacy Member, please complete your one-time ₦5,000 Mushroom Starter Pack (100g) purchase to unlock external bank withdrawals."
       );
       return;
     }

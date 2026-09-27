@@ -71,6 +71,7 @@ export default function TransactionLedger() {
     bank_account_name?: string;
     bank_code?: string;
     is_legacy?: boolean;
+    has_purchased_starter_pack?: boolean;
     created_at?: string;
   } | null>(null);
   const [legacyFilter, setLegacyFilter] = useState<"ALL" | "RECENT" | "LEGACY">("ALL");
@@ -1376,6 +1377,8 @@ export default function TransactionLedger() {
           savedBankName={userProfile?.bank_name}
           savedAccountNumber={userProfile?.bank_account_number}
           savedAccountName={userProfile?.bank_account_name}
+          isLegacy={Boolean(userProfile?.is_legacy)}
+          hasPurchasedStarterPack={Boolean(userProfile?.has_purchased_starter_pack)}
           onSaveBankToProfile={handleSaveBankToProfile}
           onSuccess={() => {
             loadLedger();

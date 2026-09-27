@@ -4,15 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Sprout, Minus, Plus, ShoppingCart, Leaf, Wheat } from 'lucide-react';
+import { Sprout, Minus, Plus, ShoppingCart, Leaf, Wheat, Sparkles } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabaseClient';
 
 const BuySlots: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [mushroomQty, setMushroomQty] = useState(1);
   const [hasPriorSlots, setHasPriorSlots] = useState(false);
+
+  const isLegacy = Boolean(profile?.is_legacy);
+  const hasPurchasedStarterPack = Boolean(profile?.has_purchased_starter_pack);
+  const isLegacyNeedsStarterPack = isLegacy && !hasPurchasedStarterPack;
 
   useEffect(() => {
     if (!user) return;
@@ -52,6 +56,60 @@ const BuySlots: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Legacy Member Starter Pack (Visible only to legacy members who have not yet purchased) */}
+        {isLegacyNeedsStarterPack && (
+          <Card className="border-amber-300 bg-gradient-to-br from-amber-50/70 via-white to-amber-50/40 shadow-lg relative overflow-hidden flex flex-col md:col-span-2 lg:col-span-3 border-2">
+            <div className="absolute top-0 right-0 p-4">
+              <Badge className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1">
+                ⭐ Mandatory Legacy Member Activation
+              </Badge>
+            </div>
+            <CardHeader>
+              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-2">
+                <Sparkles className="w-6 h-6 text-amber-700" />
+              </div>
+              <CardTitle className="text-2xl text-amber-950 font-extrabold">
+                Mushroom Starter Pack (100g)
+              </CardTitle>
+              <CardDescription className="text-sm text-amber-900 font-semibold">
+                Mushroom Power 100g — One-Time Legacy Member Activation Package
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1 space-y-4">
+              <div className="bg-white/90 border border-amber-200 rounded-2xl p-5 space-y-3 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">
+                    Your Account Status
+                  </span>
+                  <Badge variant="outline" className="bg-amber-100 text-amber-900 border-amber-300 font-bold px-2.5 py-0.5 text-xs">
+                    Pre-Launch Farm Slots Secured
+                  </Badge>
+                </div>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  As a verified Pioneer / Legacy Member, your pre-launch farm slots are already secured and productive in the physical farms! 
+                  To activate your <strong>5×7 Compound Network Organogram</strong>, unlock <strong>Level 1–7 compound referral commissions</strong>, and enable <strong>external bank withdrawals</strong>, please complete your one-time <strong>₦5,000 Mushroom Starter Pack (100g)</strong> purchase.
+                </p>
+                <div className="border-t border-amber-100 pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <span className="text-xs font-semibold text-gray-500 uppercase">Package Fee</span>
+                    <div className="text-2xl font-black text-amber-900">
+                      ₦5,000 <span className="text-xs font-normal text-gray-500">one-time</span>
+                    </div>
+                  </div>
+                  <Button
+                    size="lg"
+                    className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-6 shadow-md"
+                    onClick={() => navigate('/dashboard/checkout?item=starter_pack')}
+                  >
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    Purchase Starter Pack (₦5,000)
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Active: Mushroom */}
         <Card className="border-emerald-200 shadow-md hover:shadow-lg transition-shadow relative overflow-hidden flex flex-col">
           <div className="absolute top-0 right-0 p-4">

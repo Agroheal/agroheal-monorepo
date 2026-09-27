@@ -20,6 +20,10 @@ export interface UserProfile {
   referral_code?: string;
   has_greencard?: boolean;
   greencard_status?: string;
+  is_legacy?: boolean;
+  has_purchased_starter_pack?: boolean;
+  placement_status?: string;
+  holding_tank_expires_at?: string | null;
   [key: string]: unknown;
 }
 
@@ -88,7 +92,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       const [{ data: profileData }, { data: kinData }] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id, email, full_name, role, phone, wallet_balance, avatar_url, member_id, referral_code, has_greencard, greencard_status")
+          .select("id, email, full_name, role, phone, wallet_balance, avatar_url, member_id, referral_code, has_greencard, greencard_status, is_legacy, has_purchased_starter_pack, placement_status, holding_tank_expires_at")
           .eq("id", targetUserId)
           .maybeSingle(),
         supabase

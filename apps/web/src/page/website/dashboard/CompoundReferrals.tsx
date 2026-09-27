@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
 import {
   Users,
@@ -116,6 +116,7 @@ const genealogyMemoryCache = new Map<string, GenealogyCacheEntry>();
 const CACHE_TTL_MS = 60_000; // 1-minute TTL for instant navigation
 
 const CompoundReferrals: React.FC = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -145,6 +146,52 @@ const CompoundReferrals: React.FC = () => {
   const [isProjectSubscribed, setIsProjectSubscribed] = useState<boolean>(false);
   const [userFarms, setUserFarms] = useState<Array<{ id: string; name: string; project_category?: string }>>([]);
   const [selectedFarmId, setSelectedFarmId] = useState<string>("all");
+
+  // 30-Hour Grace Period & Holding Tank State
+  const [holdingTankMembers, setHoldingTankMembers] = useState<Array<{
+    id: string;
+    full_name: string;
+    email: string;
+    phone: string | null;
+    member_id: string;
+    created_at: string;
+    holding_tank_expires_at: string;
+    placement_status: string;
+    remainingMinutes: number;
+    formattedTimeRemaining: string;
+    isExpired: boolean;
+  }>>([]);
+  const [selectedHoldingEnrollee, setSelectedHoldingEnrollee] = useState<any | null>(null);
+  const [targetPlacementLeg, setTargetPlacementLeg] = useState<number>(1);
+  const [isPlacingEnrollee, setIsPlacingEnrollee] = useState<boolean>(false);
+
+  // Qualification Gates & Matrix Access Locks
+  const isLegacyNeedsStarterPack = Boolean(
+    currentUserProfile?.is_legacy && !currentUserProfile?.has_purchased_starter_pack
+  );
+  const isNonLegacyNeedsSlots = Boolean(
+    !currentUserProfile?.is_legacy && userSlotsHeld === 0
+  );
+  const isMatrixLocked = isLegacyNeedsStarterPack || isNonLegacyNeedsSlots;
+
+  const handlePlaceHoldingEnrollee = async () => {
+    if (!selectedHoldingEnrollee) return;
+    setIsPlacingEnrollee(true);
+    try {
+      await apiClient.genealogy.placeDownline({
+        enrolleeId: selectedHoldingEnrollee.id,
+        placementParentId: currentUserId,
+        position: targetPlacementLeg,
+      });
+      toast.success(`${selectedHoldingEnrollee.full_name} placed into Leg #${targetPlacementLeg}!`);
+      setSelectedHoldingEnrollee(null);
+      loadMemberGenealogy(undefined, true);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to place downline. Please verify leg availability.");
+    } finally {
+      setIsPlacingEnrollee(false);
+    }
+  };
 
   // Load member and initial tree
   useEffect(() => {
@@ -204,6 +251,14 @@ const CompoundReferrals: React.FC = () => {
         }
       } catch (apiErr: any) {
         console.info("[CompoundReferrals] Express Genealogy API fast fallback:", apiErr.message);
+      }
+
+      // Fetch holding tank members for sponsor
+      try {
+        const tank = await apiClient.genealogy.getHoldingTank({ timeout: 3500 });
+        setHoldingTankMembers(tank || []);
+      } catch (tankErr) {
+        console.info("[CompoundReferrals] Holding tank note:", tankErr);
       }
 
       // Parallelize All Independent Root Database Queries (Single Network Round-Trip)
@@ -336,8 +391,8 @@ const CompoundReferrals: React.FC = () => {
         .eq("user_id", targetId),
       supabase
         .from("profiles")
-        .select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals")
-        .eq("referred_by", targetId)
+        .select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals, placement_parent_id, matrix_position, placement_status")
+        .or(`placement_parent_id.eq.${targetId},referred_by.eq.${targetId}`)
         .order("created_at", { ascending: true })
         .limit(100),
     ]);
@@ -378,38 +433,77 @@ const CompoundReferrals: React.FC = () => {
         }
       }
 
-      for (let i = 0; i < childrenProfiles.length; i++) {
-        const cp = childrenProfiles[i];
-        const cSlotCount = slotsMap.get(cp.id) || 0;
-        const grandChildrenCount = grandChildrenCountMap.get(cp.id) || 0;
+      // Map explicit matrix placements first (legs 1 to 5)
+      const occupiedLegs = new Map<number, any>();
+      const unplacedChildren: any[] = [];
 
-        // In the 5x7 matrix, ONLY members who hold at least 1 farm slot occupy matrix positions (Leg 1-5)!
-        // Members who only paid ₦2,000 Green Card remain direct enrollees (Leg 0) until they subscribe to a slot.
-        let assignedLeg = 0;
-        if (cSlotCount > 0 && childrenNodes.length < 5) {
-          assignedLeg = childrenNodes.length + 1;
+      for (const cp of childrenProfiles) {
+        if (cp.placement_parent_id === targetId && cp.matrix_position >= 1 && cp.matrix_position <= 5) {
+          occupiedLegs.set(cp.matrix_position, cp);
+        } else {
+          unplacedChildren.push(cp);
         }
+      }
 
-        const memberItem: OrganogramNode = {
-          id: cp.id,
-          fullName: cp.full_name || "Downline Partner",
-          email: cp.email || "",
-          phone: cp.phone || null,
-          memberId: formatAgcId(cp.member_id),
-          parentId: targetId,
-          position: assignedLeg,
-          level: 1,
-          slotsHeld: cSlotCount,
-          directReferralsCount: grandChildrenCount,
-          createdAt: cp.created_at,
-          hasGreenCard: Boolean(cp.member_id),
-          isSpillover: false,
-          children: [],
-        };
+      // For unplaced direct children, allocate any open legs 1..5 in order
+      let nextAvailableLeg = 1;
+      for (const cp of unplacedChildren) {
+        while (nextAvailableLeg <= 5 && occupiedLegs.has(nextAvailableLeg)) {
+          nextAvailableLeg++;
+        }
+        if (nextAvailableLeg <= 5) {
+          occupiedLegs.set(nextAvailableLeg, cp);
+          nextAvailableLeg++;
+        }
+      }
 
-        allRoster.push(memberItem);
-        if (assignedLeg > 0) {
+      for (let leg = 1; leg <= 5; leg++) {
+        const cp = occupiedLegs.get(leg);
+        if (cp) {
+          const cSlotCount = slotsMap.get(cp.id) || 0;
+          const grandChildrenCount = grandChildrenCountMap.get(cp.id) || 0;
+          const memberItem: OrganogramNode = {
+            id: cp.id,
+            fullName: cp.full_name || "Downline Partner",
+            email: cp.email || "",
+            phone: cp.phone || null,
+            memberId: formatAgcId(cp.member_id),
+            parentId: targetId,
+            position: leg,
+            level: 1,
+            slotsHeld: cSlotCount,
+            directReferralsCount: grandChildrenCount,
+            createdAt: cp.created_at,
+            hasGreenCard: Boolean(cp.member_id),
+            isSpillover: cp.referred_by !== targetId,
+            children: [],
+          };
+          allRoster.push(memberItem);
           childrenNodes.push(memberItem);
+        }
+      }
+
+      // Also add remaining unplaced members to roster for directory & search
+      for (const cp of unplacedChildren) {
+        if (!Array.from(occupiedLegs.values()).some((p) => p.id === cp.id)) {
+          const cSlotCount = slotsMap.get(cp.id) || 0;
+          const grandChildrenCount = grandChildrenCountMap.get(cp.id) || 0;
+          allRoster.push({
+            id: cp.id,
+            fullName: cp.full_name || "Downline Partner",
+            email: cp.email || "",
+            phone: cp.phone || null,
+            memberId: formatAgcId(cp.member_id),
+            parentId: targetId,
+            position: 0,
+            level: 2,
+            slotsHeld: cSlotCount,
+            directReferralsCount: grandChildrenCount,
+            createdAt: cp.created_at,
+            hasGreenCard: Boolean(cp.member_id),
+            isSpillover: cp.referred_by !== targetId,
+            children: [],
+          });
         }
       }
     }
@@ -1024,6 +1118,90 @@ const CompoundReferrals: React.FC = () => {
                 </div>
               )}
 
+              {/* 30-Hour Placement Holding Tank Banner (if sponsor has waiting enrollees) */}
+              {holdingTankMembers.length > 0 && (
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 mb-2 shadow-xs">
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-amber-600 animate-pulse" />
+                        <h4 className="font-extrabold text-amber-900 text-sm sm:text-base">
+                          Placement Holding Tank ({holdingTankMembers.length} Partner{holdingTankMembers.length > 1 ? "s" : ""})
+                        </h4>
+                        <span className="bg-amber-200/80 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          30-Hour Grace Window
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-800 mt-1 max-w-2xl leading-relaxed">
+                        You have directly enrolled partners waiting to be placed into your 5×7 organogram. You have a 30-hour grace period to place them into specific frontline legs before automated spillover balancing takes place.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
+                    {holdingTankMembers.map((member) => (
+                      <div key={member.id} className="bg-white p-3 rounded-xl border border-amber-200 shadow-xs flex items-center justify-between">
+                        <div>
+                          <p className="font-bold text-gray-900 text-xs">{member.full_name}</p>
+                          <p className="font-mono text-[11px] text-emerald-700">{member.member_id || member.email}</p>
+                          <p className="text-[10px] text-amber-700 font-semibold mt-0.5">
+                            ⏳ {member.formattedTimeRemaining} left
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => setSelectedHoldingEnrollee(member)}
+                          className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs h-7 px-2.5 rounded-lg"
+                        >
+                          Place
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Matrix Locked Warning Overlay */}
+              {isMatrixLocked && (
+                <div className="bg-white/95 border-2 border-dashed border-amber-300 rounded-3xl p-6 sm:p-8 text-center max-w-2xl mx-auto my-6 shadow-md">
+                  <div className="w-14 h-14 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-3">
+                    <Lock className="w-7 h-7" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-black text-gray-900">
+                    5×7 Compound Referral Matrix Locked
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-2 leading-relaxed">
+                    {isLegacyNeedsStarterPack ? (
+                      <>
+                        As a valued Pioneer/Legacy member, please activate your account with the{" "}
+                        <strong className="text-emerald-700 font-bold">Mushroom Starter Pack (₦5,000)</strong> to unlock your 5×7 organogram matrix, downline spillover placements, and commercial wallet withdrawals.
+                      </>
+                    ) : (
+                      <>
+                        You must own at least <strong className="text-emerald-700 font-bold">1 Farm Slot (₦5,000)</strong> to activate your position inside the 5×7 matrix and receive spillover from your upline team.
+                      </>
+                    )}
+                  </p>
+                  <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
+                    {isLegacyNeedsStarterPack ? (
+                      <Button
+                        onClick={() => navigate("/dashboard/slots/buy?type=starter_pack")}
+                        className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-6 py-2.5 rounded-xl shadow-md w-full sm:w-auto text-xs"
+                      >
+                        Acquire Starter Pack (₦5,000)
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={() => navigate("/dashboard/slots/buy")}
+                        className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-6 py-2.5 rounded-xl shadow-md w-full sm:w-auto text-xs"
+                      >
+                        Buy Farm Slot (₦5,000)
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {unlockedLevel >= 1 ? (
                 <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl p-4 flex items-start gap-3 text-xs text-emerald-900 shadow-sm">
                   <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
@@ -1107,8 +1285,8 @@ const CompoundReferrals: React.FC = () => {
                 {/* 2. FIVE CHILD SLOTS (LEVEL 1 / FRONTLINE) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 w-full mt-4 lg:mt-0 relative z-20">
                   {[0, 1, 2, 3, 4].map((slotIndex) => {
-                    const child = activeRootNode.children[slotIndex];
                     const legNumber = slotIndex + 1;
+                    const child = activeRootNode.children.find((c) => c.position === legNumber);
 
                     if (child) {
                       return (
@@ -1394,6 +1572,98 @@ const CompoundReferrals: React.FC = () => {
         {/* Statutory Regulatory & Non-Investment Notice */}
         <RegulatoryNotice linkHref="/dashboard/legal#terms" className="mt-4" />
       </div>
+
+      {/* Manual Placement Dialog Modal */}
+      {selectedHoldingEnrollee && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-gray-100 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                  <GitBranch className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-gray-900 text-base">Place Downline Member</h3>
+                  <p className="text-xs text-gray-500">30-Hour Grace Window</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedHoldingEnrollee(null)}
+                className="text-gray-400 hover:text-gray-600 text-lg font-bold p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="py-4 space-y-4 text-xs">
+              <div className="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-100">
+                <p className="font-bold text-gray-900 text-sm">{selectedHoldingEnrollee.full_name}</p>
+                <p className="font-mono text-emerald-800 text-xs mt-0.5">{selectedHoldingEnrollee.member_id || selectedHoldingEnrollee.email}</p>
+                <p className="text-gray-500 text-[11px] mt-1">
+                  Enrolled: {new Date(selectedHoldingEnrollee.created_at).toLocaleDateString()}
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-bold text-gray-700 mb-1.5">
+                  Select Frontline Matrix Leg (1 to 5):
+                </label>
+                <div className="grid grid-cols-5 gap-2">
+                  {[1, 2, 3, 4, 5].map((leg) => {
+                    const isOccupied = activeRootNode?.children.some((c) => c.position === leg);
+                    return (
+                      <button
+                        key={leg}
+                        type="button"
+                        onClick={() => setTargetPlacementLeg(leg)}
+                        className={`p-2.5 rounded-xl border text-center font-bold transition-all ${
+                          targetPlacementLeg === leg
+                            ? "bg-emerald-800 text-white border-emerald-800 shadow-sm"
+                            : isOccupied
+                            ? "bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100"
+                            : "bg-gray-50 text-gray-700 border-gray-200 hover:bg-emerald-50"
+                        }`}
+                      >
+                        <span className="block text-sm">#{leg}</span>
+                        <span className="text-[9px] block font-normal mt-0.5">
+                          {isOccupied ? "Occupied" : "Open"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="text-[11px] text-gray-500 mt-2">
+                  Choosing an open leg places them directly on your frontline. If you select an occupied leg, our system will place them under that leg's subteam.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSelectedHoldingEnrollee(null)}
+                disabled={isPlacingEnrollee}
+                className="rounded-xl h-9"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handlePlaceHoldingEnrollee}
+                disabled={isPlacingEnrollee}
+                className="bg-emerald-800 hover:bg-emerald-900 text-white font-bold rounded-xl h-9 px-5 shadow-sm"
+              >
+                {isPlacingEnrollee ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  `Confirm Leg #${targetPlacementLeg} Placement`
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

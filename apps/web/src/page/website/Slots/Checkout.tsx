@@ -33,31 +33,198 @@ import {
   calculateSlotSubtotal,
 } from "@shared/businessRules";
 
+async function recordSubscriptionWithFarmGroupSplit({
+  userId,
+  checkoutId,
+  amount,
+  slotPrice,
+  slots,
+  category,
+  isStarterPack,
+}: {
+  userId: string;
+  checkoutId: string;
+  amount: number;
+  slotPrice: number;
+  slots: number;
+  category: string;
+  isStarterPack: boolean;
+}) {
+  const nextPaymentDate = new Date();
+  nextPaymentDate.setDate(nextPaymentDate.getDate() + 365);
+  const DEFAULT_GROUP_ID = "230ab237-0770-4dce-84fe-221f224276bc"; // Pioneers Farm [Mushroom Village]
+
+  if (isStarterPack || slots === 0) {
+    await supabase.from("slot_subscriptions").insert([
+      {
+        user_id: userId,
+        checkout_id: checkoutId,
+        amount: amount,
+        slotprice: 5000,
+        status: "active",
+        slots: 0,
+        last_payment_date: new Date().toISOString(),
+        next_payment_date: nextPaymentDate.toISOString(),
+        project_category: "Mushroom Village",
+        farm_group_id: DEFAULT_GROUP_ID,
+        is_starter_pack: true,
+      },
+    ]);
+
+    await supabase
+      .from("profiles")
+      .update({ has_purchased_starter_pack: true })
+      .eq("id", userId);
+
+    return;
+  }
+
+  // 1,000-Slot Auto-Fill & Split Logic:
+  try {
+    const { data: activeGroups } = await supabase
+      .from("farm_groups")
+      .select("id, name, slug")
+      .eq("project_category", category || "Mushroom Village")
+      .order("created_at", { ascending: true });
+
+    const primaryGroup = activeGroups && activeGroups.length > 0 ? activeGroups[0] : null;
+    const primaryGroupId = primaryGroup?.id || DEFAULT_GROUP_ID;
+
+    // Check capacity
+    const { data: curSlotsData } = await supabase
+      .from("slot_subscriptions")
+      .select("slots")
+      .eq("farm_group_id", primaryGroupId)
+      .eq("status", "active");
+
+    const currentTotalSlots = (curSlotsData || []).reduce((sum: number, r: any) => sum + (Number(r.slots) || 0), 0);
+    const remainingCapacity = Math.max(0, 1000 - currentTotalSlots);
+
+    if (slots <= remainingCapacity) {
+      await supabase.from("slot_subscriptions").insert([
+        {
+          user_id: userId,
+          checkout_id: checkoutId,
+          amount: amount,
+          slotprice: slotPrice,
+          status: "active",
+          slots: slots,
+          last_payment_date: new Date().toISOString(),
+          next_payment_date: nextPaymentDate.toISOString(),
+          project_category: category,
+          farm_group_id: primaryGroupId,
+          is_starter_pack: false,
+        },
+      ]);
+    } else {
+      const slotsForCurrent = remainingCapacity;
+      const overflowSlots = slots - remainingCapacity;
+
+      let secondaryGroup = activeGroups && activeGroups.length > 1 ? activeGroups[1] : null;
+      if (!secondaryGroup && primaryGroup) {
+        const newName = `${primaryGroup.name.replace(/\[.*\]/, '').trim()} 2 [${category || 'Mushroom Village'}]`;
+        const newSlug = `${primaryGroup.slug}-2`;
+        const { data: created } = await supabase
+          .from("farm_groups")
+          .insert([
+            {
+              name: newName,
+              slug: newSlug,
+              project_category: category || "Mushroom Village",
+            },
+          ])
+          .select()
+          .single();
+        secondaryGroup = created;
+      }
+      const secondaryGroupId = secondaryGroup?.id || primaryGroupId;
+
+      const rows = [];
+      if (slotsForCurrent > 0) {
+        rows.push({
+          user_id: userId,
+          checkout_id: checkoutId,
+          amount: Math.round((amount * slotsForCurrent) / slots),
+          slotprice: slotPrice,
+          status: "active",
+          slots: slotsForCurrent,
+          last_payment_date: new Date().toISOString(),
+          next_payment_date: nextPaymentDate.toISOString(),
+          project_category: category,
+          farm_group_id: primaryGroupId,
+          is_starter_pack: false,
+        });
+      }
+      if (overflowSlots > 0) {
+        rows.push({
+          user_id: userId,
+          checkout_id: checkoutId,
+          amount: Math.round((amount * overflowSlots) / slots),
+          slotprice: slotPrice,
+          status: "active",
+          slots: overflowSlots,
+          last_payment_date: new Date().toISOString(),
+          next_payment_date: nextPaymentDate.toISOString(),
+          project_category: category,
+          farm_group_id: secondaryGroupId,
+          is_starter_pack: false,
+        });
+      }
+      if (rows.length > 0) {
+        await supabase.from("slot_subscriptions").insert(rows);
+      }
+    }
+  } catch (farmSplitErr) {
+    console.warn("Farm group split fallback to direct insert:", farmSplitErr);
+    await supabase.from("slot_subscriptions").insert([
+      {
+        user_id: userId,
+        checkout_id: checkoutId,
+        amount: amount,
+        slotprice: slotPrice,
+        status: "active",
+        slots: slots,
+        last_payment_date: new Date().toISOString(),
+        next_payment_date: nextPaymentDate.toISOString(),
+        project_category: category,
+        farm_group_id: DEFAULT_GROUP_ID,
+        is_starter_pack: false,
+      },
+    ]);
+  }
+}
+
 const Checkout = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  const isGreenCardOnly = searchParams.get("product") === "green_card";
+  const isStarterPack =
+    searchParams.get("item") === "starter_pack" ||
+    searchParams.get("type") === "starter_pack" ||
+    searchParams.get("product") === "starter_pack";
+  const isGreenCardOnly = !isStarterPack && searchParams.get("product") === "green_card";
   const rawUrlSlots = searchParams.get("slots");
   const parsedSlots = rawUrlSlots !== null ? parseInt(rawUrlSlots, 10) : 1;
-  const initialSlots = isGreenCardOnly ? 0 : (!isNaN(parsedSlots) && parsedSlots >= 0 ? parsedSlots : 1);
+  const initialSlots = isGreenCardOnly || isStarterPack ? 0 : (!isNaN(parsedSlots) && parsedSlots >= 0 ? parsedSlots : 1);
 
   const [slotQuantity, setSlotQuantity] = useState(initialSlots);
-  const [category, setCategory] = useState(DEFAULT_CATEGORY);
+  const [category, setCategory] = useState(isStarterPack ? "Mushroom Village" : DEFAULT_CATEGORY);
 
   const [hasGreenCard, setHasGreenCard] = useState<boolean>(false);
   const [hasPriorSlots, setHasPriorSlots] = useState<boolean>(false);
   const [memberCreatedAt, setMemberCreatedAt] = useState<string | null>(null);
 
   const isFirstSlotPurchase = !hasPriorSlots;
-  const slotsSubtotal = slotQuantity > 0
-    ? calculateSlotSubtotal(slotQuantity, hasPriorSlots).subtotal
-    : 0;
+  const slotsSubtotal = isStarterPack
+    ? 5000
+    : (slotQuantity > 0
+        ? calculateSlotSubtotal(slotQuantity, hasPriorSlots).subtotal
+        : 0);
 
   const isLegacy = isLegacyMember(memberCreatedAt);
   const activeGreenCardRate = getGreenCardFee(memberCreatedAt);
-  const greenCardFee = isGreenCardOnly || !hasGreenCard ? activeGreenCardRate : 0;
+  const greenCardFee = isStarterPack ? 0 : (isGreenCardOnly || !hasGreenCard ? activeGreenCardRate : 0);
   const totalPrice = slotsSubtotal + greenCardFee;
   const isOrganicFoodNation =
     category === "Organic FoodNation (1 Million Hectares against Hunger)";
@@ -427,25 +594,19 @@ const Checkout = () => {
           })
           .eq("id", order.id);
 
-        const nextPaymentDate = new Date();
-        nextPaymentDate.setDate(nextPaymentDate.getDate() + 365);
-        await supabase.from("slot_subscriptions").insert([
-          {
-            user_id: user.id,
-            checkout_id: order.id,
-            amount: totalPrice,
-            slotprice: SLOT_UNIT_PRICE,
-            status: "active",
-            slots: slotQuantity,
-            last_payment_date: new Date().toISOString(),
-            next_payment_date: nextPaymentDate.toISOString(),
-            project_category: category,
-          },
-        ]);
+        await recordSubscriptionWithFarmGroupSplit({
+          userId: user.id,
+          checkoutId: order.id,
+          amount: totalPrice,
+          slotPrice: SLOT_UNIT_PRICE,
+          slots: isStarterPack ? 0 : slotQuantity,
+          category,
+          isStarterPack,
+        });
       }
 
       // If user did not previously hold a Green Card, activate it now as bundled
-      if (!hasGreenCard) {
+      if (!hasGreenCard && !isStarterPack) {
         const expiresAt = new Date();
         expiresAt.setFullYear(expiresAt.getFullYear() + 100);
         await supabase.from("subscriptions").upsert(
@@ -463,13 +624,21 @@ const Checkout = () => {
       }
 
       Sentry.metrics.count("wallet_reinvestment_success", 1);
-      toast({
-        title: "Slot Secured Successfully!",
-        description: `₦${totalPrice.toLocaleString()} paid from wallet balance. ${slotQuantity} slot(s) activated!`,
-      });
-
       setWalletBalance((prev) => Math.max(0, prev - totalPrice));
-      navigate("/dashboard/farm-operations/my-slots");
+
+      if (isStarterPack) {
+        toast({
+          title: "Starter Pack Activated!",
+          description: "Your ₦5,000 Mushroom Starter Pack has been activated. Your 5×7 Compound Network and bank withdrawals are now unlocked.",
+        });
+        navigate("/dashboard/referrals/compound");
+      } else {
+        toast({
+          title: "Slot Secured Successfully!",
+          description: `₦${totalPrice.toLocaleString()} paid from wallet balance. ${slotQuantity} slot(s) activated!`,
+        });
+        navigate("/dashboard/farm-operations/my-slots");
+      }
     } catch (err: any) {
       console.error("Wallet payment failed:", err);
       Sentry.captureException(err);
@@ -594,30 +763,19 @@ const Checkout = () => {
 
                 if (checkoutErr) throw checkoutErr;
 
-                // 2. Create the subscription
-                const nextPaymentDate = new Date();
-                nextPaymentDate.setDate(nextPaymentDate.getDate() + 365);
-
-                const { error: subErr } = await supabase
-                  .from("slot_subscriptions")
-                  .insert([
-                    {
-                      user_id: order.user_id,
-                      checkout_id: order.id,
-                      amount: totalPrice,
-                      slotprice: SLOT_UNIT_PRICE,
-                      status: "active",
-                      slots: slotQuantity,
-                      last_payment_date: new Date().toISOString(),
-                      next_payment_date: nextPaymentDate.toISOString(),
-                      project_category: category,
-                    },
-                  ]);
-
-                if (subErr) throw subErr;
+                // 2. Create the subscription with farm group allocation & split
+                await recordSubscriptionWithFarmGroupSplit({
+                  userId: order.user_id,
+                  checkoutId: order.id,
+                  amount: totalPrice,
+                  slotPrice: SLOT_UNIT_PRICE,
+                  slots: isStarterPack ? 0 : slotQuantity,
+                  category,
+                  isStarterPack,
+                });
 
                 // 3. If user did not previously hold a Green Card, activate it now
-                if (!hasGreenCard) {
+                if (!hasGreenCard && !isStarterPack) {
                   const expiresAt = new Date();
                   expiresAt.setFullYear(expiresAt.getFullYear() + 100);
                   await supabase.from("subscriptions").upsert(
@@ -634,12 +792,19 @@ const Checkout = () => {
                   );
                 }
 
-                toast({
-                  title: "Payment successful",
-                  description: "Your slot has been secured!",
-                });
-
-                navigate("/dashboard/farm-operations/my-slots");
+                if (isStarterPack) {
+                  toast({
+                    title: "Starter Pack Activated!",
+                    description: "Your ₦5,000 Mushroom Starter Pack has been activated. Your 5×7 Compound Network and bank withdrawals are now unlocked.",
+                  });
+                  navigate("/dashboard/referrals/compound");
+                } else {
+                  toast({
+                    title: "Payment successful",
+                    description: "Your slot has been secured!",
+                  });
+                  navigate("/dashboard/farm-operations/my-slots");
+                }
               } catch (err) {
                 console.error("Direct activation failed:", err);
                 toast({
@@ -871,26 +1036,20 @@ const Checkout = () => {
                     })
                     .eq("id", order.id);
 
-                  // 5. Create active slot subscription
-                  const nextPaymentDate = new Date();
-                  nextPaymentDate.setDate(nextPaymentDate.getDate() + 365);
-                  await supabase.from("slot_subscriptions").insert([
-                    {
-                      user_id: order.user_id,
-                      checkout_id: order.id,
-                      amount: totalPrice,
-                      slotprice: SLOT_UNIT_PRICE,
-                      status: "active",
-                      slots: slotQuantity,
-                      last_payment_date: new Date().toISOString(),
-                      next_payment_date: nextPaymentDate.toISOString(),
-                      project_category: category,
-                    },
-                  ]);
+                  // 5. Create active slot subscription with farm group allocation & split
+                  await recordSubscriptionWithFarmGroupSplit({
+                    userId: order.user_id,
+                    checkoutId: order.id,
+                    amount: totalPrice,
+                    slotPrice: SLOT_UNIT_PRICE,
+                    slots: isStarterPack ? 0 : slotQuantity,
+                    category,
+                    isStarterPack,
+                  });
                 }
 
                 // If user did not previously hold a Green Card, activate it
-                if (!hasGreenCard) {
+                if (!hasGreenCard && !isStarterPack) {
                   const expiresAt = new Date();
                   expiresAt.setFullYear(expiresAt.getFullYear() + 100);
                   await supabase.from("subscriptions").upsert(
@@ -907,13 +1066,21 @@ const Checkout = () => {
                   );
                 }
 
-                toast({
-                  title: "Split Payment Successful!",
-                  description: `₦${usableWallet.toLocaleString()} deducted from wallet & ₦${cardAmountToPay.toLocaleString()} paid via card. ${slotQuantity} slot(s) activated!`,
-                });
-
                 setWalletBalance((prev) => Math.max(0, prev - usableWallet));
-                navigate("/dashboard/farm-operations/my-slots");
+
+                if (isStarterPack) {
+                  toast({
+                    title: "Starter Pack Activated!",
+                    description: "Your ₦5,000 Mushroom Starter Pack has been activated. Your 5×7 Compound Network and bank withdrawals are now unlocked.",
+                  });
+                  navigate("/dashboard/referrals/compound");
+                } else {
+                  toast({
+                    title: "Split Payment Successful!",
+                    description: `₦${usableWallet.toLocaleString()} deducted from wallet & ₦${cardAmountToPay.toLocaleString()} paid via card. ${slotQuantity} slot(s) activated!`,
+                  });
+                  navigate("/dashboard/farm-operations/my-slots");
+                }
               } catch (finalizeErr: any) {
                 console.error("Error finalizing split payment:", finalizeErr);
                 toast({
@@ -1109,135 +1276,169 @@ const Checkout = () => {
                       )}
                     </div>
                   )}
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Project Category</Label>
-                    <select
-                      id="category"
-                      value={category}
-                      onChange={(e) => {
-                        setCategory(e.target.value);
-                        if (errors.category)
-                          setErrors((prev) => ({ ...prev, category: "" }));
-                      }}
-                      className={`w-full h-10 px-3 rounded-md border bg-background text-sm mb-1.5 ${errors.category ? "border-red-500" : "border-input"}`}
-                      required
-                    >
-                      <option value="Mushroom Village">
-                        Mushroom Village - Organic Mushrooms (Active Cluster)
-                      </option>
-                      <option
-                        value="Ginger Town"
-                        disabled
-                        className="text-muted-foreground bg-muted/40"
-                      >
-                        Gingertown - Organic Ginger (Funded via Proceeds · Opens Q2)
-                      </option>
-                      <option
-                        value="Organic FoodNation (1 Million Hectares against Hunger)"
-                        disabled
-                        className="text-muted-foreground bg-muted/40"
-                      >
-                        Organic FoodNation - Organic Food Crops & Livestock (Funded via Proceeds · Opens Q2)
-                      </option>
-                    </select>
-                    <p className="text-[11px] text-muted-foreground mb-4">
-                      Currently, only the <strong>Mushroom Village</strong> cluster is open for active slot allocation. Gingertown (₦33,000/slot) and Organic FoodNation (₦15,000/slot) are to be funded from Mushroom Village proceeds and opened from the second quarter.
-                    </p>
-                    {errors.category && (
-                      <p className="text-xs text-red-500 -mt-2 mb-4">
-                        {errors.category}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Number of Slots</Label>
-                    <div className="flex items-center gap-4">
-                      <button
-                        type="button"
-                        onClick={decrementSlot}
-                        disabled={slotQuantity <= 1}
-                        className="w-10 h-10 rounded-xl border border-border bg-background flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-
-                      <div className="flex-1 text-center">
-                        <span className="text-3xl font-bold text-foreground">
-                          {slotQuantity}
+                  {isStarterPack ? (
+                    <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-5 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800">
+                            <Sprout className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-gray-900 text-base">
+                              Mushroom Starter Pack (100g)
+                            </h3>
+                            <p className="text-xs text-amber-800 font-medium">
+                              Mushroom Power 100g — Legacy Member Activation Package
+                            </p>
+                          </div>
+                        </div>
+                        <span className="font-mono text-base font-black text-amber-950 bg-amber-100 px-3 py-1 rounded-xl border border-amber-300">
+                          ₦5,000
                         </span>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {slotQuantity === 1 ? "slot" : "slots"}
+                      </div>
+                      <div className="bg-white/90 p-3.5 rounded-xl border border-amber-100 text-xs text-gray-600 space-y-2">
+                        <div className="flex items-center justify-between font-semibold text-gray-800">
+                          <span>Package Fee</span>
+                          <span>₦5,000</span>
+                        </div>
+                        <p className="text-[11px] text-gray-500 leading-relaxed">
+                          Your pre-launch farm slots are already secured and productive in the physical cluster. This ₦5,000 Starter Pack activates your <strong>5×7 Forced Matrix</strong>, unlocks <strong>Level 1–7 compound referral commissions</strong>, and enables <strong>external bank withdrawals</strong>.
                         </p>
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={incrementSlot}
-                        disabled={slotQuantity >= 100}
-                        className="w-10 h-10 rounded-xl border border-border bg-background flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
                     </div>
-
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="space-y-3 mt-3"
-                    >
-                      <div className="bg-green-50/80 border border-green-200/80 rounded-xl p-3.5 space-y-2 text-xs">
-                        <div className="flex items-center justify-between text-green-900 font-semibold text-sm">
-                          <span>
-                            {isFirstSlotPurchase
-                              ? "First Slot & Starter Pack"
-                              : `${slotQuantity} Farm Slot${slotQuantity > 1 ? "s" : ""}`}
-                          </span>
-                          <span>
-                            ₦{(isFirstSlotPurchase ? 10000 : slotQuantity * SLOT_UNIT_PRICE).toLocaleString()}
-                          </span>
-                        </div>
-
-                        {isFirstSlotPurchase && (
-                          <div className="text-[11px] text-green-700 space-y-0.5">
-                            <p>• ₦5,000 Farm Slot set up</p>
-                            <p>• ₦5,000 Mushroom Power 100g starter pack</p>
-                          </div>
-                        )}
-
-                        {isFirstSlotPurchase && slotQuantity > 1 && (
-                          <div className="flex items-center justify-between text-green-800 pt-1 border-t border-green-200/60 font-medium">
-                            <span>+ {slotQuantity - 1} Additional slot{slotQuantity > 2 ? "s" : ""} (@ ₦5,000)</span>
-                            <span>₦{((slotQuantity - 1) * SLOT_UNIT_PRICE).toLocaleString()}</span>
-                          </div>
-                        )}
-
-                        {!hasGreenCard && (
-                          <div className="flex items-center justify-between text-amber-900 pt-1.5 border-t border-green-200/60 font-semibold">
-                            <span className="flex items-center gap-1">
-                              <Shield className="w-3.5 h-3.5 text-amber-700" />
-                              Green Card Lifetime Pass {isLegacy ? "(Pioneer Rate)" : "(Auto-bundled)"}
-                            </span>
-                            <span>₦{activeGreenCardRate.toLocaleString()}</span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="space-y-2 bg-muted/30 rounded-xl p-3.5 border border-border/50">
-                        <div className="flex items-center gap-2">
-                          <Sprout className="w-4 h-4 text-green-700 shrink-0" />
-                          <span className="text-xs font-bold text-green-900 uppercase tracking-wider">
-                            LEAP Practical Cluster Model
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          {isFirstSlotPurchase
-                            ? "Your starter slot package covers biological materials, physical cluster preparation, and Mushroom Power 100g starter pack (₦10,000). Subsequent slots scale at ₦5,000 each with zero recurring monthly fees."
-                            : "Subsequent slots scale at ₦5,000 each with zero recurring monthly fees. Ongoing operations are sustained via harvest yields."}
+                  ) : (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="category">Project Category</Label>
+                        <select
+                          id="category"
+                          value={category}
+                          onChange={(e) => {
+                            setCategory(e.target.value);
+                            if (errors.category)
+                              setErrors((prev) => ({ ...prev, category: "" }));
+                          }}
+                          className={`w-full h-10 px-3 rounded-md border bg-background text-sm mb-1.5 ${errors.category ? "border-red-500" : "border-input"}`}
+                          required
+                        >
+                          <option value="Mushroom Village">
+                            Mushroom Village - Organic Mushrooms (Active Cluster)
+                          </option>
+                          <option
+                            value="Ginger Town"
+                            disabled
+                            className="text-muted-foreground bg-muted/40"
+                          >
+                            Gingertown - Organic Ginger (Funded via Proceeds · Opens Q2)
+                          </option>
+                          <option
+                            value="Organic FoodNation (1 Million Hectares against Hunger)"
+                            disabled
+                            className="text-muted-foreground bg-muted/40"
+                          >
+                            Organic FoodNation - Organic Food Crops & Livestock (Funded via Proceeds · Opens Q2)
+                          </option>
+                        </select>
+                        <p className="text-[11px] text-muted-foreground mb-4">
+                          Currently, only the <strong>Mushroom Village</strong> cluster is open for active slot allocation. Gingertown (₦33,000/slot) and Organic FoodNation (₦15,000/slot) are to be funded from Mushroom Village proceeds and opened from the second quarter.
                         </p>
+                        {errors.category && (
+                          <p className="text-xs text-red-500 -mt-2 mb-4">
+                            {errors.category}
+                          </p>
+                        )}
                       </div>
-                    </motion.div>
-                  </div>
+
+                      <div className="space-y-2">
+                        <Label>Number of Slots</Label>
+                        <div className="flex items-center gap-4">
+                          <button
+                            type="button"
+                            onClick={decrementSlot}
+                            disabled={slotQuantity <= 1}
+                            className="w-10 h-10 rounded-xl border border-border bg-background flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+
+                          <div className="flex-1 text-center">
+                            <span className="text-3xl font-bold text-foreground">
+                              {slotQuantity}
+                            </span>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {slotQuantity === 1 ? "slot" : "slots"}
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={incrementSlot}
+                            disabled={slotQuantity >= 100}
+                            className="w-10 h-10 rounded-xl border border-border bg-background flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <motion.div
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-3 mt-3"
+                        >
+                          <div className="bg-green-50/80 border border-green-200/80 rounded-xl p-3.5 space-y-2 text-xs">
+                            <div className="flex items-center justify-between text-green-900 font-semibold text-sm">
+                              <span>
+                                {isFirstSlotPurchase
+                                  ? "First Slot & Starter Pack"
+                                  : `${slotQuantity} Farm Slot${slotQuantity > 1 ? "s" : ""}`}
+                              </span>
+                              <span>
+                                ₦{(isFirstSlotPurchase ? 10000 : slotQuantity * SLOT_UNIT_PRICE).toLocaleString()}
+                              </span>
+                            </div>
+
+                            {isFirstSlotPurchase && (
+                              <div className="text-[11px] text-green-700 space-y-0.5">
+                                <p>• ₦5,000 Farm Slot set up</p>
+                                <p>• ₦5,000 Mushroom Power 100g starter pack</p>
+                              </div>
+                            )}
+
+                            {isFirstSlotPurchase && slotQuantity > 1 && (
+                              <div className="flex items-center justify-between text-green-800 pt-1 border-t border-green-200/60 font-medium">
+                                <span>+ {slotQuantity - 1} Additional slot{slotQuantity > 2 ? "s" : ""} (@ ₦5,000)</span>
+                                <span>₦{((slotQuantity - 1) * SLOT_UNIT_PRICE).toLocaleString()}</span>
+                              </div>
+                            )}
+
+                            {!hasGreenCard && (
+                              <div className="flex items-center justify-between text-amber-900 pt-1.5 border-t border-green-200/60 font-semibold">
+                                <span className="flex items-center gap-1">
+                                  <Shield className="w-3.5 h-3.5 text-amber-700" />
+                                  Green Card Lifetime Pass {isLegacy ? "(Pioneer Rate)" : "(Auto-bundled)"}
+                                </span>
+                                <span>₦{activeGreenCardRate.toLocaleString()}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="space-y-2 bg-muted/30 rounded-xl p-3.5 border border-border/50">
+                            <div className="flex items-center gap-2">
+                              <Sprout className="w-4 h-4 text-green-700 shrink-0" />
+                              <span className="text-xs font-bold text-green-900 uppercase tracking-wider">
+                                LEAP Practical Cluster Model
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              {isFirstSlotPurchase
+                                ? "Your starter slot package covers biological materials, physical cluster preparation, and Mushroom Power 100g starter pack (₦10,000). Subsequent slots scale at ₦5,000 each with zero recurring monthly fees."
+                                : "Subsequent slots scale at ₦5,000 each with zero recurring monthly fees. Ongoing operations are sustained via harvest yields."}
+                            </p>
+                          </div>
+                        </motion.div>
+                      </div>
+                    </>
+                  )}
 
                   {/* Payment Method Selector */}
                   <div className="space-y-3 pt-2">
@@ -1629,15 +1830,20 @@ const Checkout = () => {
                     <Sprout className="w-6 h-6 text-primary-foreground" />
                   </div>
                   <h3 className="font-display text-lg font-semibold text-primary-foreground">
-                    Practicals Farm Slot
+                    {isStarterPack ? "Mushroom Starter Pack" : "Practicals Farm Slot"}
                   </h3>
                   <p className="text-primary-foreground/80 text-sm">
-                    One growing season
+                    {isStarterPack ? "Mushroom Power 100g (Legacy Member)" : "One growing season"}
                   </p>
                 </div>
 
                 <div className="p-6 space-y-4">
-                  {isFirstSlotPurchase ? (
+                  {isStarterPack ? (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Mushroom Starter Pack (100g)</span>
+                      <span className="text-foreground font-semibold">₦5,000</span>
+                    </div>
+                  ) : isFirstSlotPurchase ? (
                     <>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Starter Slot & Cluster Setup</span>
@@ -1665,7 +1871,7 @@ const Checkout = () => {
                     </div>
                   )}
 
-                  {!hasGreenCard && (
+                  {!hasGreenCard && !isStarterPack && (
                     <div className="flex justify-between items-start text-xs bg-amber-50 border border-amber-200/80 p-3 rounded-xl">
                       <div>
                         <span className="text-amber-950 font-bold block">

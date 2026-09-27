@@ -216,6 +216,32 @@ export const apiClient = {
           isMax: boolean;
         };
       }>("genealogy/qualifications", options),
+    getHoldingTank: (options?: ApiRequestOptions) =>
+      apiRequest<Array<{
+        id: string;
+        full_name: string;
+        email: string;
+        phone: string | null;
+        member_id: string;
+        created_at: string;
+        holding_tank_expires_at: string;
+        placement_status: string;
+        remainingMinutes: number;
+        formattedTimeRemaining: string;
+        isExpired: boolean;
+      }>>("genealogy/holding-tank", options),
+    placeDownline: (data: { enrolleeId: string; placementParentId: string; position: number }) =>
+      apiRequest<{
+        success: boolean;
+        enrolleeId: string;
+        placementParentId: string;
+        position: number;
+        depth: number;
+        message: string;
+      }>("genealogy/place-downline", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
   },
 
   /**
