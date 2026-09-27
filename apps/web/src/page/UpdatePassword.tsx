@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import AuthSidebar from "@/components/webComponents/authSidebar";
+import { PasswordRequirementsTracker, checkPasswordRequirements } from "@/components/common/PasswordRequirementsTracker";
 
 export default function UpdatePasswordForm({
   className,
@@ -32,6 +33,13 @@ export default function UpdatePasswordForm({
     e.preventDefault();
     setIsLoading(true);
     setError(null);
+
+    const { isValid: isPasswordValid } = checkPasswordRequirements(password);
+    if (!isPasswordValid) {
+      setError("Password must be at least 8 characters long and include both letters and numbers.");
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const { error } = await supabase.auth.updateUser({ password });
@@ -172,6 +180,7 @@ export default function UpdatePasswordForm({
                         )}
                       </button>
                     </div>
+                    <PasswordRequirementsTracker password={password} />
                   </div>
 
                   {/* Inline error */}

@@ -15,6 +15,7 @@ import { showToast } from "@/components/ui/ToastComponent";
 import * as Sentry from "@sentry/react";
 import AuthSidebar from "@/components/webComponents/authSidebar";
 import { cleanName, cleanEmail, normalizePhoneNumber, cleanReferralCode } from "@shared/dataSanitizers";
+import { PasswordRequirementsTracker, checkPasswordRequirements } from "@/components/common/PasswordRequirementsTracker";
 
 const Signup = () => {
   const [searchParams] = useSearchParams();
@@ -59,6 +60,17 @@ const Signup = () => {
         variant: "error",
         title: "Valid phone number required",
         description: "Please enter a valid phone number (at least 10 digits).",
+      });
+      return;
+    }
+
+    const { isValid: isPasswordValid } = checkPasswordRequirements(password);
+    if (!isPasswordValid) {
+      setLoading(false);
+      showToast({
+        variant: "error",
+        title: "Password requirements not met",
+        description: "Password must be at least 8 characters long and contain both letters and numbers.",
       });
       return;
     }
@@ -216,7 +228,7 @@ const Signup = () => {
   return (
     <div className="h-screen max-h-screen overflow-hidden flex">
       <Toaster />
-      <div className="flex-1 h-full flex flex-col justify-center items-center px-6 py-4 sm:py-6 bg-[#f8f7f4] relative overflow-y-auto lg:overflow-hidden">
+      <div className="flex-1 h-full flex flex-col justify-center items-center px-6 py-4 sm:py-6 bg-[#f8f7f4] relative overflow-y-auto">
         <motion.div
           {...fadeUp(0)}
           className="lg:hidden flex items-center gap-2 mb-4"
@@ -340,60 +352,57 @@ const Signup = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-start">
-              {/* Password */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between h-4">
-                  <Label htmlFor="password" className="text-xs font-semibold text-gray-700">Password</Label>
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    className="pl-10 pr-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
-                    minLength={8}
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
+            {/* Password */}
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-xs font-semibold text-gray-700">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Create a strong password"
+                  className="pl-10 pr-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
+                  minLength={8}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
               </div>
+              <PasswordRequirementsTracker password={password} />
+            </div>
 
-              {/* Referral Code */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between h-4">
-                  <Label htmlFor="referral" className="text-xs font-semibold text-gray-700 truncate">
-                    Referral Code
-                  </Label>
-                  <span className="text-[11px] font-medium text-muted-foreground">
-                    {hasQueryRef ? "(Applied)" : "(Optional)"}
-                  </span>
-                </div>
-                <div className="relative">
-                  <Tag className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="referral"
-                    value={referral}
-                    onChange={(e) => setReferral(e.target.value)}
-                    type="text"
-                    disabled={hasQueryRef}
-                    placeholder="Sponsor code"
-                    className="pl-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all uppercase tracking-wider"
-                  />
-                </div>
+            {/* Referral Code */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="referral" className="text-xs font-semibold text-gray-700 truncate">
+                  Referral Code
+                </Label>
+                <span className="text-[11px] font-medium text-muted-foreground">
+                  {hasQueryRef ? "(Applied)" : "(Optional)"}
+                </span>
+              </div>
+              <div className="relative">
+                <Tag className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="referral"
+                  value={referral}
+                  onChange={(e) => setReferral(e.target.value)}
+                  type="text"
+                  disabled={hasQueryRef}
+                  placeholder="Sponsor code"
+                  className="pl-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all uppercase tracking-wider"
+                />
               </div>
             </div>
 
