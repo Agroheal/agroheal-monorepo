@@ -194,8 +194,8 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
       return;
     }
 
-    // If user has completed all 3 milestones, don't auto-popup
-    if (currentStep >= 4) {
+    // If user has already purchased farm slots or completed milestones, don't auto-popup
+    if (totalSlots > 0 || currentStep >= 4) {
       setIsOpen(false);
       return;
     }

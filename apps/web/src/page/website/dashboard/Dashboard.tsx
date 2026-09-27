@@ -329,16 +329,18 @@ const Dashboard = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => setForceOpenNextStep(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-400/20 hover:bg-emerald-400/30 text-emerald-200 border border-emerald-400/35 text-xs sm:text-sm font-semibold backdrop-blur-sm transition-all shadow-xs cursor-pointer"
-              title="View Next Member Milestone"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-              <span>Next Milestone</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            </button>
+            {totalSlotsPurchased === 0 && (
+              <button
+                type="button"
+                onClick={() => setForceOpenNextStep(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-400/20 hover:bg-emerald-400/30 text-emerald-200 border border-emerald-400/35 text-xs sm:text-sm font-semibold backdrop-blur-sm transition-all shadow-xs cursor-pointer"
+                title="View Next Member Milestone"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
+                <span>Next Milestone</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              </button>
+            )}
 
             {profile?.member_id ? (
               <Link
@@ -366,17 +368,19 @@ const Dashboard = () => {
       </div>
 
       <div className="px-4 md:px-8 -mt-8 pb-12 max-w-[96%] mx-auto">
-        {/* Journey Progression Infographic Banner */}
-        <JourneyProgressionHeader
-          hasGreenCard={hasGreenCard}
-          memberId={profile?.member_id as string}
-          totalSlots={totalSlotsPurchased}
-          directReferralsCount={profile?.total_referrals || 0}
-          referralCode={profile?.referral_code}
-          walletBalance={Number(profile?.wallet_balance || profile?.referral_earnings || 0)}
-          createdAt={profile?.created_at}
-          onOpenShareModal={() => setShowShareModal(true)}
-        />
+        {/* Journey Progression Infographic Banner (Only shown prior to purchasing first farm slot) */}
+        {totalSlotsPurchased === 0 && (
+          <JourneyProgressionHeader
+            hasGreenCard={hasGreenCard}
+            memberId={profile?.member_id as string}
+            totalSlots={totalSlotsPurchased}
+            directReferralsCount={profile?.total_referrals || 0}
+            referralCode={profile?.referral_code}
+            walletBalance={Number(profile?.wallet_balance || profile?.referral_earnings || 0)}
+            createdAt={profile?.created_at}
+            onOpenShareModal={() => setShowShareModal(true)}
+          />
+        )}
 
         {/* How It Works Quick Access Banner */}
         <motion.div
@@ -1098,7 +1102,7 @@ const Dashboard = () => {
         onClose={() => setShowShareModal(false)}
         referralCode={profile?.referral_code ?? ""}
       />
-      {profile && (
+      {profile && totalSlotsPurchased === 0 && (
         <NextStepModal
           hasGreenCard={Boolean(profile.member_id || hasGreenCard)}
           totalSlots={totalSlotsPurchased}

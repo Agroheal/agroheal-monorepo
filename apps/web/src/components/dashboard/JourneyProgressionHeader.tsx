@@ -48,6 +48,11 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   const navigate = useNavigate();
   const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
 
+  // If member has already purchased their first farm slot, hide the milestone onboarding banner
+  if (totalSlots > 0) {
+    return null;
+  }
+
   const isLegacy = isLegacyMember(createdAt);
   const activeFee = getGreenCardFee(createdAt);
 
