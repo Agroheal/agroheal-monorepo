@@ -797,11 +797,13 @@ const CompoundReferrals: React.FC = () => {
     return <OrganogramSkeleton />;
   }
 
+  const isFullscreen = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("view") === "fullscreen";
+
   return (
-    <div className="min-h-screen bg-slate-50/60 p-4 sm:p-6 lg:p-8 pb-16 font-sans">
+    <div className={`min-h-screen bg-slate-50/60 font-sans pb-16 ${isFullscreen ? "p-2 sm:p-4" : "p-4 sm:p-6 lg:p-8"}`}>
       <Toaster position="top-right" />
 
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className={`mx-auto space-y-6 ${isFullscreen ? "max-w-[99%]" : "max-w-7xl"}`}>
         {/* ── HEADER BANNER ── */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-950 via-green-900 to-emerald-900 text-white p-6 sm:p-8 shadow-xl border border-emerald-700/30">
           <div className="absolute -right-16 -top-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -1059,6 +1061,18 @@ const CompoundReferrals: React.FC = () => {
                       Reset to My Tree
                     </Button>
                   )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      window.open("/dashboard/my-network?view=fullscreen", "_blank");
+                    }}
+                    className="text-xs h-9 border-emerald-300 bg-emerald-50/50 text-emerald-800 hover:bg-emerald-100/70 rounded-xl shrink-0 flex items-center gap-1.5"
+                    title="Open 5×7 Organogram in a dedicated full page"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Open in New Page</span>
+                  </Button>
                 </form>
               </div>
 

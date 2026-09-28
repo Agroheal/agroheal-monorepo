@@ -34,6 +34,7 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import NextStepModal from "@/components/dashboard/NextStepModal";
 import JourneyProgressionHeader from "@/components/dashboard/JourneyProgressionHeader";
+import ForcePasswordChangeModal from "@/components/dashboard/ForcePasswordChangeModal";
 import { isLegacyMember, getGreenCardFee, formatNaira } from "@shared/businessRules";
 
 interface ReferralProps {
@@ -88,6 +89,10 @@ const Dashboard = () => {
   const [forceOpenNextStep, setForceOpenNextStep] = useState<boolean>(false);
   const [kinDetails, setKinDetails] = useState<KinDetails | null>(null);
   const [referralNumber, setReferralNumber] = useState("");
+  const [mustChangePassword, setMustChangePassword] = useState<boolean>(false);
+  const [assignedFarms, setAssignedFarms] = useState<
+    Array<{ id: string; name: string; project_category: string; slots: number }>
+  >([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -95,6 +100,11 @@ const Dashboard = () => {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
+
+      // Check if user was manually created and needs to set their personal password
+      if (user.user_metadata?.force_password_change) {
+        setMustChangePassword(true);
+      }
 
       // Fetch all dashboard data in a single parallel round-trip
       const [
@@ -104,6 +114,8 @@ const Dashboard = () => {
         { data: subscriptions },
         { data: checkoutsData },
         { data: greenCardSub },
+        farmRecordsRes,
+        farmGroupsRes,
       ] = await Promise.all([
         supabase
           .from("profiles")
@@ -121,7 +133,7 @@ const Dashboard = () => {
           .eq("referred_by", user.id),
         supabase
           .from("slot_subscriptions")
-          .select("id, slots, amount, last_payment_date, created_at")
+          .select("id, slots, amount, last_payment_date, created_at, farm_group_id, project_category")
           .eq("user_id", user.id),
         supabase
           .from("checkout")
@@ -138,6 +150,13 @@ const Dashboard = () => {
           .order("expires_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
+        user.email
+          ? supabase
+              .from("farm_records")
+              .select("id, farm_slots, project_category, farm_id, farm_groups(*)")
+              .ilike("email", user.email.trim())
+          : Promise.resolve({ data: [] }),
+        supabase.from("farm_groups").select("id, name, project_category, coordinator_id"),
       ]);
 
       if (selectError || !profileData) {
@@ -163,11 +182,47 @@ const Dashboard = () => {
 
       profileData.referrals = referrals || [];
 
-      const slotsCount = (subscriptions || []).reduce((total, item) => {
+      // Calculate total slots combining slot_subscriptions AND physical farm_records
+      const subSlotsCount = (subscriptions || []).reduce((total, item) => {
         const slotValue = Number(item?.slots ?? 0);
         return total + (Number.isNaN(slotValue) ? 0 : slotValue);
       }, 0);
-      setTotalSlotsPurchased(slotsCount);
+
+      const farmRecs = (farmRecordsRes?.data || []) as any[];
+      const farmRecordSlots = farmRecs.reduce((sum, r) => sum + (Number(r.farm_slots) || 0), 0);
+      const effectiveTotalSlots = subSlotsCount > 0 ? subSlotsCount : farmRecordSlots;
+      setTotalSlotsPurchased(effectiveTotalSlots);
+
+      // Resolve user's assigned group farms
+      const groupsMap = new Map((farmGroupsRes?.data || []).map((g: any) => [g.id, g]));
+      const userAssignedFarms: Array<{ id: string; name: string; project_category: string; slots: number }> = [];
+
+      (subscriptions || []).forEach((s: any) => {
+        if (s.farm_group_id && groupsMap.has(s.farm_group_id)) {
+          const g = groupsMap.get(s.farm_group_id);
+          if (!userAssignedFarms.some((a) => a.id === g.id)) {
+            userAssignedFarms.push({
+              id: g.id,
+              name: g.name,
+              project_category: g.project_category || s.project_category || "Mushroom Village",
+              slots: Number(s.slots) || 1,
+            });
+          }
+        }
+      });
+
+      farmRecs.forEach((r: any) => {
+        const g = r.farm_groups || (r.farm_id ? groupsMap.get(r.farm_id) : null);
+        if (g && !userAssignedFarms.some((a) => a.id === g.id)) {
+          userAssignedFarms.push({
+            id: g.id,
+            name: g.name,
+            project_category: g.project_category || r.project_category || "Mushroom Village",
+            slots: Number(r.farm_slots) || 0,
+          });
+        }
+      });
+      setAssignedFarms(userAssignedFarms);
 
       // Build unified recent payments from subscriptions and checkouts
       const combinedHistory: SlotPaymentHistoryItem[] = [];
@@ -311,6 +366,10 @@ const Dashboard = () => {
     <div className="min-h-screen bg-gray-50">
       <Toaster />
       <FarmingInitiativePopup />
+      <ForcePasswordChangeModal
+        isOpen={mustChangePassword}
+        onSuccess={() => setMustChangePassword(false)}
+      />
 
       <div className="bg-green-800 px-4 md:px-8 pt-8 pb-16">
         <motion.div
@@ -671,6 +730,47 @@ const Dashboard = () => {
             )}
           </div>
         </div>
+
+        {/* ── ASSIGNED GROUP FARM BANNER ── */}
+        {assignedFarms.length > 0 && (
+          <div className="bg-white rounded-2xl p-4 sm:p-5 text-gray-900 shadow-sm border border-emerald-200/70 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-800 shrink-0 shadow-inner">
+                <Sprout className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-sm sm:text-base text-gray-900">
+                    Assigned Farm Group: {assignedFarms.map((f) => f.name).join(", ")}
+                  </span>
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                    Active Production Cluster
+                  </span>
+                </div>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  Category: <span className="font-semibold text-emerald-800">{assignedFarms.map((f) => f.project_category).join(", ")}</span> · Your agricultural production slots are physically hosted in this community farm.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 w-full md:w-auto">
+              <Button
+                asChild
+                className="flex-1 md:flex-initial h-9 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-semibold text-xs px-4 shadow-xs cursor-pointer"
+              >
+                <Link to="/dashboard/farm-operations/farm-records">View Cluster Records</Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="flex-1 md:flex-initial h-9 rounded-xl border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs px-4 shadow-xs cursor-pointer"
+              >
+                <Link to="/dashboard/farm-operations/my-slots">My Farm Slots</Link>
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* ── REAL-TIME FARM PRODUCTION CYCLE TRACKER (MILESTONE 3) ── */}
         <div className="mb-6">

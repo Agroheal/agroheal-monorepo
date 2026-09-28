@@ -75,12 +75,17 @@ serve(async (req) => {
       // Generate secure temporary password
       const tempPassword = Math.random().toString(36).slice(-8) + "Ag!9";
 
-      // 1. Create auth user
+      // 1. Create auth user with force_password_change flag
       const { data: authData, error: createErr } = await adminClient.auth.admin.createUser({
         email: email.trim().toLowerCase(),
         password: tempPassword,
         email_confirm: true,
-        user_metadata: { full_name, phone }
+        user_metadata: {
+          full_name,
+          phone,
+          force_password_change: true,
+          is_manually_activated: true,
+        },
       });
 
       if (createErr) throw createErr;
@@ -99,30 +104,43 @@ serve(async (req) => {
       }
 
       // 3. Update profile record
+      const holdingExpiresAt = referrerId
+        ? new Date(Date.now() + 30 * 60 * 60 * 1000).toISOString()
+        : null;
+
       await adminClient
         .from("profiles")
         .update({
           email: newUser.email || email.trim().toLowerCase(),
           full_name,
           phone: phone?.trim() || null,
-          referred_by: referrerId
+          referred_by: referrerId,
+          sponsor_id: referrerId,
+          placement_status: referrerId ? "HOLDING_TANK" : "LOCKED",
+          holding_tank_expires_at: holdingExpiresAt,
         })
         .eq("id", newUser.id);
 
-      // 4. Assign Member ID
-      const { data: memberId } = await adminClient.rpc("get_or_create_green_card_member_id", {
+      // 4. Generate official 6-character referral code
+      await adminClient.rpc("get_or_create_referral_code", {
         p_user_id: newUser.id,
-        p_join_year: new Date().getFullYear()
       });
 
-      // 5. Create active Green Card subscription
-      await adminClient.from("subscriptions").insert({
-        user_id: newUser.id,
-        plan: "green_card",
-        status: "active",
-        started_at: new Date().toISOString(),
-        expires_at: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString()
+      // 5. Activate Green Card using official atomic procedure (generates AGC-XXXXXX-2026, credits 1k referrer, credits core drivers)
+      const { data: rpcRes, error: rpcErr } = await adminClient.rpc("admin_activate_green_card", {
+        p_user_id: newUser.id,
+        p_credit_referrer: Boolean(referrerId),
       });
+
+      let memberId = rpcRes?.member_id;
+      if (rpcErr || !memberId) {
+        // Fallback to direct ID generator if RPC had warning
+        const { data: fallbackId } = await adminClient.rpc("get_or_create_green_card_member_id", {
+          p_user_id: newUser.id,
+          p_join_year: new Date().getFullYear(),
+        });
+        memberId = fallbackId;
+      }
 
       return new Response(
         JSON.stringify({
@@ -132,8 +150,8 @@ serve(async (req) => {
             user_id: newUser.id,
             email: newUser.email,
             member_id: memberId,
-            temp_password: tempPassword
-          }
+            temp_password: tempPassword,
+          },
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -294,78 +312,27 @@ serve(async (req) => {
         );
       }
 
-      // 1. Assign / Retrieve Member ID
-      const { data: memberId, error: memberIdErr } = await adminClient.rpc("get_or_create_green_card_member_id", {
+      // Execute atomic DB procedure: assigns AGC-XXXXXX-2026, activates 1-yr sub, credits ₦1,000 to referrer, credits ₦50 to each driver
+      const { data: rpcRes, error: rpcErr } = await adminClient.rpc("admin_activate_green_card", {
         p_user_id: user_id,
-        p_join_year: new Date().getFullYear()
-      });
-      if (memberIdErr) console.error("Error generating member_id:", memberIdErr);
-
-      // 2. Check if first activation
-      const { data: existingSub } = await adminClient
-        .from("subscriptions")
-        .select("id")
-        .eq("user_id", user_id)
-        .eq("plan", "green_card")
-        .maybeSingle();
-
-      const isFirstActivation = !existingSub;
-
-      // 3. Upsert active Green Card subscription (1 year validity)
-      const oneYearFromNow = new Date();
-      oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
-
-      await adminClient.from("subscriptions").delete().eq("user_id", user_id).eq("plan", "green_card");
-      const { error: subErr } = await adminClient.from("subscriptions").insert({
-        user_id,
-        plan: "green_card",
-        status: "active",
-        started_at: new Date().toISOString(),
-        expires_at: oneYearFromNow.toISOString()
+        p_credit_referrer: credit_referrer,
       });
 
-      if (subErr) throw subErr;
-
-      // 4. Log offline payment record
-      const txRef = `ADMIN_GC_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-      await adminClient.from("other_payments").insert({
-        user_id,
-        payment_type: "green_card_offline",
-        amount: 1000,
-        slots: 0,
-        project_category: "Green Card Membership (Admin Offline Activation)",
-        status: "success",
-        transaction_ref: txRef
-      });
-
-      // 5. Credit referral earnings if first activation
-      if (credit_referrer && isFirstActivation) {
-        const { data: profile } = await adminClient
-          .from("profiles")
-          .select("referred_by")
-          .eq("id", user_id)
-          .maybeSingle();
-
-        if (profile?.referred_by) {
-          try {
-            await adminClient.rpc("increment_referral_earnings", {
-              p_referrer_id: profile.referred_by,
-              p_amount: 500
-            });
-          } catch (refErr) {
-            console.error("Referral increment error:", refErr);
-          }
-        }
+      if (rpcErr) {
+        throw rpcErr;
       }
+
+      const memberId = rpcRes?.member_id || "Assigned";
+      const expiresAt = rpcRes?.expires_at || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
 
       return new Response(
         JSON.stringify({
           success: true,
-          message: `Green Card activated successfully. Member ID: ${memberId || "Assigned"}`,
+          message: `Green Card activated successfully. Member ID: ${memberId}`,
           data: {
             member_id: memberId,
-            expires_at: oneYearFromNow.toISOString()
-          }
+            expires_at: expiresAt,
+          },
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

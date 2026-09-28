@@ -219,10 +219,26 @@ export async function createMember(input: {
 
     if (profErr) throw new Error(friendlyDbError(profErr, "Failed to register member."));
 
+    let generatedMemberId = newProfile?.member_id || "AGC-NEW-2026";
+    if (newProfile?.id) {
+      try {
+        await supabase.rpc("get_or_create_referral_code", { p_user_id: newProfile.id });
+        const { data: actRes } = await supabase.rpc("admin_activate_green_card", {
+          p_user_id: newProfile.id,
+          p_credit_referrer: Boolean(referrerId),
+        });
+        if (actRes?.member_id) {
+          generatedMemberId = actRes.member_id;
+        }
+      } catch (rpcErr) {
+        console.warn("Fallback RPC warning during member setup:", rpcErr);
+      }
+    }
+
     resultData = {
       email: sanitizedInput.email,
       temp_password: generatedPassword,
-      member_id: newProfile?.member_id || "AGC-NEW-2026",
+      member_id: generatedMemberId,
       user_id: newProfile?.id,
     };
   }

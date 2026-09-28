@@ -595,8 +595,8 @@ const FarmRecordsView = () => {
       platformFarmsRes,
     ] = await Promise.all([
       supabase.from("farm_groups").select("*").eq("coordinator_id", user.id),
-      supabase.from("farm_records").select("farm_id, farm_groups!inner(*)").eq("email", user.email),
-      supabase.from("slot_subscriptions").select("project_category").eq("user_id", user.id),
+      supabase.from("farm_records").select("farm_id, project_category, farm_groups(*)").ilike("email", user.email.trim()),
+      supabase.from("slot_subscriptions").select("project_category, farm_group_id").eq("user_id", user.id),
       (isAdmin || isSupport) ? supabase.from("farm_groups").select("*") : Promise.resolve({ data: [] }),
     ]);
 
@@ -604,6 +604,19 @@ const FarmRecordsView = () => {
     const memberFarms = (memberRecordsRes.data || []).map(
       (r: any) => r.farm_groups as unknown as FarmRecord["farm_groups"],
     ).filter(Boolean);
+
+    // Also fetch farms directly linked via slot_subscriptions.farm_group_id
+    const explicitFarmGroupIds = Array.from(
+      new Set((slotSubsRes.data || []).map((s: { farm_group_id?: string }) => s.farm_group_id).filter(Boolean))
+    );
+    let explicitFarms: FarmRecord["farm_groups"][] = [];
+    if (explicitFarmGroupIds.length > 0) {
+      const { data: expFarms } = await supabase
+        .from("farm_groups")
+        .select("*")
+        .in("id", explicitFarmGroupIds);
+      explicitFarms = (expFarms || []) as unknown as FarmRecord["farm_groups"][];
+    }
 
     const subscribedCategories = Array.from(
       new Set((slotSubsRes.data || []).map((s: { project_category?: string }) => s.project_category).filter(Boolean))
@@ -621,7 +634,7 @@ const FarmRecordsView = () => {
     const platformFarms = (platformFarmsRes.data || []) as unknown as FarmRecord["farm_groups"][];
 
     // Combine and deduplicate
-    const combinedFarms = [...coordFarms, ...memberFarms, ...slotSubFarms, ...platformFarms];
+    const combinedFarms = [...coordFarms, ...memberFarms, ...explicitFarms, ...slotSubFarms, ...platformFarms];
     const uniqueFarms = Array.from(
       new Map(combinedFarms.map((f) => [f.id, f])).values(),
     ) as Array<{ id: string; name: string; coordinator_id: string; project_category: string }>;
