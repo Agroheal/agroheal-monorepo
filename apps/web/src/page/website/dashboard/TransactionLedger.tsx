@@ -174,21 +174,58 @@ export default function TransactionLedger() {
         console.info("[TransactionLedger] Express Wallet API unavailable, continuing with database records:", apiErr.message);
       }
 
-      // 2. Database query for profile, subscriptions, and receipts
-      const [
-        { data: profile },
-        { data: referrals },
-        { data: subscriptions },
-        { data: otherPayments },
-        { data: checkouts },
-        { data: dbWalletLedger },
-        { data: dbOrders },
-      ] = await Promise.all([
-        supabase
+      // 2. Resilient Database query for profile, transactions, subscriptions, and receipts
+      let profile: any = null;
+      try {
+        const { data: pData, error: pErr } = await supabase
           .from("profiles")
           .select("member_id, full_name, email, referral_earnings, slot_bonus, wallet_balance, total_referrals, created_at, bank_name, bank_account_number, bank_account_name, bank_code, is_legacy, is_green_card_holder, has_greencard, greencard_status")
           .eq("id", user.id)
-          .maybeSingle(),
+          .maybeSingle();
+
+        if (pErr || !pData) {
+          // Fallback to core columns if newly added columns are not yet in PostgREST schema cache
+          const { data: fallbackData } = await supabase
+            .from("profiles")
+            .select("member_id, full_name, email, referral_earnings, slot_bonus, wallet_balance, total_referrals, created_at, bank_name, bank_account_number, bank_account_name, bank_code")
+            .eq("id", user.id)
+            .maybeSingle();
+          profile = fallbackData;
+        } else {
+          profile = pData;
+        }
+      } catch (err: any) {
+        console.warn("[TransactionLedger] Profile query error, attempting minimal fetch:", err.message);
+      }
+
+      let checkouts: any[] | null = null;
+      try {
+        const { data: txData, error: txErr } = await supabase
+          .from("transactions")
+          .select("id, amount, created_at, payment_reference, status, is_legacy")
+          .eq("user_id", user.id)
+          .limit(50);
+        if (txErr || !txData) {
+          const { data: coData } = await supabase
+            .from("checkout")
+            .select("id, amount, created_at, transaction_ref, status")
+            .eq("user_id", user.id)
+            .limit(50);
+          checkouts = coData;
+        } else {
+          checkouts = txData;
+        }
+      } catch {
+        // fallback
+      }
+
+      const [
+        { data: referrals },
+        { data: subscriptions },
+        { data: otherPayments },
+        { data: dbWalletLedger },
+        { data: dbOrders },
+      ] = await Promise.all([
         supabase
           .from("profiles")
           .select("id, created_at")
@@ -201,11 +238,6 @@ export default function TransactionLedger() {
           .from("other_payments")
           .select("id, amount, payment_type, created_at, status, reference, is_legacy")
           .eq("user_id", user.id),
-        supabase
-          .from("transactions")
-          .select("id, amount, created_at, payment_reference, status, is_legacy")
-          .eq("user_id", user.id)
-          .limit(50),
         supabase
           .from("wallet_ledger")
           .select("*")
