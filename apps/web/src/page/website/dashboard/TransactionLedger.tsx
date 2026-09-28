@@ -198,30 +198,22 @@ export default function TransactionLedger() {
         console.warn("[TransactionLedger] Profile query error, attempting minimal fetch:", err.message);
       }
 
-      let checkouts: any[] | null = null;
+      let checkouts: any[] = [];
       try {
-        const { data: txData, error: txErr } = await supabase
+        const { data: txData } = await supabase
           .from("transactions")
-          .select("id, amount, created_at, payment_reference, status, is_legacy")
-          .eq("user_id", user.id)
+          .select("id, amount, created_at, transaction_ref, payment_reference, status, is_legacy, project_category")
+          .or(`user_id.eq.${user.id},email.ilike.${user.email || ""}`)
           .limit(50);
-        if (txErr || !txData) {
-          const { data: coData } = await supabase
-            .from("checkout")
-            .select("id, amount, created_at, transaction_ref, status")
-            .eq("user_id", user.id)
-            .limit(50);
-          checkouts = coData;
-        } else {
-          checkouts = txData;
-        }
+        checkouts = txData || [];
       } catch {
-        // fallback
+        checkouts = [];
       }
 
       const [
         { data: referrals },
         { data: subscriptions },
+        { data: slotSubscriptions },
         { data: otherPayments },
         { data: dbWalletLedger },
         { data: dbOrders },
@@ -232,8 +224,17 @@ export default function TransactionLedger() {
           .eq("referred_by", user.id),
         supabase
           .from("subscriptions")
-          .select("id, slots, started_at, plan, status, expires_at")
+          .select("id, started_at, plan, status, expires_at")
           .eq("user_id", user.id),
+        user.email
+          ? supabase
+              .from("slot_subscriptions")
+              .select("id, slots, amount, status, project_category, created_at, farm_group_id, is_legacy, last_payment_date, member_name, member_email")
+              .or(`user_id.eq.${user.id},member_email.ilike.${user.email.trim()}`)
+          : supabase
+              .from("slot_subscriptions")
+              .select("id, slots, amount, status, project_category, created_at, farm_group_id, is_legacy, last_payment_date, member_name, member_email")
+              .eq("user_id", user.id),
         supabase
           .from("other_payments")
           .select("id, amount, payment_type, created_at, status, reference, is_legacy")
@@ -307,7 +308,8 @@ export default function TransactionLedger() {
       const hasActiveSub = Boolean(
         isCardHolder ||
         (subscriptions && subscriptions.some((s: any) => s.status === 'active' && (!s.expires_at || new Date(s.expires_at) > new Date()))) ||
-        (checkouts && checkouts.some((c: any) => c.status === 'paid'))
+        (slotSubscriptions && slotSubscriptions.some((s: any) => (s.status || '').toLowerCase() === 'active')) ||
+        (checkouts && checkouts.some((c: any) => ['paid', 'success', 'completed'].includes((c.status || '').toLowerCase())))
       );
       setIsProjectSubscribed(hasActiveSub);
 
@@ -323,6 +325,11 @@ export default function TransactionLedger() {
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
         let calculatedPqv = 0;
+        (slotSubscriptions || []).forEach((ss: any) => {
+          if (new Date(ss.created_at || ss.last_payment_date) >= thirtyDaysAgo) {
+            calculatedPqv += Number(ss.amount || 0);
+          }
+        });
         (otherPayments || []).forEach((p) => {
           if (new Date(p.created_at) >= thirtyDaysAgo) {
             calculatedPqv += Number(p.amount || 0);
@@ -372,9 +379,8 @@ export default function TransactionLedger() {
         });
       }
 
-      // 2. Subscriptions / Green Card
-      (subscriptions || []).forEach((s, idx) => {
-        const isSlot = Number(s.slots || 0) > 0;
+      // 2. Green Card Subscriptions
+      (subscriptions || []).forEach((s: any, idx: number) => {
         const sStatus = (s.status || "").toLowerCase();
         const isSubCompleted = ["active", "paid", "success", "confirmed", "completed"].includes(sStatus);
         const isSubFailed = ["cancelled", "canceled", "failed", "expired"].includes(sStatus);
@@ -382,19 +388,38 @@ export default function TransactionLedger() {
           id: `sub-${s.id || idx}`,
           date: s.started_at || new Date().toISOString(),
           type: "DEBIT",
-          category: isSlot ? "SLOT_PURCHASE" : "SUBSCRIPTION",
-          amount: isSlot ? Number(s.slots) * 5000 : 2000,
-          description: isSlot
-            ? `Secured ${s.slots} Group Farm Slot(s)`
-            : `AgroHeal Green Card Activation (${s.plan || "Annual"})`,
+          category: "SUBSCRIPTION",
+          amount: 2000,
+          description: `AgroHeal Green Card Activation (${s.plan || "Annual"})`,
           status: isSubCompleted ? "COMPLETED" : isSubFailed ? "FAILED" : "PENDING",
-          reference: `SUB-${(s.id || idx).toString().slice(0, 8)}`,
+          reference: `GC-${(s.id || idx).toString().slice(0, 8).toUpperCase()}`,
           is_legacy: Boolean(isLegacyMember(s.started_at)),
         });
       });
 
-      // 3. Other payments
-      (otherPayments || []).forEach((p) => {
+      // 3. Slot Subscriptions (Physical & Digital Group Farm Slots)
+      (slotSubscriptions || []).forEach((ss: any, idx: number) => {
+        const slotsCount = Number(ss.slots || 1);
+        const ssStatus = (ss.status || "active").toLowerCase();
+        const isSsCompleted = ["active", "paid", "success", "confirmed", "completed"].includes(ssStatus);
+        const isSsFailed = ["cancelled", "canceled", "failed", "expired"].includes(ssStatus);
+        const ref = `SLOT-${(ss.id || idx).toString().slice(0, 8).toUpperCase()}`;
+
+        items.push({
+          id: `slot-${ss.id || idx}`,
+          date: ss.created_at || ss.last_payment_date || new Date().toISOString(),
+          type: "DEBIT",
+          category: "SLOT_PURCHASE",
+          amount: Number(ss.amount) || slotsCount * 5000,
+          description: `Secured ${slotsCount} Slot(s) — ${ss.project_category || "Farm Project"}`,
+          status: isSsCompleted ? "COMPLETED" : isSsFailed ? "FAILED" : "PENDING",
+          reference: ref,
+          is_legacy: Boolean(ss.is_legacy),
+        });
+      });
+
+      // 4. Other payments
+      (otherPayments || []).forEach((p: any) => {
         const pStatus = (p.status || "").toLowerCase();
         const isPCompleted = ["confirmed", "active", "success", "paid", "completed"].includes(pStatus);
         const isPFailed = ["failed", "rejected"].includes(pStatus);
@@ -404,16 +429,17 @@ export default function TransactionLedger() {
           type: "DEBIT",
           category: "SUBSCRIPTION",
           amount: Number(p.amount || 0),
-          description: `${p.payment_type.replace(/_/g, " ").toUpperCase()} Contribution`,
+          description: `${(p.payment_type || "Payment").replace(/_/g, " ").toUpperCase()} Contribution`,
           status: isPCompleted ? "COMPLETED" : isPFailed ? "FAILED" : "PENDING",
           reference: p.reference || `PAY-${p.id.slice(0, 8)}`,
           is_legacy: Boolean(p.is_legacy || isLegacyMember(p.created_at)),
         });
       });
 
-      // 4. Checkouts
-      (checkouts || []).forEach((c) => {
-        if (!items.some((i) => i.reference === c.payment_reference)) {
+      // 5. Online Checkouts & Gateway Transactions
+      (checkouts || []).forEach((c: any) => {
+        const ref = c.transaction_ref || c.payment_reference || `CHK-${c.id.toString().slice(0, 8)}`;
+        if (!items.some((i) => i.reference === ref || (c.transaction_ref && i.reference === c.transaction_ref))) {
           const cStatus = (c.status || "").toLowerCase();
           const isCCompleted = ["paid", "success", "completed", "confirmed", "active"].includes(cStatus);
           const isCFailed = ["failed", "cancelled", "abandoned", "declined"].includes(cStatus);
@@ -423,15 +449,15 @@ export default function TransactionLedger() {
             type: "DEBIT",
             category: "SLOT_PURCHASE",
             amount: Number(c.amount || 0),
-            description: "Online Platform Payment",
+            description: c.project_category ? `Online Payment — ${c.project_category}` : "Online Platform Payment",
             status: isCCompleted ? "COMPLETED" : isCFailed ? "FAILED" : "PENDING",
-            reference: c.payment_reference || `CHK-${c.id.slice(0, 8)}`,
+            reference: ref,
             is_legacy: Boolean(c.is_legacy || isLegacyMember(c.created_at)),
           });
         }
       });
 
-      // 5. Official wallet_ledger entries (CORE_DRIVER_BONUS, wallet transactions)
+      // 6. Official wallet_ledger entries (CORE_DRIVER_BONUS, wallet debits/credits)
       (dbWalletLedger || []).forEach((entry: any) => {
         const ref = entry.reference_id || entry.id?.slice(0, 8) || "N/A";
         if (!items.some((it) => it.id === entry.id || (entry.category === "CORE_DRIVER_BONUS" && it.reference === ref))) {
@@ -804,16 +830,25 @@ export default function TransactionLedger() {
               {/* Name & Green Card ID Header Placement */}
               <div className="flex items-center gap-2 ml-auto text-right min-w-0">
                 <div className="min-w-0">
-                  {userProfile?.full_name ? (
-                    <p className="text-xs sm:text-sm font-bold text-white tracking-wide truncate max-w-[150px] sm:max-w-[200px]">
-                      {userProfile.full_name}
-                    </p>
-                  ) : null}
-                  {hasGreenCard && memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING") ? (
-                    <span className="text-[10px] font-mono font-bold text-emerald-300 block">
-                      {memberId}
-                    </span>
-                  ) : null}
+                  {loading ? (
+                    <div className="space-y-1 flex flex-col items-end">
+                      <Skeleton className="h-4 w-28 bg-white/20" />
+                      <Skeleton className="h-3 w-20 bg-white/15" />
+                    </div>
+                  ) : (
+                    <>
+                      {userProfile?.full_name ? (
+                        <p className="text-xs sm:text-sm font-bold text-white tracking-wide truncate max-w-[150px] sm:max-w-[200px]">
+                          {userProfile.full_name}
+                        </p>
+                      ) : null}
+                      {hasGreenCard && memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING") ? (
+                        <span className="text-[10px] font-mono font-bold text-emerald-300 block">
+                          {memberId}
+                        </span>
+                      ) : null}
+                    </>
+                  )}
                 </div>
                 <Wifi className="w-3.5 h-3.5 rotate-90 text-emerald-300/70 hidden sm:block shrink-0" />
               </div>
@@ -926,7 +961,44 @@ export default function TransactionLedger() {
           </div>
 
           {/* ── CARD 2 (RIGHT): CAPITAL GATEKEEPERS & LOCKED FUNDS BREAKDOWN (MATCHING COMPACT HEIGHT) ── */}
-          {!hasGreenCard ? (
+          {loading ? (
+            <div className="bg-gradient-to-br from-[#fafcf9] via-white to-emerald-50/40 rounded-3xl p-4.5 sm:p-5 border border-emerald-200/80 shadow-sm flex flex-col justify-between relative overflow-hidden space-y-2.5">
+              <div className="space-y-2.5 relative z-10">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="w-8 h-8 rounded-xl bg-gray-200" />
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-36 bg-gray-200" />
+                      <Skeleton className="h-3 w-48 bg-gray-100" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-5 w-24 rounded-full bg-emerald-950/15" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 bg-emerald-950/20 p-2.5 rounded-2xl border border-emerald-900/30">
+                  <div className="space-y-1">
+                    <Skeleton className="h-3 w-20 bg-emerald-900/30" />
+                    <Skeleton className="h-6 w-24 bg-emerald-900/40" />
+                    <Skeleton className="h-2.5 w-28 bg-emerald-900/20" />
+                  </div>
+                  <div className="space-y-1 border-l border-emerald-900/20 pl-2.5">
+                    <Skeleton className="h-3 w-20 bg-emerald-900/30" />
+                    <Skeleton className="h-6 w-24 bg-emerald-900/40" />
+                    <Skeleton className="h-2.5 w-28 bg-emerald-900/20" />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5 p-2 bg-gray-50/80 rounded-xl border border-gray-100">
+                  <Skeleton className="h-3 w-full bg-gray-200" />
+                  <Skeleton className="h-3 w-3/4 bg-gray-100" />
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-gray-100 mt-auto">
+                <Skeleton className="h-8.5 sm:h-9 w-full rounded-xl bg-gray-200" />
+              </div>
+            </div>
+          ) : !hasGreenCard ? (
             <div className="bg-gradient-to-br from-emerald-50/90 via-white to-green-50/60 text-gray-900 rounded-3xl p-4.5 sm:p-5 border border-emerald-200/90 shadow-sm flex flex-col justify-between relative overflow-hidden space-y-2.5">
               <div className="space-y-2.5 relative z-10">
                 <div className="flex items-center justify-between pb-2 border-b border-emerald-100">
