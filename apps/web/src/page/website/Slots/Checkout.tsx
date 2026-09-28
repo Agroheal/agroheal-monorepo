@@ -55,21 +55,48 @@ async function recordSubscriptionWithFarmGroupSplit({
   const DEFAULT_GROUP_ID = "230ab237-0770-4dce-84fe-221f224276bc"; // Pioneers Farm [Mushroom Village]
 
   if (isStarterPack || slots === 0) {
-    await supabase.from("slot_subscriptions").insert([
-      {
-        user_id: userId,
-        checkout_id: checkoutId,
-        amount: amount,
-        slotprice: 5000,
-        status: "active",
-        slots: 0,
-        last_payment_date: new Date().toISOString(),
-        next_payment_date: nextPaymentDate.toISOString(),
-        project_category: "Mushroom Village",
-        farm_group_id: DEFAULT_GROUP_ID,
-        is_starter_pack: true,
-      },
-    ]);
+    let productCode = "SP-MUSH-100G";
+    let productId: string | null = null;
+    let pvEarned = amount;
+    let productName = "Mushroom Power 100g";
+
+    try {
+      const { data: prod } = await supabase
+        .from("products")
+        .select("id, code, name, price, pv")
+        .eq("category", "STARTER_PACK")
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+
+      if (prod) {
+        productId = prod.id;
+        productCode = prod.code || productCode;
+        pvEarned = Number(prod.pv) || pvEarned;
+        productName = prod.name || productName;
+      }
+    } catch (e) {
+      console.warn("Could not query products table, falling back to default starter pack code:", e);
+    }
+
+    try {
+      await supabase.from("orders").insert([
+        {
+          user_id: userId,
+          transaction_id: checkoutId,
+          product_id: productId,
+          product_code: productCode,
+          quantity: 1,
+          unit_price: amount,
+          total_price: amount,
+          pv_earned: pvEarned,
+          status: "PAID",
+          notes: `Starter Pack Activation: ${productName} (${productCode})`,
+        },
+      ]);
+    } catch (orderErr) {
+      console.error("Failed to insert into orders table:", orderErr);
+    }
 
     await supabase
       .from("profiles")
@@ -199,10 +226,60 @@ const Checkout = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
+  const requestedProductCode = searchParams.get("code") || searchParams.get("product_code") || searchParams.get("sku");
   const isStarterPack =
     searchParams.get("item") === "starter_pack" ||
     searchParams.get("type") === "starter_pack" ||
-    searchParams.get("product") === "starter_pack";
+    searchParams.get("product") === "starter_pack" ||
+    (Boolean(requestedProductCode) && requestedProductCode!.toUpperCase().startsWith("SP-"));
+
+  const [starterProduct, setStarterProduct] = useState<{
+    id?: string;
+    code: string;
+    name: string;
+    price: number;
+    pv: number;
+    product_spec?: Record<string, any>;
+    description?: string;
+  }>({
+    code: requestedProductCode || "SP-MUSH-100G",
+    name: "Mushroom Power 100g",
+    price: 5000,
+    pv: 5000,
+    product_spec: {
+      crop: "mushroom",
+      weight: "100g",
+      form: "powder",
+      pack_edition: "2026-GEN1",
+    },
+  });
+
+  useEffect(() => {
+    if (isStarterPack) {
+      const codeToQuery = requestedProductCode || "SP-MUSH-100G";
+      supabase
+        .from("products")
+        .select("id, code, name, price, pv, product_spec, description")
+        .or(`code.eq.${codeToQuery},category.eq.STARTER_PACK`)
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setStarterProduct({
+              id: data.id,
+              code: data.code || codeToQuery,
+              name: data.name,
+              price: Number(data.price) || 5000,
+              pv: Number(data.pv) || 5000,
+              product_spec: data.product_spec,
+              description: data.description,
+            });
+          }
+        });
+    }
+  }, [isStarterPack, requestedProductCode]);
+
   const isGreenCardOnly = !isStarterPack && searchParams.get("product") === "green_card";
   const rawUrlSlots = searchParams.get("slots");
   const parsedSlots = rawUrlSlots !== null ? parseInt(rawUrlSlots, 10) : 1;
@@ -217,7 +294,7 @@ const Checkout = () => {
 
   const isFirstSlotPurchase = !hasPriorSlots;
   const slotsSubtotal = isStarterPack
-    ? 5000
+    ? starterProduct.price
     : (slotQuantity > 0
         ? calculateSlotSubtotal(slotQuantity, hasPriorSlots).subtotal
         : 0);
@@ -235,7 +312,6 @@ const Checkout = () => {
   const [walletAmountToUse, setWalletAmountToUse] = useState<number>(0);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true);
   const [currentUser, setCurrentUser] = useState<{ id: string; email?: string } | null>(null);
-  const [isEditingContact, setIsEditingContact] = useState<boolean>(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -333,9 +409,6 @@ const Checkout = () => {
         }
 
         const resolvedPhone = profile?.phone || (user.user_metadata?.phone as string) || "";
-        if (!resolvedPhone || normalizePhoneNumber(resolvedPhone).length < 10) {
-          setIsEditingContact(true);
-        }
 
         setFormData({
           firstName: extractedFirstName,
@@ -431,7 +504,6 @@ const Checkout = () => {
         description: "Please provide a valid contact phone number (at least 10 digits) before making payment.",
         variant: "destructive",
       });
-      setIsEditingContact(true);
       return null;
     }
 
@@ -1169,109 +1241,81 @@ const Checkout = () => {
                     </div>
                   ) : (
                     <div className="bg-emerald-50/50 rounded-2xl p-5 border border-emerald-200/80">
-                      <div className="flex items-center justify-between gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-3.5 min-w-0">
                           <div className="w-11 h-11 rounded-2xl bg-emerald-800 text-white font-bold flex items-center justify-center text-sm shadow-xs shrink-0">
                             {(formData.firstName?.[0] || formData.email?.[0] || currentUser?.email?.[0] || "M").toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="font-bold text-gray-900 text-sm truncate">
+                            <span className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wider block">
+                              You are purchasing as
+                            </span>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-bold text-gray-900 text-base truncate">
                                 {formData.firstName || formData.lastName
                                   ? `${formData.firstName} ${formData.lastName}`.trim()
                                   : currentUser?.email?.split("@")[0] || "Member"}
                               </p>
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
-                                Verified Member
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0 inline-flex items-center gap-1">
+                                <Lock className="w-2.5 h-2.5" />
+                                Verified Profile
                               </span>
                             </div>
-                            <p className="text-xs text-gray-500 font-mono truncate flex items-center gap-1 mt-0.5">
-                              <Lock className="w-3 h-3 text-emerald-600 shrink-0" />
+                            <p className="text-xs text-gray-600 font-mono truncate flex items-center gap-1 mt-0.5">
                               {formData.email || currentUser?.email}
                             </p>
                           </div>
                         </div>
 
-                        <button
-                          type="button"
-                          onClick={() => setIsEditingContact((prev) => !prev)}
-                          className="text-xs font-semibold text-emerald-700 hover:text-emerald-800 underline underline-offset-2 shrink-0 cursor-pointer"
-                        >
-                          {isEditingContact ? "Done" : "Edit details"}
-                        </button>
-                      </div>
-
-                      {formData.phone && isPhoneValid && !isEditingContact && (
-                        <div className="mt-3 pt-3 border-t border-emerald-100 flex items-center justify-between text-xs text-gray-600">
-                          <span>Contact Phone: <strong className="font-mono text-gray-900">{formData.phone}</strong></span>
-                          <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded">Compulsory &amp; Verified</span>
-                        </div>
-                      )}
-
-                      {!isPhoneValid && !isEditingContact && (
-                        <div className="mt-3 pt-3 border-t border-amber-200/90 flex items-center justify-between text-xs text-amber-800">
-                          <span className="flex items-center gap-1.5 font-medium">
-                            <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                            Contact phone number is missing (Compulsory)
-                          </span>
+                        {/* Escape hatch: Not you? Log out */}
+                        <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-emerald-100 sm:border-l sm:pl-4">
+                          <span className="text-xs text-gray-500">Not you?</span>
                           <button
                             type="button"
-                            onClick={() => setIsEditingContact(true)}
-                            className="text-xs font-bold text-emerald-800 underline underline-offset-2 cursor-pointer"
+                            onClick={async () => {
+                              try {
+                                await supabase.auth.signOut();
+                              } catch (e) {
+                                console.warn("Logout error:", e);
+                              }
+                              navigate("/signin");
+                            }}
+                            className="text-xs font-bold text-rose-600 hover:text-rose-700 underline underline-offset-2 transition-colors cursor-pointer"
                           >
-                            Add Phone Now
+                            Log out
                           </button>
                         </div>
-                      )}
+                      </div>
 
-                      {isEditingContact && (
-                        <div className="mt-4 pt-4 border-t border-emerald-100 space-y-3.5">
-                          <div className="grid sm:grid-cols-2 gap-3">
-                            <div className="space-y-1.5">
-                              <Label htmlFor="firstName" className="text-xs">First Name</Label>
-                              <Input
-                                id="firstName"
-                                name="firstName"
-                                placeholder="First name"
-                                value={formData.firstName}
-                                onChange={handleInputChange}
-                                className="h-9 text-xs bg-white"
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <Label htmlFor="lastName" className="text-xs">Last Name</Label>
-                              <Input
-                                id="lastName"
-                                name="lastName"
-                                placeholder="Last name"
-                                value={formData.lastName}
-                                onChange={handleInputChange}
-                                className="h-9 text-xs bg-white"
-                              />
-                            </div>
+                      {/* Contact Phone (Locked if present, else input field) */}
+                      {formData.phone && isPhoneValid ? (
+                        <div className="mt-3.5 pt-3 border-t border-emerald-100 flex items-center justify-between text-xs text-gray-600">
+                          <span>
+                            Contact Phone: <strong className="font-mono text-gray-900">{formData.phone}</strong>
+                          </span>
+                          <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded">
+                            Verified from Profile
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-3.5 pt-3 border-t border-amber-200/90 space-y-2">
+                          <div className="flex items-center justify-between text-xs text-amber-900">
+                            <span className="font-semibold flex items-center gap-1">
+                              <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              Contact Phone (for delivery &amp; payment SMS receipt)
+                            </span>
+                            <span className="text-[10px] text-amber-700 font-bold">* Compulsory</span>
                           </div>
-                          <div className="space-y-1.5">
-                            <div className="flex items-center justify-between">
-                              <Label htmlFor="phone" className="text-xs flex items-center gap-1 font-semibold text-gray-800">
-                                <span>Contact Phone Number</span>
-                                <span className="text-rose-500 font-bold">*</span>
-                              </Label>
-                              <span className="text-[10px] text-emerald-700 font-medium">Compulsory (min 10 digits)</span>
-                            </div>
-                            <Input
-                              id="phone"
-                              name="phone"
-                              type="tel"
-                              placeholder="e.g. 08012345678"
-                              value={formData.phone}
-                              onChange={handleInputChange}
-                              className={`h-9 text-xs bg-white ${!isPhoneValid && formData.phone ? "border-amber-400" : ""}`}
-                              required
-                            />
-                            {!isPhoneValid && formData.phone && (
-                              <p className="text-[11px] text-amber-700">Phone number must be at least 10 digits.</p>
-                            )}
-                          </div>
+                          <Input
+                            id="phone"
+                            name="phone"
+                            type="tel"
+                            placeholder="e.g. 08012345678"
+                            value={formData.phone}
+                            onChange={handleInputChange}
+                            className={`h-9 text-xs bg-white ${!isPhoneValid && formData.phone ? "border-amber-400" : ""}`}
+                            required
+                          />
                         </div>
                       )}
                     </div>
@@ -1830,18 +1874,28 @@ const Checkout = () => {
                     <Sprout className="w-6 h-6 text-primary-foreground" />
                   </div>
                   <h3 className="font-display text-lg font-semibold text-primary-foreground">
-                    {isStarterPack ? "Mushroom Starter Pack" : "Practicals Farm Slot"}
+                    {isStarterPack ? starterProduct.name : "Practicals Farm Slot"}
                   </h3>
                   <p className="text-primary-foreground/80 text-sm">
-                    {isStarterPack ? "Mushroom Power 100g (Legacy Member)" : "One growing season"}
+                    {isStarterPack
+                      ? `Codename: ${starterProduct.code} • ${starterProduct.product_spec?.weight || "100g"}`
+                      : "One growing season"}
                   </p>
                 </div>
 
                 <div className="p-6 space-y-4">
                   {isStarterPack ? (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Mushroom Starter Pack (100g)</span>
-                      <span className="text-foreground font-semibold">₦5,000</span>
+                    <div className="space-y-1.5 pb-2 border-b border-border/40">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground font-medium">{starterProduct.name}</span>
+                        <span className="text-foreground font-bold font-mono">₦{starterProduct.price.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-[11px] font-semibold text-primary">
+                          {starterProduct.code}
+                        </span>
+                        <span className="text-emerald-700 font-medium">+{starterProduct.pv} PV (30d PQV Qualified)</span>
+                      </div>
                     </div>
                   ) : isFirstSlotPurchase ? (
                     <>

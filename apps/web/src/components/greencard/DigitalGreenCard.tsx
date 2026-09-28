@@ -17,10 +17,10 @@ import {
   Info,
   Radio,
   Wifi,
+  User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
-import GreenCardImage from "@/components/webComponents/GreenCardImage";
 import { SITE_URL } from "@/config/Index";
 
 export interface DigitalGreenCardProps {
@@ -31,6 +31,7 @@ export interface DigitalGreenCardProps {
   isActive?: boolean;
   className?: string;
   showControls?: boolean;
+  avatarUrl?: string;
 }
 
 export function formatAgcId(id?: string): string {
@@ -46,6 +47,7 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
   memberId,
   memberSince = "SEPTEMBER 2026",
   referralCode,
+  avatarUrl,
   isActive = true,
   className = "",
   showControls = true,
@@ -253,70 +255,59 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
             Activate Green Card — ₦2,000
           </Button>
         </div>
-      ) : viewMode === "classic" ? (
-        /* Flat 2D Card View without outer background box */
-        <div className="w-full flex justify-center py-2">
-          <GreenCardImage
-            memberName={memberName}
-            memberId={formattedId}
-            memberSince={memberSince}
-            qrValue={verificationUrl}
-            fileName={formattedId}
-            qrRenderer={(value, size) => (
-              <QRCode
-                value={value}
-                size={size}
-                bgColor="#ffffff"
-                fgColor="#064e3b"
-              />
-            )}
-          />
-        </div>
       ) : (
-        /* ── LUXURY 3D INTERACTIVE GREEN CARD (FRONT & BACK FLIP) ── */
-        <div className="perspective-1200 w-full select-none py-2">
-          {/* Card 3D Tilt Anchor */}
-          <div
-            ref={cardRef}
-            onMouseMove={handleMouseMove}
-            onMouseLeave={handleMouseLeave}
-            onClick={() => setIsFlipped((f) => !f)}
-            style={{
-              transform: `rotateY(${isFlipped ? 180 + tilt.rotateY : tilt.rotateY}deg) rotateX(${tilt.rotateX}deg)`,
-              transition: "transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease",
-            }}
-            className="transform-style-3d relative w-full aspect-[1.586/1] max-w-[580px] mx-auto rounded-2xl sm:rounded-3xl cursor-pointer shadow-2xl hover:shadow-[0_25px_50px_-12px_rgba(4,46,26,0.6)]"
-          >
-            {/* ═══════════════════════════════════════════════ */}
-            {/* ── CARD FRONT FACE ── */}
-            {/* ═══════════════════════════════════════════════ */}
+        (() => {
+          const renderCardFront = (isFlat = false) => (
             <div
-              className="backface-hidden absolute inset-0 w-full h-full rounded-2xl sm:rounded-3xl overflow-hidden border border-amber-400/40 p-5 sm:p-7 flex flex-col justify-between"
+              className={`${
+                isFlat ? "relative" : "backface-hidden absolute inset-0"
+              } w-full h-full rounded-2xl sm:rounded-3xl overflow-hidden border border-amber-400/40 p-5 sm:p-7 flex flex-col justify-between`}
               style={{
                 background: `
                   radial-gradient(circle at 85% 15%, rgba(16, 185, 129, 0.25) 0%, transparent 40%),
                   radial-gradient(circle at 20% 85%, rgba(217, 119, 6, 0.18) 0%, transparent 45%),
                   linear-gradient(135deg, #022013 0%, #064024 45%, #08381e 75%, #021a0d 100%)
                 `,
-                boxShadow: "inset 0 0 0 1px rgba(251, 191, 36, 0.35), inset 0 2px 4px rgba(255, 255, 255, 0.2)",
+                boxShadow:
+                  "inset 0 0 0 1px rgba(251, 191, 36, 0.35), inset 0 2px 4px rgba(255, 255, 255, 0.2)",
               }}
             >
-              {/* Dynamic Prismatic Holographic Glare Overlay */}
-              <div
-                className="absolute inset-0 pointer-events-none transition-opacity duration-300"
-                style={{
-                  opacity: glare.opacity,
-                  background: `radial-gradient(circle at ${glare.x}% ${glare.y}%, rgba(255, 255, 255, 0.35) 0%, rgba(212, 175, 55, 0.2) 25%, rgba(16, 185, 129, 0.15) 50%, transparent 70%)`,
-                  mixBlendMode: "overlay",
-                }}
-              />
+              {/* Dynamic Prismatic Holographic Glare Overlay (3D only) */}
+              {!isFlat && (
+                <div
+                  className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+                  style={{
+                    opacity: glare.opacity,
+                    background: `radial-gradient(circle at ${glare.x}% ${glare.y}%, rgba(255, 255, 255, 0.35) 0%, rgba(212, 175, 55, 0.2) 25%, rgba(16, 185, 129, 0.15) 50%, transparent 70%)`,
+                    mixBlendMode: "overlay",
+                  }}
+                />
+              )}
 
               {/* Brushed Texture Subtle Security Micro-Lattice */}
-              <svg className="absolute inset-0 w-full h-full opacity-10 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+              <svg
+                className="absolute inset-0 w-full h-full opacity-10 pointer-events-none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
                 <defs>
-                  <pattern id="guilloche" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 0,20 Q 10,0 20,20 T 40,20" fill="none" stroke="#fcd34d" strokeWidth="0.75" />
-                    <path d="M 0,20 Q 10,40 20,20 T 40,20" fill="none" stroke="#6ee7b7" strokeWidth="0.75" />
+                  <pattern
+                    id="guilloche"
+                    width="40"
+                    height="40"
+                    patternUnits="userSpaceOnUse"
+                  >
+                    <path
+                      d="M 0,20 Q 10,0 20,20 T 40,20"
+                      fill="none"
+                      stroke="#fcd34d"
+                      strokeWidth="0.75"
+                    />
+                    <path
+                      d="M 0,20 Q 10,40 20,20 T 40,20"
+                      fill="none"
+                      stroke="#6ee7b7"
+                      strokeWidth="0.75"
+                    />
                   </pattern>
                 </defs>
                 <rect width="100%" height="100%" fill="url(#guilloche)" />
@@ -355,29 +346,47 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
                 </div>
               </div>
 
-              {/* ── CARD FRONT: MIDDLE ROW (COMMUNITY SECURITY EMBLEM & PRISMATIC SEAL) ── */}
-              <div className="relative z-10 flex items-center justify-between my-auto py-1">
-                {/* Official Community Pass Security Seal */}
-                <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-950/80 to-emerald-900/60 border border-emerald-400/30 backdrop-blur-xs shadow-inner">
-                  <div className="w-5 h-5 rounded-lg bg-emerald-400/20 flex items-center justify-center border border-emerald-400/40">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
+              {/* ── CARD FRONT: MIDDLE ROW (SECURITY EMBLEM & PASSPORT PHOTO) ── */}
+              <div className="relative z-10 flex items-center justify-between my-auto py-1 gap-2">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 min-w-0">
+                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-950/80 to-emerald-900/60 border border-emerald-400/30 backdrop-blur-xs shadow-inner">
+                    <div className="w-5 h-5 rounded-lg bg-emerald-400/20 flex items-center justify-center border border-emerald-400/40 shrink-0">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-[8px] font-mono tracking-widest text-emerald-300/80 uppercase leading-none truncate">
+                        COMMUNITY DIGITAL PASS
+                      </span>
+                      <span className="block text-[10px] sm:text-[11px] font-bold tracking-wider font-mono text-amber-300 leading-tight">
+                        LEAP SECURE ID
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <span className="block text-[8px] font-mono tracking-widest text-emerald-300/80 uppercase leading-none">
-                      COMMUNITY DIGITAL PASS
-                    </span>
-                    <span className="block text-[10px] sm:text-[11px] font-bold tracking-wider font-mono text-amber-300 leading-tight">
-                      LEAP SECURE ID
+
+                  <div className="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-xs items-center gap-1.5 shadow-inner shrink-0">
+                    <Award className="w-4 h-4 text-emerald-400" />
+                    <span className="text-[10px] font-semibold text-emerald-100 tracking-wide">
+                      VERIFIED SECURE
                     </span>
                   </div>
                 </div>
 
-                {/* Holographic Security Emblem */}
-                <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-xs flex items-center gap-1.5 shadow-inner">
-                  <Award className="w-4 h-4 text-emerald-400" />
-                  <span className="text-[10px] sm:text-xs font-semibold text-emerald-100 tracking-wide">
-                    VERIFIED SECURE
-                  </span>
+                {/* Passport Photo Frame */}
+                <div className="w-12 h-14 sm:w-14 sm:h-16 rounded-xl border-2 border-amber-300/70 overflow-hidden shadow-md bg-emerald-950/90 flex items-center justify-center shrink-0">
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={memberName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-emerald-900/90 to-emerald-950 p-1 text-center">
+                      <User className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300/80 mb-0.5" />
+                      <span className="text-[7px] sm:text-[8px] font-mono tracking-wider font-semibold text-emerald-300/70">
+                        PHOTO
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -432,14 +441,16 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
                 <span>Click to flip</span>
               </div>
             </div>
+          );
 
-            {/* ═══════════════════════════════════════════════ */}
-            {/* ── CARD BACK FACE ── */}
-            {/* ═══════════════════════════════════════════════ */}
+          const renderCardBack = (isFlat = false) => (
             <div
-              className="backface-hidden rotate-y-180 absolute inset-0 w-full h-full rounded-2xl sm:rounded-3xl overflow-hidden border border-amber-400/30 flex flex-col justify-between"
+              className={`${
+                isFlat ? "relative" : "backface-hidden rotate-y-180 absolute inset-0"
+              } w-full h-full rounded-2xl sm:rounded-3xl overflow-hidden border border-amber-400/30 flex flex-col justify-between`}
               style={{
-                background: "linear-gradient(145deg, #021a0e 0%, #052c18 50%, #02160b 100%)",
+                background:
+                  "linear-gradient(145deg, #021a0e 0%, #052c18 50%, #02160b 100%)",
                 boxShadow: "inset 0 0 0 1px rgba(251, 191, 36, 0.25)",
               }}
             >
@@ -495,16 +506,81 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
               <div className="px-5 sm:px-7 pb-4 sm:pb-5 pt-1 border-t border-white/10 flex items-center justify-between text-[8px] sm:text-[9px] text-emerald-300/70">
                 <div className="flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-amber-300" />
-                  <span>Official Verification: {SITE_URL.replace(/^https?:\/\//, "")}/verify</span>
+                  <span>
+                    Official Verification: {SITE_URL.replace(/^https?:\/\//, "")}/verify
+                  </span>
                 </div>
                 <div className="font-mono text-amber-200/80">
                   REF: {formattedId}
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          );
+
+          if (viewMode === "classic") {
+            return (
+              /* Flat 2D Card View - EXACT same luxury design as 3D, rendered flat */
+              <div className="w-full select-none py-2 space-y-3">
+                <div className="flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsFlipped(false)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                      !isFlipped
+                        ? "bg-emerald-800 text-white shadow-xs"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    Card Front Face
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsFlipped(true)}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                      isFlipped
+                        ? "bg-emerald-800 text-white shadow-xs"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    Card Back Face (QR)
+                  </button>
+                </div>
+
+                <div
+                  onClick={() => setIsFlipped((f) => !f)}
+                  className="relative w-full aspect-[1.586/1] max-w-[580px] mx-auto rounded-2xl sm:rounded-3xl cursor-pointer shadow-xl border border-amber-400/40 overflow-hidden"
+                >
+                  {!isFlipped ? renderCardFront(true) : renderCardBack(true)}
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            /* ── LUXURY 3D INTERACTIVE GREEN CARD (FRONT & BACK FLIP) ── */
+            <div className="perspective-1200 w-full select-none py-2">
+              <div
+                ref={cardRef}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+                onClick={() => setIsFlipped((f) => !f)}
+                style={{
+                  transform: `rotateY(${
+                    isFlipped ? 180 + tilt.rotateY : tilt.rotateY
+                  }deg) rotateX(${tilt.rotateX}deg)`,
+                  transition:
+                    "transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease",
+                }}
+                className="transform-style-3d relative w-full aspect-[1.586/1] max-w-[580px] mx-auto rounded-2xl sm:rounded-3xl cursor-pointer shadow-2xl hover:shadow-[0_25px_50px_-12px_rgba(4,46,26,0.6)]"
+              >
+                {renderCardFront(false)}
+                {renderCardBack(false)}
+              </div>
+            </div>
+          );
+        })()
+      )
+      }
 
       {/* ── CARD ACTION TOOLBAR ── */}
       {isActive && showControls && (

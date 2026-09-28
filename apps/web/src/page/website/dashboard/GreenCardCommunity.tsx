@@ -32,6 +32,7 @@ export const GreenCardCommunity: React.FC = () => {
   const [fullName, setFullName] = useState<string>("");
   const [memberId, setMemberId] = useState<string>("");
   const [memberSince, setMemberSince] = useState<string>("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -59,7 +60,7 @@ export const GreenCardCommunity: React.FC = () => {
             .maybeSingle(),
           supabase
             .from("profiles")
-            .select("referral_code, member_id, full_name, created_at")
+            .select("referral_code, member_id, full_name, created_at, avatar_url")
             .eq("id", user.id)
             .maybeSingle()
         ]);
@@ -96,6 +97,7 @@ export const GreenCardCommunity: React.FC = () => {
         }
 
         setFullName(profile?.full_name ?? "");
+        setAvatarUrl(profile?.avatar_url || null);
         if (profile?.referral_code) {
           setReferralCode(profile.referral_code);
         }
@@ -236,6 +238,7 @@ export const GreenCardCommunity: React.FC = () => {
           memberId={memberId || undefined}
           memberSince={memberSince}
           referralCode={referralCode}
+          avatarUrl={avatarUrl || undefined}
           isActive={hasGreenCard}
         />
       </div>

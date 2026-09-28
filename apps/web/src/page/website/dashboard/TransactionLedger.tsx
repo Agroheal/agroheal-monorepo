@@ -42,7 +42,7 @@ interface LedgerItem {
   id: string;
   date: string;
   type: "CREDIT" | "DEBIT";
-  category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION" | "CORE_DRIVER_BONUS";
+  category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION" | "CORE_DRIVER_BONUS" | "RETAIL_PURCHASE";
   amount: number;
   description: string;
   status: "COMPLETED" | "PENDING" | "FAILED";
@@ -110,6 +110,7 @@ export default function TransactionLedger() {
     walletBalance,
     directReferralEarnings + matrixEarnings
   );
+  const totalLockedAmount = Math.max(0, ledgerBalance - availableBalance);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -181,6 +182,7 @@ export default function TransactionLedger() {
         { data: otherPayments },
         { data: checkouts },
         { data: dbWalletLedger },
+        { data: dbOrders },
       ] = await Promise.all([
         supabase
           .from("profiles")
@@ -209,7 +211,13 @@ export default function TransactionLedger() {
           .select("*")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false }),
+        supabase
+          .from("orders")
+          .select("id, product_code, quantity, total_price, pv_earned, status, notes, created_at")
+          .eq("user_id", user.id),
       ]);
+
+      const orders = dbOrders || [];
 
       if (profile) {
         setUserProfile({
@@ -277,7 +285,7 @@ export default function TransactionLedger() {
       setDirectReferralsCount(refCount);
       setSelectedMatrixLevel(refCount < 5 ? (refCount < 4 ? refCount + 1 : 5) : 1);
 
-      // Compute 30-day PQV from slot subscriptions and monthly payments
+      // Compute 30-day PQV from slot subscriptions, retail orders, and monthly payments
       if (apiSummary?.matrixSpilloverWallet?.activePqv30d === undefined) {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -286,6 +294,12 @@ export default function TransactionLedger() {
         (otherPayments || []).forEach((p) => {
           if (new Date(p.created_at) >= thirtyDaysAgo) {
             calculatedPqv += Number(p.amount || 0);
+          }
+        });
+        (orders || []).forEach((o: any) => {
+          const isPaid = (o.status || "").toUpperCase() === "PAID";
+          if (isPaid && new Date(o.created_at) >= thirtyDaysAgo) {
+            calculatedPqv += Number(o.pv_earned || o.total_price || 0);
           }
         });
         setActivePqv30d(calculatedPqv);
@@ -402,6 +416,22 @@ export default function TransactionLedger() {
             is_legacy: Boolean(entry.is_legacy || isLegacyMember(entry.created_at)),
           });
         }
+      });
+
+      // 6. Retail & Starter Pack Product Orders
+      (orders || []).forEach((ord: any) => {
+        const isPaid = (ord.status || "").toUpperCase() === "PAID";
+        items.push({
+          id: `ord-${ord.id}`,
+          date: ord.created_at || new Date().toISOString(),
+          type: "DEBIT",
+          category: "RETAIL_PURCHASE",
+          amount: Number(ord.total_price || 0),
+          description: ord.notes || `Product Order (${ord.product_code || "Starter Pack"})`,
+          status: isPaid ? "COMPLETED" : "PENDING",
+          reference: `ORD-${(ord.id || "").toString().slice(0, 8).toUpperCase()}`,
+          is_legacy: Boolean(isLegacyMember(ord.created_at)),
+        });
       });
 
       // Sort by date descending
@@ -863,48 +893,53 @@ export default function TransactionLedger() {
             </div>
           </div>
 
-          {/* ── CARD 2 (RIGHT): CONDITIONAL GREEN CARD ACTIVATION OR 5x7 MATRIX PIPELINE (MATCHING COMPACT HEIGHT) ── */}
+          {/* ── CARD 2 (RIGHT): CAPITAL GATEKEEPERS & LOCKED FUNDS BREAKDOWN (MATCHING COMPACT HEIGHT) ── */}
           {!hasGreenCard ? (
             <div className="bg-gradient-to-br from-emerald-50/90 via-white to-green-50/60 text-gray-900 rounded-3xl p-4.5 sm:p-5 border border-emerald-200/90 shadow-sm flex flex-col justify-between relative overflow-hidden space-y-2.5">
               <div className="space-y-2.5 relative z-10">
                 <div className="flex items-center justify-between pb-2 border-b border-emerald-100">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center border border-emerald-200 font-bold shrink-0">
-                      <Award className="w-4 h-4 text-emerald-700" />
+                    <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center border border-amber-200 font-bold shrink-0">
+                      <Lock className="w-4 h-4 text-amber-700" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm">AgroHeal Green Card (AGC)</h3>
-                      <p className="text-[10px] text-gray-500">Community Identity & Matrix Key</p>
+                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm">Locked Capital &amp; Green Card Gate</h3>
+                      <p className="text-[10px] text-gray-500">Official Membership Credential Required</p>
                     </div>
                   </div>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-200 shrink-0">
-                    Not Activated
+                    Pass Inactive
                   </span>
                 </div>
 
-                <div className="bg-white/90 border border-emerald-100 rounded-2xl p-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-gray-700 shadow-2xs">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span className="truncate">Permanent Member ID & QR</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span className="truncate">Academy Video Curricula</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span className="truncate">₦1,000 Direct Referral Rewards</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span className="truncate">7-Level 5×7 Matrix Placement</span>
+                <div className="bg-white/90 border border-amber-200/70 rounded-2xl p-3 space-y-2 shadow-2xs">
+                  <p className="text-xs text-amber-950 font-semibold leading-relaxed">
+                    Activate your <strong>₦2,000 AgroHeal Green Card</strong> to unlock:
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-gray-700">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span className="truncate">₦1,000 Direct Referral Rewards</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span className="truncate">7-Tier 5×7 Matrix Placement</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span className="truncate">Official Member ID &amp; QR</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                      <span className="truncate">Academy Video Curricula</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
               <div className="pt-2 border-t border-emerald-100 space-y-1.5 relative z-10 mt-auto">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-500">One-Time Activation Fee</span>
+                  <span className="text-gray-500">Activation Pass Fee</span>
                   <span className="font-mono font-black text-base text-emerald-950">₦2,000</span>
                 </div>
                 <Button
@@ -919,157 +954,170 @@ export default function TransactionLedger() {
               </div>
             </div>
           ) : (
-            <div className="bg-gradient-to-br from-emerald-50/50 via-white to-green-50/30 rounded-3xl p-4.5 sm:p-5 border border-emerald-200/80 shadow-sm flex flex-col justify-between space-y-2.5 text-gray-900">
+            <div className="bg-gradient-to-br from-[#fafcf9] via-white to-emerald-50/40 rounded-3xl p-4.5 sm:p-5 border border-emerald-200/80 shadow-sm flex flex-col justify-between space-y-2 text-gray-900">
               <div className="space-y-2">
                 {/* Header Row */}
-                <div className="flex items-center justify-between pb-2 border-b border-emerald-100">
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shrink-0">
-                      <Users className="w-4 h-4 text-emerald-700" />
+                    <div
+                      className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold shrink-0 ${
+                        totalLockedAmount > 0
+                          ? "bg-amber-100 text-amber-900 border border-amber-200"
+                          : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                      }`}
+                    >
+                      {totalLockedAmount > 0 ? (
+                        <Lock className="w-4 h-4 text-amber-700" />
+                      ) : (
+                        <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                      )}
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm">5×7 Community Matrix Pipeline</h3>
-                      <p className="text-[10px] text-gray-500">7-Level Spillover Network (Not a Wallet)</p>
+                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm">Locked Capital &amp; Gatekeepers</h3>
+                      <p className="text-[10px] text-gray-500">Real-time audit of restricted funds vs release conditions</p>
                     </div>
                   </div>
                   <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                      isMatrixQualified
-                        ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                        : "bg-amber-100 text-amber-800 border border-amber-200"
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 inline-flex items-center gap-1 ${
+                      totalLockedAmount > 0
+                        ? "bg-amber-100 text-amber-900 border border-amber-200"
+                        : "bg-emerald-100 text-emerald-800 border border-emerald-200"
                     }`}
                   >
-                    {isMatrixQualified ? "Qualified" : "Qualification Required"}
+                    {totalLockedAmount > 0 ? (
+                      <>
+                        <Lock className="w-3 h-3 text-amber-700" />
+                        <span>₦{totalLockedAmount.toLocaleString()} Locked</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                        <span>100% Cleared</span>
+                      </>
+                    )}
                   </span>
                 </div>
 
-                {/* Accrued Matrix Earnings & Depth */}
-                <div className="flex items-baseline justify-between pt-0.5">
+                {/* Hero Total Locked Balance & Summary */}
+                <div className="grid grid-cols-2 gap-2 bg-emerald-950 text-white p-2.5 rounded-2xl shadow-inner border border-emerald-900">
                   <div>
-                    <span className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider block">
-                      Accrued Matrix Dividends
+                    <span className="text-[9px] text-emerald-300 font-bold uppercase tracking-wider block">
+                      Total Locked Capital
                     </span>
-                    {loading ? (
-                      <Skeleton className="h-7 w-28 my-0.5" />
-                    ) : (
-                      <p className="text-xl sm:text-2xl font-black text-emerald-950 font-mono tracking-tight">
-                        ₦{matrixEarnings.toLocaleString()}
-                      </p>
-                    )}
+                    <p className="text-xl sm:text-2xl font-black font-mono text-amber-300 tracking-tight">
+                      ₦{totalLockedAmount.toLocaleString()}
+                    </p>
+                    <span className="text-[9px] text-emerald-200/70 block">
+                      Pending gatekeeper releases
+                    </span>
                   </div>
-                  <div className="text-right text-[11px]">
-                    <span className="text-gray-500">Active Depth:</span>{" "}
-                    <span className="font-bold text-emerald-800">
-                      {directReferralsCount >= 5
-                        ? "All 7 Levels"
-                        : directReferralsCount > 0
-                        ? `Levels 1-${directReferralsCount}`
-                        : "Level 0"}
+
+                  <div className="border-l border-white/10 pl-2.5">
+                    <span className="text-[9px] text-emerald-300 font-bold uppercase tracking-wider block">
+                      Cleared Available
+                    </span>
+                    <p className="text-xl sm:text-2xl font-black font-mono text-emerald-400 tracking-tight">
+                      ₦{availableBalance.toLocaleString()}
+                    </p>
+                    <span className="text-[9px] text-emerald-200/70 block">
+                      Ready for bank withdrawal
                     </span>
                   </div>
                 </div>
 
-                {/* 30-Day Gatekeeper Progress (Compact 2-col) */}
-                <div className="grid grid-cols-2 gap-2 bg-white/80 p-2 rounded-xl border border-emerald-100">
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-gray-600 font-medium">1. Directs:</span>
-                      <span className={`font-bold font-mono ${directReferralsCount >= 5 ? "text-emerald-700" : "text-amber-700"}`}>
-                        {directReferralsCount}/5 {directReferralsCount >= 5 && "✓"}
+                {/* Breakdown List: Due to what? */}
+                <div className="space-y-1.5">
+                  {/* Gate 1: 5×7 Matrix Pool */}
+                  <div
+                    className={`p-2 rounded-xl border text-[11px] transition-all ${
+                      isMatrixQualified
+                        ? "bg-emerald-50/60 border-emerald-200/70 text-emerald-950"
+                        : "bg-amber-50/70 border-amber-200 text-amber-950"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between font-bold mb-0.5">
+                      <span className="flex items-center gap-1.5">
+                        {isMatrixQualified ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        ) : (
+                          <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        )}
+                        <span>1. 5×7 Matrix Spillover</span>
                       </span>
+                      <span className="font-mono">₦{matrixEarnings.toLocaleString()}</span>
                     </div>
-                    <div className="w-full h-1 rounded-full bg-gray-200 overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-600 rounded-full transition-all duration-300"
-                        style={{ width: `${Math.min(100, (directReferralsCount / 5) * 100)}%` }}
-                      />
+                    <div className="text-[10px] text-gray-600 flex items-center justify-between">
+                      <span>Condition: 5 Directs ({directReferralsCount}/5) &amp; ₦5k 30d PQV (₦{(activePqv30d / 1000).toFixed(0)}k/₦5k)</span>
+                      <span className={`font-semibold ${isMatrixQualified ? "text-emerald-700" : "text-amber-700"}`}>
+                        {isMatrixQualified ? "Cleared ✓" : "Locked in Ledger"}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="text-gray-600 font-medium">2. 30d PQV:</span>
-                      <span className={`font-bold font-mono ${activePqv30d >= 5000 ? "text-emerald-700" : "text-amber-700"}`}>
-                        ₦{(activePqv30d / 1000).toFixed(0)}k/₦5k {activePqv30d >= 5000 && "✓"}
+                  {/* Gate 2: Direct Referral Bonuses */}
+                  <div
+                    className={`p-2 rounded-xl border text-[11px] transition-all ${
+                      isDirectReferralWithdrawable
+                        ? "bg-emerald-50/60 border-emerald-200/70 text-emerald-950"
+                        : "bg-amber-50/70 border-amber-200 text-amber-950"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between font-bold mb-0.5">
+                      <span className="flex items-center gap-1.5">
+                        {isDirectReferralWithdrawable ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        ) : (
+                          <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        )}
+                        <span>2. Direct Referral Rewards</span>
                       </span>
+                      <span className="font-mono">₦{directReferralEarnings.toLocaleString()}</span>
                     </div>
-                    <div className="w-full h-1 rounded-full bg-gray-200 overflow-hidden">
-                      <div
-                        className="h-full bg-emerald-600 rounded-full transition-all duration-300"
-                        style={{ width: `${Math.min(100, (activePqv30d / 5000) * 100)}%` }}
-                      />
+                    <div className="text-[10px] text-gray-600 flex items-center justify-between">
+                      <span>
+                        {!isProjectSubscribed
+                          ? "Condition: Farm Slot Project Subscription Required"
+                          : directReferralEarnings < 2000
+                          ? `Condition: ₦2,000 Min. Payout (₦${directReferralEarnings.toLocaleString()}/₦2,000)`
+                          : "Fully cleared for bank withdrawal"}
+                      </span>
+                      <span className={`font-semibold ${isDirectReferralWithdrawable ? "text-emerald-700" : "text-amber-700"}`}>
+                        {isDirectReferralWithdrawable ? "Withdrawable ✓" : "Locked / Accumulating"}
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Matrix Level Quick Selector */}
-              <div className="space-y-1 pt-1 border-t border-gray-100 mt-auto">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-gray-700 flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3 text-emerald-700" />
-                    Tiers
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedMatrixLevel((prev) => Math.max(1, prev - 1))}
-                      disabled={selectedMatrixLevel <= 1}
-                      className="w-5 h-5 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-100 text-gray-600 disabled:opacity-30 transition-colors"
-                      title="Previous"
-                    >
-                      <ChevronLeft className="w-3 h-3" />
-                    </button>
-                    <span className="text-[10px] font-mono font-bold text-gray-700 px-0.5">
-                      L{selectedMatrixLevel}
+              {/* Bottom Contextual Release Action */}
+              <div className="pt-1.5 border-t border-gray-100 mt-auto">
+                {!isProjectSubscribed && directReferralEarnings >= 10000 ? (
+                  <Button
+                    onClick={handleSubscribeWithWallet}
+                    disabled={subscribingWithWallet}
+                    className="w-full h-8.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 text-purple-200" />
+                    {subscribingWithWallet ? "Activating..." : "Unlock with Wallet Credit (₦10,000)"}
+                  </Button>
+                ) : !isMatrixQualified ? (
+                  <div className="flex items-center justify-between text-xs bg-gray-50 p-2 rounded-xl border border-gray-200/80">
+                    <span className="text-[11px] text-gray-600">
+                      Sponsor {Math.max(0, 5 - directReferralsCount)} more partners to unlock matrix spillover.
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedMatrixLevel((prev) => Math.min(7, prev + 1))}
-                      disabled={selectedMatrixLevel >= 7}
-                      className="w-5 h-5 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-100 text-gray-600 disabled:opacity-30 transition-colors"
-                      title="Next"
+                    <Link
+                      to="/dashboard/my-network"
+                      className="font-bold text-emerald-800 hover:text-emerald-900 underline underline-offset-2 shrink-0 text-[11px]"
                     >
-                      <ChevronRight className="w-3 h-3" />
-                    </button>
+                      Invite Partners →
+                    </Link>
                   </div>
-                </div>
-
-                {/* 7 Level Tabs */}
-                <div className="grid grid-cols-7 gap-1">
-                  {MATRIX_TIERS.map((tier) => {
-                    const isSelected = selectedMatrixLevel === tier.level;
-                    return (
-                      <button
-                        key={tier.level}
-                        type="button"
-                        onClick={() => setSelectedMatrixLevel(tier.level)}
-                        className={`py-0.5 text-[9px] font-bold rounded border transition-all text-center ${
-                          isSelected
-                            ? "bg-emerald-800 text-white border-emerald-900 shadow-2xs"
-                            : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
-                        }`}
-                      >
-                        L{tier.level}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Active Tier mini line */}
-                {(() => {
-                  const tier = MATRIX_TIERS.find((t) => t.level === selectedMatrixLevel) || MATRIX_TIERS[0];
-                  return (
-                    <div className="p-1.5 rounded-lg bg-white border border-gray-200/70 text-[10px] flex items-center justify-between gap-1">
-                      <span className="font-bold text-gray-900 truncate">
-                        L{tier.level}: {tier.percentage}% (₦{tier.rewardPerSlot}/slot) · Max ₦{tier.totalCeiling.toLocaleString()}
-                      </span>
-                      <span className="shrink-0 inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800">
-                        ✓ Unlocked
-                      </span>
-                    </div>
-                  );
-                })()}
+                ) : (
+                  <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-800 font-semibold bg-emerald-50/80 py-1.5 rounded-xl border border-emerald-200/60">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>All Gatekeepers Satisfied · Funds 100% Cleared</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1163,6 +1211,7 @@ export default function TransactionLedger() {
                 <option value="REFERRAL_BONUS">Referral Bonuses</option>
                 <option value="CORE_DRIVER_BONUS">Core Driver Growth Bonuses</option>
                 <option value="SLOT_PURCHASE">Slot Purchases</option>
+                <option value="RETAIL_PURCHASE">Retail / Starter Packs</option>
                 <option value="SUBSCRIPTION">Subscriptions</option>
                 <option value="CREDIT">Credits Only</option>
                 <option value="DEBIT">Debits Only</option>
@@ -1244,9 +1293,15 @@ export default function TransactionLedger() {
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold ${
                           t.category === "CORE_DRIVER_BONUS"
                             ? "bg-amber-100 text-amber-900 border border-amber-300"
+                            : t.category === "RETAIL_PURCHASE"
+                            ? "bg-purple-100 text-purple-900 border border-purple-200"
                             : "bg-gray-100 text-gray-700"
                         }`}>
-                          {t.category === "CORE_DRIVER_BONUS" ? "Growth Driver Bonus" : t.category.replace(/_/g, " ")}
+                          {t.category === "CORE_DRIVER_BONUS"
+                            ? "Growth Driver Bonus"
+                            : t.category === "RETAIL_PURCHASE"
+                            ? "Retail / Starter Pack"
+                            : t.category.replace(/_/g, " ")}
                         </span>
                       </td>
                       <td className="py-4 px-5 whitespace-nowrap font-mono text-[11px] text-gray-500">

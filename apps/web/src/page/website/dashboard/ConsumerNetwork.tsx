@@ -239,9 +239,13 @@ export const ConsumerNetwork: React.FC = () => {
 
             <div className="pt-2.5 border-t border-white/15 flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="text-[11px] text-emerald-100/90">
-                {unlockedLevel < 7 ? (
+                {unlockedLevel === 0 ? (
                   <span>
-                    Sponsor <strong className="text-amber-300">{Math.max(1, (unlockedLevel === 0 ? 1 : unlockedLevel) - directReferralsCount)} more</strong> to unlock Level {unlockedLevel === 0 ? 2 : unlockedLevel + 1} (Directs + 1 Rule)
+                    Sponsor <strong className="text-amber-300">1 direct partner</strong> to unlock Levels 1 &amp; 2 (Directs + 1 Rule)
+                  </span>
+                ) : unlockedLevel < 7 ? (
+                  <span>
+                    Sponsor <strong className="text-amber-300">{Math.max(1, unlockedLevel - directReferralsCount)} more</strong> to unlock Level {unlockedLevel + 1} (Directs + 1 Rule)
                   </span>
                 ) : (
                   <span className="text-amber-300 font-bold">★ All 7 Matrix Levels Unlocked!</span>

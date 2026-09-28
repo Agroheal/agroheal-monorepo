@@ -66,9 +66,10 @@ export const MATRIX_COMMISSIONS_TIERS: readonly MatrixCommissionTier[] = [
 ] as const;
 
 // ── 5. HELPER FUNCTIONS ──
-export const getUnlockedMatrixLevel = (_directCount?: number): number => {
-  // +1 MLM / depth-gating retired: All 7 tiers are permanently unlocked for active members
-  return MATRIX_MAX_DEPTH;
+export const getUnlockedMatrixLevel = (directCount?: number): number => {
+  const count = Number(directCount) || 0;
+  if (count <= 0) return 0;
+  return Math.min(MATRIX_MAX_DEPTH, count + 1);
 };
 
 export const calculateSlotSubtotal = (
