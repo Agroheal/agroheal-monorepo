@@ -254,7 +254,7 @@ export const ProfileComponent: React.FC = () => {
                   </Badge>
                 ) : (
                   <Link
-                    to="/subscribe"
+                    to="/dashboard/checkout?product=green_card"
                     className="inline-flex items-center gap-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 text-[10px] font-bold px-2.5 py-0.5 rounded-full transition-colors uppercase tracking-wider hover:underline"
                     title="Click to activate your AgroHeal Green Card"
                   >
@@ -350,7 +350,7 @@ export const ProfileComponent: React.FC = () => {
                 </span>
               ) : (
                 <Link
-                  to="/subscribe"
+                  to="/dashboard/checkout?product=green_card"
                   className="inline-flex items-center gap-1 font-bold text-[11px] text-amber-700 hover:text-amber-900 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 px-2.5 py-0.5 rounded-lg transition-colors underline underline-offset-2 uppercase"
                   title="Click to activate your AgroHeal Green Card"
                 >

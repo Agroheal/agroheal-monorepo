@@ -414,7 +414,7 @@ const Dashboard = () => {
               </Link>
             ) : (
               <Link
-                to="/subscribe"
+                to="/dashboard/checkout?product=green_card"
                 className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/25 hover:bg-amber-500/35 text-amber-200 text-xs sm:text-sm font-bold backdrop-blur-sm border border-amber-400/40 transition-colors shadow-xs"
                 title="Get your AgroHeal Green Card"
               >
@@ -681,7 +681,7 @@ const Dashboard = () => {
                   <span className="font-mono font-bold text-white">{formatAgcId(profile?.member_id as string)}</span>
                 ) : (
                   <Link
-                    to="/subscribe"
+                    to="/dashboard/checkout?product=green_card"
                     className="font-bold text-amber-300 hover:text-white underline underline-offset-2"
                     title="Click to activate your Green Card"
                   >
@@ -724,7 +724,7 @@ const Dashboard = () => {
                 asChild
                 className="flex-1 md:flex-initial h-9 rounded-xl bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold text-xs px-4 shadow-sm cursor-pointer"
               >
-                <Link to="/subscribe">
+                <Link to="/dashboard/checkout?product=green_card">
                   Purchase a Green Card ({formatNaira(getGreenCardFee(profile?.created_at))})
                 </Link>
               </Button>

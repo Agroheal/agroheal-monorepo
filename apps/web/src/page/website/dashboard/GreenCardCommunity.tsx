@@ -175,7 +175,7 @@ export const GreenCardCommunity: React.FC = () => {
           </div>
 
           <Button
-            onClick={() => navigate("/subscribe")}
+            onClick={() => navigate("/dashboard/checkout?product=green_card")}
             className="w-full h-12 bg-gradient-to-r from-emerald-800 to-green-900 hover:from-emerald-900 hover:to-green-950 text-white rounded-2xl font-bold text-sm shadow-md transition-all flex items-center justify-center gap-2"
           >
             <IdCard className="w-5 h-5" />

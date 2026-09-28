@@ -112,7 +112,7 @@ export const NotificationBell: React.FC = () => {
             type: "greencard",
             created_at: profile?.created_at || new Date().toISOString(),
             read: false,
-            link: "/subscribe",
+            link: "/dashboard/checkout?product=green_card",
           });
         }
 

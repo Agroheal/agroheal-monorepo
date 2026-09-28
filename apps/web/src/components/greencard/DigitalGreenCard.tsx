@@ -249,7 +249,7 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
           </div>
 
           <Button
-            onClick={() => navigate("/subscribe")}
+            onClick={() => navigate("/dashboard/checkout?product=green_card")}
             className="w-full sm:w-auto px-8 h-11 bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 hover:from-amber-300 hover:to-amber-400 font-bold rounded-xl shadow-lg transition-all"
           >
             <Sparkles className="w-4 h-4 mr-2" />

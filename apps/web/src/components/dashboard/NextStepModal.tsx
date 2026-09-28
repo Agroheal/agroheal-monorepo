@@ -77,7 +77,7 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
         "Unlocks eligibility to purchase commercial mushroom farm slots",
       ],
       buttonText: "Activate Green Card Now (₦2,000)",
-      targetRoute: "/subscribe",
+      targetRoute: "/dashboard/checkout?product=green_card",
     },
     step2: {
       title: "Secure Your Starter Commercial Farm Slot",
@@ -220,7 +220,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
       if (bundleSlot) {
         navigate("/dashboard/checkout?slots=1&category=Mushroom%20Village");
       } else {
-        navigate(config.steps.step1.targetRoute || "/subscribe");
+        navigate(config.steps.step1.targetRoute || "/dashboard/checkout?product=green_card");
       }
       handleDismiss();
     } else if (currentStep === 2) {

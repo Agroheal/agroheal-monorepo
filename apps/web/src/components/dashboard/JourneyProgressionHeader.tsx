@@ -234,7 +234,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               <div className="space-y-1.5">
                 <Button
                   size="sm"
-                  onClick={() => navigate("/subscribe")}
+                  onClick={() => navigate("/dashboard/checkout?product=green_card")}
                   className="w-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
                 >
                   Get Green Card ({formatNaira(activeFee)})

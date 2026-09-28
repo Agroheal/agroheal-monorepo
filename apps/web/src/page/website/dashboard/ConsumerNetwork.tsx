@@ -428,7 +428,7 @@ export const ConsumerNetwork: React.FC = () => {
               asChild
               className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shrink-0 shadow-md"
             >
-              <Link to="/subscribe">
+              <Link to="/dashboard/checkout?product=green_card">
                 <Sparkles className="w-4 h-4 mr-1.5" />
                 Activate Green Card (₦2,000)
               </Link>

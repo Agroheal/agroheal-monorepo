@@ -88,7 +88,7 @@ export const appRouter = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { path: "/subscribe", element: <Subscribe /> },
+      { path: "/subscribe", element: <Navigate to="/dashboard/checkout?product=green_card" replace /> },
       {
         path: "/dashboard/green-card",
         element: <Navigate to="/dashboard/profile/green-card" replace />,
@@ -175,9 +175,7 @@ export const appRouter = createBrowserRouter([
           { path: "manage-slots", element: <Navigate to="/dashboard/farm-operations/my-slots" replace /> },
           { path: "slots-subscription", element: <Navigate to="/dashboard/farm-operations/my-slots" replace /> },
           { path: "compound-referrals", element: <Navigate to="/dashboard/my-network" replace /> },
-          { path: "matrix", element: <Navigate to="/dashboard/my-network" replace /> },
-          { path: "subscribe", element: <Navigate to="/subscribe" replace /> },
-        ],
+          { path: "matrix", element: <Navigate to="/dashboard/my-network" replace /> },],
       },
     ],
   },

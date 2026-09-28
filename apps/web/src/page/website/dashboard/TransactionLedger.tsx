@@ -744,7 +744,7 @@ export default function TransactionLedger() {
                 </span>
               ) : (
                 <Link
-                  to="/subscribe"
+                  to="/dashboard/checkout?product=green_card"
                   className="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs rounded-full border border-amber-200 inline-flex items-center gap-1.5 transition-colors underline underline-offset-2 uppercase"
                   title="Click to activate your AgroHeal Green Card"
                 >
@@ -978,7 +978,7 @@ export default function TransactionLedger() {
                   asChild
                   className="w-full h-8.5 sm:h-9 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-gray-950 font-bold text-xs shadow-xs transition-all"
                 >
-                  <Link to="/subscribe">
+                  <Link to="/dashboard/checkout?product=green_card">
                     <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                     Activate Green Card — ₦2,000
                   </Link>
