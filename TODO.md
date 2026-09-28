@@ -116,7 +116,7 @@
     - When a new member purchases a farm slot, the backend resolver checks the sponsor's group farm and assigns the member to the sponsor's first unfilled/unmaxed cluster (up to the 1,000-slot cap).
     - If the sponsor's current farm cluster is full (1,000 slots), automatically roll over and allocate into the next active cluster within the same community or region.
   - **Option B (Farm Group Embedded in Referral URL)**:
-    - Enable farm-specific referral links (e.g., `https://agroheal.org/signup?ref=CODE&farm=sustenance-mushroom` or `https://agroheal.org/farm/:farmSlug?ref=CODE`).
+    - Enable farm-specific referral links (e.g., `https://agroheal.solutions/signup?ref=CODE&farm=sustenance-mushroom` or `https://agroheal.solutions/farm/:farmSlug?ref=CODE`).
     - Explicitly locks the invited member into that specific farm group upon registration and slot checkout, eliminating ambiguity for community leaders.
   - **Hybrid Resolution Strategy**:
     - If `farm` query parameter exists in the signup/checkout URL, bind directly to that specific farm group (Option B).

@@ -28,7 +28,7 @@ export const GreenCardImage = ({
   const [downloadSuccess, setDownloadSuccess] = useState(false);
   const [downloadError, setDownloadError] = useState(false);
 
-  const resolvedQrValue = qrValue || `https://agroheal.org/verify-card/${encodeURIComponent(memberId)}`;
+  const resolvedQrValue = qrValue || `https://www.agroheal.solutions/verify-card/${encodeURIComponent(memberId)}`;
 
   const handleDownload = async () => {
     const svgEl = svgRef.current;
@@ -466,7 +466,7 @@ export const GreenCardImage = ({
                 fontSize="14"
                 opacity="0.8"
               >
-                Official Verification: agroheal.org/verify-card/{memberId}
+                Official Verification: agroheal.solutions/verify-card/{memberId}
               </text>
               <text
                 x={CARD_WIDTH - 128}
