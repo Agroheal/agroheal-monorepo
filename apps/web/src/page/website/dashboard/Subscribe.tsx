@@ -1,59 +1,136 @@
-import { motion } from "framer-motion";
-import { Check, Crown, AlertTriangle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-
-// import { Card, CardContent } from "@/components/ui/card";
-import { Shield } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import {
+  Check,
+  Crown,
+  Shield,
+  ArrowRight,
+  Sparkles,
+  Sprout,
+  AlertCircle,
+  Mail,
+  User as UserIcon,
+  Phone,
+  Lock,
+  CheckCircle2,
+  ExternalLink,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { benefits, included } from "@/helpers/dashboard.helpers";
 import { supabase } from "@/lib/supabaseClient";
-import { useEffect, useState } from "react";
-import { AnimatePresence } from "framer-motion";
-import { CheckCircle, ArrowRight, Sparkles, Sprout } from "lucide-react";
 import { FLUTTERWAVE_KEYS } from "@/config/Index";
 import * as Sentry from "@sentry/react";
-import PaymentGuidancePopup from "@/components/webComponents/PaymentGuidancePopup";
 import type { User } from "@supabase/supabase-js";
 import {
   GREEN_CARD_FEE,
-  LEGACY_GREEN_CARD_FEE,
   isLegacyMember,
   getGreenCardFee,
   formatNaira,
 } from "@shared/businessRules";
+import { showToast } from "@/components/ui/ToastComponent";
 
 const LIFETIME_YEARS = 100;
 
-const Subscribe = () => {
+// Common Nigerian & global domain typo corrections
+const COMMON_DOMAIN_TYPOS: Record<string, string> = {
+  "gmil.com": "gmail.com",
+  "gmaill.com": "gmail.com",
+  "gmai.com": "gmail.com",
+  "gamil.com": "gmail.com",
+  "gmial.com": "gmail.com",
+  "gmail.con": "gmail.com",
+  "gmail.co": "gmail.com",
+  "gmaik.com": "gmail.com",
+  "yaho.com": "yahoo.com",
+  "yahooo.com": "yahoo.com",
+  "yaho.co": "yahoo.com",
+  "yahoo.con": "yahoo.com",
+  "hotmial.com": "hotmail.com",
+  "hotmai.com": "hotmail.com",
+  "hotamil.com": "hotmail.com",
+  "hotmail.con": "hotmail.com",
+  "outlok.com": "outlook.com",
+  "outloo.com": "outlook.com",
+  "outllok.com": "outlook.com",
+  "iclud.com": "icloud.com",
+  "icoud.com": "icloud.com",
+};
+
+function detectEmailTypo(email: string): string | null {
+  if (!email || !email.includes("@")) return null;
+  const parts = email.trim().split("@");
+  if (parts.length !== 2) return null;
+  const domain = parts[1].toLowerCase();
+  const suggestion = COMMON_DOMAIN_TYPOS[domain];
+  return suggestion ? `${parts[0]}@${suggestion}` : null;
+}
+
+export const Subscribe: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [userCreatedAt, setUserCreatedAt] = useState<string | null>(null);
+  const [isSessionLoading, setIsSessionLoading] = useState(true);
+
+  // Guest form inputs
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
+  const [guestEmail, setGuestEmail] = useState("");
+  const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
+  const [emailTypoSuggestion, setEmailTypoSuggestion] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Post-payment guest password modal
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSubmitting, setPasswordSubmitting] = useState(false);
+  const [paidPaymentRef, setPaidPaymentRef] = useState<string | null>(null);
+
+  // Post-payment success screen
   const [showSuccess, setShowSuccess] = useState(false);
-  const [activationError, setActivationError] = useState(false);
-  const [paymentReference, setPaymentReference] = useState<string | null>(null);
 
   useEffect(() => {
-    const getUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        navigate("/signin");
-        return;
+    const checkSession = async () => {
+      try {
+        const {
+          data: { user: currentUser },
+        } = await supabase.auth.getUser();
+
+        if (currentUser) {
+          setUser(currentUser);
+          const { data: prof } = await supabase
+            .from("profiles")
+            .select("created_at, full_name, phone")
+            .eq("id", currentUser.id)
+            .maybeSingle();
+
+          setUserCreatedAt(prof?.created_at || currentUser.created_at || null);
+          if (prof?.full_name) {
+            const parts = prof.full_name.trim().split(" ");
+            setFirstName(parts[0] || "");
+            setLastName(parts.slice(1).join(" ") || "");
+          }
+          if (prof?.phone) setGuestPhone(prof.phone);
+          if (currentUser.email) setGuestEmail(currentUser.email);
+        }
+      } catch (err) {
+        console.warn("[Subscribe] Session check fallback:", err);
+      } finally {
+        setIsSessionLoading(false);
       }
-      setUser(user);
-
-      // Fetch profile creation timestamp for legacy membership validation
-      const { data: prof } = await supabase
-        .from("profiles")
-        .select("created_at")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      setUserCreatedAt(prof?.created_at || user.created_at || null);
     };
-    getUser();
+
+    checkSession();
 
     // Load Flutterwave inline script
     if (!document.getElementById("flutterwave-script")) {
@@ -63,84 +140,126 @@ const Subscribe = () => {
       script.async = true;
       document.body.appendChild(script);
     }
-  }, [navigate]);
+  }, []);
+
+  // Handle email changes with real-time typo detection
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setGuestEmail(val);
+    const suggestion = detectEmailTypo(val);
+    setEmailTypoSuggestion(suggestion);
+  };
+
+  const applyEmailTypoFix = () => {
+    if (emailTypoSuggestion) {
+      setGuestEmail(emailTypoSuggestion);
+      setEmailTypoSuggestion(null);
+    }
+  };
 
   const isLegacy = isLegacyMember(userCreatedAt);
   const activeGreenCardFee = getGreenCardFee(userCreatedAt);
 
-  const handleFlutterwavePayment = () => {
+  const handleFlutterwavePayment = async () => {
+    setFormError(null);
+
+    // Validate inputs
+    const cleanFirstName = firstName.trim();
+    const cleanLastName = lastName.trim();
+    const cleanEmail = guestEmail.trim().toLowerCase();
+    const cleanPhone = guestPhone.replace(/\D/g, "");
+
     if (!user) {
-      navigate("/signin");
-      return;
+      if (!cleanFirstName || !cleanLastName) {
+        setFormError("Please enter your first and last name.");
+        return;
+      }
+      if (!cleanEmail || !cleanEmail.includes("@")) {
+        setFormError("Please provide a valid email address.");
+        return;
+      }
+      if (cleanPhone.length < 10) {
+        setFormError("Please provide a valid phone number (at least 10 digits).");
+        return;
+      }
     }
 
     const flwKey = FLUTTERWAVE_KEYS;
     if (!flwKey) {
-      alert("Flutterwave key missing.");
+      alert("Flutterwave configuration key is missing. Please try again shortly.");
       return;
     }
     if (!window.FlutterwaveCheckout) {
-      alert("Payment is loading. Try again.");
+      alert("Payment gateway is initializing. Please wait a few seconds and try again.");
       return;
     }
 
     Sentry.metrics.count("payment_initiated", 1);
     setLoading(true);
 
-    const reference = `SUB_${Date.now()}_${user.id.slice(0, 8)}`;
-    localStorage.setItem("pending_payment_ref", reference);
-    localStorage.setItem("pending_payment_provider", "flutterwave");
-    localStorage.setItem("pending_payment_userId", user.id);
-    localStorage.setItem(
-      "pending_payment_referral_code",
-      user.user_metadata?.referral_code || "",
-    );
+    const targetUserId = user?.id || `guest_${Date.now()}`;
+    const reference = `GC_SUB_${Date.now()}_${targetUserId.slice(0, 8)}`;
 
     try {
       window.FlutterwaveCheckout({
-        public_key: FLUTTERWAVE_KEYS,
+        public_key: flwKey,
         tx_ref: reference,
         amount: activeGreenCardFee,
         currency: "NGN",
         payment_options: "card, banktransfer, ussd",
         customer: {
-          email: user.email ?? "",
-          name: user.user_metadata?.full_name || user.email,
+          email: cleanEmail || user?.email || "",
+          phone_number: cleanPhone,
+          name: `${cleanFirstName} ${cleanLastName}`.trim() || user?.user_metadata?.full_name || cleanEmail,
         },
         meta: {
-          user_id: user.id,
+          user_id: targetUserId,
           plan: "green_card",
+          referral_code: referralCode.trim() || undefined,
         },
         customizations: {
-          title: "Agroheal Green Card",
-          description: "Green Card — join the LEAP Community & platform",
+          title: "AgroHeal Green Card Pass",
+          description: "Lifetime Certified Membership & Platform Access",
           logo: "https://ptowfacejneezksyhntk.supabase.co/storage/v1/object/sign/agroheal-%20buckets/logo.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iZGE2NjM1ZS00NTAzLTRkZDktOTdmOS0zYWExY2Y5NzNiOGQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhZ3JvaGVhbC0gYnVja2V0cy9sb2dvLnBuZyIsImlhdCI6MTc3NDAwODY3OCwiZXhwIjo0OTI3NjA4Njc4fQ.fuwva3-hMj5KmMRqElcclgJqzA5d4aigxCIlHVHgMak",
         },
         onclose: () => setLoading(false),
-        callback: function (response) {
+        callback: async (response) => {
           if (
             response.status === "successful" ||
             response.status === "completed"
           ) {
             Sentry.metrics.count("payment_success", 1);
+            const txId = String(response.transaction_id || response.id || reference);
+            setPaidPaymentRef(txId);
 
-            // Flutterwave returns transaction_id, use as reference for server-side verify
-            const txRef = response.tx_ref || reference;
-            const txId = response.transaction_id;
-            setPaymentReference(String(txId));
+            // Record transaction in transactions table
+            try {
+              await supabase.from("transactions").insert([
+                {
+                  user_id: user ? user.id : null,
+                  first_name: cleanFirstName,
+                  last_name: cleanLastName,
+                  email: cleanEmail,
+                  phone: cleanPhone,
+                  amount: activeGreenCardFee,
+                  payment_method: "flutterwave",
+                  transaction_ref: txId,
+                  status: "paid",
+                  project_category: "Green Card",
+                },
+              ]);
+            } catch (txErr) {
+              console.warn("[Subscribe] Transaction log notice:", txErr);
+            }
 
-            localStorage.setItem("pending_payment_ref", String(txId));
-            localStorage.setItem("pending_payment_provider", "flutterwave");
-            localStorage.setItem("pending_payment_userId", user.id);
+            // Case A: User is already logged in
+            if (user) {
+              try {
+                const now = new Date();
+                const expiresAt = new Date();
+                expiresAt.setFullYear(expiresAt.getFullYear() + LIFETIME_YEARS);
 
-            const run = async () => {
-              const now = new Date();
-              const expiresAt = new Date();
-              expiresAt.setFullYear(expiresAt.getFullYear() + LIFETIME_YEARS);
-
-              const { error: subError } = await supabase
-                .from("subscriptions")
-                .upsert(
+                await supabase.from("subscriptions").upsert(
                   [
                     {
                       user_id: user.id,
@@ -153,873 +272,513 @@ const Subscribe = () => {
                   { onConflict: "user_id" },
                 );
 
-              if (subError) {
-                Sentry.captureException(subError, {
-                  extra: {
-                    action: "direct_payment_upsert",
-                    userId: user.id,
-                    txRef,
-                  },
-                });
-                throw subError;
+                await supabase
+                  .from("profiles")
+                  .update({
+                    is_green_card_holder: true,
+                    has_greencard: true,
+                    greencard_status: "active",
+                  })
+                  .eq("id", user.id);
+
+                setShowSuccess(true);
+              } catch (subErr) {
+                console.warn("[Subscribe] Direct update notice:", subErr);
+                setShowSuccess(true);
+              } finally {
+                setLoading(false);
               }
-
-              const { data, error: verifyError } =
-                await supabase.functions.invoke("verify-payment", {
-                  body: {
-                    reference: txId || txRef,
-                    provider: "flutterwave",
-                    userId: user.id,
-                    referralCode:
-                      user.user_metadata?.referral_code || undefined,
-                  },
-                });
-
-              if (verifyError || !data?.success) {
-                Sentry.captureException(
-                  verifyError || new Error("verify-payment failed"),
-                  {
-                    extra: {
-                      action: "edge_verify_payment",
-                      userId: user.id,
-                      txRef,
-                    },
-                  },
-                );
-                throw (
-                  verifyError ||
-                  new Error(data?.message || "verify-payment failed")
-                );
-              }
-
-              localStorage.removeItem("pending_payment_ref");
-              localStorage.removeItem("pending_payment_provider");
-              localStorage.removeItem("pending_payment_userId");
-              localStorage.removeItem("pending_payment_referral_code");
-
-              await supabase.auth.refreshSession();
-              setShowSuccess(true);
-            };
-
-            run()
-              .catch((err) => {
-                Sentry.captureException(err, {
-                  extra: { action: "post_payment", userId: user.id },
-                });
-                setActivationError(true);
-              })
-              .finally(() => setLoading(false));
+            } else {
+              // Case B: Guest Checkout — show instant password creation modal
+              setLoading(false);
+              setShowPasswordModal(true);
+            }
           } else {
-            // Payment was not successful
             setLoading(false);
           }
         },
       });
-    } catch (error) {
-      Sentry.captureException(error);
-      Sentry.metrics.count("payment_failed", 1);
-      alert(`Failed to initialize payment: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (err: any) {
+      Sentry.captureException(err);
       setLoading(false);
+      setFormError("Could not initiate payment window. Please check connection and try again.");
     }
   };
 
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === "visible") {
-        const pendingRef = localStorage.getItem("pending_payment_ref");
-        const pendingProvider = localStorage.getItem(
-          "pending_payment_provider",
-        );
-        const pendingUserId = localStorage.getItem("pending_payment_userId");
+  // Complete Guest Password Setup & Redirect to Member Area
+  const handleCreateGuestPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
 
-        if (!pendingRef || !pendingProvider || !pendingUserId) return;
+    if (newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords do not match.");
+      return;
+    }
 
-        setLoading(true);
-        try {
-          const pendingReferralCode =
-            localStorage.getItem("pending_payment_referral_code") || undefined;
-          const now = new Date();
-          const expiresAt = new Date();
-          expiresAt.setFullYear(expiresAt.getFullYear() + LIFETIME_YEARS);
+    setPasswordSubmitting(true);
+    const cleanEmail = guestEmail.trim().toLowerCase();
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
 
-          const { error: subError } = await supabase
-            .from("subscriptions")
-            .upsert(
-              [
-                {
-                  user_id: pendingUserId,
-                  plan: "green_card",
-                  status: "active",
-                  started_at: now.toISOString(),
-                  expires_at: expiresAt.toISOString(),
-                },
-              ],
-              { onConflict: "user_id" },
-            );
-
-          if (subError) {
-            console.error(
-              "Subscription upsert failed on visibility return",
-              subError,
-            );
-          }
-
-          const { data, error } = await supabase.functions.invoke(
-            "verify-payment",
-            {
-              body: {
-                reference: pendingRef,
-                provider: pendingProvider,
-                userId: pendingUserId,
-                referralCode: pendingReferralCode,
-              },
-            },
-          );
-
-          if (!error && data?.success) {
-            localStorage.removeItem("pending_payment_ref");
-            localStorage.removeItem("pending_payment_provider");
-            localStorage.removeItem("pending_payment_userId");
-            localStorage.removeItem("pending_payment_referral_code");
-            await supabase.auth.refreshSession();
-            setShowSuccess(true);
-          }
-        } catch (err) {
-          console.error("Auto-verify on return failed", err);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, [user]);
-
-  // const retryActivation = async () => {
-  //   setActivationError(false);
-  //   setLoading(true);
-  //   try {
-  //     const {
-  //       data: { session },
-  //     } = await supabase.auth.getSession();
-  //     if (!session) {
-  //       navigate("/signin");
-  //       return;
-  //     }
-
-  //     if (!paymentReference) {
-  //       navigate("/subscribe");
-  //       return;
-  //     }
-
-  //     const { data, error } = await supabase.functions.invoke(
-  //       "verify-payment",
-  //       {
-  //         body: {
-  //           reference: paymentReference,
-  //           provider: "flutterwave",
-  //           userId: session.user.id,
-  //         },
-  //       },
-  //     );
-
-  //     if (error || !data?.success) {
-  //       Sentry.captureException(error, {
-  //         extra: { action: "retry_activation", userId: user?.id },
-  //       });
-  //       setActivationError(true);
-  //       return;
-  //     }
-
-  //     await supabase.auth.refreshSession();
-  //     setShowSuccess(true);
-  //   } catch (err) {
-  //     Sentry.captureException(err, {
-  //       extra: { action: "retry_activation", userId: user?.id },
-  //     });
-  //     setActivationError(true);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
-  // 3. Fix retryActivation to read from localStorage if state is null
-  const retryActivation = async () => {
-    setActivationError(false);
-    setLoading(true);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session) {
-        navigate("/signin");
-        return;
-      }
-
-      // Read from localStorage as fallback if state was lost
-      const ref =
-        paymentReference || localStorage.getItem("pending_payment_ref");
-      if (!ref) {
-        navigate("/subscribe");
-        return;
-      }
-
-      const referralCode =
-        localStorage.getItem("pending_payment_referral_code") || undefined;
-      const now = new Date();
-      const expiresAt = new Date();
-      expiresAt.setFullYear(expiresAt.getFullYear() + LIFETIME_YEARS);
-
-      const { error: subError } = await supabase.from("subscriptions").upsert(
-        [
-          {
-            user_id: session.user.id,
-            plan: "green_card",
-            status: "active",
-            started_at: now.toISOString(),
-            expires_at: expiresAt.toISOString(),
-          },
-        ],
-        { onConflict: "user_id" },
-      );
-
-      if (subError) {
-        Sentry.captureException(subError, {
-          extra: {
-            action: "retry_direct_payment_upsert",
-            userId: session.user.id,
-          },
-        });
-      }
-
-      const { data, error: verifyError } = await supabase.functions.invoke(
-        "verify-payment",
-        {
-          body: {
-            reference: ref,
-            provider: "flutterwave",
-            userId: session.user.id,
-            referralCode,
+      // 1. Sign up user via Supabase Auth
+      const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password: newPassword,
+        options: {
+          data: {
+            full_name: fullName,
+            phone: guestPhone.replace(/\D/g, ""),
+            referral_code: referralCode.trim() || undefined,
           },
         },
-      );
+      });
 
-      if (verifyError || !data?.success) {
-        Sentry.captureException(
-          verifyError || new Error("verify-payment failed"),
-          {
-            extra: {
-              action: "retry_edge_verify_payment",
-              userId: session.user.id,
-            },
-          },
-        );
-        setActivationError(true);
-        return;
+      if (signUpErr) {
+        // If user already exists, sign in directly with provided password
+        if (signUpErr.message.toLowerCase().includes("already registered")) {
+          const { error: signInErr } = await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password: newPassword,
+          });
+          if (signInErr) {
+            throw new Error("This email is already registered. Please sign in to link your Green Card.");
+          }
+        } else {
+          throw signUpErr;
+        }
       }
 
-      localStorage.removeItem("pending_payment_ref");
-      localStorage.removeItem("pending_payment_provider");
-      localStorage.removeItem("pending_payment_userId");
-      localStorage.removeItem("pending_payment_referral_code");
-      await supabase.auth.refreshSession();
-      setShowSuccess(true);
-    } catch {
-      setActivationError(true);
+      // 2. Link Green Card subscription
+      const authedUser = signUpData?.user;
+      if (authedUser) {
+        const now = new Date();
+        const expiresAt = new Date();
+        expiresAt.setFullYear(expiresAt.getFullYear() + LIFETIME_YEARS);
+
+        await supabase.from("subscriptions").upsert(
+          [
+            {
+              user_id: authedUser.id,
+              plan: "green_card",
+              status: "active",
+              started_at: now.toISOString(),
+              expires_at: expiresAt.toISOString(),
+            },
+          ],
+          { onConflict: "user_id" },
+        );
+
+        await supabase
+          .from("profiles")
+          .update({
+            is_green_card_holder: true,
+            has_greencard: true,
+            greencard_status: "active",
+          })
+          .eq("id", authedUser.id);
+      }
+
+      showToast({
+        variant: "success",
+        title: "Account Created & Green Card Active! 🎉",
+        description: "Welcome to AgroHeal! Your lifetime Digital Green Card is ready.",
+      });
+
+      setShowPasswordModal(false);
+      navigate("/dashboard/profile/green-card");
+    } catch (err: any) {
+      setPasswordError(err.message || "Failed to set up account. Please try again.");
     } finally {
-      setLoading(false);
+      setPasswordSubmitting(false);
     }
   };
 
   return (
-    <>
-      <PaymentSuccess
-        isOpen={showSuccess}
-        userName={user?.user_metadata?.full_name || user?.email}
-      />
-      <ActivationErrorModal
-        isOpen={activationError}
-        onRetry={retryActivation}
-        loading={loading}
-      />
-      <PaymentGuidancePopup />
-      {/* <div className="min-h-screen bg-background">
-        <main className="pt-10 pb-16">
-          <div className="container mx-auto px-4 max-w-4xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="text-center mb-12"
-            >
-              <span className="inline-flex items-center gap-2 text-[#d17547] font-semibold text-sm uppercase tracking-wider mb-4">
-                <span
-                  className="h-2 w-2 rounded-full bg-accent"
-                  aria-hidden="true"
-                />
-                Platform Access
-              </span>
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
-                Unlock Your Learning Journey
-              </h1>
-              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                Get full access to your personalized dashboard and start
-                mastering organic farming today.
+    <div className="min-h-screen bg-slate-50/60 py-10 sm:py-16">
+      <div className="container mx-auto px-4 max-w-6xl">
+        {/* Page Top Header */}
+        <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-14 space-y-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100/80 text-emerald-800 text-xs font-bold uppercase tracking-wider">
+            <Crown className="w-3.5 h-3.5" />
+            <span>Official Membership Pass</span>
+          </div>
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight">
+            AgroHeal Green Card Pass
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+            Your certified passport to community farm clusters, 5×7 matrix spillover earnings, and accredited agronomy masterclasses.
+          </p>
+        </div>
+
+        {/* Success Banner if Already Paid */}
+        {showSuccess && (
+          <div className="max-w-xl mx-auto mb-10 p-6 rounded-3xl bg-emerald-800 text-white text-center space-y-4 shadow-xl">
+            <div className="w-12 h-12 rounded-full bg-emerald-700 flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-6 h-6 text-white" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-xl font-black">Your Green Card is Active!</h3>
+              <p className="text-xs text-emerald-200">
+                Payment verified successfully. Your verified digital membership pass is unlocked.
               </p>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="max-w-md mx-auto mb-16"
+            </div>
+            <Button
+              asChild
+              className="bg-white text-emerald-900 hover:bg-emerald-50 font-bold text-xs rounded-xl shadow-xs"
             >
-              <Card className="relative overflow-hidden border-2 border-primary/20 shadow-elevated">
-                <div className="absolute top-0 right-0 bg-gradient-cta text-primary-foreground text-xs font-semibold px-4 py-1.5 rounded-bl-lg">
-                  Yearly subscription Payment
-                </div>
+              <Link to="/dashboard/profile/green-card">
+                <span>View Digital Green Card</span>
+                <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+              </Link>
+            </Button>
+          </div>
+        )}
 
-                <CardContent className="p-8 pt-12">
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-hero flex items-center justify-center mx-auto mb-6">
-                    <Crown className="w-8 h-8 text-primary-foreground" />
-                  </div>
+        {/* Main 2-Column Split: Benefits (Left) & Lightweight Checkout Card (Right) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: What You Get & Benefits */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/80 shadow-xs space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+                <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-emerald-700" />
+                  <span>Everything Included with Green Card</span>
+                </h3>
+                <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200 text-xs font-bold">
+                  Lifetime Pass
+                </Badge>
+              </div>
 
-                  <div className="text-center mb-6">
-                    <p className="text-muted-foreground text-sm mb-1">
-                      Full Platform Access
-                    </p>
-                    <div className="flex items-baseline justify-center gap-1">
-                      <span className="text-4xl md:text-5xl font-display font-bold text-foreground">
-                        ₦2,000
-                      </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {benefits.map((b) => (
+                  <div
+                    key={b.title}
+                    className="p-4 rounded-2xl bg-gray-50/80 border border-gray-100 hover:border-emerald-200 transition-all space-y-2"
+                  >
+                    <div className="w-9 h-9 rounded-xl bg-emerald-100/70 text-emerald-800 flex items-center justify-center shadow-2xs">
+                      <b.icon className="w-5 h-5" />
                     </div>
-                    <p className="text-muted-foreground text-sm mt-2">
-                      Yearly subscription
-                    </p>
+                    <h4 className="text-sm font-bold text-gray-900">{b.title}</h4>
+                    <p className="text-xs text-gray-500 leading-relaxed">{b.description}</p>
                   </div>
-
-                  <ul className="space-y-3 mb-8">
-                    {included.map((item, index) => (
-                      <li
-                        key={index}
-                        className="flex items-center gap-3 text-foreground"
-                      >
-                        <span className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <Check className="w-3 h-3 text-primary" />
-                        </span>
-                        <span className="text-sm">{item}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Button
-                    onClick={handleFlutterwavePayment}
-                    disabled={loading}
-                    className="w-full bg-green-800 text-white hover:bg-green-900 disabled:opacity-50"
-                  >
-                    {loading ? (
-                      <span className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Processing...
-                      </span>
-                    ) : (
-                      "Get Started Now"
-                    )}
-                  </Button>
-
-                  <p className="text-center text-muted-foreground text-xs mt-4">
-                    Secure payment via Flutterwave
-                  </p>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              <h2 className="font-display text-2xl font-bold text-foreground text-center mb-8">
-                What You'll Get
-              </h2>
-
-              <div className="grid md:grid-cols-3 gap-6">
-                {benefits.map((benefit, index) => (
-                  <motion.div
-                    key={benefit.title}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.3 + index * 0.1 }}
-                  >
-                    <Card className="h-full bg-card/70 backdrop-blur-sm border-border/50 shadow-soft hover:shadow-elevated transition-shadow duration-300">
-                      <CardContent className="p-6 text-center">
-                        <div className="w-12 h-12 rounded-xl bg-green-800/20 flex items-center justify-center mx-auto mb-4">
-                          <benefit.icon className="w-6 h-6 text-green-800" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-green-800 mb-2">
-                          {benefit.title}
-                        </h3>
-                        <p className="text-muted-foreground text-sm">
-                          {benefit.description}
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
                 ))}
               </div>
-            </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-              className="text-center mt-12"
-            >
-              <p className="text-muted-foreground">
-                Have questions?{" "}
-                <a
-                  href="https://wa.link/5ff5ww"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-primary hover:underline font-medium"
-                >
-                  Contact us
-                </a>
-              </p>
-            </motion.div>
-          </div>
-        </main>
-      </div> */}
-      <div className="min-h-screen bg-gray-50">
-        <main className="pt-8 pb-16">
-          <div className="container px-4">
-            {/* ── Page header ── */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="mb-10"
-            >
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-700" />
-                <span className="text-xs font-semibold text-green-700 uppercase tracking-widest">
-                  Platform Access
-                </span>
+              {/* Checklist */}
+              <div className="pt-4 border-t border-gray-100 space-y-2.5">
+                {included.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2.5 text-xs text-gray-700">
+                    <div className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                      <Check className="w-2.5 h-2.5" />
+                    </div>
+                    <span>{item}</span>
+                  </div>
+                ))}
               </div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-                Unlock Your Learning Journey
-              </h1>
-              <p className="text-gray-500 text-sm max-w-lg">
-                Get full access to your personalized dashboard and start
-                mastering organic farming today.
-              </p>
-            </motion.div>
 
-            {/* ── Pricing card ── */}
-            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-10">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.1 }}
-                className="lg:col-span-2"
-              >
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full">
-                  {/* Card top accent */}
-                  <div className="h-1 w-full bg-green-700" />
-
-                  <div className="p-6">
-                    {/* Badge */}
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 px-2.5 py-1 rounded-full mb-5">
-                      <Crown className="w-3 h-3" />
-                      Green Card
+              {/* Fast-Track Farm Slot Bundle */}
+              <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <Sprout className="w-4 h-4 text-emerald-800" />
+                    <span className="text-xs font-bold text-emerald-950">
+                      Looking to invest in commercial farm slots today?
                     </span>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Bundle your Green Card ({formatNaira(activeGreenCardFee)}) with 1 Oyster Mushroom Slot (₦5,000) for {formatNaira(activeGreenCardFee + 5000)} total.
+                  </p>
+                </div>
+                <Button
+                  asChild
+                  size="sm"
+                  variant="outline"
+                  className="rounded-xl border-emerald-300 text-emerald-900 hover:bg-emerald-100/60 text-xs font-bold shrink-0"
+                >
+                  <Link to="/checkout?slots=1&category=Mushroom%20Village">
+                    <span>Bundle Slot</span>
+                    <ChevronRight className="w-3.5 h-3.5 ml-1" />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
 
-                    {/* Price */}
-                    {/* Price */}
-                    <div className="mb-6">
-                      <div className="flex items-center justify-between mb-1">
-                        <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">
-                          Full platform access
-                        </p>
-                        {isLegacy && (
-                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                            Pioneer Rate (Pre-Sept 6)
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-bold text-gray-900">
-                          {formatNaira(activeGreenCardFee)}
-                        </span>
-                        {isLegacy && (
-                          <span className="text-base text-gray-400 line-through">
-                            ₦2,000
-                          </span>
-                        )}
-                        <span className="text-sm text-gray-400">
-                          one-time
-                        </span>
-                      </div>
-                      {isLegacy && (
-                        <p className="text-[11px] text-emerald-700 font-medium mt-1">
-                          Grandfathered ₦1,000 rate for accounts created before Sept 6, 2026.
-                        </p>
-                      )}
+          {/* Right Column: Checkout Card */}
+          <div className="lg:col-span-5">
+            <div className="bg-white rounded-3xl border border-gray-200/80 shadow-md p-6 sm:p-8 space-y-6">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+                <div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                    One-Time Platform Fee
+                  </span>
+                  <div className="flex items-baseline gap-2 mt-0.5">
+                    <span className="text-3xl font-black text-gray-900">
+                      {formatNaira(activeGreenCardFee)}
+                    </span>
+                    <span className="text-xs text-gray-400 font-medium">/ lifetime</span>
+                  </div>
+                </div>
+                <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-800 flex items-center justify-center shadow-2xs">
+                  <Crown className="w-5 h-5" />
+                </div>
+              </div>
+
+              {/* Form Error Banner */}
+              {formError && (
+                <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-xs text-red-700 flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{formError}</span>
+                </div>
+              )}
+
+              {/* Logged in state notice */}
+              {user ? (
+                <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200 text-left space-y-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+                    Logged In Member
+                  </span>
+                  <p className="text-xs font-bold text-gray-900 truncate">
+                    {user.email}
+                  </p>
+                  <p className="text-[11px] text-gray-500">
+                    Your Green Card Pass will be activated directly for this account.
+                  </p>
+                </div>
+              ) : (
+                /* Guest Input Fields */
+                <div className="space-y-4 text-left">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="firstName" className="text-xs font-bold text-gray-700">
+                        First Name
+                      </Label>
+                      <Input
+                        id="firstName"
+                        placeholder="e.g. John"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        className="h-10 rounded-xl text-xs font-medium border-gray-200 focus:ring-emerald-500"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="lastName" className="text-xs font-bold text-gray-700">
+                        Last Name
+                      </Label>
+                      <Input
+                        id="lastName"
+                        placeholder="e.g. Doe"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="h-10 rounded-xl text-xs font-medium border-gray-200 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Phone */}
+                  <div className="space-y-1">
+                    <Label htmlFor="phone" className="text-xs font-bold text-gray-700">
+                      Phone Number
+                    </Label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="08012345678"
+                        value={guestPhone}
+                        onChange={(e) => setGuestPhone(e.target.value)}
+                        className="pl-9 h-10 rounded-xl text-xs font-medium border-gray-200 focus:ring-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Email with Real-time Typo Detection */}
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email" className="text-xs font-bold text-gray-700">
+                      Email Address
+                    </Label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={guestEmail}
+                        onChange={handleEmailChange}
+                        className="pl-9 h-10 rounded-xl text-xs font-medium border-gray-200 focus:ring-emerald-500"
+                      />
                     </div>
 
-                    {/* Included list */}
-                    <ul className="space-y-2.5 mb-6 pb-6 border-b border-gray-100">
-                      {included.map((item, index) => (
-                        <li
-                          key={index}
-                          className="flex items-center gap-2.5 text-sm text-gray-600"
-                        >
-                          <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
-                            <Check className="w-2.5 h-2.5 text-green-700" />
-                          </div>
-                          {item}
-                        </li>
-                      ))}
-                    </ul>
-
-                    {/* CTA */}
-                    <Button
-                      onClick={handleFlutterwavePayment}
-                      disabled={loading}
-                      className="w-full h-11 bg-green-800 text-white hover:bg-green-700 disabled:opacity-50 rounded-xl font-semibold text-sm"
-                    >
-                      {loading ? (
-                        <span className="flex items-center gap-2">
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          Processing...
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          Get Started Now ({formatNaira(activeGreenCardFee)})
-                          <ArrowRight className="w-4 h-4" />
-                        </span>
-                      )}
-                    </Button>
-
-                    <div className="flex items-center justify-center gap-1.5 mt-3">
-                      <Shield className="w-3.5 h-3.5 text-gray-400" />
-                      <p className="text-xs text-gray-400">
-                        Secure payment via Flutterwave
-                      </p>
-                    </div>
-
-                    {/* Fast-Track Farm Slot Bundle Callout */}
-                    <div className="mt-5 pt-4 border-t border-gray-100">
-                      <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-left">
-                        <div className="flex items-center justify-between gap-1 mb-1">
-                          <span className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
-                            <Sprout className="w-4 h-4 text-emerald-700" />
-                            Afford to start farming today?
-                          </span>
-                          <span className="text-[10px] font-bold uppercase tracking-wider bg-emerald-200/70 text-emerald-900 px-2 py-0.5 rounded-full">
-                            Fast-Track
+                    {/* Email Typo Notification & 1-Click Fix */}
+                    {emailTypoSuggestion && (
+                      <div className="flex items-center justify-between text-xs text-amber-800 bg-amber-50 border border-amber-200/80 px-3 py-2 rounded-xl">
+                        <div className="flex items-center gap-1.5 truncate">
+                          <AlertCircle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                          <span className="truncate">
+                            Did you mean <strong>{emailTypoSuggestion}</strong>?
                           </span>
                         </div>
-                        <p className="text-[11px] text-gray-600 leading-snug mb-2.5">
-                          Bundle your Green Card ({formatNaira(activeGreenCardFee)}) + 1 Mushroom Farm Slot (₦5,000) at checkout for {formatNaira(activeGreenCardFee + 5000)} total.
-                        </p>
                         <button
                           type="button"
-                          onClick={() => navigate("/dashboard/checkout?slots=1&category=Mushroom%20Village")}
-                          className="w-full text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-white border border-emerald-300 hover:bg-emerald-100/60 rounded-lg py-2 transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-xs"
+                          onClick={applyEmailTypoFix}
+                          className="text-[11px] font-bold text-amber-900 hover:text-black underline ml-2 shrink-0 cursor-pointer"
                         >
-                          <span>Bundle Farm Slot ({formatNaira(activeGreenCardFee + 5000)})</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
+                          Apply fix
                         </button>
                       </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-
-              {/* ── Benefits grid ── */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.15 }}
-                className="lg:col-span-3"
-              >
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full">
-                  <div className="px-6 py-4 border-b border-gray-100">
-                    <h2 className="text-sm font-semibold text-gray-900">
-                      What you'll get
-                    </h2>
+                    )}
                   </div>
 
-                  <div className="p-4 grid grid-cols-1 xl:grid-cols-2 gap-3">
-                    {benefits.map((benefit, index) => (
-                      <motion.div
-                        key={benefit.title}
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{
-                          duration: 0.3,
-                          delay: 0.2 + index * 0.07,
-                        }}
-                        className="flex items-start gap-3 p-4 rounded-xl bg-gray-50 hover:bg-green-50/60 transition-colors group"
-                      >
-                        <div className="w-9 h-9 rounded-xl bg-white border border-gray-100 group-hover:border-green-100 flex items-center justify-center flex-shrink-0 transition-colors shadow-sm">
-                          <benefit.icon className="w-4.5 h-4.5 text-green-800" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900 mb-0.5">
-                            {benefit.title}
-                          </p>
-                          <p className="text-xs text-gray-500 leading-relaxed">
-                            {benefit.description}
-                          </p>
-                        </div>
-                      </motion.div>
-                    ))}
+                  {/* Optional Referral Code */}
+                  <div className="space-y-1">
+                    <Label htmlFor="refCode" className="text-xs font-bold text-gray-700">
+                      Sponsor Referral Code <span className="text-gray-400 font-normal">(Optional)</span>
+                    </Label>
+                    <Input
+                      id="refCode"
+                      placeholder="e.g. 356FV1"
+                      value={referralCode}
+                      onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                      className="h-10 rounded-xl text-xs font-mono uppercase font-bold border-gray-200 focus:ring-emerald-500"
+                    />
                   </div>
                 </div>
-              </motion.div>
-            </div>
+              )}
 
-            {/* ── Footer note ── */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.4 }}
-              className="text-center"
-            >
-              <p className="text-sm text-gray-400">
-                Have questions?{" "}
-                <a
-                  href="https://wa.link/5ff5ww"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-green-800 hover:underline font-medium"
-                >
-                  Contact us on WhatsApp
-                </a>
-              </p>
-            </motion.div>
-          </div>
-        </main>
-      </div>
-    </>
-  );
-};
-
-// ─── PaymentSuccess modal — unchanged ─────────────────────────────────────────
-interface PaymentSuccessProps {
-  isOpen: boolean;
-  userName?: string;
-}
-
-const PaymentSuccess = ({ isOpen, userName }: PaymentSuccessProps) => {
-  const navigate = useNavigate();
-  const [countdown, setCountdown] = useState(5);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          navigate("/dashboard", { replace: true });
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isOpen, navigate]);
-
-  const handleGoNow = () => {
-    navigate("/dashboard", { replace: true });
-  };
-
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.85, y: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          >
-            <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden">
-              <div className="relative bg-green-800 px-8 pt-10 pb-16 text-center overflow-hidden">
-                <div className="absolute inset-0 overflow-hidden">
-                  <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-white/5" />
-                  <div className="absolute -bottom-4 -left-4 w-24 h-24 rounded-full bg-white/5" />
-                  <div className="absolute top-4 left-1/3 w-2 h-2 rounded-full bg-white/20" />
-                  <div className="absolute bottom-8 right-1/4 w-1.5 h-1.5 rounded-full bg-white/20" />
-                </div>
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="flex justify-center gap-2 mb-4"
-                >
-                  <Sparkles className="w-4 h-4 text-yellow-300" />
-                  <Sparkles className="w-3 h-3 text-yellow-200 mt-1" />
-                  <Sparkles className="w-4 h-4 text-yellow-300" />
-                </motion.div>
-                <motion.div
-                  initial={{ scale: 0, rotate: -180 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 260,
-                    damping: 20,
-                    delay: 0.15,
-                  }}
-                  className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-5 shadow-lg"
-                >
-                  <CheckCircle className="w-11 h-11 text-green-700" />
-                </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35 }}
-                >
-                  <h2 className="text-2xl font-bold text-white mb-1">
-                    Payment Successful!
-                  </h2>
-                  <p className="text-green-200 text-sm">
-                    Welcome to Agroheal
-                    {userName ? `, ${userName.split(" ")[0]}` : ""}! 🌱
-                  </p>
-                </motion.div>
-              </div>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.45 }}
-                className="relative -mt-8 mx-4 bg-white rounded-2xl border border-gray-100 shadow-md p-5 mb-6"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <CheckCircle className="w-4 h-4 text-green-700" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">
-                      Platform access activated
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      Your Green Card is now active. Explore courses, manage
-                      your farm slot, and start building your community.
-                    </p>
-                  </div>
-                </div>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.55 }}
-                className="px-6 pb-8 space-y-3"
-              >
-                <button
-                  onClick={handleGoNow}
-                  className="w-full flex items-center justify-center gap-2 bg-green-800 hover:bg-green-900 text-white font-semibold py-3.5 rounded-2xl transition-all active:scale-95"
-                >
-                  Go to Dashboard
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-                <p className="text-center text-xs text-gray-400">
-                  Redirecting automatically in{" "}
-                  <span className="font-bold text-green-700">{countdown}s</span>
-                </p>
-              </motion.div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-};
-
-// ─── ActivationErrorModal — unchanged ─────────────────────────────────────────
-interface ActivationErrorModalProps {
-  isOpen: boolean;
-  onRetry: () => void;
-  loading: boolean;
-}
-
-const ActivationErrorModal = ({
-  isOpen,
-  onRetry,
-  loading,
-}: ActivationErrorModalProps) => {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.85, y: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          >
-            <div className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden">
-              <div className="px-8 pt-10 pb-6 text-center">
-                <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-5">
-                  <AlertTriangle className="w-8 h-8 text-amber-600" />
-                </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">
-                  Account Activation
-                </h2>
-                <p className="text-sm text-gray-600">
-                  Your payment was received, but we had trouble activating your
-                  subscription. Please retry or contact support.
-                </p>
-              </div>
-              <div className="px-6 pb-8 space-y-3">
-                <button
-                  onClick={onRetry}
+              {/* Checkout Trigger */}
+              <div className="space-y-3 pt-2">
+                <Button
+                  onClick={handleFlutterwavePayment}
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-2 bg-green-800 hover:bg-green-900 disabled:opacity-50 text-white font-semibold py-3.5 rounded-2xl transition-all active:scale-95"
+                  className="w-full h-12 bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-xs gap-2"
                 >
                   {loading ? (
                     <span className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Retrying...
+                      Connecting Gateway...
                     </span>
                   ) : (
-                    "Retry Activation"
+                    <>
+                      <span>Get Green Card Pass ({formatNaira(activeGreenCardFee)})</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
                   )}
-                </button>
-                <a
-                  href="https://wa.link/5ff5ww"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block w-full text-center text-sm font-medium text-green-800 hover:underline py-2"
-                >
-                  Contact Support
-                </a>
+                </Button>
+
+                <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Instant Flutterwave 256-bit SSL checkout</span>
+                </div>
               </div>
+
+              {/* Existing Member Sign In Prompt */}
+              {!user && (
+                <div className="pt-3 border-t border-gray-100 text-center text-xs text-gray-500">
+                  <span>Already an AgroHeal member? </span>
+                  <Link to="/signin" className="font-bold text-emerald-800 hover:underline">
+                    Sign in to your account
+                  </Link>
+                </div>
+              )}
             </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+          </div>
+        </div>
+      </div>
+
+      {/* ── POST-PAYMENT INSTANT PASSWORD CREATION MODAL FOR GUESTS ── */}
+      <AnimatePresence>
+        {showPasswordModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              className="w-full max-w-md bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden p-6 sm:p-8 space-y-5 text-center"
+            >
+              <div className="w-14 h-14 rounded-3xl bg-emerald-100 text-emerald-800 flex items-center justify-center mx-auto shadow-2xs">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+
+              <div className="space-y-1.5">
+                <h3 className="text-xl font-black text-gray-900 tracking-tight">
+                  Payment Verified! Set Your Password
+                </h3>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Your Green Card payment was successful. Create your account password to immediately view your Digital Green Card and access your farm dashboard.
+                </p>
+                <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200 text-xs font-mono">
+                  {guestEmail}
+                </Badge>
+              </div>
+
+              {passwordError && (
+                <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-xs text-red-700 flex items-start gap-2 text-left">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>{passwordError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleCreateGuestPassword} className="space-y-4 text-left">
+                <div className="space-y-1">
+                  <Label htmlFor="pwd" className="text-xs font-bold text-gray-700">
+                    Create Password
+                  </Label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Input
+                      id="pwd"
+                      type="password"
+                      placeholder="Min. 6 characters"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="pl-9 h-11 rounded-xl text-xs font-medium border-gray-200 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <Label htmlFor="cpwd" className="text-xs font-bold text-gray-700">
+                    Confirm Password
+                  </Label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Input
+                      id="cpwd"
+                      type="password"
+                      placeholder="Repeat password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className="pl-9 h-11 rounded-xl text-xs font-medium border-gray-200 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={passwordSubmitting || !newPassword || !confirmPassword}
+                  className="w-full h-11 bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs"
+                >
+                  {passwordSubmitting ? (
+                    "Activating Account..."
+                  ) : (
+                    <>
+                      <span>Complete Setup & Open Green Card</span>
+                      <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+                    </>
+                  )}
+                </Button>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 

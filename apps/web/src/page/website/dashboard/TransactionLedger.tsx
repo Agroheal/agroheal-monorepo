@@ -101,16 +101,21 @@ export default function TransactionLedger() {
   const canSubscribeWithWallet = !isProjectSubscribed && directReferralEarnings >= 10000;
   const hasGreenCard = Boolean(memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING"));
 
-  // Clear financial balances (incorporating direct referral earnings, matrix earnings, and platform wallet balance)
-  const availableBalance = Math.max(
-    walletBalance,
-    (isDirectReferralWithdrawable ? directReferralEarnings : 0) + (isMatrixQualified ? matrixEarnings : 0)
-  );
+  // Authoritative financial balances (incorporating direct referral earnings, matrix earnings, and platform wallet balance)
   const ledgerBalance = Math.max(
     walletBalance,
     directReferralEarnings + matrixEarnings
   );
-  const totalLockedAmount = Math.max(0, ledgerBalance - availableBalance);
+
+  // Gatekeeper locked capital:
+  // If user is not qualified for 5x7 matrix (5 directs + ₦5k 30d PQV), all matrix earnings are locked.
+  const lockedMatrixAmount = !isMatrixQualified ? matrixEarnings : 0;
+  // If direct referral earnings do not meet withdrawal conditions (active project + ₦2k threshold), lock them.
+  const lockedDirectAmount = !isDirectReferralWithdrawable ? directReferralEarnings : 0;
+  const totalLockedAmount = lockedMatrixAmount + lockedDirectAmount;
+
+  // Immediately withdrawable / available cleared balance:
+  const availableBalance = Math.max(0, ledgerBalance - totalLockedAmount);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -525,12 +530,26 @@ export default function TransactionLedger() {
     setRequeryLoading(true);
     setActiveRequeryRef(targetRef);
     try {
-      // 1. Check in transactions table
-      const { data: checkoutData } = await supabase
+      // 1. Check in transactions table by payment_reference, transaction_ref, or numeric ID
+      let checkoutData: any = null;
+      const numericId = targetRef.replace(/\D/g, "");
+
+      const { data: byRef } = await supabase
         .from("transactions")
         .select("*")
-        .eq("payment_reference", targetRef)
+        .or(`payment_reference.eq.${targetRef},transaction_ref.eq.${targetRef}`)
         .maybeSingle();
+
+      checkoutData = byRef;
+
+      if (!checkoutData && numericId && Number(numericId) > 0) {
+        const { data: byId } = await supabase
+          .from("transactions")
+          .select("*")
+          .eq("id", numericId)
+          .maybeSingle();
+        checkoutData = byId;
+      }
 
       // 2. Check in other_payments if not in checkout
       let paymentRecord = checkoutData;
@@ -563,7 +582,24 @@ export default function TransactionLedger() {
           description: `No record matching reference "${targetRef}" was found in our system. Please check and try again.`,
         });
       } else {
-        const statusStr = (paymentRecord.status || "UNKNOWN").toUpperCase();
+        let statusStr = (paymentRecord.status || "UNKNOWN").toUpperCase();
+
+        // If pending, attempt server activation or verification
+        if (statusStr === "PENDING") {
+          try {
+            const verifyRes = await apiClient.member.activateGreenCard({
+              paymentReference: targetRef,
+              amount: Number(paymentRecord.amount || 0),
+            }).catch(() => null);
+
+            if (verifyRes && verifyRes.memberId) {
+              statusStr = "PAID";
+            }
+          } catch (vErr) {
+            console.warn("[TransactionLedger] Gateway verify check:", vErr);
+          }
+        }
+
         showToast({
           variant:
             statusStr === "COMPLETED" || statusStr === "PAID" || statusStr === "SUCCESS" || statusStr === "CONFIRMED"
@@ -1534,6 +1570,7 @@ export default function TransactionLedger() {
           savedBankName={userProfile?.bank_name}
           savedAccountNumber={userProfile?.bank_account_number}
           savedAccountName={userProfile?.bank_account_name}
+          userEmail={userProfile?.email}
           isLegacy={Boolean(userProfile?.is_legacy)}
           hasPurchasedStarterPack={Boolean(userProfile?.has_purchased_starter_pack)}
           onSaveBankToProfile={handleSaveBankToProfile}

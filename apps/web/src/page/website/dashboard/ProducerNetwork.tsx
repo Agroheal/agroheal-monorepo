@@ -301,47 +301,45 @@ export const ProducerNetwork: React.FC = () => {
           </div>
         ) : approvedProductions.length === 0 ? (
           /* STATE 2: User holds slots, biological cultivation is actively in progress */
-          <div className="space-y-4">
-            <div className="rounded-2xl border-2 border-dashed border-emerald-300/90 bg-emerald-50/40 p-6 sm:p-10 text-center space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto shadow-xs">
-                <Clock className="w-6 h-6" />
-              </div>
-              <div className="flex items-center justify-center gap-2 flex-wrap">
-                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs font-semibold">
-                  {slotsHeld} Active Slot{slotsHeld > 1 ? "s" : ""} ({slotsHeld * BAGS_PER_SLOT_CYCLE_1} Fruiting Bags)
-                </Badge>
-                <span className="text-xs text-amber-700 font-semibold">• Biological Cycle in Progress</span>
-              </div>
-              <div className="space-y-1.5 max-w-lg mx-auto">
-                <h4 className="text-base font-bold text-gray-900">
-                  Biological Cultivation in Progress · Awaiting Harvest Audit
-                </h4>
-                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                  Your {slotsHeld * BAGS_PER_SLOT_CYCLE_1} biological oyster mushroom fruiting bags are actively being monitored and cared for by farm cluster coordinators. Once your fruiting flushes reach full maturity, your farm coordinator will conduct the certified weigh-in audit and approved yields will be recorded and credited right here.
-                </p>
-                <p className="text-xs text-emerald-700 font-medium pt-1">
-                  Cycle 1 doubles biological capacity from 2 to 4 fruiting bags per slot. Projected harvest distributions activate from Cycle 2 onward.
-                </p>
+          <div className="space-y-3">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 sm:p-5 flex flex-col md:flex-row items-center justify-between gap-4 text-left">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0 shadow-2xs">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs font-semibold">
+                      {slotsHeld} Active Slot{slotsHeld > 1 ? "s" : ""} ({slotsHeld * BAGS_PER_SLOT_CYCLE_1} Fruiting Bags)
+                    </Badge>
+                    <span className="text-xs text-amber-800 font-semibold">• Biological Cycle in Progress</span>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    Your {slotsHeld * BAGS_PER_SLOT_CYCLE_1} fruiting bags are actively being cared for by cluster coordinators. Cycle 1 doubles capacity from 2 to 4 bags per slot.
+                  </p>
+                </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <div className="flex items-center gap-2 shrink-0 w-full md:w-auto">
                 <Button
                   asChild
-                  className="w-full sm:w-auto h-10 px-5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all"
+                  size="sm"
+                  className="rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white font-semibold text-xs shadow-2xs flex-1 md:flex-none"
                 >
                   <Link to="/dashboard/farm-operations/buy-slots" className="flex items-center gap-1.5">
-                    <PlusCircle className="w-4 h-4" />
-                    <span>Buy More Slots ({formatNaira(SUBSEQUENT_SLOT_PRICE)}/ea)</span>
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>Buy Slots</span>
                   </Link>
                 </Button>
 
                 <Button
                   asChild
+                  size="sm"
                   variant="outline"
-                  className="w-full sm:w-auto h-10 px-5 rounded-xl border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs transition-all"
+                  className="rounded-lg border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs flex-1 md:flex-none"
                 >
                   <Link to="/dashboard/farm-operations/my-slots">
-                    <span>View Slot Management</span>
+                    <span>My Slots</span>
                   </Link>
                 </Button>
               </div>

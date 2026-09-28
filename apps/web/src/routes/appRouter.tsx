@@ -67,6 +67,7 @@ export const appRouter = createBrowserRouter([
       { path: "forgot-password", element: <ForgotPasswordForm /> },
       { path: "reset-password", element: <UpdatePasswordForm /> },
       { path: "verify-card/:memberId", element: <VerifyCard /> },
+      { path: "subscribe", element: <Subscribe /> },
     ],
   },
 
@@ -88,7 +89,6 @@ export const appRouter = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { path: "/subscribe", element: <Navigate to="/dashboard/checkout?product=green_card" replace /> },
       {
         path: "/dashboard/green-card",
         element: <Navigate to="/dashboard/profile/green-card" replace />,
