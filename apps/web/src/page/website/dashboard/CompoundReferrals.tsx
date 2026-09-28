@@ -1229,11 +1229,11 @@ const CompoundReferrals: React.FC = () => {
                       </Badge>
                     </div>
                     <p className="text-emerald-800/90 leading-relaxed">
-                      You qualify to earn matrix harvest dividends through <strong>Level {unlockedLevel}</strong>.
+                      You qualify to earn matrix consumer network commissions through <strong>Level {unlockedLevel}</strong>.
                       {unlockedLevel < 7 ? (
-                        <> Sponsor <strong>{nextLevelTarget.remainingDirects} more direct partner(s)</strong> (total {nextLevelTarget.requiredDirects}) to unlock Level {nextLevelTarget.nextLevel} dividends. Deeper level commissions remain safely locked in escrow until unlocked.</>
+                        <> Sponsor <strong>{nextLevelTarget.remainingDirects} more direct partner(s)</strong> (total {nextLevelTarget.requiredDirects}) to unlock Level {nextLevelTarget.nextLevel} commissions. Deeper level commissions remain safely locked in escrow until unlocked.</>
                       ) : (
-                        <> You have unlocked all 7 levels of matrix harvest dividends as an Apex Producer!</>
+                        <> You have unlocked all 7 levels of matrix consumer network commissions as an Apex Producer!</>
                       )}
                     </p>
                   </div>
@@ -1250,7 +1250,7 @@ const CompoundReferrals: React.FC = () => {
                     </div>
                     <p className="text-amber-800/90 leading-relaxed">
                       Under the <strong>Directs + 1 Depth Gating Rule</strong>, sponsoring <strong>1 direct partner immediately unlocks down to Level 2</strong> (30 network positions), and each additional direct partner unlocks +1 level (6 direct partners unlocks all 7 levels up to 97,655 positions).
-                      Sponsor your first direct partner to unlock Level 2 matrix dividends. Personal <strong>₦1,000 direct referral bonuses are never locked</strong>.
+                      Sponsor your first direct partner to unlock Level 2 matrix commissions. Personal <strong>₦1,000 direct referral bonuses are never locked</strong>.
                     </p>
                   </div>
                 </div>

@@ -139,7 +139,7 @@ export const NotificationBell: React.FC = () => {
           notifs.push({
             id: "notif-slots-held",
             title: "Farm Slots Confirmed",
-            message: `You hold ${totalSlots} active farm slot(s). Matrix tree participation and harvest dividends are active.`,
+            message: `You hold ${totalSlots} active farm slot(s). Production yields and harvest dividends are active.`,
             type: "slot",
             created_at: new Date().toISOString(),
             read: false,
