@@ -27,6 +27,7 @@ interface VerificationData {
   status: "active" | "inactive" | "not_found";
   tier: string;
   verifiedAt: string;
+  avatarUrl?: string;
 }
 
 export const VerifyCard: React.FC = () => {
@@ -45,7 +46,40 @@ export const VerifyCard: React.FC = () => {
       const rawNumber = formattedId.replace(/[^0-9]/g, "");
 
       try {
-        // 1. Attempt verification via Express API v1 (/api/v1/member/verify-card/:memberId)
+        // 1. Primary: Direct Supabase Public RPC: verify_green_card(p_member_id)
+        // SECURITY DEFINER function granted to anon — works 100% in incognito!
+        try {
+          const { data: rpcData, error: rpcErr } = await supabase.rpc("verify_green_card", {
+            p_member_id: memberId,
+          });
+
+          if (!rpcErr && rpcData && rpcData.status && rpcData.status !== "not_found") {
+            const joinDate = rpcData.memberSince;
+            const formattedDate = joinDate
+              ? new Date(joinDate).toLocaleDateString("en-US", {
+                  month: "long",
+                  year: "numeric",
+                }).toUpperCase()
+              : "AUGUST 2026";
+
+            setData({
+              valid: Boolean(rpcData.valid),
+              memberId: formatAgcId(rpcData.memberId || formattedId),
+              fullName: rpcData.fullName || "AgroHeal Member",
+              memberSince: formattedDate,
+              status: rpcData.status === "active" ? "active" : "inactive",
+              tier: rpcData.tier || "AgroHeal Green Card Pioneer",
+              verifiedAt: rpcData.verifiedAt || new Date().toISOString(),
+              avatarUrl: rpcData.avatarUrl || undefined,
+            });
+            setLoading(false);
+            return;
+          }
+        } catch (rpcEx) {
+          console.warn("[VerifyCard] RPC check error, falling back:", rpcEx);
+        }
+
+        // 2. Secondary: Attempt Express API v1 (/api/v1/member/verify-card/:memberId)
         try {
           const apiData = await apiClient.member.verifyCard(formattedId);
           if (apiData && apiData.memberId) {
@@ -69,34 +103,16 @@ export const VerifyCard: React.FC = () => {
             return;
           }
         } catch (apiErr: any) {
-          // If 404 from API, it genuinely does not exist
-          if (apiErr.statusCode === 404) {
-            setData({
-              valid: false,
-              memberId: formattedId,
-              fullName: "Unknown Member",
-              memberSince: "N/A",
-              status: "not_found",
-              tier: "Unregistered",
-              verifiedAt: new Date().toISOString(),
-            });
-            setLoading(false);
-            return;
-          }
-          console.info("[VerifyCard] Express API unavailable, falling back to direct database query:", apiErr.message);
+          console.info("[VerifyCard] Express API unavailable, falling back:", apiErr?.message);
         }
 
-        // 2. Database Fallback
+        // 3. Fallback: Database Direct Query (if authenticated user viewing)
         let query = supabase
           .from("profiles")
-          .select("id, full_name, member_id, created_at");
+          .select("id, full_name, member_id, created_at, avatar_url, is_green_card_holder");
 
-        if (memberId.toUpperCase().startsWith("AGC-")) {
-          query = query.ilike("member_id", formattedId);
-        } else {
-          // If searched by raw number, try matching both formats
-          query = query.or(`member_id.ilike.%${memberId}%,member_id.ilike.%${formattedId}%`);
-        }
+        const cleanRawId = memberId.replace(/[^a-zA-Z0-9]/g, "");
+        query = query.or(`member_id.ilike.%${memberId}%,member_id.ilike.%${formattedId}%,member_id.ilike.%${cleanRawId}%`);
 
         const { data: profile, error } = await query.maybeSingle();
 
@@ -114,7 +130,7 @@ export const VerifyCard: React.FC = () => {
           return;
         }
 
-        // Check active Green Card subscription
+        // Check active Green Card subscription or profile flag
         const { data: subscription } = await supabase
           .from("subscriptions")
           .select("expires_at, started_at, status, plan")
@@ -124,8 +140,8 @@ export const VerifyCard: React.FC = () => {
           .maybeSingle();
 
         const isActive =
-          !!subscription &&
-          new Date(subscription.expires_at) > new Date();
+          (!!subscription && new Date(subscription.expires_at) > new Date()) ||
+          Boolean(profile.is_green_card_holder);
 
         const joinDate = subscription?.started_at || profile.created_at;
         const formattedDate = joinDate
@@ -143,6 +159,7 @@ export const VerifyCard: React.FC = () => {
           status: isActive ? "active" : "inactive",
           tier: "AgroHeal Green Card Pioneer",
           verifiedAt: new Date().toISOString(),
+          avatarUrl: profile.avatar_url || undefined,
         });
       } catch (err) {
         console.error("Verification lookup error", err);
@@ -291,6 +308,7 @@ export const VerifyCard: React.FC = () => {
                   memberName={data.fullName}
                   memberId={data.memberId}
                   memberSince={data.memberSince}
+                  avatarUrl={data.avatarUrl}
                   isActive={data.valid}
                   showControls={true}
                 />

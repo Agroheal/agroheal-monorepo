@@ -38,6 +38,7 @@ export function formatAgcId(id?: string): string {
   if (!id) return "NO GREENCARD YET";
   const trimmed = id.trim().toUpperCase();
   if (trimmed.startsWith("AGC-")) return trimmed;
+  if (trimmed.startsWith("GC-")) return `AGC-${trimmed.slice(3)}`;
   if (trimmed.startsWith("AGC")) return `AGC-${trimmed.replace(/^AGC/i, "").replace(/^-*/, "")}`;
   return `AGC-${trimmed}`;
 }
@@ -346,92 +347,106 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
                 </div>
               </div>
 
-              {/* ── CARD FRONT: MIDDLE ROW (SECURITY EMBLEM & PASSPORT PHOTO) ── */}
-              <div className="relative z-10 flex items-center justify-between my-auto py-1 gap-2">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 min-w-0">
-                  <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-950/80 to-emerald-900/60 border border-emerald-400/30 backdrop-blur-xs shadow-inner">
-                    <div className="w-5 h-5 rounded-lg bg-emerald-400/20 flex items-center justify-center border border-emerald-400/40 shrink-0">
-                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="block text-[8px] font-mono tracking-widest text-emerald-300/80 uppercase leading-none truncate">
-                        COMMUNITY DIGITAL PASS
-                      </span>
-                      <span className="block text-[10px] sm:text-[11px] font-bold tracking-wider font-mono text-amber-300 leading-tight">
+              {/* ── CARD FRONT: BODY (LEFT DETAILS + RIGHT PROMINENT PASSPORT PHOTO) ── */}
+              <div className="relative z-10 flex items-stretch justify-between gap-3 sm:gap-4 my-auto py-1">
+                {/* Left Side: Security Badge, Embossed ID, and Cardholder Info */}
+                <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                  {/* Security Emblem */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-emerald-950/80 to-emerald-900/60 border border-emerald-400/30 backdrop-blur-xs shadow-inner">
+                      <div className="w-4 h-4 rounded-md bg-emerald-400/20 flex items-center justify-center border border-emerald-400/40 shrink-0">
+                        <ShieldCheck className="w-3 h-3 text-emerald-300" />
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-bold tracking-wider font-mono text-amber-300 leading-tight">
                         LEAP SECURE ID
                       </span>
                     </div>
-                  </div>
 
-                  <div className="hidden sm:flex px-2.5 py-1.5 rounded-xl bg-white/5 border border-white/10 backdrop-blur-xs items-center gap-1.5 shadow-inner shrink-0">
-                    <Award className="w-4 h-4 text-emerald-400" />
-                    <span className="text-[10px] font-semibold text-emerald-100 tracking-wide">
-                      VERIFIED SECURE
-                    </span>
-                  </div>
-                </div>
-
-                {/* Passport Photo Frame */}
-                <div className="w-12 h-14 sm:w-14 sm:h-16 rounded-xl border-2 border-amber-300/70 overflow-hidden shadow-md bg-emerald-950/90 flex items-center justify-center shrink-0">
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt={memberName}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-emerald-900/90 to-emerald-950 p-1 text-center">
-                      <User className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300/80 mb-0.5" />
-                      <span className="text-[7px] sm:text-[8px] font-mono tracking-wider font-semibold text-emerald-300/70">
-                        PHOTO
+                    <div className="hidden sm:flex px-2 py-1 rounded-xl bg-white/5 border border-white/10 backdrop-blur-xs items-center gap-1.5 shadow-inner shrink-0">
+                      <Award className="w-3.5 h-3.5 text-emerald-400" />
+                      <span className="text-[9px] font-semibold text-emerald-100 tracking-wide">
+                        VERIFIED SECURE
                       </span>
                     </div>
-                  )}
-                </div>
-              </div>
-
-              {/* ── CARD FRONT: BOTTOM EMBOSSED DETAILS ── */}
-              <div className="relative z-10 space-y-2 sm:space-y-3">
-                {/* Embossed Member ID Code */}
-                <div>
-                  <div className="text-[9px] sm:text-[10px] font-mono tracking-widest text-emerald-300/80 uppercase">
-                    MEMBER CREDENTIAL ID
                   </div>
-                  <div
-                    className="font-mono text-base sm:text-2xl font-bold tracking-[0.18em] sm:tracking-[0.24em] text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-200 to-yellow-300"
-                    style={{
-                      textShadow:
-                        "0 1px 1px rgba(255,255,255,0.4), 0 -1px 2px rgba(0,0,0,0.9), 1px 2px 3px rgba(0,0,0,0.8)",
-                    }}
-                  >
-                    {formattedId}
-                  </div>
-                </div>
 
-                {/* Member Name & Dates */}
-                <div className="flex items-end justify-between gap-3 pt-0.5 border-t border-white/10">
-                  <div className="truncate max-w-[65%]">
-                    <span className="block text-[8px] sm:text-[9px] font-semibold text-emerald-300/70 uppercase tracking-wider">
-                      CARDHOLDER NAME
-                    </span>
-                    <span
-                      className="block text-xs sm:text-sm font-bold tracking-wider text-white uppercase truncate"
+                  {/* Embossed Member ID Code */}
+                  <div className="my-auto py-1">
+                    <div className="text-[8px] sm:text-[9px] font-mono tracking-widest text-emerald-300/80 uppercase">
+                      MEMBER CREDENTIAL ID
+                    </div>
+                    <div
+                      className="font-mono text-base sm:text-xl md:text-2xl font-black tracking-[0.14em] sm:tracking-[0.2em] text-transparent bg-clip-text bg-gradient-to-r from-amber-100 via-amber-200 to-yellow-300 truncate"
                       style={{
-                        textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+                        textShadow:
+                          "0 1px 1px rgba(255,255,255,0.4), 0 -1px 2px rgba(0,0,0,0.9), 1px 2px 3px rgba(0,0,0,0.8)",
                       }}
                     >
-                      {memberName}
-                    </span>
+                      {formattedId}
+                    </div>
                   </div>
 
-                  <div className="text-right">
-                    <span className="block text-[8px] sm:text-[9px] font-semibold text-emerald-300/70 uppercase tracking-wider">
-                      MEMBER SINCE
-                    </span>
-                    <span className="block text-xs sm:text-sm font-mono font-bold text-amber-200">
-                      {memberSince}
-                    </span>
+                  {/* Member Name & Dates */}
+                  <div className="flex items-end justify-between gap-3 pt-1 border-t border-white/10">
+                    <div className="truncate max-w-[62%]">
+                      <span className="block text-[7px] sm:text-[8px] font-semibold text-emerald-300/70 uppercase tracking-wider">
+                        CARDHOLDER NAME
+                      </span>
+                      <span
+                        className="block text-xs sm:text-sm font-bold tracking-wider text-white uppercase truncate"
+                        style={{
+                          textShadow: "0 1px 2px rgba(0,0,0,0.8)",
+                        }}
+                      >
+                        {memberName}
+                      </span>
+                    </div>
+
+                    <div className="text-right truncate">
+                      <span className="block text-[7px] sm:text-[8px] font-semibold text-emerald-300/70 uppercase tracking-wider">
+                        MEMBER SINCE
+                      </span>
+                      <span className="block text-[11px] sm:text-xs font-mono font-bold text-amber-200">
+                        {memberSince}
+                      </span>
+                    </div>
                   </div>
+                </div>
+
+                {/* Right Side: Passport Photo Frame (Official ID 3:4 Aspect Ratio) */}
+                <div className="shrink-0 flex flex-col items-center justify-center pl-1">
+                  <div className="w-20 h-26 sm:w-24 sm:h-32 rounded-xl sm:rounded-2xl border-2 border-amber-300/80 p-0.5 bg-gradient-to-b from-amber-300/50 via-emerald-950 to-amber-400/30 shadow-md relative overflow-hidden group">
+                    <div className="relative w-full h-full rounded-[9px] sm:rounded-[13px] overflow-hidden bg-emerald-950/90 flex items-center justify-center">
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={memberName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-emerald-900/90 to-emerald-950 p-1 text-center">
+                          <User className="w-7 h-7 sm:w-8 sm:h-8 text-amber-300/75 mb-1" />
+                          <span className="text-[7px] sm:text-[8px] font-mono tracking-widest font-bold text-amber-200/90 uppercase leading-none">
+                            PASSPORT
+                          </span>
+                          <span className="text-[6px] sm:text-[7px] font-mono tracking-wider text-emerald-400/80 uppercase mt-0.5">
+                            PHOTO
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Biometric Corner Watermark Reticle */}
+                      <div className="absolute top-1 left-1 w-2 h-2 border-t border-l border-amber-300/60 pointer-events-none" />
+                      <div className="absolute top-1 right-1 w-2 h-2 border-t border-r border-amber-300/60 pointer-events-none" />
+                      <div className="absolute bottom-1 left-1 w-2 h-2 border-b border-l border-amber-300/60 pointer-events-none" />
+                      <div className="absolute bottom-1 right-1 w-2 h-2 border-b border-r border-amber-300/60 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  {/* Micro Biometric Badge */}
+                  <span className="text-[7px] sm:text-[8px] font-mono font-semibold tracking-wider text-amber-300/70 uppercase mt-1">
+                    BIOMETRIC ID
+                  </span>
                 </div>
               </div>
 
