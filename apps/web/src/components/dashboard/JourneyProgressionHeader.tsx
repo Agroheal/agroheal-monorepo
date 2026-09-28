@@ -212,7 +212,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span><strong>₦1,000 instant referral bounty</strong> into wallet</span>
+                <span><strong>₦1,000 instant referral commission</strong> into wallet</span>
               </li>
             </ul>
           </div>

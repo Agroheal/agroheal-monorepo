@@ -68,7 +68,7 @@ const DEFAULT_CONFIG: NextStepConfig = {
       benefits: [
         "Lifetime access to Organic Farming Academy & practical masterclasses",
         "Official AgroHeal Digital Green Card ID with instant QR verification",
-        "Earn ₦1,000 instant direct sponsor bounty on every referred member",
+        "Earn ₦1,000 instant direct sponsor commission on every referred member",
         "Unlocks eligibility to purchase commercial mushroom farm slots",
       ],
       buttonText: "Activate Green Card Now (₦2,000)",
@@ -96,7 +96,7 @@ const DEFAULT_CONFIG: NextStepConfig = {
       targetCount: 5,
       badgeText: "Milestone 3 of 3 · Expansion",
       benefits: [
-        "Earn ₦1,000 instant direct sponsor bounty for every member you welcome",
+        "Earn ₦1,000 instant direct sponsor commission for every member you welcome",
         "All 7 levels of 5×7 sales commissions are permanently unlocked for active members",
         "Earn 10% (₦500) cash reward on every practical farm slot secured by your direct partners",
         "Sponsor 5 active partners to qualify for Matrix Community Bank Withdrawals",

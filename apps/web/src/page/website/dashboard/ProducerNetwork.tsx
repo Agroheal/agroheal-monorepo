@@ -570,7 +570,7 @@ export const ProducerNetwork: React.FC = () => {
         eyebrowIcon={Calculator}
         eyebrowText="Producer Harvest Forecaster"
         title="Interactive Producer Direct & Slot Forecaster"
-        description="Simulate your direct sponsorship bonuses and biological fruiting bag allocations based on active direct producer partners."
+        description="Simulate your direct sponsorship commissions and biological fruiting bag allocations based on active direct producer partners."
         controls={
           <div className="grid grid-cols-2 gap-2 w-full">
             <div className="space-y-1">
@@ -605,12 +605,12 @@ export const ProducerNetwork: React.FC = () => {
         }
         metrics={[
           {
-            label: "Green Card Bounty",
+            label: "Green Card Commission",
             value: `₦${(calcDirects * 1000).toLocaleString()}`,
             subtext: `₦1,000 × ${calcDirects} Directs`,
           },
           {
-            label: "Farm-Slot Bounties",
+            label: "Farm-Slot Commissions",
             value: `₦${(calcDirects * calcSlotsPerDirect * 500).toLocaleString()}`,
             subtext: "10% (₦500) per slot",
           },

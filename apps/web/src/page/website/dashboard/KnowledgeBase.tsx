@@ -58,7 +58,7 @@ const FAQS: FaqItem[] = [
     category: "slots",
     question: "How much does a Group Farm Slot cost and what is included?",
     answer:
-      "Each Group Farm Slot requires a one-time capital commitment of ₦5,000. 70% (₦3,500) covers fruiting house setup, racking structures, biological inputs, farm labor, and 2 initial mature oyster mushroom fruiting bags; 10% (₦500) is paid as an instant sponsor bounty; and 20% (₦1,000) is retained in the community administrative reserve. There are zero monthly maintenance fees.",
+      "Each Group Farm Slot requires a one-time capital commitment of ₦5,000. 70% (₦3,500) covers fruiting house setup, racking structures, biological inputs, farm labor, and 2 initial mature oyster mushroom fruiting bags; 10% (₦500) is paid as an instant sponsor commission; and 20% (₦1,000) is retained in the community administrative reserve. There are zero monthly maintenance fees.",
     tags: ["slots", "5000", "cost", "mushrooms", "pricing", "breakdown"],
   },
   {
