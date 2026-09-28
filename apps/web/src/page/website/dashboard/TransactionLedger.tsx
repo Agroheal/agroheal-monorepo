@@ -717,288 +717,57 @@ export default function TransactionLedger() {
           </div>
         </div>
 
-        {/* ── TOP DUAL CARDS (CREDIT CARD ASPECT RATIO ~1.6:1) ── */}
+        {/* ── TOP DUAL CARDS (CREDIT CARD ASPECT RATIO) ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-          {/* ── CARD 1 (LEFT): CONDITIONAL GREEN CARD ACTIVATION OR 5x7 MATRIX PIPELINE (LIGHT COMMUNITY THEME) ── */}
-          {!hasGreenCard ? (
-            <div className="bg-gradient-to-br from-emerald-50/90 via-white to-green-50/60 text-gray-900 rounded-3xl p-5 sm:p-5.5 border border-emerald-200/90 shadow-sm flex flex-col justify-between relative overflow-hidden space-y-3.5">
-              <div className="space-y-3 relative z-10">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center border border-emerald-200 font-bold">
-                      <Award className="w-4 h-4 text-emerald-700" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-sm sm:text-base">AgroHeal Green Card (AGC)</h3>
-                      <p className="text-[11px] text-gray-500">Community Identity & Profit Key</p>
-                    </div>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-200">
-                    Not Activated
-                  </span>
-                </div>
-
-                <div className="bg-white/90 border border-emerald-100 rounded-xl p-3 space-y-1.5 text-xs text-gray-700 shadow-2xs">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Permanent Verified Member ID (AGC) & QR Credential</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Full lifetime access to AgroHeal Academy curricula</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>₦1,000 Direct Referral Rewards on every Green Card</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>Permanent placement in 7-level 5×7 community matrix</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2.5 border-t border-emerald-100 space-y-2 relative z-10">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">One-Time Activation Fee</span>
-                  <span className="font-mono font-black text-lg text-emerald-950">₦2,000</span>
-                </div>
-                <Button
-                  asChild
-                  className="w-full h-9 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-gray-950 font-bold text-xs shadow-xs transition-all"
-                >
-                  <Link to="/subscribe">
-                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                    Activate Green Card — ₦2,000
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-gradient-to-br from-emerald-50/50 via-white to-green-50/30 rounded-3xl p-5 sm:p-5.5 border border-emerald-200/80 shadow-sm flex flex-col justify-between space-y-3 text-gray-900">
-              <div className="space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
-                      <Users className="w-4 h-4 text-emerald-700" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-sm sm:text-base">5×7 Community Matrix Pipeline</h3>
-                      <p className="text-[11px] text-gray-500">7-Level Spillover Network (Not a Wallet)</p>
-                    </div>
-                  </div>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                      isMatrixQualified
-                        ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                        : "bg-amber-100 text-amber-800 border border-amber-200"
-                    }`}
-                  >
-                    {isMatrixQualified ? "Qualified" : "Qualification Required"}
-                  </span>
-                </div>
-
-                {/* Accrued Matrix Earnings */}
-                <div className="flex items-baseline justify-between pt-0.5">
-                  <div>
-                    <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider block">
-                      Accrued Matrix Dividends
-                    </span>
-                    {loading ? (
-                      <Skeleton className="h-8 w-32 my-1" />
-                    ) : (
-                      <p className="text-2xl font-extrabold text-emerald-950 font-mono">
-                        ₦{matrixEarnings.toLocaleString()}
-                      </p>
-                    )}
-                  </div>
-                  <div className="text-right text-xs">
-                    <span className="text-gray-500 text-[11px]">Active Depth:</span>{" "}
-                    <span className="font-bold text-emerald-800 text-xs">
-                      {directReferralsCount >= 5
-                        ? "All 7 Levels"
-                        : directReferralsCount > 0
-                        ? `Levels 1-${directReferralsCount}`
-                        : "Level 0"}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 30-Day Gatekeeper Progress */}
-                <div className="space-y-1.5 pt-1 bg-white/80 p-2.5 rounded-xl border border-emerald-100">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-gray-600 font-medium">1. Direct Referrals (Min. 5):</span>
-                    <span className={`font-bold font-mono ${directReferralsCount >= 5 ? "text-emerald-700" : "text-amber-700"}`}>
-                      {directReferralsCount} / 5 {directReferralsCount >= 5 && "✓"}
-                    </span>
-                  </div>
-                  <div className="w-full h-1 rounded-full bg-gray-200 overflow-hidden">
-                    <div
-                      className="h-full bg-emerald-600 rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, (directReferralsCount / 5) * 100)}%` }}
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] pt-0.5">
-                    <span className="text-gray-600 font-medium">2. Active PQV (Min. ₦5k):</span>
-                    <span className={`font-bold font-mono ${activePqv30d >= 5000 ? "text-emerald-700" : "text-amber-700"}`}>
-                      ₦{activePqv30d.toLocaleString()} / ₦5,000 {activePqv30d >= 5000 && "✓"}
-                    </span>
-                  </div>
-                  <div className="w-full h-1 rounded-full bg-gray-200 overflow-hidden">
-                    <div
-                      className="h-full bg-emerald-600 rounded-full transition-all duration-300"
-                      style={{ width: `${Math.min(100, (activePqv30d / 5000) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Matrix Level Quick Carousel */}
-              <div className="space-y-1.5 pt-1 border-t border-gray-100">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-gray-700 flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3 text-emerald-700" />
-                    Tiers
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedMatrixLevel((prev) => Math.max(1, prev - 1))}
-                      disabled={selectedMatrixLevel <= 1}
-                      className="w-6 h-6 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-100 text-gray-600 disabled:opacity-30 transition-colors"
-                      title="Previous"
-                    >
-                      <ChevronLeft className="w-3.5 h-3.5" />
-                    </button>
-                    <span className="text-[11px] font-mono font-bold text-gray-700 px-1">
-                      L{selectedMatrixLevel}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setSelectedMatrixLevel((prev) => Math.min(7, prev + 1))}
-                      disabled={selectedMatrixLevel >= 7}
-                      className="w-6 h-6 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-100 text-gray-600 disabled:opacity-30 transition-colors"
-                      title="Next"
-                    >
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* 7 Level Tabs */}
-                <div className="grid grid-cols-7 gap-1">
-                  {MATRIX_TIERS.map((tier) => {
-                    const isSelected = selectedMatrixLevel === tier.level;
-                    return (
-                      <button
-                        key={tier.level}
-                        type="button"
-                        onClick={() => setSelectedMatrixLevel(tier.level)}
-                        className={`py-0.5 text-[10px] font-bold rounded border transition-all text-center ${
-                          isSelected
-                            ? "bg-emerald-800 text-white border-emerald-900 shadow-2xs"
-                            : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
-                        }`}
-                      >
-                        L{tier.level}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Active Tier mini line */}
-                {(() => {
-                  const tier = MATRIX_TIERS.find((t) => t.level === selectedMatrixLevel) || MATRIX_TIERS[0];
-
-                  return (
-                    <div className="p-2 rounded-xl bg-white border border-gray-200/70 text-[11px] flex items-center justify-between gap-2">
-                      <div>
-                        <span className="font-bold text-gray-900">
-                          Level {tier.level}: {tier.percentage}% (₦{tier.rewardPerSlot}/slot)
-                        </span>
-                        <span className="text-[10px] text-gray-500 block">
-                          Ceiling: ₦{tier.totalCeiling.toLocaleString()} · {tier.members.toLocaleString()} members
-                        </span>
-                      </div>
-                      <span
-                        className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800"
-                      >
-                        ✓ Unlocked
-                      </span>
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-          )}
-
-          {/* ── CARD 2 (RIGHT): THE ONLY CARD CALLED "WALLET" (EXECUTIVE CREDIT CARD HERO) ── */}
-          <div className="flex flex-col justify-between bg-gradient-to-br from-[#051c11] via-[#092917] to-[#03130b] border border-emerald-500/50 rounded-3xl p-5 sm:p-5.5 text-white shadow-2xl relative overflow-hidden space-y-3">
+          {/* ── CARD 1 (LEFT): EXECUTIVE MEMBER WALLET (CREDIT CARD HERO) ── */}
+          <div className="flex flex-col justify-between bg-gradient-to-br from-[#051c11] via-[#092917] to-[#03130b] border border-emerald-500/50 rounded-3xl p-4.5 sm:p-5 text-white shadow-xl relative overflow-hidden space-y-2.5">
             {/* Background Ambient Glows */}
             <div className="absolute top-0 right-0 -mr-16 -mt-16 w-60 h-60 rounded-full bg-emerald-400/10 blur-3xl pointer-events-none" />
             <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-60 h-60 rounded-full bg-amber-400/5 blur-3xl pointer-events-none" />
 
-            {/* Top Row: Company Logo + Official Wallet Badge + Status Badge + Contactless Icon */}
-            <div className="relative z-10 flex items-center justify-between pb-2.5 border-b border-white/10 gap-2 flex-wrap">
-              <div className="flex items-center gap-2.5 min-w-0">
+            {/* Top Row: Logo + Member Wallet Tag + Name & Green Card ID + Contactless Icon */}
+            <div className="relative z-10 flex items-center justify-between pb-2 border-b border-white/10 gap-2">
+              <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
                 <img
                   src={AgrohealImages.HeaderLogo}
                   alt="AgroHeal"
-                  className="h-6 sm:h-7 object-contain brightness-0 invert opacity-95 shrink-0"
+                  className="h-5 sm:h-6 object-contain brightness-0 invert opacity-95 shrink-0"
                 />
-                <div className="h-4 w-px bg-white/20 hidden sm:block" />
+                <div className="h-3.5 w-px bg-white/20 hidden sm:block" />
                 <span className="text-[10px] font-bold tracking-widest text-emerald-300 uppercase font-mono truncate">
                   MEMBER WALLET
                 </span>
               </div>
 
-              {/* Status Badge */}
-              <div className="flex items-center gap-2 shrink-0 ml-auto">
-                <span
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-semibold tracking-wide border shadow-xs backdrop-blur-md ${
-                    isDirectReferralWithdrawable
-                      ? "bg-emerald-500/20 text-emerald-200 border-emerald-400/35"
-                      : canSubscribeWithWallet
-                      ? "bg-purple-500/25 text-purple-200 border-purple-400/40"
-                      : !isProjectSubscribed
-                      ? "bg-amber-500/20 text-amber-200 border-amber-400/35"
-                      : "bg-white/10 text-gray-300 border-white/20"
-                  }`}
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      isDirectReferralWithdrawable
-                        ? "bg-emerald-400"
-                        : canSubscribeWithWallet
-                        ? "bg-purple-400"
-                        : "bg-amber-400"
-                    } animate-pulse`}
-                  />
-                  {isDirectReferralWithdrawable
-                    ? "Withdrawable"
-                    : canSubscribeWithWallet
-                    ? "₦10k Ready to Activate"
-                    : !isProjectSubscribed
-                    ? "Unsubscribed (Accumulating)"
-                    : "Min. ₦2,000"}
-                </span>
-
-                <Wifi className="w-3.5 h-3.5 rotate-90 text-emerald-300/70 hidden sm:block" />
+              {/* Name & Green Card ID Header Placement */}
+              <div className="flex items-center gap-2 ml-auto text-right min-w-0">
+                <div className="min-w-0">
+                  {userProfile?.full_name ? (
+                    <p className="text-xs sm:text-sm font-bold text-white tracking-wide truncate max-w-[150px] sm:max-w-[200px]">
+                      {userProfile.full_name}
+                    </p>
+                  ) : null}
+                  {hasGreenCard && memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING") ? (
+                    <span className="text-[10px] font-mono font-bold text-emerald-300 block">
+                      {memberId}
+                    </span>
+                  ) : null}
+                </div>
+                <Wifi className="w-3.5 h-3.5 rotate-90 text-emerald-300/70 hidden sm:block shrink-0" />
               </div>
             </div>
 
-            {/* Middle: EMV Chip & Financial Balances */}
-            <div className="relative z-10 py-1 space-y-2.5">
+            {/* Middle: EMV Chip & Digital Ledger Tag */}
+            <div className="relative z-10 space-y-2">
               <div className="flex items-center justify-between">
-                {/* Realistic Gold EMV Smart Microchip (ATM / Credit Card Chip) */}
-                <div className="relative w-12 h-9 sm:w-14 sm:h-10 rounded-md sm:rounded-lg bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-600 border border-amber-300 shadow-md p-1 overflow-hidden shrink-0">
+                {/* Realistic Gold EMV Smart Microchip (Credit Card Chip) */}
+                <div className="relative w-11 h-7.5 sm:w-12 sm:h-8.5 rounded-md bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-600 border border-amber-300 shadow-md p-0.5 overflow-hidden shrink-0">
                   <div className="w-full h-full rounded-[3px] border border-amber-800/40 grid grid-cols-3 grid-rows-3 gap-[1px]">
                     <div className="border-r border-b border-amber-800/40" />
                     <div className="border-b border-amber-800/40" />
                     <div className="border-l border-b border-amber-800/40" />
                     <div className="border-r border-amber-800/40" />
-                    <div className="rounded-full bg-amber-700/40 mx-auto my-auto w-2 h-2" />
+                    <div className="rounded-full bg-amber-700/40 mx-auto my-auto w-1.5 h-1.5" />
                     <div className="border-l border-amber-800/40" />
                     <div className="border-r border-t border-amber-800/40" />
                     <div className="border-t border-amber-800/40" />
@@ -1006,78 +775,67 @@ export default function TransactionLedger() {
                   </div>
                 </div>
 
-                <span className="text-[9px] font-mono text-emerald-200/60 uppercase tracking-wider">
-                  DEBIT / DIGITAL LEDGER
-                </span>
+                <div className="flex items-center gap-2">
+                  {isDirectReferralWithdrawable ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border shadow-xs backdrop-blur-md bg-emerald-500/20 text-emerald-200 border-emerald-400/35">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Withdrawable
+                    </span>
+                  ) : canSubscribeWithWallet ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border shadow-xs backdrop-blur-md bg-purple-500/25 text-purple-200 border-purple-400/40">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                      ₦10k Ready to Activate
+                    </span>
+                  ) : null}
+                  <span className="text-[9px] font-mono text-emerald-200/60 uppercase tracking-wider">
+                    DEBIT / DIGITAL LEDGER
+                  </span>
+                </div>
               </div>
 
               {/* Dual Financial Balances */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-white/10 space-y-0.5">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-white/5 backdrop-blur-xs p-2.5 rounded-2xl border border-white/10 space-y-0.5">
                   <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">
                     Available Balance
                   </span>
                   {loading ? (
-                    <Skeleton className="h-8 w-32 bg-white/20 my-1" />
+                    <Skeleton className="h-7 w-28 bg-white/20 my-1" />
                   ) : (
                     <p className="text-xl sm:text-2xl font-black font-mono text-white tracking-tight">
                       ₦{availableBalance.toLocaleString()}
                     </p>
                   )}
-                  <span className="text-[10px] text-emerald-200/70 block">
+                  <span className="text-[9px] text-emerald-200/70 block">
                     Immediately Withdrawable
                   </span>
                 </div>
 
-                <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-white/10 space-y-0.5">
+                <div className="bg-white/5 backdrop-blur-xs p-2.5 rounded-2xl border border-white/10 space-y-0.5">
                   <span className="text-[10px] text-gray-300 font-bold uppercase tracking-wider block">
                     Ledger Balance
                   </span>
                   {loading ? (
-                    <Skeleton className="h-8 w-32 bg-white/20 my-1" />
+                    <Skeleton className="h-7 w-28 bg-white/20 my-1" />
                   ) : (
                     <p className="text-xl sm:text-2xl font-black font-mono text-gray-200 tracking-tight">
                       ₦{ledgerBalance.toLocaleString()}
                     </p>
                   )}
-                  <span className="text-[10px] text-gray-400 block">
+                  <span className="text-[9px] text-gray-400 block">
                     Total Cumulative Posted
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Bottom Card Row: Cardholder Details + Security/Audited Stamp */}
-            <div className="relative z-10 border-t border-white/10 pt-2.5 mt-auto space-y-2.5">
-              <div className="flex items-end justify-between gap-3">
-                <div className="min-w-0">
-                  <span className="text-[9px] text-emerald-200/60 uppercase tracking-widest font-semibold block">
-                    Cardholder & Member ID
-                  </span>
-                  <p className="text-xs sm:text-sm font-bold text-white tracking-wide truncate max-w-[200px] sm:max-w-xs">
-                    {userProfile?.full_name || "AgroHeal Member"}
-                  </p>
-                  <p className="text-[10px] font-mono font-medium text-emerald-300/90">
-                    {memberId}
-                  </p>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <span className="text-[9px] text-emerald-200/50 uppercase tracking-widest font-mono block">
-                    PLATFORM TRANSACTION LEDGER
-                  </span>
-                  <span className="text-[10px] font-mono font-bold text-emerald-300/80 uppercase">
-                    IMMUTABLE • AUDITED
-                  </span>
-                </div>
-              </div>
-
-              {/* Action Buttons below on wallet card */}
+            {/* Bottom Actions Directly on Card */}
+            <div className="relative z-10 pt-2 border-t border-white/10 space-y-1.5 mt-auto">
               {canSubscribeWithWallet && (
                 <Button
                   disabled={subscribingWithWallet}
                   onClick={handleSubscribeWithWallet}
-                  className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs h-9 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
+                  className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs h-8.5 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-purple-200" />
                   {subscribingWithWallet ? "Activating..." : "Activate Project Subscription (₦10,000)"}
@@ -1089,7 +847,7 @@ export default function TransactionLedger() {
                 onClick={() => {
                   setIsWithdrawModalOpen(true);
                 }}
-                className={`w-full h-9 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
+                className={`w-full h-8.5 sm:h-9 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
                   availableBalance >= 2000
                     ? "bg-emerald-700 hover:bg-emerald-600 text-white shadow-xs cursor-pointer"
                     : "bg-white/10 text-gray-400 border border-white/10 cursor-not-allowed"
@@ -1104,6 +862,217 @@ export default function TransactionLedger() {
               </Button>
             </div>
           </div>
+
+          {/* ── CARD 2 (RIGHT): CONDITIONAL GREEN CARD ACTIVATION OR 5x7 MATRIX PIPELINE (MATCHING COMPACT HEIGHT) ── */}
+          {!hasGreenCard ? (
+            <div className="bg-gradient-to-br from-emerald-50/90 via-white to-green-50/60 text-gray-900 rounded-3xl p-4.5 sm:p-5 border border-emerald-200/90 shadow-sm flex flex-col justify-between relative overflow-hidden space-y-2.5">
+              <div className="space-y-2.5 relative z-10">
+                <div className="flex items-center justify-between pb-2 border-b border-emerald-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center border border-emerald-200 font-bold shrink-0">
+                      <Award className="w-4 h-4 text-emerald-700" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm">AgroHeal Green Card (AGC)</h3>
+                      <p className="text-[10px] text-gray-500">Community Identity & Matrix Key</p>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-200 shrink-0">
+                    Not Activated
+                  </span>
+                </div>
+
+                <div className="bg-white/90 border border-emerald-100 rounded-2xl p-2.5 grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-gray-700 shadow-2xs">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="truncate">Permanent Member ID & QR</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="truncate">Academy Video Curricula</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="truncate">₦1,000 Direct Referral Rewards</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="truncate">7-Level 5×7 Matrix Placement</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-emerald-100 space-y-1.5 relative z-10 mt-auto">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500">One-Time Activation Fee</span>
+                  <span className="font-mono font-black text-base text-emerald-950">₦2,000</span>
+                </div>
+                <Button
+                  asChild
+                  className="w-full h-8.5 sm:h-9 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-gray-950 font-bold text-xs shadow-xs transition-all"
+                >
+                  <Link to="/subscribe">
+                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                    Activate Green Card — ₦2,000
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gradient-to-br from-emerald-50/50 via-white to-green-50/30 rounded-3xl p-4.5 sm:p-5 border border-emerald-200/80 shadow-sm flex flex-col justify-between space-y-2.5 text-gray-900">
+              <div className="space-y-2">
+                {/* Header Row */}
+                <div className="flex items-center justify-between pb-2 border-b border-emerald-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shrink-0">
+                      <Users className="w-4 h-4 text-emerald-700" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm">5×7 Community Matrix Pipeline</h3>
+                      <p className="text-[10px] text-gray-500">7-Level Spillover Network (Not a Wallet)</p>
+                    </div>
+                  </div>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                      isMatrixQualified
+                        ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                        : "bg-amber-100 text-amber-800 border border-amber-200"
+                    }`}
+                  >
+                    {isMatrixQualified ? "Qualified" : "Qualification Required"}
+                  </span>
+                </div>
+
+                {/* Accrued Matrix Earnings & Depth */}
+                <div className="flex items-baseline justify-between pt-0.5">
+                  <div>
+                    <span className="text-[9px] text-gray-400 font-semibold uppercase tracking-wider block">
+                      Accrued Matrix Dividends
+                    </span>
+                    {loading ? (
+                      <Skeleton className="h-7 w-28 my-0.5" />
+                    ) : (
+                      <p className="text-xl sm:text-2xl font-black text-emerald-950 font-mono tracking-tight">
+                        ₦{matrixEarnings.toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right text-[11px]">
+                    <span className="text-gray-500">Active Depth:</span>{" "}
+                    <span className="font-bold text-emerald-800">
+                      {directReferralsCount >= 5
+                        ? "All 7 Levels"
+                        : directReferralsCount > 0
+                        ? `Levels 1-${directReferralsCount}`
+                        : "Level 0"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 30-Day Gatekeeper Progress (Compact 2-col) */}
+                <div className="grid grid-cols-2 gap-2 bg-white/80 p-2 rounded-xl border border-emerald-100">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-gray-600 font-medium">1. Directs:</span>
+                      <span className={`font-bold font-mono ${directReferralsCount >= 5 ? "text-emerald-700" : "text-amber-700"}`}>
+                        {directReferralsCount}/5 {directReferralsCount >= 5 && "✓"}
+                      </span>
+                    </div>
+                    <div className="w-full h-1 rounded-full bg-gray-200 overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-600 rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min(100, (directReferralsCount / 5) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[10px]">
+                      <span className="text-gray-600 font-medium">2. 30d PQV:</span>
+                      <span className={`font-bold font-mono ${activePqv30d >= 5000 ? "text-emerald-700" : "text-amber-700"}`}>
+                        ₦{(activePqv30d / 1000).toFixed(0)}k/₦5k {activePqv30d >= 5000 && "✓"}
+                      </span>
+                    </div>
+                    <div className="w-full h-1 rounded-full bg-gray-200 overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-600 rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min(100, (activePqv30d / 5000) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Matrix Level Quick Selector */}
+              <div className="space-y-1 pt-1 border-t border-gray-100 mt-auto">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold text-gray-700 flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3 text-emerald-700" />
+                    Tiers
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMatrixLevel((prev) => Math.max(1, prev - 1))}
+                      disabled={selectedMatrixLevel <= 1}
+                      className="w-5 h-5 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-100 text-gray-600 disabled:opacity-30 transition-colors"
+                      title="Previous"
+                    >
+                      <ChevronLeft className="w-3 h-3" />
+                    </button>
+                    <span className="text-[10px] font-mono font-bold text-gray-700 px-0.5">
+                      L{selectedMatrixLevel}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMatrixLevel((prev) => Math.min(7, prev + 1))}
+                      disabled={selectedMatrixLevel >= 7}
+                      className="w-5 h-5 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-100 text-gray-600 disabled:opacity-30 transition-colors"
+                      title="Next"
+                    >
+                      <ChevronRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* 7 Level Tabs */}
+                <div className="grid grid-cols-7 gap-1">
+                  {MATRIX_TIERS.map((tier) => {
+                    const isSelected = selectedMatrixLevel === tier.level;
+                    return (
+                      <button
+                        key={tier.level}
+                        type="button"
+                        onClick={() => setSelectedMatrixLevel(tier.level)}
+                        className={`py-0.5 text-[9px] font-bold rounded border transition-all text-center ${
+                          isSelected
+                            ? "bg-emerald-800 text-white border-emerald-900 shadow-2xs"
+                            : "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+                        }`}
+                      >
+                        L{tier.level}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Active Tier mini line */}
+                {(() => {
+                  const tier = MATRIX_TIERS.find((t) => t.level === selectedMatrixLevel) || MATRIX_TIERS[0];
+                  return (
+                    <div className="p-1.5 rounded-lg bg-white border border-gray-200/70 text-[10px] flex items-center justify-between gap-1">
+                      <span className="font-bold text-gray-900 truncate">
+                        L{tier.level}: {tier.percentage}% (₦{tier.rewardPerSlot}/slot) · Max ₦{tier.totalCeiling.toLocaleString()}
+                      </span>
+                      <span className="shrink-0 inline-flex items-center px-1.5 py-0.2 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-800">
+                        ✓ Unlocked
+                      </span>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
         </div>
 
 
