@@ -436,7 +436,7 @@ const Checkout = () => {
     }
 
     const { data, error } = await supabase
-      .from("checkout")
+      .from("transactions")
       .insert([
         {
           user_id: user.id,
@@ -586,7 +586,7 @@ const Checkout = () => {
         ]);
 
         await supabase
-          .from("checkout")
+          .from("transactions")
           .update({
             status: "paid",
             payment_method: "wallet",
@@ -752,9 +752,9 @@ const Checkout = () => {
 
             const activateSlot = async () => {
               try {
-                // 1. Update checkout status
+                // 1. Update transaction status
                 const { error: checkoutErr } = await supabase
-                  .from("checkout")
+                  .from("transactions")
                   .update({
                     status: "paid",
                     transaction_ref: String(flwTransactionId),
@@ -1026,9 +1026,9 @@ const Checkout = () => {
                     },
                   ]);
 
-                  // 4. Update checkout record
+                  // 4. Update transaction record
                   await supabase
-                    .from("checkout")
+                    .from("transactions")
                     .update({
                       status: "paid",
                       payment_method: "split",

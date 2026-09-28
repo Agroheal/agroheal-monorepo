@@ -184,7 +184,7 @@ export default function TransactionLedger() {
       ] = await Promise.all([
         supabase
           .from("profiles")
-          .select("member_id, full_name, email, referral_earnings, slot_bonus, wallet_balance, total_referrals, created_at, bank_name, bank_account_number, bank_account_name, bank_code, is_legacy")
+          .select("member_id, full_name, email, referral_earnings, slot_bonus, wallet_balance, total_referrals, created_at, bank_name, bank_account_number, bank_account_name, bank_code, is_legacy, is_green_card_holder, has_greencard, greencard_status")
           .eq("id", user.id)
           .maybeSingle(),
         supabase
@@ -200,7 +200,7 @@ export default function TransactionLedger() {
           .select("id, amount, payment_type, created_at, status, reference, is_legacy")
           .eq("user_id", user.id),
         supabase
-          .from("checkout")
+          .from("transactions")
           .select("id, amount, created_at, payment_reference, status, is_legacy")
           .eq("user_id", user.id)
           .limit(50),
@@ -223,7 +223,35 @@ export default function TransactionLedger() {
           created_at: profile.created_at,
         });
       }
-      setMemberId(formatAgcId(profile?.member_id));
+
+      let resolvedMemberId = profile?.member_id;
+      const isCardHolder = Boolean(
+        profile?.is_green_card_holder ||
+        profile?.has_greencard ||
+        profile?.greencard_status === "active" ||
+        Boolean(resolvedMemberId) ||
+        (subscriptions && subscriptions.some((s: any) => s.plan === "green_card" && s.status === "active" && (!s.expires_at || new Date(s.expires_at) > new Date())))
+      );
+
+      if (!resolvedMemberId && isCardHolder) {
+        try {
+          const cardData = await apiClient.member.getDigitalCard();
+          if (cardData?.memberId && cardData.memberId !== "PENDING") {
+            resolvedMemberId = cardData.memberId;
+          }
+        } catch {
+          // fallback
+        }
+      }
+
+      if (resolvedMemberId) {
+        setMemberId(formatAgcId(resolvedMemberId));
+      } else if (isCardHolder) {
+        setMemberId("AGC-ACTIVE");
+      } else {
+        setMemberId("NO GREENCARD YET");
+      }
+
       const refEarnings = apiSummary?.directReferralWallet?.balance !== undefined
         ? Number(apiSummary.directReferralWallet.balance)
         : Number(profile?.referral_earnings || 0);
@@ -237,6 +265,7 @@ export default function TransactionLedger() {
       }
 
       const hasActiveSub = Boolean(
+        isCardHolder ||
         (subscriptions && subscriptions.some((s: any) => s.status === 'active' && (!s.expires_at || new Date(s.expires_at) > new Date()))) ||
         (checkouts && checkouts.some((c: any) => c.status === 'paid'))
       );
@@ -408,9 +437,9 @@ export default function TransactionLedger() {
     setRequeryLoading(true);
     setActiveRequeryRef(targetRef);
     try {
-      // 1. Check in checkout table
+      // 1. Check in transactions table
       const { data: checkoutData } = await supabase
-        .from("checkout")
+        .from("transactions")
         .select("*")
         .eq("payment_reference", targetRef)
         .maybeSingle();

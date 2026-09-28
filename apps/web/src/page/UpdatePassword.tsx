@@ -2,7 +2,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
@@ -22,6 +22,9 @@ export default function UpdatePasswordForm({
   className,
   ...props
 }: React.ComponentPropsWithoutRef<"div">) {
+  const [searchParams] = useSearchParams();
+  const isForced = searchParams.get("forced") === "true";
+
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -42,11 +45,14 @@ export default function UpdatePasswordForm({
     }
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      const { error } = await supabase.auth.updateUser({
+        password,
+        data: { force_password_change: false },
+      });
       if (error) throw error;
       setSuccess(true);
       setTimeout(() => {
-        router("/signin");
+        router(isForced ? "/dashboard" : "/signin");
       }, 2000);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
@@ -105,18 +111,19 @@ export default function UpdatePasswordForm({
                   className="text-2xl font-bold text-gray-900 mb-2"
                   style={{ fontFamily: "'Georgia', serif" }}
                 >
-                  Password updated!
+                  {isForced ? "Welcome to AgroHeal!" : "Password updated!"}
                 </h2>
                 <p className="text-sm text-gray-500 leading-relaxed mb-8">
-                  Your password has been changed successfully. Redirecting you
-                  to sign in...
+                  {isForced
+                    ? "Your personal password has been set successfully. Redirecting you to your dashboard..."
+                    : "Your password has been changed successfully. Redirecting you to sign in..."}
                 </p>
 
                 <Link
-                  to="/signin"
+                  to={isForced ? "/dashboard" : "/signin"}
                   className="inline-flex items-center gap-2 h-11 px-6 bg-green-800 hover:bg-green-700 text-white text-sm font-semibold rounded-xl transition-colors"
                 >
-                  Go to sign in
+                  {isForced ? "Go to Dashboard" : "Go to sign in"}
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               </motion.div>
@@ -135,10 +142,12 @@ export default function UpdatePasswordForm({
                     className="text-3xl font-bold text-gray-900 mb-2"
                     style={{ fontFamily: "'Georgia', serif" }}
                   >
-                    Set new password
+                    {isForced ? "Set your personal password" : "Set new password"}
                   </h1>
                   <p className="text-gray-500 text-sm leading-relaxed">
-                    Choose a strong password you haven't used before.
+                    {isForced
+                      ? "Welcome to AgroHeal! Please choose a secure password for your account to enter your dashboard."
+                      : "Choose a strong password you haven't used before."}
                   </p>
                 </motion.div>
 
@@ -210,7 +219,7 @@ export default function UpdatePasswordForm({
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
-                        Save new password
+                        {isForced ? "Save & Proceed to Dashboard" : "Save new password"}
                         <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                       </span>
                     )}

@@ -103,7 +103,8 @@ const Dashboard = () => {
 
       // Check if user was manually created and needs to set their personal password
       if (user.user_metadata?.force_password_change) {
-        setMustChangePassword(true);
+        navigate("/reset-password?forced=true");
+        return;
       }
 
       // Fetch all dashboard data in a single parallel round-trip
@@ -136,7 +137,7 @@ const Dashboard = () => {
           .select("id, slots, amount, last_payment_date, created_at, farm_group_id, project_category")
           .eq("user_id", user.id),
         supabase
-          .from("checkout")
+          .from("transactions")
           .select("id, amount, status, created_at, reference")
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })

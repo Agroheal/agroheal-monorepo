@@ -281,7 +281,7 @@ const CompoundReferrals: React.FC = () => {
         supabase.from("profiles").select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals").eq("referred_by", authId),
         supabase.from("other_payments").select("amount, created_at").eq("user_id", authId),
         supabase.from("subscriptions").select("id").eq("user_id", authId).eq("status", "active").limit(1),
-        supabase.from("checkout").select("id").eq("user_id", authId).eq("status", "paid").limit(1),
+        supabase.from("transactions").select("id").eq("user_id", authId).eq("status", "paid").limit(1),
         supabase.from("farm_groups").select("id, name, project_category").eq("coordinator_id", authId),
         supabase.from("farm_groups").select("id, name, project_category").limit(10),
       ]);
