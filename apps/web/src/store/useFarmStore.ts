@@ -8,6 +8,25 @@ export interface ClusterFinancials {
   net_balance: number;
 }
 
+export interface FarmClusterMember {
+  id: string;
+  name: string;
+  email: string;
+  slots: number;
+  fruiting_bags: number;
+  created_at: string;
+  is_legacy?: boolean;
+}
+
+export interface FarmCycleStage {
+  cycle_number: number;
+  crop_type: string;
+  stage: string;
+  progress_percent: number;
+  start_date: string | null;
+  total_bags: number;
+}
+
 export interface FarmClusterItem {
   id: string;
   farm_id: string;
@@ -17,9 +36,12 @@ export interface FarmClusterItem {
   fruiting_bags: number;
   status: string;
   coordinator_id: string | null;
+  coordinator?: { full_name?: string; phone?: string; email?: string } | null;
+  cycle?: FarmCycleStage | null;
+  members: FarmClusterMember[];
   financials: ClusterFinancials;
-  expenses: Array<{ date: string; description: string; amount: number }>;
-  sales: Array<{ date: string; produce: string; quantity: string; amount: number }>;
+  expenses: Array<{ date: string; description: string; amount: number; category?: string }>;
+  sales: Array<{ date: string; produce: string; quantity: string; amount: number; buyer?: string }>;
   source: "subscription" | "farm_record" | "other_payment";
   is_legacy?: boolean;
 }
@@ -104,7 +126,7 @@ export const useFarmStore = create<FarmState>((set, get) => ({
         groupsMap.set(fg.id, fg);
       });
 
-      // Collect all relevant farm IDs for expense & sales lookup
+      // Collect all relevant farm IDs for expense, sales, cycle & roster lookup
       const relevantFarmIds = new Set<string>();
       (slotSubs || []).forEach((s: any) => {
         if (s.farm_group_id) relevantFarmIds.add(s.farm_group_id);
@@ -114,24 +136,67 @@ export const useFarmStore = create<FarmState>((set, get) => ({
       });
 
       const farmIdList = Array.from(relevantFarmIds);
+      const coordinatorIds = Array.from(
+        new Set(
+          (farmGroups || [])
+            .map((fg: any) => fg.coordinator_id)
+            .filter((id: any): id is string => Boolean(id))
+        )
+      );
+
       const expensesMap: Record<string, any[]> = {};
       const salesMap: Record<string, any[]> = {};
+      const cyclesMap: Record<string, FarmCycleStage> = {};
+      const rosterMap: Record<string, FarmClusterMember[]> = {};
+      const coordsMap = new Map<string, any>();
 
       if (farmIdList.length > 0) {
-        const [{ data: expData }, { data: saleData }] = await Promise.all([
+        const [
+          { data: expData },
+          { data: saleData },
+          { data: cycleData },
+          { data: slotRosterData },
+          { data: farmRecordsRoster },
+          { data: coordProfiles },
+        ] = await Promise.all([
           supabase
             .from("farm_expenses")
             .select("farm_id, amount, description, category, created_at")
             .in("farm_id", farmIdList)
             .order("created_at", { ascending: false })
-            .limit(30),
+            .limit(50),
           supabase
             .from("farm_sales")
-            .select("farm_id, amount, produce_name, quantity, unit, sale_date, created_at")
+            .select("farm_id, amount, produce_name, quantity, unit, buyer_name, sale_date, created_at")
             .in("farm_id", farmIdList)
             .order("sale_date", { ascending: false })
-            .limit(30),
+            .limit(50),
+          supabase
+            .from("farm_cycles")
+            .select("farm_group_id, cycle_number, crop_type, stage, total_bags_fruiting, start_date, status")
+            .in("farm_group_id", farmIdList)
+            .limit(20),
+          supabase
+            .from("slot_subscriptions")
+            .select("id, farm_group_id, user_id, slots, member_name, member_email, member_phone, created_at, is_legacy")
+            .in("farm_group_id", farmIdList)
+            .limit(100),
+          supabase
+            .from("farm_records")
+            .select("id, farm_id, name, email, phone, farm_slots, created_at, is_legacy")
+            .in("farm_id", farmIdList)
+            .limit(200),
+          coordinatorIds.length > 0
+            ? supabase
+                .from("profiles")
+                .select("id, full_name, phone, email")
+                .in("id", coordinatorIds)
+            : Promise.resolve({ data: [] }),
         ]);
+
+        (coordProfiles || []).forEach((cp: any) => {
+          coordsMap.set(cp.id, cp);
+        });
 
         (expData || []).forEach((e: any) => {
           if (!expensesMap[e.farm_id]) expensesMap[e.farm_id] = [];
@@ -139,6 +204,7 @@ export const useFarmStore = create<FarmState>((set, get) => ({
             date: e.created_at ? new Date(e.created_at).toLocaleDateString() : "",
             description: e.description || e.category || "Operating expense",
             amount: Number(e.amount) || 0,
+            category: e.category,
           });
         });
 
@@ -149,7 +215,64 @@ export const useFarmStore = create<FarmState>((set, get) => ({
             produce: s.produce_name || "Produce harvest",
             quantity: s.quantity ? `${s.quantity} ${s.unit || "kg"}` : "",
             amount: Number(s.amount) || 0,
+            buyer: s.buyer_name,
           });
+        });
+
+        (cycleData || []).forEach((c: any) => {
+          const rawStage = (c.stage || "GROWING").toUpperCase();
+          let pct = 60;
+          if (rawStage.includes("PREP") || rawStage.includes("PLANT")) pct = 25;
+          else if (rawStage.includes("GROW") || rawStage.includes("VEGET")) pct = 60;
+          else if (rawStage.includes("HARVEST") || rawStage.includes("FRUIT")) pct = 90;
+          else if (rawStage.includes("COMPLET")) pct = 100;
+
+          cyclesMap[c.farm_group_id] = {
+            cycle_number: c.cycle_number || 1,
+            crop_type: c.crop_type || "Oyster Mushroom",
+            stage: rawStage,
+            progress_percent: pct,
+            start_date: c.start_date || null,
+            total_bags: Number(c.total_bags_fruiting) || 2000,
+          };
+        });
+
+        // Populate roster from slot_subscriptions
+        (slotRosterData || []).forEach((r: any) => {
+          if (!rosterMap[r.farm_group_id]) rosterMap[r.farm_group_id] = [];
+          const name = r.member_name || "Community Stakeholder";
+          const email = r.member_email || "Registered Member";
+          const slots = Number(r.slots) || 1;
+          rosterMap[r.farm_group_id].push({
+            id: r.id,
+            name,
+            email,
+            slots,
+            fruiting_bags: slots * 2,
+            created_at: r.created_at || new Date().toISOString(),
+            is_legacy: Boolean(r.is_legacy),
+          });
+        });
+
+        // Also merge farm_records for full historical roster transparency
+        (farmRecordsRoster || []).forEach((fr: any) => {
+          if (!rosterMap[fr.farm_id]) rosterMap[fr.farm_id] = [];
+          const existing = rosterMap[fr.farm_id].some(
+            (m) => (fr.email && m.email && m.email.toLowerCase() === fr.email.toLowerCase()) ||
+                   (fr.name && m.name && m.name.toLowerCase() === fr.name.toLowerCase())
+          );
+          if (!existing) {
+            const slots = Number(fr.farm_slots) || 1;
+            rosterMap[fr.farm_id].push({
+              id: fr.id,
+              name: fr.name || "Pioneer Stakeholder",
+              email: fr.email || "Pioneer Member",
+              slots,
+              fruiting_bags: slots * 2,
+              created_at: fr.created_at || new Date().toISOString(),
+              is_legacy: true,
+            });
+          }
         });
       }
 
@@ -178,6 +301,28 @@ export const useFarmStore = create<FarmState>((set, get) => ({
         const totalExp = farmExpenses.reduce((sum, item) => sum + item.amount, 0);
         const totalSale = farmSales.reduce((sum, item) => sum + item.amount, 0);
 
+        const coordinatorProfile = farm?.coordinator_id ? coordsMap.get(farm.coordinator_id) : null;
+        const activeCycle = cyclesMap[farmId] || {
+          cycle_number: 1,
+          crop_type: category.toLowerCase().includes("ginger") ? "High-Yield Ginger" : "Oyster Mushroom",
+          stage: "GROWING",
+          progress_percent: category.toLowerCase().includes("ginger") ? 40 : 65,
+          start_date: null,
+          total_bags: 2000,
+        };
+
+        const clusterMembers = rosterMap[farmId] || [
+          {
+            id: s.id,
+            name: "Member Stakeholder",
+            email: "Active Stakeholder",
+            slots: slotsCount,
+            fruiting_bags: bagsCount,
+            created_at: s.created_at || new Date().toISOString(),
+            is_legacy: Boolean(s.is_legacy),
+          },
+        ];
+
         clusterItems.push({
           id: s.id,
           farm_id: farmId,
@@ -187,6 +332,9 @@ export const useFarmStore = create<FarmState>((set, get) => ({
           fruiting_bags: bagsCount,
           status: s.status || "active",
           coordinator_id: farm?.coordinator_id || null,
+          coordinator: coordinatorProfile || null,
+          cycle: activeCycle,
+          members: clusterMembers,
           financials: {
             contributions: Number(s.amount) || slotsCount * 5000,
             expenses: totalExp,
@@ -226,6 +374,28 @@ export const useFarmStore = create<FarmState>((set, get) => ({
           const totalExp = farmExpenses.reduce((sum, item) => sum + item.amount, 0);
           const totalSale = farmSales.reduce((sum, item) => sum + item.amount, 0);
 
+          const coordinatorProfile = farm?.coordinator_id ? coordsMap.get(farm.coordinator_id) : null;
+          const activeCycle = cyclesMap[farmId] || {
+            cycle_number: 1,
+            crop_type: category.toLowerCase().includes("ginger") ? "High-Yield Ginger" : "Oyster Mushroom",
+            stage: "GROWING",
+            progress_percent: category.toLowerCase().includes("ginger") ? 40 : 65,
+            start_date: null,
+            total_bags: 2000,
+          };
+
+          const clusterMembers = rosterMap[farmId] || [
+            {
+              id: fr.id,
+              name: fr.name || "Pioneer Stakeholder",
+              email: fr.email || "Archived Contact",
+              slots: slotsCount,
+              fruiting_bags: bagsCount,
+              created_at: fr.created_at || new Date().toISOString(),
+              is_legacy: Boolean(fr.is_legacy),
+            },
+          ];
+
           clusterItems.push({
             id: fr.id,
             farm_id: farmId,
@@ -235,6 +405,9 @@ export const useFarmStore = create<FarmState>((set, get) => ({
             fruiting_bags: bagsCount,
             status: fr.payment_status || "verified",
             coordinator_id: farm?.coordinator_id || null,
+            coordinator: coordinatorProfile || null,
+            cycle: activeCycle,
+            members: clusterMembers,
             financials: {
               contributions: Number(fr.total_amount_paid) || slotsCount * 5000,
               expenses: totalExp,
@@ -268,6 +441,9 @@ export const useFarmStore = create<FarmState>((set, get) => ({
                 fruiting_bags: slotsCount * 2,
                 status: "active",
                 coordinator_id: null,
+                coordinator: null,
+                cycle: null,
+                members: [],
                 financials: {
                   contributions: Number(op.amount) || slotsCount * 5000,
                   expenses: 0,

@@ -1,13 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Sprout, DollarSign, TrendingUp, AlertCircle, Eye, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { 
+  Sprout, 
+  TrendingUp, 
+  AlertCircle, 
+  Eye, 
+  ChevronDown, 
+  ChevronUp, 
+  Users, 
+  Calendar, 
+  PlusCircle, 
+  ShoppingBag, 
+  Receipt, 
+  ShieldCheck, 
+  Activity, 
+  X,
+  CheckCircle2,
+  Clock,
+  Layers
+} from 'lucide-react';
+import { toast, Toaster } from 'react-hot-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { useFarmStore } from '@/store/useFarmStore';
+import { useFarmStore, type FarmClusterItem } from '@/store/useFarmStore';
+import { supabase } from '@/lib/supabaseClient';
 import { isLegacyMember } from '@shared/businessRules';
+
+const EXPENSE_CATEGORIES = [
+  "Substrate & Raw Materials",
+  "Labor & Farm Workers",
+  "Utilities & Water Supply",
+  "Mushroom Spawn / Inoculants",
+  "Packaging, Crates & Labeling",
+  "Logistics & Delivery Transport",
+  "Facility Maintenance & Repairs",
+  "Farm Equipment & Tools",
+  "Miscellaneous Operating Cost"
+];
+
+const SALES_CHANNELS = [
+  "Direct / Farm Gate Offtake",
+  "Wholesale Market Buyer",
+  "AgroHeal Central Processing",
+  "Local Supermarket / Grocery",
+  "Community Retail Stakeholder"
+];
 
 const MyFarmSlots: React.FC = () => {
   const { session, profile } = useAuth();
@@ -17,11 +59,42 @@ const MyFarmSlots: React.FC = () => {
   const [expandedCluster, setExpandedCluster] = useState<string | null>(null);
   const [clusterFilter, setClusterFilter] = useState<"ALL" | "RECENT" | "LEGACY">("ALL");
 
+  // Coordinator Modals State
+  const [expenseModalCluster, setExpenseModalCluster] = useState<FarmClusterItem | null>(null);
+  const [saleModalCluster, setSaleModalCluster] = useState<FarmClusterItem | null>(null);
+  const [submittingExpense, setSubmittingExpense] = useState(false);
+  const [submittingSale, setSubmittingSale] = useState(false);
+
+  // Form Fields: Expense
+  const [expenseCategory, setExpenseCategory] = useState(EXPENSE_CATEGORIES[0]);
+  const [expenseAmount, setExpenseAmount] = useState("");
+  const [expenseDescription, setExpenseDescription] = useState("");
+
+  // Form Fields: Sale
+  const [produceName, setProduceName] = useState("Fresh Oyster Mushrooms");
+  const [quantity, setQuantity] = useState("");
+  const [unit, setUnit] = useState("kg");
+  const [unitPrice, setUnitPrice] = useState("");
+  const [saleAmount, setSaleAmount] = useState("");
+  const [buyerName, setBuyerName] = useState("");
+  const [salesChannel, setSalesChannel] = useState(SALES_CHANNELS[0]);
+  const [saleDate, setSaleDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [saleDescription, setSaleDescription] = useState("");
+
   useEffect(() => {
     if (user?.id) {
       fetchFarmData(user.id, user.email || profile?.email);
     }
   }, [user?.id, user?.email, profile?.email, fetchFarmData]);
+
+  // Recalculate sale total amount when quantity or unitPrice changes
+  useEffect(() => {
+    const q = parseFloat(quantity);
+    const p = parseFloat(unitPrice);
+    if (!isNaN(q) && !isNaN(p) && q > 0 && p > 0) {
+      setSaleAmount((q * p).toString());
+    }
+  }, [quantity, unitPrice]);
 
   const subscriptions = clusters;
 
@@ -40,18 +113,111 @@ const MyFarmSlots: React.FC = () => {
   });
 
   const toggleCluster = (id: string) => {
-    if (expandedCluster === id) {
-      setExpandedCluster(null);
-    } else {
-      setExpandedCluster(id);
-    }
+    setExpandedCluster((prev) => (prev === id ? null : id));
   };
 
   const totalSlots = subscriptions.reduce((sum, s) => sum + (Number(s.slots_held) || 0), 0);
   const totalFruitingBags = subscriptions.reduce((sum, s) => sum + (Number(s.fruiting_bags) || 0), 0);
 
+  // Submit Expense Handler
+  const handleRecordExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!expenseModalCluster || !user?.id) return;
+
+    const parsedAmount = parseFloat(expenseAmount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      toast.error("Please enter a valid expense amount greater than 0.");
+      return;
+    }
+
+    setSubmittingExpense(true);
+    try {
+      const { error } = await supabase.from("farm_expenses").insert({
+        farm_id: expenseModalCluster.farm_id,
+        category: expenseCategory,
+        amount: parsedAmount,
+        description: expenseDescription.trim() || expenseCategory,
+        created_by: user.id,
+        created_by_name: profile?.full_name || user.email || "Farm Coordinator",
+      });
+
+      if (error) throw error;
+
+      toast.success("Operational expense logged to cluster ledger!");
+      setExpenseModalCluster(null);
+      setExpenseAmount("");
+      setExpenseDescription("");
+      // Refetch cluster data to update financials
+      await fetchFarmData(user.id, user.email || profile?.email, true);
+    } catch (err: any) {
+      console.error("Error inserting farm expense:", err);
+      toast.error(err.message || "Failed to record expense. Please try again.");
+    } finally {
+      setSubmittingExpense(false);
+    }
+  };
+
+  // Submit Produce Sale Handler
+  const handleRecordSale = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!saleModalCluster || !user?.id) return;
+
+    const parsedQty = parseFloat(quantity);
+    const parsedUnitPrice = parseFloat(unitPrice);
+    const parsedAmount = parseFloat(saleAmount);
+
+    if (isNaN(parsedQty) || parsedQty <= 0) {
+      toast.error("Please specify a valid produce quantity.");
+      return;
+    }
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      toast.error("Please specify a valid total sale amount.");
+      return;
+    }
+
+    setSubmittingSale(true);
+    try {
+      const { error } = await supabase.from("farm_sales").insert({
+        farm_id: saleModalCluster.farm_id,
+        produce_name: produceName.trim(),
+        quantity: parsedQty,
+        unit: unit.trim(),
+        unit_price: isNaN(parsedUnitPrice) ? 0 : parsedUnitPrice,
+        amount: parsedAmount,
+        buyer_name: buyerName.trim() || null,
+        sales_channel: salesChannel,
+        sale_date: saleDate,
+        description: saleDescription.trim() || null,
+        created_by: user.id,
+        created_by_name: profile?.full_name || user.email || "Farm Coordinator",
+      });
+
+      if (error) throw error;
+
+      toast.success("Produce sale successfully recorded to cluster ledger!");
+      setSaleModalCluster(null);
+      setQuantity("");
+      setUnitPrice("");
+      setSaleAmount("");
+      setBuyerName("");
+      setSaleDescription("");
+      // Refetch cluster data to update financials
+      await fetchFarmData(user.id, user.email || profile?.email, true);
+    } catch (err: any) {
+      console.error("Error inserting farm sale:", err);
+      toast.error(err.message || "Failed to record produce sale. Please try again.");
+    } finally {
+      setSubmittingSale(false);
+    }
+  };
+
   if (loading) {
-    return <div className="p-8 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>;
+    return (
+      <div className="p-8 flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600"></div>
+        <p className="text-sm font-medium text-slate-500 animate-pulse">Loading your farm clusters and live ledgers...</p>
+      </div>
+    );
   }
 
   if (subscriptions.length === 0) {
@@ -78,49 +244,56 @@ const MyFarmSlots: React.FC = () => {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-8">
+      <Toaster position="top-right" />
+
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-emerald-900">My Farm Slots</h1>
         <p className="text-muted-foreground mt-2 text-lg">
-          Manage your agricultural portfolio and track real-time cluster financials.
+          Manage your agricultural portfolio, track crop cycle progress, and review live cluster financials.
         </p>
       </div>
 
       {/* Portfolio Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-emerald-500 to-emerald-700 text-white border-none shadow-md">
+        <Card className="bg-gradient-to-br from-emerald-600 to-teal-800 text-white border-none shadow-md">
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-emerald-100 font-medium text-sm uppercase tracking-wider mb-1">Total Slots Owned</p>
-                <h3 className="text-4xl font-bold">{totalSlots}</h3>
+                <p className="text-emerald-100 font-medium text-xs uppercase tracking-wider mb-1">Total Slots Owned</p>
+                <h3 className="text-4xl font-extrabold">{totalSlots}</h3>
+                <p className="text-xs text-emerald-200 mt-1">Across all subscribed clusters</p>
               </div>
-              <div className="p-2 bg-white/20 rounded-lg">
+              <div className="p-3 bg-white/20 rounded-xl shadow-inner">
                 <Sprout className="w-6 h-6 text-white" />
               </div>
             </div>
           </CardContent>
         </Card>
+
         <Card className="bg-white border-slate-200 shadow-sm">
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-slate-500 font-medium text-sm uppercase tracking-wider mb-1">Fruiting Bags in Production</p>
-                <h3 className="text-4xl font-bold text-slate-800">{totalFruitingBags}</h3>
+                <p className="text-slate-500 font-medium text-xs uppercase tracking-wider mb-1">Fruiting Bags in Production</p>
+                <h3 className="text-4xl font-extrabold text-slate-800">{totalFruitingBags.toLocaleString()}</h3>
+                <p className="text-xs text-slate-500 mt-1">Active yield allocation (2 bags / slot)</p>
               </div>
-              <div className="p-2 bg-emerald-100 rounded-lg">
+              <div className="p-3 bg-emerald-100 rounded-xl">
                 <Leaf className="w-6 h-6 text-emerald-600" />
               </div>
             </div>
           </CardContent>
         </Card>
+
         <Card className="bg-white border-slate-200 shadow-sm">
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-slate-500 font-medium text-sm uppercase tracking-wider mb-1">Subscribed Clusters</p>
-                <h3 className="text-4xl font-bold text-slate-800">{subscriptions.length}</h3>
+                <p className="text-slate-500 font-medium text-xs uppercase tracking-wider mb-1">Subscribed Clusters</p>
+                <h3 className="text-4xl font-extrabold text-slate-800">{subscriptions.length}</h3>
+                <p className="text-xs text-slate-500 mt-1">Participating cooperative groups</p>
               </div>
-              <div className="p-2 bg-blue-100 rounded-lg">
+              <div className="p-3 bg-blue-100 rounded-xl">
                 <TrendingUp className="w-6 h-6 text-blue-600" />
               </div>
             </div>
@@ -130,8 +303,13 @@ const MyFarmSlots: React.FC = () => {
 
       {/* Subscribed Clusters List */}
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-2">
-          <h2 className="text-xl font-semibold text-slate-800">Active Farm Clusters</h2>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-3">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-bold text-slate-800">Active Farm Clusters</h2>
+            <Badge variant="secondary" className="font-semibold text-xs bg-slate-100 text-slate-700">
+              {subscriptions.length} Total
+            </Badge>
+          </div>
 
           {isLegacy && (
             <div className="inline-flex items-center gap-1 p-0.5 bg-amber-50/90 border border-amber-200 rounded-xl text-xs">
@@ -158,7 +336,7 @@ const MyFarmSlots: React.FC = () => {
                     : "text-amber-800 hover:text-amber-950"
                 }`}
               >
-                Active Platform Slots ({subscriptions.filter((c) => !c.is_legacy).length})
+                Platform Slots ({subscriptions.filter((c) => !c.is_legacy).length})
               </button>
               <button
                 type="button"
@@ -180,175 +358,602 @@ const MyFarmSlots: React.FC = () => {
             No clusters found for the selected filter.
           </div>
         ) : (
-          filteredClusters.map((sub) => (
-            <Card key={sub.id} className="overflow-hidden shadow-sm border-slate-200">
-              {/* Cluster Header */}
-              <div className="p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center shrink-0">
-                    <Sprout className="w-6 h-6 text-emerald-600" />
-                  </div>
-                  <div>
-                    {(() => {
-                      const match = sub.farm_name.match(/^(.+?)\s*\[(.+?)\]$/);
-                      const displayName = match ? match[1] : sub.farm_name;
-                      const displayCategory = match ? match[2] : sub.category;
-                      return (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-lg font-bold text-slate-900">{displayName}</h3>
-                          <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-xs">
-                            [{displayCategory}]
+          filteredClusters.map((sub) => {
+            const isUserCoordinator = Boolean(
+              sub.coordinator_id && (user?.id === sub.coordinator_id || profile?.id === sub.coordinator_id)
+            );
+            const cycle = sub.cycle || {
+              cycle_number: 1,
+              crop_type: sub.category.toLowerCase().includes("ginger") ? "High-Yield Ginger" : "Oyster Mushroom",
+              stage: "GROWING",
+              progress_percent: 65,
+              start_date: null,
+              total_bags: 2000,
+            };
+
+            const match = sub.farm_name.match(/^(.+?)\s*\[(.+?)\]$/);
+            const displayName = match ? match[1] : sub.farm_name;
+            const displayCategory = match ? match[2] : sub.category;
+
+            return (
+              <Card key={sub.id} className="overflow-hidden shadow-sm border-slate-200 transition-all hover:border-slate-300">
+                {/* Cluster Card Header & Stats */}
+                <div className="p-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 bg-white">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-center shrink-0 shadow-2xs">
+                      <Sprout className="w-6 h-6 text-emerald-600" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="text-lg font-bold text-slate-900">{displayName}</h3>
+                        <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-xs">
+                          [{displayCategory}]
+                        </Badge>
+                        {sub.is_legacy && (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 font-bold text-xs">
+                            Pioneer Record
                           </Badge>
-                          {sub.is_legacy && (
-                            <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 font-bold text-xs">
-                              Pioneer Cluster Record
-                            </Badge>
-                          )}
-                        </div>
-                      );
-                    })()}
-                    <p className="text-sm text-slate-500">
-                      Your Stake: <span className="font-semibold text-slate-700">{sub.slots_held} Slots</span> ({sub.fruiting_bags} bags)
-                    </p>
-                    {sub.is_legacy && (
-                      <p className="text-xs text-amber-700 mt-0.5">
-                        Historical cluster record allocated prior to the Sept 6, 2026 digital platform launch.
+                        )}
+                        {isUserCoordinator && (
+                          <Badge className="bg-blue-600 text-white font-bold text-xs">
+                            You are Coordinator
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
+                        <p>
+                          Your Stake: <span className="font-semibold text-slate-800">{sub.slots_held} Slots</span> ({sub.fruiting_bags} bags)
+                        </p>
+                        {sub.coordinator && (
+                          <span className="text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                            Coordinator: <strong className="text-slate-800">{sub.coordinator.full_name || "Assigned"}</strong>
+                          </span>
+                        )}
+                      </div>
+
+                      {sub.is_legacy && (
+                        <p className="text-xs text-amber-700 mt-1">
+                          Historical cluster record allocated prior to the Sept 6, 2026 digital platform launch.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Financial Pill Summary */}
+                  <div className="flex bg-slate-50 rounded-xl border border-slate-200 p-2 text-sm divide-x divide-slate-200 shadow-inner w-full lg:w-auto">
+                    <div className="px-3.5 py-1 text-center flex-1 lg:flex-none">
+                      <p className="text-slate-500 text-[11px] font-semibold uppercase tracking-wider mb-0.5">Expenses</p>
+                      <p className="font-bold text-red-600 text-sm">₦{sub.financials.expenses.toLocaleString()}</p>
+                    </div>
+                    <div className="px-3.5 py-1 text-center flex-1 lg:flex-none">
+                      <p className="text-slate-500 text-[11px] font-semibold uppercase tracking-wider mb-0.5">Produce Sales</p>
+                      <p className="font-bold text-emerald-600 text-sm">₦{sub.financials.sales.toLocaleString()}</p>
+                    </div>
+                    <div className="px-3.5 py-1 text-center flex-1 lg:flex-none bg-slate-100/60 rounded-r-lg">
+                      <p className="text-slate-500 text-[11px] font-semibold uppercase tracking-wider mb-0.5">Net Balance</p>
+                      <p className={`font-extrabold text-sm ${sub.financials.net_balance >= 0 ? "text-slate-800" : "text-amber-700"}`}>
+                        ₦{sub.financials.net_balance.toLocaleString()}
                       </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Crop Cycle Stage Progress Bar */}
+                <div className="px-6 py-3.5 bg-slate-50/80 border-t border-slate-100">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Activity className="w-4 h-4 text-emerald-600" />
+                      <span className="font-bold text-slate-700">Crop Cycle #{cycle.cycle_number}: {cycle.crop_type}</span>
+                      <span className="text-slate-400">•</span>
+                      <span className="text-slate-500">Target: {cycle.total_bags.toLocaleString()} Bags</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded text-[11px]">
+                        Stage: {cycle.stage} ({cycle.progress_percent}%)
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Stage Progress Track */}
+                  <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-emerald-500 to-teal-600 h-full rounded-full transition-all duration-500 ease-out"
+                      style={{ width: `${Math.min(Math.max(cycle.progress_percent, 5), 100)}%` }}
+                    />
+                  </div>
+
+                  {/* Stage Milestones */}
+                  <div className="grid grid-cols-4 text-[10px] font-medium text-slate-500 mt-2 text-center">
+                    <div className={cycle.progress_percent >= 25 ? "text-emerald-700 font-bold" : ""}>
+                      1. Inoculation & Prep
+                    </div>
+                    <div className={cycle.progress_percent >= 60 ? "text-emerald-700 font-bold" : ""}>
+                      2. Incubation & Growth
+                    </div>
+                    <div className={cycle.progress_percent >= 90 ? "text-emerald-700 font-bold" : ""}>
+                      3. Fruiting & Harvest
+                    </div>
+                    <div className={cycle.progress_percent >= 100 ? "text-emerald-700 font-bold" : ""}>
+                      4. Offtake & Payout
+                    </div>
+                  </div>
+                </div>
+
+                {/* Expander Toggle */}
+                <div 
+                  className="border-t border-slate-100 bg-white px-6 py-2.5 flex justify-center items-center cursor-pointer hover:bg-slate-50 transition-colors"
+                  onClick={() => toggleCluster(sub.id)}
+                >
+                  <div className="flex items-center text-xs font-semibold text-slate-600 gap-1.5">
+                    {expandedCluster === sub.id ? (
+                      <><ChevronUp className="w-4 h-4 text-emerald-600" /> Hide Cluster Ledger & Roster</>
+                    ) : (
+                      <><ChevronDown className="w-4 h-4 text-emerald-600" /> View Financial Ledger, Sales & Stakeholder Roster</>
                     )}
                   </div>
                 </div>
 
-              {/* Financial Pill Summary */}
-              <div className="flex bg-slate-50 rounded-lg border border-slate-200 p-2 text-sm divide-x divide-slate-200 shadow-inner w-full md:w-auto">
-                <div className="px-4 py-1 text-center">
-                  <p className="text-slate-500 text-xs uppercase mb-1">Expenses</p>
-                  <p className="font-semibold text-red-600">₦{sub.financials.expenses.toLocaleString()}</p>
-                </div>
-                <div className="px-4 py-1 text-center">
-                  <p className="text-slate-500 text-xs uppercase mb-1">Produce Sales</p>
-                  <p className="font-semibold text-emerald-600">₦{sub.financials.sales.toLocaleString()}</p>
-                </div>
-                <div className="px-4 py-1 text-center bg-slate-100/50">
-                  <p className="text-slate-500 text-xs uppercase mb-1">Net Balance</p>
-                  <p className="font-bold text-slate-800">₦{sub.financials.net_balance.toLocaleString()}</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Expander Toggle */}
-            <div 
-              className="border-t border-slate-100 bg-slate-50 px-6 py-3 flex justify-center items-center cursor-pointer hover:bg-slate-100 transition-colors"
-              onClick={() => toggleCluster(sub.id)}
-            >
-              <div className="flex items-center text-sm font-medium text-slate-600 gap-2">
-                {expandedCluster === sub.id ? (
-                  <><ChevronUp className="w-4 h-4" /> Hide Financial Ledger</>
-                ) : (
-                  <><ChevronDown className="w-4 h-4" /> View Financial Ledger</>
-                )}
-              </div>
-            </div>
-
-            {/* Expanded Content: Financial Ledger */}
-            {expandedCluster === sub.id && (
-              <div className="border-t border-slate-200 bg-slate-50/50 p-6">
-                
-                {profile?.id === sub.coordinator_id ? (
-                  <div className="mb-6 flex justify-between items-center bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                    <div className="flex items-center gap-2 text-blue-800">
-                      <AlertCircle className="w-5 h-5" />
-                      <div>
-                        <p className="font-medium text-sm">Coordinator Access</p>
-                        <p className="text-xs opacity-80">You manage this cluster. Add records to update the ledger.</p>
+                {/* Expanded Content: Ledger, Sales, and Roster */}
+                {expandedCluster === sub.id && (
+                  <div className="border-t border-slate-200 bg-slate-50/60 p-6 space-y-6">
+                    
+                    {/* Coordinator Operations Desk OR Transparency Notice */}
+                    {isUserCoordinator ? (
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-200 p-4 rounded-xl shadow-2xs">
+                        <div className="flex items-center gap-3 text-blue-900">
+                          <div className="p-2 bg-blue-100 rounded-lg text-blue-700 shrink-0">
+                            <ShieldCheck className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-sm">Cluster Coordinator Operations Desk</p>
+                            <p className="text-xs text-blue-700">
+                              You manage this farm cluster. Record operating costs and crop harvests to keep the shared ledger transparent.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="bg-white border-blue-300 text-blue-800 hover:bg-blue-50 shadow-2xs flex-1 sm:flex-none text-xs font-semibold"
+                            onClick={() => setExpenseModalCluster(sub)}
+                          >
+                            <Receipt className="w-3.5 h-3.5 mr-1 text-red-600" />
+                            Record Expense
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="bg-blue-600 hover:bg-blue-700 text-white shadow-2xs flex-1 sm:flex-none text-xs font-semibold"
+                            onClick={() => setSaleModalCluster(sub)}
+                          >
+                            <ShoppingBag className="w-3.5 h-3.5 mr-1" />
+                            Record Produce Sale
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="bg-white">Record Expense</Button>
-                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700">Record Sale</Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mb-6 flex items-center gap-2 text-slate-500 text-sm bg-white p-3 rounded-md border border-slate-200">
-                    <Eye className="w-4 h-4" />
-                    Read-only view. Ledger is maintained by the cluster coordinator.
+                    ) : (
+                      <div className="flex items-center gap-2 text-slate-600 text-xs bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
+                        <Eye className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <span>
+                          <strong>Community Transparency Ledger:</strong> All cluster stakeholders have read access to financial statements, produce harvests, and the verified membership roster.
+                        </span>
+                      </div>
+                    )}
+
+                    {/* 3 Detail Tabs: Expenses, Sales, and Roster */}
+                    <Tabs defaultValue="expenses" className="w-full">
+                      <TabsList className="grid w-full grid-cols-3 max-w-[550px] bg-slate-200/80 p-1 rounded-xl">
+                        <TabsTrigger value="expenses" className="text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-xs">
+                          Operating Expenses ({sub.expenses.length})
+                        </TabsTrigger>
+                        <TabsTrigger value="sales" className="text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-xs">
+                          Produce Sales ({sub.sales.length})
+                        </TabsTrigger>
+                        <TabsTrigger value="roster" className="text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-xs">
+                          Stakeholder Roster ({sub.members.length})
+                        </TabsTrigger>
+                      </TabsList>
+                      
+                      {/* Tab 1: Operating Expenses */}
+                      <TabsContent value="expenses" className="mt-4">
+                        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                          <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-50 text-slate-500 uppercase text-[11px] font-bold tracking-wider border-b border-slate-200">
+                              <tr>
+                                <th className="px-6 py-3">Date</th>
+                                <th className="px-6 py-3">Category</th>
+                                <th className="px-6 py-3">Description</th>
+                                <th className="px-6 py-3 text-right">Amount</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {sub.expenses.map((exp: any, idx: number) => (
+                                <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                                  <td className="px-6 py-3.5 whitespace-nowrap text-slate-600 text-xs">{exp.date}</td>
+                                  <td className="px-6 py-3.5">
+                                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                                      {exp.category || "General"}
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-3.5 font-medium text-slate-800 text-xs">{exp.description}</td>
+                                  <td className="px-6 py-3.5 text-right text-red-600 font-bold text-xs whitespace-nowrap">
+                                    -₦{exp.amount.toLocaleString()}
+                                  </td>
+                                </tr>
+                              ))}
+                              {sub.expenses.length === 0 && (
+                                <tr>
+                                  <td colSpan={4} className="px-6 py-10 text-center text-slate-400 text-xs">
+                                    No operational expenses recorded for this cluster yet.
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </TabsContent>
+                      
+                      {/* Tab 2: Produce Sales */}
+                      <TabsContent value="sales" className="mt-4">
+                        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                          <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-50 text-slate-500 uppercase text-[11px] font-bold tracking-wider border-b border-slate-200">
+                              <tr>
+                                <th className="px-6 py-3">Date</th>
+                                <th className="px-6 py-3">Produce</th>
+                                <th className="px-6 py-3">Quantity</th>
+                                <th className="px-6 py-3">Offtaker / Buyer</th>
+                                <th className="px-6 py-3 text-right">Revenue</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {sub.sales.map((sale: any, idx: number) => (
+                                <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                                  <td className="px-6 py-3.5 whitespace-nowrap text-slate-600 text-xs">{sale.date}</td>
+                                  <td className="px-6 py-3.5 font-semibold text-slate-800 text-xs">{sale.produce}</td>
+                                  <td className="px-6 py-3.5 text-xs text-slate-600">{sale.quantity || "—"}</td>
+                                  <td className="px-6 py-3.5 text-xs text-slate-600">{sale.buyer || "Commercial Wholesale"}</td>
+                                  <td className="px-6 py-3.5 text-right text-emerald-600 font-bold text-xs whitespace-nowrap">
+                                    +₦{sale.amount.toLocaleString()}
+                                  </td>
+                                </tr>
+                              ))}
+                              {sub.sales.length === 0 && (
+                                <tr>
+                                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400 text-xs">
+                                    No harvest sales logged yet for this cluster cycle.
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </TabsContent>
+
+                      {/* Tab 3: Stakeholders Roster */}
+                      <TabsContent value="roster" className="mt-4">
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs">
+                              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Total Stakeholders</p>
+                              <p className="text-xl font-bold text-slate-800">{sub.members.length}</p>
+                            </div>
+                            <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs">
+                              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Allocated Cluster Slots</p>
+                              <p className="text-xl font-bold text-emerald-700">
+                                {sub.members.reduce((sum, m) => sum + (Number(m.slots) || 0), 0)} Slots
+                              </p>
+                            </div>
+                            <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs">
+                              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Cluster Capacity</p>
+                              <p className="text-xl font-bold text-slate-800">
+                                {(sub.members.reduce((sum, m) => sum + (Number(m.slots) || 0), 0) * 2).toLocaleString()} Bags
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                            <table className="w-full text-sm text-left">
+                              <thead className="bg-slate-50 text-slate-500 uppercase text-[11px] font-bold tracking-wider border-b border-slate-200">
+                                <tr>
+                                  <th className="px-6 py-3">Stakeholder</th>
+                                  <th className="px-6 py-3">Status</th>
+                                  <th className="px-6 py-3 text-center">Slots Held</th>
+                                  <th className="px-6 py-3 text-center">Fruiting Bags</th>
+                                  <th className="px-6 py-3 text-right">Allocation Date</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-slate-100">
+                                {sub.members.map((member, idx) => (
+                                  <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                                    <td className="px-6 py-3.5">
+                                      <div className="font-semibold text-slate-800 text-xs">{member.name}</div>
+                                      <div className="text-[11px] text-slate-500">{member.email}</div>
+                                    </td>
+                                    <td className="px-6 py-3.5">
+                                      {member.is_legacy ? (
+                                        <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 text-[10px] font-semibold">
+                                          Pioneer Stakeholder
+                                        </Badge>
+                                      ) : (
+                                        <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 text-[10px] font-semibold">
+                                          Active Platform Member
+                                        </Badge>
+                                      )}
+                                    </td>
+                                    <td className="px-6 py-3.5 text-center font-bold text-slate-800 text-xs">
+                                      {member.slots}
+                                    </td>
+                                    <td className="px-6 py-3.5 text-center font-medium text-emerald-700 text-xs">
+                                      {member.fruiting_bags} bags
+                                    </td>
+                                    <td className="px-6 py-3.5 text-right text-slate-500 text-xs whitespace-nowrap">
+                                      {member.created_at ? new Date(member.created_at).toLocaleDateString() : "—"}
+                                    </td>
+                                  </tr>
+                                ))}
+                                {sub.members.length === 0 && (
+                                  <tr>
+                                    <td colSpan={5} className="px-6 py-10 text-center text-slate-400 text-xs">
+                                      No members linked to this cluster yet.
+                                    </td>
+                                  </tr>
+                                )}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </TabsContent>
+                    </Tabs>
                   </div>
                 )}
-
-                <Tabs defaultValue="expenses" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
-                    <TabsTrigger value="expenses">Operating Expenses</TabsTrigger>
-                    <TabsTrigger value="sales">Produce Sales</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="expenses" className="mt-4">
-                    <div className="bg-white border rounded-lg overflow-hidden">
-                      <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-50 text-slate-500 uppercase text-xs">
-                          <tr>
-                            <th className="px-6 py-3">Date</th>
-                            <th className="px-6 py-3">Description</th>
-                            <th className="px-6 py-3 text-right">Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200">
-                          {sub.expenses.map((exp: any, idx: number) => (
-                            <tr key={idx} className="hover:bg-slate-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-slate-600">{exp.date}</td>
-                              <td className="px-6 py-4 font-medium text-slate-800">{exp.description}</td>
-                              <td className="px-6 py-4 text-right text-red-600 font-medium">-₦{exp.amount.toLocaleString()}</td>
-                            </tr>
-                          ))}
-                          {sub.expenses.length === 0 && (
-                            <tr>
-                              <td colSpan={3} className="px-6 py-8 text-center text-slate-500">No expenses recorded yet.</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </TabsContent>
-                  
-                  <TabsContent value="sales" className="mt-4">
-                     <div className="bg-white border rounded-lg overflow-hidden">
-                      <table className="w-full text-sm text-left">
-                        <thead className="bg-slate-50 text-slate-500 uppercase text-xs">
-                          <tr>
-                            <th className="px-6 py-3">Date</th>
-                            <th className="px-6 py-3">Produce</th>
-                            <th className="px-6 py-3 text-right">Amount</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200">
-                          {sub.sales.map((sale: any, idx: number) => (
-                            <tr key={idx} className="hover:bg-slate-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-slate-600">{sale.date}</td>
-                              <td className="px-6 py-4">
-                                <div className="font-medium text-slate-800">{sale.produce}</div>
-                                <div className="text-xs text-slate-500">Qty: {sale.quantity}</div>
-                              </td>
-                              <td className="px-6 py-4 text-right text-emerald-600 font-medium">+₦{sale.amount.toLocaleString()}</td>
-                            </tr>
-                          ))}
-                          {sub.sales.length === 0 && (
-                            <tr>
-                              <td colSpan={3} className="px-6 py-8 text-center text-slate-500">No sales recorded yet.</td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </TabsContent>
-                </Tabs>
-              </div>
-            )}
-          </Card>
-        )))}
+              </Card>
+            );
+          })
+        )}
       </div>
+
+      {/* MODAL 1: Record Operating Expense */}
+      {expenseModalCluster && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Record Operating Expense</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Cluster: <span className="font-semibold text-emerald-800">{expenseModalCluster.farm_name}</span>
+                </p>
+              </div>
+              <button 
+                onClick={() => setExpenseModalCluster(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleRecordExpense} className="space-y-4">
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">Expense Category</Label>
+                <select
+                  value={expenseCategory}
+                  onChange={(e) => setExpenseCategory(e.target.value)}
+                  className="w-full mt-1.5 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                >
+                  {EXPENSE_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">Amount (₦)</Label>
+                <Input
+                  type="number"
+                  placeholder="e.g. 45000"
+                  value={expenseAmount}
+                  onChange={(e) => setExpenseAmount(e.target.value)}
+                  required
+                  min="1"
+                  step="any"
+                  className="mt-1.5"
+                />
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">Description / Memo</Label>
+                <Input
+                  type="text"
+                  placeholder="e.g. Purchase of 20 bags of sawdust substrate"
+                  value={expenseDescription}
+                  onChange={(e) => setExpenseDescription(e.target.value)}
+                  className="mt-1.5"
+                />
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-xs text-amber-800">
+                Logged expenses immediately deduct from the cluster's net balance and appear in the shared transparent ledger.
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setExpenseModalCluster(null)}
+                  disabled={submittingExpense}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submittingExpense}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                >
+                  {submittingExpense ? "Logging..." : "Log Expense"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 2: Record Produce Harvest Sale */}
+      {saleModalCluster && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Record Produce Harvest Sale</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Cluster: <span className="font-semibold text-emerald-800">{saleModalCluster.farm_name}</span>
+                </p>
+              </div>
+              <button 
+                onClick={() => setSaleModalCluster(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleRecordSale} className="space-y-4">
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">Produce Type</Label>
+                <Input
+                  type="text"
+                  placeholder="e.g. Fresh Grey Oyster Mushrooms"
+                  value={produceName}
+                  onChange={(e) => setProduceName(e.target.value)}
+                  required
+                  className="mt-1.5"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-semibold text-slate-700">Quantity</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g. 50"
+                    value={quantity}
+                    onChange={(e) => setQuantity(e.target.value)}
+                    required
+                    min="0.1"
+                    step="any"
+                    className="mt-1.5"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold text-slate-700">Unit</Label>
+                  <select
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    className="w-full mt-1.5 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="kg">kg (Kilograms)</option>
+                    <option value="baskets">Baskets</option>
+                    <option value="crates">Crates</option>
+                    <option value="packs">Packs</option>
+                    <option value="bags">Bags</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-semibold text-slate-700">Unit Price (₦)</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g. 2500"
+                    value={unitPrice}
+                    onChange={(e) => setUnitPrice(e.target.value)}
+                    min="1"
+                    step="any"
+                    className="mt-1.5"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold text-slate-700">Total Revenue (₦)</Label>
+                  <Input
+                    type="number"
+                    placeholder="e.g. 125000"
+                    value={saleAmount}
+                    onChange={(e) => setSaleAmount(e.target.value)}
+                    required
+                    min="1"
+                    step="any"
+                    className="mt-1.5 font-bold text-emerald-700"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-semibold text-slate-700">Buyer / Offtaker</Label>
+                  <Input
+                    type="text"
+                    placeholder="e.g. Mile 12 Market Wholesale"
+                    value={buyerName}
+                    onChange={(e) => setBuyerName(e.target.value)}
+                    className="mt-1.5"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs font-semibold text-slate-700">Sale Date</Label>
+                  <Input
+                    type="date"
+                    value={saleDate}
+                    onChange={(e) => setSaleDate(e.target.value)}
+                    required
+                    className="mt-1.5"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label className="text-xs font-semibold text-slate-700">Sales Channel</Label>
+                <select
+                  value={salesChannel}
+                  onChange={(e) => setSalesChannel(e.target.value)}
+                  className="w-full mt-1.5 px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                >
+                  {SALES_CHANNELS.map((ch) => (
+                    <option key={ch} value={ch}>{ch}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl text-xs text-emerald-800">
+                Logged sales immediately contribute to the cluster's produce sales and positive net balance.
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSaleModalCluster(null)}
+                  disabled={submittingSale}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={submittingSale}
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                >
+                  {submittingSale ? "Recording..." : "Record Sale"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-// Simple Leaf icon since it's not exported from lucide-react in the snippet above
+// Simple Leaf icon component
 function Leaf(props: any) {
   return (
     <svg
