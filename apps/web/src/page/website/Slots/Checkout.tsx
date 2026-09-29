@@ -362,28 +362,52 @@ const Checkout = () => {
     }
   }, [isStarterPack, requestedProductCode]);
 
-  const isGreenCardOnly = !isStarterPack && searchParams.get("product") === "green_card";
+  const isComboRequested =
+    searchParams.get("item") === "combo" ||
+    searchParams.get("product") === "combo" ||
+    searchParams.get("product") === "green_card_combo";
+
+  const isGreenCardOnly =
+    !isStarterPack &&
+    !isComboRequested &&
+    searchParams.get("product") === "green_card";
+
   const rawUrlSlots = searchParams.get("slots");
   const parsedSlots = rawUrlSlots !== null ? parseInt(rawUrlSlots, 10) : 1;
-  const initialSlots = isGreenCardOnly || isStarterPack ? 0 : (!isNaN(parsedSlots) && parsedSlots >= 0 ? parsedSlots : 1);
+  const initialSlots = isGreenCardOnly || isStarterPack
+    ? 0
+    : isComboRequested
+    ? 1
+    : (!isNaN(parsedSlots) && parsedSlots >= 0 ? parsedSlots : 1);
 
   const [slotQuantity, setSlotQuantity] = useState(initialSlots);
   const [category, setCategory] = useState(isStarterPack ? "Mushroom Village" : DEFAULT_CATEGORY);
 
   const [hasGreenCard, setHasGreenCard] = useState<boolean>(false);
   const [hasPriorSlots, setHasPriorSlots] = useState<boolean>(false);
+  const [hasPurchasedStarterPack, setHasPurchasedStarterPack] = useState<boolean>(false);
   const [memberCreatedAt, setMemberCreatedAt] = useState<string | null>(null);
 
-  const isFirstSlotPurchase = !hasPriorSlots;
+  // The Combo is the initial slot (₦5,000) + starter mushroom product (Mushroom Power 100g, ₦5,000) = ₦10,000
+  const isCombo = isComboRequested || (isGreenCardOnly && slotQuantity > 0);
+  const isFirstSlotPurchase = isCombo || !hasPriorSlots || !hasPurchasedStarterPack;
+
+  const COMBO_PRICE = 10000; // ₦5,000 Initial Slot + ₦5,000 Mushroom Power 100g
   const slotsSubtotal = isStarterPack
     ? starterProduct.price
+    : isCombo
+    ? COMBO_PRICE + Math.max(0, slotQuantity - 1) * SLOT_UNIT_PRICE
     : (slotQuantity > 0
-        ? calculateSlotSubtotal(slotQuantity, hasPriorSlots).subtotal
+        ? (isFirstSlotPurchase
+            ? COMBO_PRICE + Math.max(0, slotQuantity - 1) * SLOT_UNIT_PRICE
+            : slotQuantity * SLOT_UNIT_PRICE)
         : 0);
 
   const isLegacy = isLegacyMember(memberCreatedAt);
   const activeGreenCardRate = getGreenCardFee(memberCreatedAt);
-  const greenCardFee = isStarterPack ? 0 : (isGreenCardOnly || !hasGreenCard ? activeGreenCardRate : 0);
+  const greenCardFee = isStarterPack
+    ? 0
+    : (isGreenCardOnly || isCombo || !hasGreenCard ? activeGreenCardRate : 0);
   const totalPrice = slotsSubtotal + greenCardFee;
   const isOrganicFoodNation =
     category === "Organic FoodNation (1 Million Hectares against Hunger)";
@@ -437,7 +461,7 @@ const Checkout = () => {
         ] = await Promise.all([
           supabase
             .from("profiles")
-            .select("full_name, phone, email, referral_earnings, wallet_balance, created_at")
+            .select("full_name, phone, email, referral_earnings, wallet_balance, created_at, has_purchased_starter_pack, is_wealth_creation_active")
             .eq("id", user.id)
             .maybeSingle(),
           supabase
@@ -533,6 +557,7 @@ const Checkout = () => {
 
         // Check if user already owns any slots
         setHasPriorSlots(Boolean((count && count > 0) || (slotsData && slotsData.length > 0)));
+        setHasPurchasedStarterPack(Boolean(profile?.has_purchased_starter_pack || profile?.is_wealth_creation_active));
       } catch (err) {
         console.error("Error loading profile in checkout:", err);
       } finally {
@@ -610,8 +635,10 @@ const Checkout = () => {
           amount: totalPrice,
           payment_method: method,
           status: "pending",
-          project_category: isGreenCardOnly
-            ? (slotQuantity > 0 ? "Green Card + Starter Combo" : "Green Card")
+          project_category: isCombo
+            ? "Green Card + Starter Combo"
+            : isGreenCardOnly
+            ? "Green Card"
             : (isStarterPack ? "Starter Pack" : category),
         },
       ])
@@ -712,17 +739,17 @@ const Checkout = () => {
       }
 
       // Record farm group cluster allocation if purchasing slots or combo
-      if (!isStarterPack && (slotQuantity > 0 || isGreenCardOnly)) {
+      if (!isStarterPack && (slotQuantity > 0 || isGreenCardOnly || isCombo)) {
         await recordSubscriptionWithFarmGroupSplit({
           userId: user.id,
           checkoutId: order.id,
-          amount: isGreenCardOnly && slotQuantity > 0 ? 5000 : totalPrice,
+          amount: isCombo ? 5000 : totalPrice,
           slotPrice: SLOT_UNIT_PRICE,
-          slots: slotQuantity,
-          category: isGreenCardOnly ? "Mushroom Village" : category,
+          slots: isStarterPack ? 0 : Math.max(1, slotQuantity),
+          category: isCombo ? "Mushroom Village" : category,
           isStarterPack,
-          isCombo: isGreenCardOnly && slotQuantity > 0,
-          isFirstSlotPurchase: isFirstSlotPurchase && !isGreenCardOnly,
+          isCombo,
+          isFirstSlotPurchase,
         });
       }
 
@@ -858,18 +885,35 @@ const Checkout = () => {
         },
         meta: {
           user_id: order.user_id,
-          order_id: order.id,
-          plan: isGreenCardOnly ? (slotQuantity > 0 ? "green_card_combo" : "green_card") : (isStarterPack ? "starter_pack" : "slot"),
-          project_category: isGreenCardOnly ? (slotQuantity > 0 ? "Green Card + Starter Combo" : "Green Card") : category,
-          has_combo: isGreenCardOnly && slotQuantity > 0,
+          plan: isCombo
+            ? "green_card_combo"
+            : isGreenCardOnly
+            ? "green_card"
+            : isStarterPack
+            ? "starter_pack"
+            : "slot",
+          project_category: isCombo
+            ? "Green Card + Starter Combo"
+            : isGreenCardOnly
+            ? "Green Card"
+            : category,
+          has_combo: isCombo,
         },
         customizations: {
-          title: isGreenCardOnly
-            ? (slotQuantity > 0 ? "AgroHeal Green Card + Starter Combo" : "AgroHeal Green Card Pass")
-            : (isStarterPack ? "AgroHeal Starter Pack" : "Agroheal Farm Slot"),
-          description: isGreenCardOnly
-            ? (slotQuantity > 0 ? "Lifetime Green Card + 1 Mushroom Village Slot + Mushroom Power 100g (Milestone 3 Unlock)" : "Lifetime Certified Digital Membership")
-            : (isStarterPack ? "Mushroom Power 100g Starter Pack" : `${slotQuantity} slot${slotQuantity > 1 ? "s" : ""} — ₦${totalPrice.toLocaleString()}`),
+          title: isCombo
+            ? "AgroHeal Green Card + Starter Combo"
+            : isGreenCardOnly
+            ? "AgroHeal Green Card Pass"
+            : isStarterPack
+            ? "AgroHeal Starter Pack"
+            : "Agroheal Farm Slot",
+          description: isCombo
+            ? "Lifetime Green Card + 1 Mushroom Village Slot + Mushroom Power 100g (Milestone 3 Unlock)"
+            : isGreenCardOnly
+            ? "Lifetime Certified Digital Membership"
+            : isStarterPack
+            ? "Mushroom Power 100g Starter Pack"
+            : `${slotQuantity} slot${slotQuantity > 1 ? "s" : ""} — ₦${totalPrice.toLocaleString()}`,
           logo: "https://ptowfacejneezksyhntk.supabase.co/storage/v1/object/sign/agroheal-%20buckets/logo.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iZGE2NjM1ZS00NTAzLTRkZDktOTdmOS0zYWExY2Y5NzNiOGQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhZ3JvaGVhbC0gYnVja2V0cy9sb2dvLnBuZyIsImlhdCI6MTc3NDAwODY3OCwiZXhwIjo0OTI3NjA4Njc4fQ.fuwva3-hMj5KmMRqElcclgJqzA5d4aigxCIlHVHgMak",
         },
         onclose: () => {
@@ -912,13 +956,13 @@ const Checkout = () => {
                 await recordSubscriptionWithFarmGroupSplit({
                   userId: order.user_id,
                   checkoutId: order.id,
-                  amount: isGreenCardOnly && slotQuantity > 0 ? 5000 : totalPrice,
+                  amount: isCombo ? 5000 : totalPrice,
                   slotPrice: SLOT_UNIT_PRICE,
-                  slots: isStarterPack ? 0 : slotQuantity,
-                  category: isGreenCardOnly ? "Mushroom Village" : category,
+                  slots: isStarterPack ? 0 : Math.max(1, slotQuantity),
+                  category: isCombo ? "Mushroom Village" : category,
                   isStarterPack,
-                  isCombo: isGreenCardOnly && slotQuantity > 0,
-                  isFirstSlotPurchase: isFirstSlotPurchase && !isGreenCardOnly,
+                  isCombo,
+                  isFirstSlotPurchase,
                 });
 
                 // 3. If user did not previously hold a Green Card, activate it now
@@ -1514,21 +1558,24 @@ const Checkout = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2">
                               <label htmlFor="checkoutComboUpsell" className="text-xs font-bold text-gray-900 cursor-pointer">
-                                Add Starter Combo (Milestone 2)
+                                ✔️ ₦10,000 Producer-Consumer Starter Package
                               </label>
-                              <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                              <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200 font-mono">
                                 +₦10,000
                               </span>
                             </div>
                             <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">
-                              Your starter package is <strong>₦10,000</strong> (<strong>₦5,000</strong> Mushroom Group farm setup + <strong>₦5,000</strong> Mushroom Power 100g). Remember that a farm slot alone won't qualify without the Mushroom 100g product—we only sell it together as a combo.
+                              Upgrade to our complete Producer-Consumer bundle: <strong>₦5,000 Initial Mushroom Farm Slot</strong> (automated biological farm production with cycle doubling) + <strong>₦5,000 Mushroom Power 100g</strong> organic wellness beverage. Combined with your <strong>₦{activeGreenCardRate.toLocaleString()} Green Card Pass</strong>, your complete onboarding total is <strong>₦{(COMBO_PRICE + activeGreenCardRate).toLocaleString()}</strong>.
                             </p>
                             <div className="mt-2.5 flex items-center gap-1.5 flex-wrap text-[10px] font-semibold text-emerald-800">
                               <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
-                                🚀 Jumps straight to Milestone 3
+                                🍄 1 Farm Slot (Cycle Doubling)
                               </span>
                               <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
-                                🔓 Unlocks Bank Withdrawals
+                                ☕ Mushroom Power 100g Included
+                              </span>
+                              <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
+                                🔓 Immediate Bank Withdrawals
                               </span>
                             </div>
                           </div>
@@ -2009,11 +2056,21 @@ const Checkout = () => {
                     <Sprout className="w-6 h-6 text-primary-foreground" />
                   </div>
                   <h3 className="font-display text-lg font-semibold text-primary-foreground">
-                    {isStarterPack ? starterProduct.name : "Practicals Farm Slot"}
+                    {isStarterPack
+                      ? starterProduct.name
+                      : isCombo
+                      ? "AgroHeal Starter Combo"
+                      : isGreenCardOnly
+                      ? "Digital Green Card Pass"
+                      : "Practicals Farm Slot"}
                   </h3>
                   <p className="text-primary-foreground/80 text-sm">
                     {isStarterPack
                       ? `Codename: ${starterProduct.code} • ${starterProduct.product_spec?.weight || "100g"}`
+                      : isCombo
+                      ? "Initial Farm Slot + Mushroom Power 100g"
+                      : isGreenCardOnly
+                      ? "Lifetime Certified Digital Membership"
                       : "One growing season"}
                   </p>
                 </div>
@@ -2032,46 +2089,83 @@ const Checkout = () => {
                         <span className="text-emerald-700 font-medium">+{starterProduct.pv} PV (30d PQV Qualified)</span>
                       </div>
                     </div>
-                  ) : isFirstSlotPurchase ? (
-                    <>
+                  ) : isCombo ? (
+                    <div className="space-y-2.5 pb-2 border-b border-border/40">
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Starter Slot & Cluster Setup</span>
-                        <span className="text-foreground font-semibold">₦10,000</span>
+                        <span className="text-foreground font-bold">Starter Combo Package</span>
+                        <span className="text-foreground font-bold font-mono">₦10,000</span>
+                      </div>
+                      <div className="text-[11px] text-emerald-800 bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200/60 space-y-1">
+                        <div className="flex justify-between">
+                          <span>• Initial Farm Slot (2 Bags · Mushroom Village)</span>
+                          <span className="font-semibold font-mono">₦5,000</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>• Mushroom Power 100g Starter Product</span>
+                          <span className="font-semibold font-mono">₦5,000</span>
+                        </div>
                       </div>
                       {slotQuantity > 1 && (
-                        <div className="flex justify-between text-sm">
+                        <div className="flex justify-between text-sm pt-1">
                           <span className="text-muted-foreground">
-                            {slotQuantity - 1} Additional Slot{slotQuantity > 2 ? "s" : ""}
+                            + {slotQuantity - 1} Additional Slot{slotQuantity > 2 ? "s" : ""}
                           </span>
-                          <span className="text-foreground font-semibold">
+                          <span className="text-foreground font-semibold font-mono">
                             ₦{((slotQuantity - 1) * SLOT_UNIT_PRICE).toLocaleString()}
                           </span>
                         </div>
                       )}
-                    </>
-                  ) : (
+                    </div>
+                  ) : isFirstSlotPurchase && slotQuantity > 0 ? (
+                    <div className="space-y-2.5 pb-2 border-b border-border/40">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-foreground font-bold">Starter Slot &amp; Product Combo</span>
+                        <span className="text-foreground font-bold font-mono">₦10,000</span>
+                      </div>
+                      <div className="text-[11px] text-emerald-800 bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200/60 space-y-1">
+                        <div className="flex justify-between">
+                          <span>• Initial Farm Slot (2 Bags · Mushroom Village)</span>
+                          <span className="font-semibold font-mono">₦5,000</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>• Mushroom Power 100g Starter Product</span>
+                          <span className="font-semibold font-mono">₦5,000</span>
+                        </div>
+                      </div>
+                      {slotQuantity > 1 && (
+                        <div className="flex justify-between text-sm pt-1">
+                          <span className="text-muted-foreground">
+                            + {slotQuantity - 1} Additional Slot{slotQuantity > 2 ? "s" : ""}
+                          </span>
+                          <span className="text-foreground font-semibold font-mono">
+                            ₦{((slotQuantity - 1) * SLOT_UNIT_PRICE).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : slotQuantity > 0 ? (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">
                         {slotQuantity} Farm Slot{slotQuantity > 1 ? "s" : ""}
                       </span>
-                      <span className="text-foreground font-semibold">
+                      <span className="text-foreground font-semibold font-mono">
                         ₦{(slotQuantity * SLOT_UNIT_PRICE).toLocaleString()}
                       </span>
                     </div>
-                  )}
+                  ) : null}
 
-                  {!hasGreenCard && !isStarterPack && (
+                  {greenCardFee > 0 && (
                     <div className="flex justify-between items-start text-xs bg-amber-50 border border-amber-200/80 p-3 rounded-xl">
                       <div>
                         <span className="text-amber-950 font-bold block">
                           Green Card Lifetime Pass {isLegacy && <span className="text-emerald-700 ml-1">(Founding Rate)</span>}
                         </span>
                         <span className="text-[11px] text-amber-800">
-                          {isLegacy ? "Grandfathered rate (Joined before Sep 6)" : "Auto-bundled (Required for payouts & ID)"}
+                          {isLegacy ? "Grandfathered rate (Joined before Sep 6)" : "Verified ID, LMS Access & Referral Rights"}
                         </span>
                       </div>
-                      <span className="text-amber-950 font-bold">
-                        ₦{activeGreenCardRate.toLocaleString()}
+                      <span className="text-amber-950 font-bold font-mono">
+                        ₦{greenCardFee.toLocaleString()}
                       </span>
                     </div>
                   )}
@@ -2079,7 +2173,7 @@ const Checkout = () => {
                   <div className="border-t border-border pt-4">
                     <div className="flex justify-between font-semibold">
                       <span className="text-foreground">Total</span>
-                      <span className="text-foreground text-xl font-bold">
+                      <span className="text-foreground text-xl font-bold font-mono text-emerald-950">
                         ₦{totalPrice.toLocaleString()}
                       </span>
                     </div>

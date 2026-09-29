@@ -44,7 +44,7 @@ interface LedgerItem {
   id: string;
   date: string;
   type: "CREDIT" | "DEBIT";
-  category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION" | "CORE_DRIVER_BONUS" | "RETAIL_PURCHASE" | "FARM_CONTRIBUTION";
+  category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION" | "CORE_DRIVER_BONUS" | "RETAIL_PURCHASE" | "FARM_CONTRIBUTION" | "COMBO_PACKAGE";
   amount: number;
   description: string;
   status: "COMPLETED" | "PENDING" | "FAILED";
@@ -252,11 +252,11 @@ export default function TransactionLedger() {
         user.email
           ? supabase
               .from("slot_subscriptions")
-              .select("id, user_id, slots, amount, status, project_category, created_at, farm_group_id, is_legacy, last_payment_date, member_name, member_email")
+              .select("id, user_id, slots, amount, status, project_category, created_at, farm_group_id, is_legacy, last_payment_date, member_name, member_email, checkout_id")
               .or(`user_id.eq.${user.id},member_email.ilike.${user.email.trim()}`)
           : supabase
               .from("slot_subscriptions")
-              .select("id, user_id, slots, amount, status, project_category, created_at, farm_group_id, is_legacy, last_payment_date, member_name, member_email")
+              .select("id, user_id, slots, amount, status, project_category, created_at, farm_group_id, is_legacy, last_payment_date, member_name, member_email, checkout_id")
               .eq("user_id", user.id),
         supabase
           .from("other_payments")
@@ -269,7 +269,7 @@ export default function TransactionLedger() {
           .order("created_at", { ascending: false }),
         supabase
           .from("orders")
-          .select("id, product_code, quantity, total_price, pv_earned, status, notes, created_at")
+          .select("id, product_code, quantity, total_price, pv_earned, status, notes, created_at, transaction_id")
           .eq("user_id", user.id),
       ]);
 
@@ -402,22 +402,81 @@ export default function TransactionLedger() {
         });
       }
 
-      // 2. Green Card Subscriptions
-      (subscriptions || []).forEach((s: any, idx: number) => {
-        const sStatus = (s.status || "").toLowerCase();
-        const isSubCompleted = ["active", "paid", "success", "confirmed", "completed"].includes(sStatus);
-        const isSubFailed = ["cancelled", "canceled", "failed", "expired"].includes(sStatus);
-        items.push({
-          id: `sub-${s.id || idx}`,
-          date: s.started_at || new Date().toISOString(),
-          type: "DEBIT",
-          category: "SUBSCRIPTION",
-          amount: 2000,
-          description: `AgroHeal Green Card Activation (${s.plan || "Annual"})`,
-          status: isSubCompleted ? "COMPLETED" : isSubFailed ? "FAILED" : "PENDING",
-          reference: `GC-${(s.id || idx).toString().slice(0, 8).toUpperCase()}`,
-          is_legacy: Boolean(isLegacyMember(s.started_at)),
-        });
+      // 2. Master Online Checkouts & Gateway Transactions (Authoritative Parent Cashflow Ledger)
+      const accountedCheckoutIds = new Set<string>();
+      const accountedCheckoutRefs = new Set<string>();
+      let hasCompletedOnlineGreenCard = false;
+
+      (checkouts || []).forEach((c: any) => {
+        const isBelongingToUser =
+          (c.user_id && c.user_id === user.id) ||
+          (user.email && c.email && c.email.toLowerCase() === user.email.toLowerCase());
+        if (!isBelongingToUser) return;
+
+        const cStatus = (c.status || "").toLowerCase();
+        const hasPaymentRef = Boolean(c.transaction_ref || c.payment_reference);
+
+        // Omit uncompleted / abandoned checkout clicks (e.g. pending without any gateway payment reference)
+        if (cStatus === "pending" && !hasPaymentRef) {
+          return;
+        }
+
+        const isCCompleted = ["paid", "success", "completed", "confirmed", "active"].includes(cStatus);
+        const isCFailed = ["failed", "cancelled", "abandoned", "declined"].includes(cStatus);
+        const ref = c.transaction_ref || c.payment_reference || `CHK-${c.id.toString().slice(0, 8)}`;
+
+        if (c.id) accountedCheckoutIds.add(String(c.id));
+        if (c.transaction_ref) accountedCheckoutRefs.add(String(c.transaction_ref).toLowerCase());
+        if (c.payment_reference) accountedCheckoutRefs.add(String(c.payment_reference).toLowerCase());
+
+        const amount = Number(c.amount || 0);
+        const catLower = (c.project_category || "").toLowerCase();
+
+        const isComboTx =
+          catLower.includes("combo") ||
+          amount === 12000 ||
+          (amount === 10000 && !catLower.includes("slot"));
+
+        const isGreenCardTx =
+          catLower.includes("green card") ||
+          amount === 2000 ||
+          (amount === 1000 && isLegacyMember(c.created_at));
+
+        if (isCCompleted && (isComboTx || isGreenCardTx)) {
+          hasCompletedOnlineGreenCard = true;
+        }
+
+        let category: LedgerItem["category"] = "SLOT_PURCHASE";
+        let description = c.project_category ? `Online Payment — ${c.project_category}` : "Online Platform Payment";
+
+        if (isComboTx) {
+          category = "COMBO_PACKAGE";
+          description = "Producer-Consumer Starter Bundle (Farm Slot + Mushroom Power 100g + Green Card)";
+        } else if (isGreenCardTx) {
+          category = "SUBSCRIPTION";
+          description = "AgroHeal Green Card Activation (Lifetime Certified Digital Pass)";
+        } else if (catLower.includes("starter pack") || (amount === 5000 && catLower.includes("product"))) {
+          category = "RETAIL_PURCHASE";
+          description = "Starter Pack Product: Mushroom Power 100g";
+        } else if (catLower.includes("slot") || amount >= 5000) {
+          const count = Math.max(1, Math.floor(amount / 5000));
+          category = "SLOT_PURCHASE";
+          description = `Secured ${count} Farm Slot(s) — ${c.project_category || "Mushroom Village"}`;
+        }
+
+        if (!items.some((i) => i.reference === ref || (c.transaction_ref && i.reference === c.transaction_ref))) {
+          items.push({
+            id: `chk-${c.id}`,
+            date: c.created_at,
+            type: "DEBIT",
+            category: category,
+            amount: amount,
+            description: description,
+            status: isCCompleted ? "COMPLETED" : isCFailed ? "FAILED" : "PENDING",
+            reference: ref,
+            is_legacy: Boolean(c.is_legacy || isLegacyMember(c.created_at)),
+          });
+        }
       });
 
       // 3. Slot Subscriptions (Physical & Digital Group Farm Slots)
@@ -426,6 +485,17 @@ export default function TransactionLedger() {
           (ss.user_id && ss.user_id === user.id) ||
           (user.email && ss.member_email && ss.member_email.toLowerCase() === user.email.toLowerCase());
         if (!isBelongingToUser) return;
+
+        // Parent-Child Invariant: If this slot subscription was provisioned via an online checkout in checkouts,
+        // it is already accounted for by the master transaction debit. Do NOT double count.
+        const isAccountedFor =
+          ss.checkout_id &&
+          (accountedCheckoutIds.has(String(ss.checkout_id)) ||
+           accountedCheckoutRefs.has(String(ss.checkout_id).toLowerCase()));
+
+        if (isAccountedFor) {
+          return;
+        }
 
         const slotsCount = Number(ss.slots || 1);
         const ssStatus = (ss.status || "active").toLowerCase();
@@ -446,7 +516,58 @@ export default function TransactionLedger() {
         });
       });
 
-      // 4. Other payments
+      // 4. Retail & Starter Pack Product Orders
+      (orders || []).forEach((ord: any) => {
+        // Parent-Child Invariant: If this order was provisioned as part of a Combo or Online Checkout,
+        // it is already accounted for by the master transaction debit. Do NOT double count.
+        const isAccountedFor =
+          ord.transaction_id &&
+          (accountedCheckoutIds.has(String(ord.transaction_id)) ||
+           accountedCheckoutRefs.has(String(ord.transaction_id).toLowerCase()));
+
+        if (isAccountedFor) {
+          return;
+        }
+
+        const isPaid = (ord.status || "").toUpperCase() === "PAID";
+        items.push({
+          id: `ord-${ord.id}`,
+          date: ord.created_at || new Date().toISOString(),
+          type: "DEBIT",
+          category: "RETAIL_PURCHASE",
+          amount: Number(ord.total_price || 0),
+          description: ord.notes || `Product Order (${ord.product_code || "Starter Pack"})`,
+          status: isPaid ? "COMPLETED" : "PENDING",
+          reference: `ORD-${(ord.id || "").toString().slice(0, 8).toUpperCase()}`,
+          is_legacy: Boolean(isLegacyMember(ord.created_at)),
+        });
+      });
+
+      // 5. Green Card Subscriptions
+      (subscriptions || []).forEach((s: any, idx: number) => {
+        // If Green Card was activated as part of an online checkout (Combo or Green Card pass),
+        // it is already accounted for by the master transaction debit.
+        if (hasCompletedOnlineGreenCard && s.plan === "green_card") {
+          return;
+        }
+
+        const sStatus = (s.status || "").toLowerCase();
+        const isSubCompleted = ["active", "paid", "success", "confirmed", "completed"].includes(sStatus);
+        const isSubFailed = ["cancelled", "canceled", "failed", "expired"].includes(sStatus);
+        items.push({
+          id: `sub-${s.id || idx}`,
+          date: s.started_at || new Date().toISOString(),
+          type: "DEBIT",
+          category: "SUBSCRIPTION",
+          amount: 2000,
+          description: `AgroHeal Green Card Activation (${s.plan || "Annual"})`,
+          status: isSubCompleted ? "COMPLETED" : isSubFailed ? "FAILED" : "PENDING",
+          reference: `GC-${(s.id || idx).toString().slice(0, 8).toUpperCase()}`,
+          is_legacy: Boolean(isLegacyMember(s.started_at)),
+        });
+      });
+
+      // 6. Other payments
       (otherPayments || []).forEach((p: any) => {
         const pStatus = (p.status || "").toLowerCase();
         const isPCompleted = ["confirmed", "active", "success", "paid", "completed"].includes(pStatus);
@@ -464,40 +585,7 @@ export default function TransactionLedger() {
         });
       });
 
-      // 5. Online Checkouts & Gateway Transactions (Strictly user-scoped and verified)
-      (checkouts || []).forEach((c: any) => {
-        const isBelongingToUser =
-          (c.user_id && c.user_id === user.id) ||
-          (user.email && c.email && c.email.toLowerCase() === user.email.toLowerCase());
-        if (!isBelongingToUser) return;
-
-        const cStatus = (c.status || "").toLowerCase();
-        const hasPaymentRef = Boolean(c.transaction_ref || c.payment_reference);
-
-        // Omit uncompleted / abandoned checkout clicks (e.g. pending without any gateway payment reference like CHK-270)
-        if (cStatus === "pending" && !hasPaymentRef) {
-          return;
-        }
-
-        const ref = c.transaction_ref || c.payment_reference || `CHK-${c.id.toString().slice(0, 8)}`;
-        if (!items.some((i) => i.reference === ref || (c.transaction_ref && i.reference === c.transaction_ref))) {
-          const isCCompleted = ["paid", "success", "completed", "confirmed", "active"].includes(cStatus);
-          const isCFailed = ["failed", "cancelled", "abandoned", "declined"].includes(cStatus);
-          items.push({
-            id: `chk-${c.id}`,
-            date: c.created_at,
-            type: "DEBIT",
-            category: "SLOT_PURCHASE",
-            amount: Number(c.amount || 0),
-            description: c.project_category ? `Online Payment — ${c.project_category}` : "Online Platform Payment",
-            status: isCCompleted ? "COMPLETED" : isCFailed ? "FAILED" : "PENDING",
-            reference: ref,
-            is_legacy: Boolean(c.is_legacy || isLegacyMember(c.created_at)),
-          });
-        }
-      });
-
-      // 6. Farm Setup & Support Contributions (from audited farm_records)
+      // 7. Farm Setup & Support Contributions (from audited farm_records)
       (farmRecords || []).forEach((fr: any) => {
         if (fr.months_farm_setup && fr.months_farm_setup.toLowerCase() !== "0" && fr.months_farm_setup.toLowerCase() !== "unpaid") {
           const ref = `SETUP-${fr.id.slice(0, 8).toUpperCase()}`;
@@ -549,7 +637,7 @@ export default function TransactionLedger() {
         }
       });
 
-      // 6. Official wallet_ledger entries (CORE_DRIVER_BONUS, wallet debits/credits)
+      // 8. Official wallet_ledger entries (CORE_DRIVER_BONUS, wallet debits/credits)
       (dbWalletLedger || []).forEach((entry: any) => {
         const ref = entry.reference_id || entry.id?.slice(0, 8) || "N/A";
         if (!items.some((it) => it.id === entry.id || (entry.category === "CORE_DRIVER_BONUS" && it.reference === ref))) {
@@ -566,22 +654,6 @@ export default function TransactionLedger() {
             is_legacy: Boolean(entry.is_legacy || isLegacyMember(entry.created_at)),
           });
         }
-      });
-
-      // 6. Retail & Starter Pack Product Orders
-      (orders || []).forEach((ord: any) => {
-        const isPaid = (ord.status || "").toUpperCase() === "PAID";
-        items.push({
-          id: `ord-${ord.id}`,
-          date: ord.created_at || new Date().toISOString(),
-          type: "DEBIT",
-          category: "RETAIL_PURCHASE",
-          amount: Number(ord.total_price || 0),
-          description: ord.notes || `Product Order (${ord.product_code || "Starter Pack"})`,
-          status: isPaid ? "COMPLETED" : "PENDING",
-          reference: `ORD-${(ord.id || "").toString().slice(0, 8).toUpperCase()}`,
-          is_legacy: Boolean(isLegacyMember(ord.created_at)),
-        });
       });
 
       // Sort by date descending
@@ -1442,6 +1514,7 @@ export default function TransactionLedger() {
                 <option value="PENDING">
                   Pending Transactions {transactions.some((t) => t.status === "PENDING") ? `(${transactions.filter((t) => t.status === "PENDING").length})` : ""}
                 </option>
+                <option value="COMBO_PACKAGE">Starter Bundles (Combo)</option>
                 <option value="REFERRAL_BONUS">Referral Bonuses</option>
                 <option value="CORE_DRIVER_BONUS">Core Driver Growth Bonuses</option>
                 <option value="SLOT_PURCHASE">Slot Purchases</option>
@@ -1526,7 +1599,9 @@ export default function TransactionLedger() {
                       </td>
                       <td className="py-4 px-5 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold ${
-                          t.category === "CORE_DRIVER_BONUS"
+                          t.category === "COMBO_PACKAGE"
+                            ? "bg-emerald-100 text-emerald-950 border border-emerald-300 font-bold"
+                            : t.category === "CORE_DRIVER_BONUS"
                             ? "bg-amber-100 text-amber-900 border border-amber-300"
                             : t.category === "RETAIL_PURCHASE"
                             ? "bg-purple-100 text-purple-900 border border-purple-200"
@@ -1534,7 +1609,9 @@ export default function TransactionLedger() {
                             ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
                             : "bg-gray-100 text-gray-700"
                         }`}>
-                          {t.category === "CORE_DRIVER_BONUS"
+                          {t.category === "COMBO_PACKAGE"
+                            ? "Starter Bundle"
+                            : t.category === "CORE_DRIVER_BONUS"
                             ? "Growth Driver Bonus"
                             : t.category === "RETAIL_PURCHASE"
                             ? "Retail / Starter Pack"
