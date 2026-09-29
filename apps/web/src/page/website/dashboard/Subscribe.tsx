@@ -6,7 +6,6 @@ import {
   Crown,
   Shield,
   ArrowRight,
-  Sparkles,
   AlertCircle,
   Mail,
   User as UserIcon,
@@ -542,7 +541,7 @@ export const Subscribe: React.FC = () => {
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200/80 shadow-xs space-y-6">
               <div className="flex items-center justify-between pb-4 border-b border-gray-100">
                 <h3 className="text-lg font-black text-gray-900 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-emerald-700" />
+                  <CheckCircle2 className="w-5 h-5 text-emerald-700" />
                   <span>Everything Included with Green Card</span>
                 </h3>
                 <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200 text-xs font-bold">

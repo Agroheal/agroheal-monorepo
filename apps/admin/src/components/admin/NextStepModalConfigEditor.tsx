@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import {
-  Sparkles,
   Loader2,
   Save,
   RotateCcw,
@@ -254,7 +253,7 @@ export function NextStepModalConfigEditor({ onSuccess, onError }: Props) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Sparkles className="h-4.5 w-4.5 text-emerald-500" /> Progression 'Stubborn' Modal Configurator
+              <Sprout className="h-4.5 w-4.5 text-emerald-500" /> Progression 'Stubborn' Modal Configurator
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
               Control the persistent onboarding &amp; next-step prompts that guide users through Green Card, Farm Slots, and Referral milestones.

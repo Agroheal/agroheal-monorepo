@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Sparkles, HelpCircle } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import HowItWorksContent from "@/components/webComponents/HowItWorksContent";
 
 export default function RoadmapGuide() {
@@ -14,7 +14,7 @@ export default function RoadmapGuide() {
           className="max-w-6xl mx-auto"
         >
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 mb-3 border border-white/15">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+            <HelpCircle className="w-3.5 h-3.5 text-emerald-300" />
             <span className="text-xs font-semibold text-emerald-100">
               LEAP Operational Guide
             </span>

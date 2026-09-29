@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ChevronDown, Sparkles } from "lucide-react";
+import { ChevronDown, Sprout } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { SectionDivider } from "../webComponents/SectionDivider";
@@ -63,7 +63,7 @@ export function HeroSection() {
             transition={{ duration: 0.6 }}
           >
             <span className="hidden items-start gap-2 px-4 py-2 rounded-full bg-[#e8b130]/20 border border-[#e8b130]/30 text-[#e8b130] font-medium text-sm mb-6">
-              <Sparkles className="w-4 h-4 text-[#e8b130]" />
+              <Sprout className="w-4 h-4 text-[#e8b130]" />
               Premium organic farming education
             </span>
           </motion.div>

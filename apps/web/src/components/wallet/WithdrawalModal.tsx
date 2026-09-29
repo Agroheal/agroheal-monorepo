@@ -11,7 +11,7 @@ import {
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
-  Sparkles,
+  Coins,
   KeyRound,
   Mail,
   RefreshCw,
@@ -440,7 +440,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
                       onClick={handleMaxAmount}
                       className="text-xs font-bold text-emerald-800 hover:text-emerald-950 flex items-center gap-1"
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <Coins className="w-3.5 h-3.5" />
                       <span>Use Available Max</span>
                     </button>
                   </div>

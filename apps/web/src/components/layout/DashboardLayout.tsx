@@ -13,7 +13,6 @@ import {
   ChevronRight,
   ChevronDown,
   HelpCircle,
-  Sparkles,
   ShoppingBag,
   CornerDownRight,
   PanelLeft,
@@ -597,6 +596,23 @@ const DashboardLayout = () => {
 
   const currentTitle = getPageTitle(normalizedPath);
 
+  const isFullscreen = new URLSearchParams(location.search).get("view") === "fullscreen";
+
+  if (isFullscreen) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <main className="flex-1 overflow-auto">
+          <Outlet
+            context={{
+              setHowItWorksOpen,
+              openHowItWorks: () => setHowItWorksOpen(true),
+            }}
+          />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* ── DESKTOP SIDEBAR — collapsible on lg+ (w-20 collapsed vs w-64/72 expanded, zero scrollbar) ── */}
@@ -683,7 +699,7 @@ const DashboardLayout = () => {
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-[#0c2415] text-white shrink-0">
                 <div className="flex items-center gap-2.5">
                   <div className="w-8 h-8 rounded-lg bg-emerald-700/80 flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-emerald-300" />
+                    <HelpCircle className="w-4 h-4 text-emerald-300" />
                   </div>
                   <div>
                     <h2 className="text-sm sm:text-base font-bold text-white leading-tight">

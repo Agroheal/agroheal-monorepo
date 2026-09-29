@@ -6,7 +6,6 @@ import {
   Lock,
   ShieldCheck,
   Award,
-  Sparkles,
   Users,
   CheckCircle2,
   ExternalLink,
@@ -312,19 +311,6 @@ export const GreenCardCommunity: React.FC = () => {
               5×7 Tree Eligible
             </strong>
             <span className="text-[11px] text-gray-500">Activates on ₦5k Farm Slot</span>
-          </div>
-        </div>
-
-        {/* Security / Cryptographic Anti-Counterfeit Notice */}
-        <div className="bg-emerald-50/60 rounded-2xl p-4 sm:p-5 border border-emerald-200/70 text-xs text-emerald-950 flex items-start gap-3">
-          <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
-          <div className="space-y-1 leading-relaxed">
-            <strong className="text-emerald-900 block font-bold">
-              Cryptographic Fraud Prevention &amp; Real-Time Verification:
-            </strong>
-            <p className="text-emerald-800/90">
-              Each AgroHeal Green Card features a dynamic QR token linked directly to our immutable member registry. Third parties, partner institutions, and harvest depots can scan the QR code using any smartphone to instantly confirm your active status and identity without exposing private credentials.
-            </p>
           </div>
         </div>
       </div>

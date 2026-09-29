@@ -30,6 +30,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useFarmStore, type FarmClusterItem } from '@/store/useFarmStore';
 import { supabase } from '@/lib/supabaseClient';
 import { isLegacyMember } from '@shared/businessRules';
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 const EXPENSE_CATEGORIES = [
   "Substrate & Raw Materials",
@@ -490,12 +491,7 @@ const MyFarmSlots: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="p-8 flex flex-col items-center justify-center min-h-[400px] space-y-4">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-600"></div>
-        <p className="text-sm font-medium text-slate-500 animate-pulse">Loading your farm clusters and live ledgers...</p>
-      </div>
-    );
+    return <LoadingSpinner message="Loading..." />;
   }
 
   if (subscriptions.length === 0) {
@@ -843,7 +839,8 @@ const MyFarmSlots: React.FC = () => {
                             </div>
                           </div>
 
-                          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                          {/* Desktop Table View */}
+                          <div className="hidden md:block bg-white border border-slate-200 rounded-xl overflow-x-auto shadow-2xs">
                             <table className="w-full text-sm text-left">
                               <thead className="bg-slate-50 text-slate-500 uppercase text-[11px] font-bold tracking-wider border-b border-slate-200">
                                 <tr>
@@ -892,6 +889,50 @@ const MyFarmSlots: React.FC = () => {
                                 )}
                               </tbody>
                             </table>
+                          </div>
+
+                          {/* Mobile Card List View (Clean on Smartphones) */}
+                          <div className="block md:hidden space-y-2.5">
+                            {sub.members.map((member, idx) => (
+                              <div key={idx} className="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs space-y-2.5">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-slate-800 text-xs truncate">{member.name}</div>
+                                    <div className="text-[11px] text-slate-500 truncate">{member.email}</div>
+                                  </div>
+                                  {member.is_legacy ? (
+                                    <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 text-[10px] font-semibold shrink-0">
+                                      Founding
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 text-[10px] font-semibold shrink-0">
+                                      Active
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 text-center">
+                                  <div className="bg-slate-50 rounded-lg p-2">
+                                    <span className="text-[10px] font-medium text-slate-500 block uppercase">Slots</span>
+                                    <span className="text-xs font-bold text-slate-800">{member.slots}</span>
+                                  </div>
+                                  <div className="bg-emerald-50/70 rounded-lg p-2">
+                                    <span className="text-[10px] font-medium text-emerald-700 block uppercase">Yield Bags</span>
+                                    <span className="text-xs font-bold text-emerald-800">{member.fruiting_bags}</span>
+                                  </div>
+                                  <div className="bg-slate-50 rounded-lg p-2">
+                                    <span className="text-[10px] font-medium text-slate-500 block uppercase">Allocated</span>
+                                    <span className="text-[10px] font-semibold text-slate-600 block truncate">
+                                      {member.created_at ? new Date(member.created_at).toLocaleDateString() : "—"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                            {sub.members.length === 0 && (
+                              <div className="bg-white border border-slate-200 rounded-xl p-6 text-center text-slate-400 text-xs">
+                                No members linked to this cluster yet.
+                              </div>
+                            )}
                           </div>
                         </div>
                       </TabsContent>

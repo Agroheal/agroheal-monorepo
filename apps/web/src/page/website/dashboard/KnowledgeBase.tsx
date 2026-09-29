@@ -13,7 +13,6 @@ import {
   ShieldCheck,
   FileText,
   ExternalLink,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -314,10 +313,10 @@ export default function KnowledgeBase() {
         </div>
 
         {/* ── BOTTOM BANNER: CANNOT FIND ANSWER? ── */}
-        <div className="bg-gradient-to-r from-emerald-50 via-green-50 to-emerald-50 rounded-3xl p-6 sm:p-8 border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xs">
+        <div className="bg-emerald-50 rounded-3xl p-6 sm:p-8 border border-emerald-200 flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xs">
           <div className="space-y-1.5 text-center sm:text-left">
             <div className="flex items-center justify-center sm:justify-start gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-700" />
+              <HelpCircle className="w-4 h-4 text-emerald-700" />
               <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider">
                 Personalized Member Care
               </span>

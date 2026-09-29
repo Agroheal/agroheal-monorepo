@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
 import {
   Users,
@@ -20,7 +20,7 @@ import {
   Lock,
   Unlock,
   Clock,
-  Sparkles,
+  ArrowLeft,
   Calculator,
   RefreshCw,
   AlertCircle,
@@ -813,6 +813,235 @@ const CompoundReferrals: React.FC = () => {
 
   const isFullscreen = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("view") === "fullscreen";
 
+  if (isFullscreen) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
+        <Toaster position="top-right" />
+
+        {/* Minimal Fullscreen Header */}
+        <header className="bg-slate-950/95 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 sticky top-0 z-50">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (window.opener) {
+                  window.close();
+                } else {
+                  navigate("/dashboard/my-network");
+                }
+              }}
+              className="border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 text-xs rounded-xl h-8 gap-1.5 cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back to Dashboard</span>
+            </Button>
+            <div className="flex items-center gap-2">
+              <span className="p-1 rounded-lg bg-emerald-500/20 text-emerald-400">
+                <GitBranch className="w-4 h-4" />
+              </span>
+              <h1 className="text-sm font-bold text-white hidden sm:block">
+                5×7 Organogram Matrix — Full Landscape Canvas
+              </h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="sm:hidden inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700">
+              🔄 Switch to Landscape
+            </span>
+            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700">
+              Landscape Format Mode
+            </span>
+            {activeRootNode && activeRootNode.id !== currentUserId && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleResetToSelf}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-8 px-3 rounded-xl cursor-pointer"
+              >
+                Reset to My Tree
+              </Button>
+            )}
+          </div>
+        </header>
+
+        {/* Search bar in landscape */}
+        <div className="bg-slate-950/60 border-b border-slate-800 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+          <form onSubmit={handleSearch} className="flex items-center gap-2 max-w-md w-full">
+            <div className="relative flex-1">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search downline name, email, or AGC ID..."
+                className="pl-8 pr-3 py-1 text-xs rounded-xl bg-slate-900 border-slate-700 text-slate-100 placeholder:text-slate-500 h-8"
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={refreshing}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-8 px-3 rounded-xl shrink-0 cursor-pointer"
+            >
+              {refreshing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : "Inspect"}
+            </Button>
+          </form>
+          {searchStatus && (
+            <div className="text-xs text-emerald-400 flex items-center gap-2">
+              <span>{searchStatus}</span>
+              <button
+                onClick={() => {
+                  setSearchStatus("");
+                  setSearchQuery("");
+                  handleResetToSelf();
+                }}
+                className="text-[11px] underline text-slate-400 hover:text-white cursor-pointer"
+              >
+                Clear
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Wide Landscape Canvas with generous room for 5 legs */}
+        <div className="flex-1 overflow-auto p-4 sm:p-8 flex justify-center">
+          {activeRootNode ? (
+            <div className="min-w-[1050px] flex flex-col items-center py-4">
+              {/* Qualification banner */}
+              <div className="w-full max-w-2xl mb-8 bg-slate-800/80 border border-slate-700 rounded-2xl p-4 flex items-start gap-3 text-xs text-slate-200">
+                <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-white text-sm block">
+                    5×7 Matrix Qualified: 7-Level Commissions
+                  </span>
+                  <p className="text-slate-300 mt-0.5 leading-relaxed">
+                    {directReferralsCount >= 5
+                      ? "Congratulations! Sponsoring 5 active direct partners has unlocked all 7 tiers of community matrix commissions."
+                      : `Refer 5 active members to unlock all 7 tiers of community matrix commissions simultaneously (${5 - Math.min(5, directReferralsCount)} more needed). Direct referral bounties of ₦1,000 credit immediately.`}
+                  </p>
+                </div>
+              </div>
+
+              {/* 1. ROOT NODE CARD */}
+              <div className="relative group flex flex-col items-center">
+                <div className="w-80 bg-slate-800 rounded-2xl p-5 border-2 border-emerald-500 shadow-xl flex flex-col items-center text-center relative z-20">
+                  <div className="absolute -top-3 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-0.5 rounded-full shadow-sm">
+                    {activeRootNode.id === currentUserId ? "Your Root Position" : "Active Tree Pivot"}
+                  </div>
+
+                  <div className="w-12 h-12 rounded-full bg-emerald-700 text-white font-black text-lg flex items-center justify-center mt-1 shadow-inner">
+                    {(activeRootNode.fullName || "M").charAt(0).toUpperCase()}
+                  </div>
+
+                  <h3 className="font-extrabold text-white text-base mt-2 line-clamp-1">
+                    {activeRootNode.fullName || "AgroHeal Member"}
+                  </h3>
+                  <p className="font-mono text-xs text-emerald-300 font-bold bg-emerald-950/80 border border-emerald-800 px-2 py-0.5 rounded-md mt-1">
+                    {activeRootNode.memberId}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">{activeRootNode.email}</p>
+
+                  <div className="grid grid-cols-2 gap-2 w-full mt-3 pt-3 border-t border-slate-700 text-xs">
+                    <div className="bg-slate-900/60 p-1.5 rounded-lg border border-slate-700">
+                      <span className="text-[10px] text-slate-400 block">Slots Held</span>
+                      <span className="font-bold text-slate-200">{activeRootNode.slotsHeld} Slots</span>
+                    </div>
+                    <div className="bg-slate-900/60 p-1.5 rounded-lg border border-slate-700">
+                      <span className="text-[10px] text-slate-400 block">Direct Recruits</span>
+                      <span className="font-bold text-emerald-400">{activeRootNode.directReferralsCount} Partners</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="w-0.5 h-8 bg-emerald-500 relative z-10" />
+              </div>
+
+              {/* Horizontal distribution bar spanning all 5 child slots */}
+              <div className="w-[88%] max-w-5xl h-0.5 bg-emerald-500 -mt-0.5 relative z-10" />
+
+              {/* 2. FIVE CHILD SLOTS in fixed 5-column landscape grid */}
+              <div className="grid grid-cols-5 gap-4 w-full max-w-6xl mt-0 relative z-20">
+                {[0, 1, 2, 3, 4].map((slotIndex) => {
+                  const legNumber = slotIndex + 1;
+                  const child = activeRootNode.children.find((c) => c.position === legNumber);
+
+                  if (child) {
+                    return (
+                      <div key={child.id} className="flex flex-col items-center">
+                        <div className="w-0.5 h-4 bg-emerald-400" />
+                        <div className="w-full bg-slate-800 rounded-2xl p-4 border border-slate-700 shadow-md hover:border-emerald-500 transition-all flex flex-col justify-between text-center relative">
+                          <div className="flex items-center justify-between text-[10px] font-bold mb-2">
+                            {child.isSpillover ? (
+                              <span className="bg-blue-900/60 text-blue-300 border border-blue-700 px-2 py-0.5 rounded-full text-[10px]">
+                                🌊 Spillover
+                              </span>
+                            ) : (
+                              <span className="bg-emerald-900/60 text-emerald-300 border border-emerald-700 px-2 py-0.5 rounded-full text-[10px]">
+                                ⭐ Leg #{legNumber}
+                              </span>
+                            )}
+                            <span className="text-slate-400 font-normal">Level 1</span>
+                          </div>
+
+                          <div className="w-10 h-10 rounded-full bg-emerald-900 text-emerald-200 font-bold mx-auto flex items-center justify-center text-sm shadow-inner">
+                            {(child.fullName || "M").charAt(0).toUpperCase()}
+                          </div>
+
+                          <div className="mt-2">
+                            <h4 className="font-bold text-white text-xs line-clamp-1">{child.fullName}</h4>
+                            <p className="font-mono text-[11px] text-emerald-400 font-semibold mt-0.5">{child.memberId}</p>
+                          </div>
+
+                          <div className="mt-3 pt-2.5 border-t border-slate-700 text-[11px] text-slate-300 space-y-1">
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Slots:</span>
+                              <span className="font-bold text-white">{child.slotsHeld}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Direct:</span>
+                              <span className="font-bold text-emerald-400">{child.directReferralsCount}</span>
+                            </div>
+                          </div>
+
+                          <Button
+                            variant="outline"
+                            onClick={() => buildSubtree(child.id, false)}
+                            className="mt-3 w-full text-[11px] h-7 border-slate-600 bg-slate-700/50 text-slate-200 hover:bg-slate-700 hover:text-white rounded-lg flex items-center justify-center gap-1 font-semibold cursor-pointer"
+                          >
+                            Drill Down <CornerDownRight className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div key={`empty-${legNumber}`} className="flex flex-col items-center">
+                      <div className="w-0.5 h-4 bg-slate-700" />
+                      <div className="w-full bg-slate-900/60 rounded-2xl p-4 border-2 border-dashed border-slate-800 flex flex-col justify-between items-center text-center min-h-[200px]">
+                        <div className="text-[10px] font-bold text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">
+                          Leg #{legNumber} (Open)
+                        </div>
+                        <div className="w-9 h-9 rounded-full bg-slate-800 text-slate-500 flex items-center justify-center my-2">
+                          <Users className="w-4 h-4 text-slate-500" />
+                        </div>
+                        <p className="text-xs font-semibold text-slate-400">Open Slot</p>
+                        <p className="text-[10px] text-slate-500 mt-1">Available for referral or spillover</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="p-12 text-center text-slate-400">No tree node found.</div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`min-h-screen bg-slate-50/60 font-sans pb-16 ${isFullscreen ? "p-2 sm:p-4" : "p-4 sm:p-6 lg:p-8"}`}>
       <Toaster position="top-right" />
@@ -873,30 +1102,30 @@ const CompoundReferrals: React.FC = () => {
           </div>
         </div>
 
-        {/* ── POTENTIAL LOCKED COMMISSION BANNER ── */}
-        <div className="bg-gradient-to-r from-amber-950 via-emerald-950 to-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-amber-500/30 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* ── POTENTIAL COMMISSION BANNER ── */}
+        <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-start sm:items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 shrink-0">
               <Lock className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-bold text-sm sm:text-base text-amber-200">
+                <span className="font-bold text-sm sm:text-base text-white">
                   Potential ₦12,212,500 in Community Commissions Waiting to be Unlocked
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                   7 Matrix Tiers
                 </span>
               </div>
-              <p className="text-xs text-emerald-100/80 mt-0.5 max-w-3xl leading-relaxed">
-                You have up to 7 matrix tiers waiting to be unlocked. Refer 5 active members per tier and maintain ₦10,000 rolling 30-day PQV to unlock full matrix depth withdrawal. See Wallet page for details.
+              <p className="text-xs text-gray-300 mt-0.5 max-w-3xl leading-relaxed">
+                You have up to 7 matrix tiers waiting to be unlocked. Refer 5 active members to unlock the entire 7-tier community commissions simultaneously.
               </p>
             </div>
           </div>
           <Button
             asChild
             size="sm"
-            className="shrink-0 bg-amber-500 hover:bg-amber-600 text-gray-950 font-bold text-xs px-4 py-2 rounded-xl shadow-xs"
+            className="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs"
           >
             <Link to="/dashboard/transactions">View Wallet &amp; Ledger</Link>
           </Button>
@@ -1289,45 +1518,24 @@ const CompoundReferrals: React.FC = () => {
                 </div>
               )}
 
-              {unlockedLevel >= 1 ? (
-                <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl p-4 flex items-start gap-3 text-xs text-emerald-900 shadow-sm">
-                  <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-emerald-950 text-sm">
-                        Matrix Depth: Level {unlockedLevel} of 7 Unlocked
-                      </span>
-                      <Badge className="bg-emerald-200 text-emerald-900 border-emerald-300 text-[10px]">
-                        ✓ {directReferralsCount} Direct Partners Sponsored
-                      </Badge>
-                    </div>
-                    <p className="text-emerald-800/90 leading-relaxed">
-                      You qualify to earn matrix consumer network commissions through <strong>Level {unlockedLevel}</strong>.
-                      {unlockedLevel < 7 ? (
-                        <> Sponsor <strong>{nextLevelTarget.remainingDirects} more direct partner(s)</strong> (total {nextLevelTarget.requiredDirects}) to unlock Level {nextLevelTarget.nextLevel} commissions. Deeper level commissions remain safely locked in escrow until unlocked.</>
-                      ) : (
-                        <> You have unlocked all 7 levels of matrix consumer network commissions as an Apex Producer!</>
-                      )}
-                    </p>
+              <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl p-4 flex items-start gap-3 text-xs text-emerald-900 shadow-sm">
+                <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-emerald-950 text-sm">
+                      5×7 Matrix Qualified: 7-Level Commissions
+                    </span>
+                    <Badge className="bg-emerald-200 text-emerald-900 border-emerald-300 text-[10px]">
+                      {directReferralsCount >= 5 ? "✓ All 7 Tiers Unlocked" : `${directReferralsCount} of 5 Direct Partners Sponsored`}
+                    </Badge>
                   </div>
+                  <p className="text-emerald-800/90 leading-relaxed">
+                    {directReferralsCount >= 5
+                      ? "Congratulations! Sponsoring 5 active direct partners has unlocked all 7 tiers of community matrix commissions."
+                      : `Refer 5 active members to unlock all 7 tiers of community matrix commissions simultaneously (${5 - Math.min(5, directReferralsCount)} more needed). Direct referral bounties of ₦1,000 credit immediately.`}
+                  </p>
                 </div>
-              ) : (
-                <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex items-start gap-3 text-xs text-amber-900 shadow-sm">
-                  <AlertCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-amber-950 text-sm">Matrix Depth Gate: Directs + 1 Rule</span>
-                      <Badge className="bg-amber-200/90 text-amber-900 border-amber-300 text-[10px]">
-                        {directReferralsCount} Direct Partners Sponsored
-                      </Badge>
-                    </div>
-                    <p className="text-amber-800/90 leading-relaxed">
-                      Under the <strong>Directs + 1 Depth Gating Rule</strong>, sponsoring <strong>1 direct partner immediately unlocks down to Level 2</strong> (30 network positions), and each additional direct partner unlocks +1 level (6 direct partners unlocks all 7 levels up to 97,655 positions).
-                      Sponsor your first direct partner to unlock Level 2 matrix commissions. Personal <strong>₦1,000 direct referral bonuses are never locked</strong>.
-                    </p>
-                  </div>
-                </div>
-              )}
+              </div>
 
               {/* Tree Canvas */}
               <div className="flex flex-col items-center">

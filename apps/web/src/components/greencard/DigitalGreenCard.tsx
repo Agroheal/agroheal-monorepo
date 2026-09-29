@@ -10,7 +10,6 @@ import {
   ExternalLink,
   Share2,
   Lock,
-  Sparkles,
   Award,
   RotateCw,
   Smartphone,
@@ -252,7 +251,7 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
             onClick={() => navigate("/dashboard/checkout?product=green_card")}
             className="w-full sm:w-auto px-8 h-11 bg-gradient-to-r from-amber-400 to-amber-500 text-gray-950 hover:from-amber-300 hover:to-amber-400 font-bold rounded-xl shadow-lg transition-all"
           >
-            <Sparkles className="w-4 h-4 mr-2" />
+            <ShieldCheck className="w-4 h-4 mr-2" />
             Activate Green Card — ₦2,000
           </Button>
         </div>
@@ -320,7 +319,7 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
                 <div className="flex items-center gap-2.5">
                   <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-300 via-amber-400 to-amber-600 p-[1.5px] shadow-md">
                     <div className="w-full h-full rounded-[10px] bg-emerald-950 flex items-center justify-center">
-                      <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300 animate-pulse" />
+                      <Award className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300" />
                     </div>
                   </div>
                   <div>

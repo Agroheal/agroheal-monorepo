@@ -159,7 +159,7 @@ ${referralUrl}
                   <button
                     type="button"
                     onClick={handleShareInstagram}
-                    className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-gradient-to-r from-[#833ab4] via-[#fd1d1d] to-[#fcb045] hover:opacity-90 text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+                    className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-[#E1306C] hover:bg-[#c9265c] text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
                   >
                     <Instagram className="w-4 h-4 shrink-0" />
                     <span>Share to Instagram</span>

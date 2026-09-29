@@ -10,7 +10,6 @@ import {
   ChevronDown,
   ChevronUp,
   AlertCircle,
-  Sparkles,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabaseClient";

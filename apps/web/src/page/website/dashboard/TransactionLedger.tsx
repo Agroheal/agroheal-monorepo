@@ -18,7 +18,6 @@ import {
   Users,
   Sprout,
   CreditCard,
-  Sparkles,
   Lock,
   FileSpreadsheet,
   ArrowRight,
@@ -1115,7 +1114,7 @@ export default function TransactionLedger() {
                   onClick={handleSubscribeWithWallet}
                   className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs h-8.5 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-purple-200" />
+                  <Sprout className="w-3.5 h-3.5 text-purple-200" />
                   {subscribingWithWallet ? "Activating..." : "Activate Project Subscription (₦10,000)"}
                 </Button>
               )}
@@ -1229,10 +1228,10 @@ export default function TransactionLedger() {
                 </div>
                 <Button
                   asChild
-                  className="w-full h-8.5 sm:h-9 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-gray-950 font-bold text-xs shadow-xs transition-all"
+                  className="w-full h-8.5 sm:h-9 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold text-xs shadow-xs transition-all"
                 >
                   <Link to="/dashboard/checkout?product=green_card">
-                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                    <ShieldCheck className="w-3.5 h-3.5 mr-1.5" />
                     Activate Green Card — ₦2,000
                   </Link>
                 </Button>
@@ -1403,7 +1402,7 @@ export default function TransactionLedger() {
                     disabled={subscribingWithWallet}
                     className="w-full h-8.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-purple-200" />
+                    <Sprout className="w-3.5 h-3.5 text-purple-200" />
                     {subscribingWithWallet ? "Activating..." : "Unlock with Wallet Credit (₦10,000)"}
                   </Button>
                 ) : !isMatrixQualified ? (

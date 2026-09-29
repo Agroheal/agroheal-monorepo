@@ -4,8 +4,8 @@ import { motion } from "framer-motion";
 import {
   BookOpen,
   Sprout,
+  Leaf,
   Coins,
-  Sparkles,
   CheckCircle2,
   Building,
   TrendingUp,
@@ -169,7 +169,7 @@ export default function HowItWorksContent({
           {!isModal && (
             <div className="text-center max-w-2xl mx-auto mb-10">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-900 text-xs font-semibold uppercase tracking-wider mb-3">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-700" />
+                <Leaf className="w-3.5 h-3.5 text-emerald-700" />
                 The LEAP Model
               </span>
               <h2 className="text-2xl sm:text-3xl font-extrabold text-gray-900">

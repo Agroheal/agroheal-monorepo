@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Sprout, Minus, Plus, ShoppingCart, Leaf, Wheat, Sparkles } from 'lucide-react';
+import { Sprout, Minus, Plus, ShoppingCart, Leaf, Wheat } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -66,7 +66,7 @@ const BuySlots: React.FC = () => {
             </div>
             <CardHeader>
               <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center mb-2">
-                <Sparkles className="w-6 h-6 text-amber-700" />
+                <Leaf className="w-6 h-6 text-amber-700" />
               </div>
               <CardTitle className="text-2xl text-amber-950 font-extrabold">
                 Mushroom Starter Pack (100g)

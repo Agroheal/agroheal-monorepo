@@ -10,7 +10,6 @@ import {
   Copy,
   Check,
   X,
-  Sparkles,
   ShieldCheck,
   Megaphone,
 } from "lucide-react";
@@ -219,7 +218,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
   const handlePrimaryAction = async () => {
     if (currentStep === 1) {
       if (bundleSlot) {
-        navigate("/dashboard/checkout?slots=1&category=Mushroom%20Village");
+        navigate("/dashboard/checkout?product=green_card_combo");
       } else {
         navigate(config.steps.step1.targetRoute || "/dashboard/checkout?product=green_card");
       }
@@ -287,7 +286,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
           {/* Roadmap Step Indicator */}
           <div className="mb-6 pb-5 border-b border-gray-100">
             <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-800 mb-3 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-emerald-600" /> Member Progression Roadmap
+              <Sprout className="w-3.5 h-3.5 text-emerald-600" /> Member Progression Roadmap
             </p>
 
             <div className="grid grid-cols-3 gap-2 relative">
@@ -392,8 +391,8 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
             {currentStep === 3 ? (
               <div className="bg-gray-50 p-3.5 rounded-2xl border border-gray-200 space-y-2">
                 <div className="flex justify-between text-xs font-bold text-gray-700">
-                  <span>Level 7 Matrix Depth Progress</span>
-                  <span className="text-emerald-700">{Math.min(100, Math.round((directReferralsCount / targetDirects) * 100))}% Unlocked</span>
+                  <span>7-Tier Matrix Qualification</span>
+                  <span className="text-emerald-700">{Math.min(100, Math.round((directReferralsCount / targetDirects) * 100))}% Qualified</span>
                 </div>
                 <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
                   <div
@@ -402,7 +401,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                   />
                 </div>
                 <p className="text-[11px] text-gray-500">
-                  Each direct member unlocks an additional matrix tier. Sponsor {targetDirects} directs to unlock all 7 levels.
+                  Sponsor {targetDirects} active direct partners to unlock all 7 commission tiers simultaneously.
                 </p>
               </div>
             ) : (
@@ -410,7 +409,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                 <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
                 <span>
                   {currentStep === 1 && bundleSlot
-                    ? `Green Card (${formatNaira(activeFee)}) + Starter Slot (₦10,000) Bundled at Checkout`
+                    ? `Green Card (${formatNaira(activeFee)}) + Starter Package (₦10,000) Bundled at Checkout`
                     : currentStep === 1
                     ? `${formatNaira(activeFee)} One-Time Lifetime Membership${isLegacy ? " (Founding Rate)" : ""}`
                     : "priceText" in currentData
@@ -445,14 +444,14 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                       className="text-xs font-bold text-gray-900 flex items-center gap-1.5 cursor-pointer"
                     >
                       <Sprout className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>Buy Farm Slot Too (Bundle Milestone 1 &amp; 2)</span>
+                      <span>Bundle Milestone 1 &amp; 2 (Producer-Consumer Starter Package)</span>
                     </label>
                     <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0">
                       Recommended
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-600 mt-1 leading-snug">
-                    Can afford both at a go? Check this to purchase your Green Card + First Mushroom Farm Slot together in one checkout session.
+                    Can afford both at a go? Bundle your Green Card ({formatNaira(activeFee)}) and Producer-Consumer Starter Package (₦10,000) together for {formatNaira(activeFee + 10000)} in one seamless checkout session.
                   </p>
                 </div>
               </div>
@@ -477,7 +476,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                   <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200/70 text-xs text-emerald-950 font-medium leading-snug">
                     <Sprout className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                     <span>
-                      <strong>Milestone 2 Bundled:</strong> Complete Starter Package (₦10,000) with 2 fruiting bags, Mushroom Power 100g, cycle doubling &amp; quarterly harvest dividends!
+                      <strong>Milestone 2 Bundled:</strong> Complete Producer-Consumer Starter Package (₦10,000) with Mushroom Farm Slot, Mushroom Power 100g, cycle doubling &amp; quarterly harvest dividends!
                     </span>
                   </div>
                 )}
@@ -502,7 +501,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                   )
                 ) : currentStep === 1 && bundleSlot ? (
                   <>
-                    <span>Get Green Card + Farm Slot ({formatNaira(activeFee + 5000)})</span>
+                    <span>Get Green Card + Starter Package ({formatNaira(activeFee + 10000)})</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 ) : currentStep === 1 ? (

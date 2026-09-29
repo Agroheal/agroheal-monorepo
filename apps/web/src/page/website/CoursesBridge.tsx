@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { ArrowRight, GraduationCap, Sparkles, CheckCircle2 } from "lucide-react";
+import { ArrowRight, GraduationCap, BookOpen, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { COURSESDATA } from "@/helpers/courses";
 
@@ -129,7 +129,7 @@ export default function CoursesBridge() {
             >
               <div>
                 <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center mb-4">
-                  <Sparkles className="w-5 h-5 text-[#d1ef75]" />
+                  <BookOpen className="w-5 h-5 text-[#d1ef75]" />
                 </div>
                 <div className="text-2xl font-black text-[#d1ef75] tracking-tight mb-2">
                   +{othersCount} Others and counting

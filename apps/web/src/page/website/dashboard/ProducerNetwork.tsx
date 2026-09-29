@@ -8,7 +8,6 @@ import {
   Package,
   Layers,
   ArrowUpRight,
-  Sparkles,
   Info,
   CheckCircle2,
   Clock,
@@ -193,22 +192,18 @@ export const ProducerNetwork: React.FC = () => {
                 Potential Matrix Dividends Notice
               </p>
               <p className="text-[11px] sm:text-xs text-emerald-100/90 leading-relaxed">
-                Up to <strong className="text-white font-semibold">{formatNaira(TOTAL_POTENTIAL_MATRIX_COMMISSIONS)}</strong> in potential community commissions are accessible across your 7 matrix tiers. Unlocked dividends credit directly into your Member Wallet. Sponsor direct partners to expand your payout depth.
+                Up to <strong className="text-white font-semibold">{formatNaira(TOTAL_POTENTIAL_MATRIX_COMMISSIONS)}</strong> in potential community commissions are accessible across your 7 matrix tiers. Sponsoring 5 active direct partners unlocks all 7 tiers simultaneously. Commissions credit directly into your Member Wallet.
               </p>
             </div>
 
             <div className="pt-2.5 border-t border-white/15 flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="text-[11px] text-emerald-100/90">
-                {unlockedLevel === 0 ? (
+                {directReferralsCount < 5 ? (
                   <span>
-                    Sponsor <strong className="text-amber-300">1 direct partner</strong> to unlock Levels 1 &amp; 2 (Directs + 1 Rule)
-                  </span>
-                ) : unlockedLevel < 7 ? (
-                  <span>
-                    Sponsor <strong className="text-amber-300">{Math.max(1, unlockedLevel - directReferralsCount)} more</strong> to unlock Level {unlockedLevel + 1} (Directs + 1 Rule)
+                    Sponsor <strong className="text-amber-300">{5 - directReferralsCount} more direct partner(s)</strong> (total 5) to unlock all 7 matrix tiers.
                   </span>
                 ) : (
-                  <span className="text-amber-300 font-bold">★ All 7 Matrix Levels Unlocked!</span>
+                  <span className="text-amber-300 font-bold">✓ All 7 Matrix Levels Unlocked!</span>
                 )}
               </div>
 
@@ -441,7 +436,7 @@ export const ProducerNetwork: React.FC = () => {
               Multilevel Producer Matrix Distribution
             </h2>
             <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-3xl leading-relaxed">
-              Earn direct sponsor bounties and route 7-level community spillovers through your matrix tree. Qualified producers unlock deeper dividend channels down to 7 depths.
+              Earn direct sponsor bounties and route 7-level community spillovers through your matrix tree. Refer 5 active members to unlock commissions across all 7 matrix levels.
             </p>
           </div>
 
@@ -485,7 +480,7 @@ export const ProducerNetwork: React.FC = () => {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-emerald-900 text-white uppercase text-[10px] tracking-wider">
                     <tr>
-                      <th className="py-3.5 px-4 rounded-tl-xl">Level Depth</th>
+                      <th className="py-3.5 px-4 rounded-tl-xl">Matrix Tier Level</th>
                       <th className="py-3.5 px-4">Commission %</th>
                       <th className="py-3.5 px-4">Payout Per ₦5k Product/Slot</th>
                       <th className="py-3.5 px-4">Max Capacity (5^L)</th>

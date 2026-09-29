@@ -8,7 +8,6 @@ import {
   Package,
   Layers,
   ArrowUpRight,
-  Sparkles,
   Info,
   CheckCircle2,
   Clock,
@@ -20,6 +19,7 @@ import {
   ChevronRight,
   ChevronDown,
   Lock,
+  Award,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -181,7 +181,7 @@ export const ConsumerNetwork: React.FC = () => {
                 <Store className="w-3.5 h-3.5" /> Consumer Marketplace &amp; Retail Engine
               </span>
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
-                <Sparkles className="w-3.5 h-3.5" /> 40% Commission Ceiling
+                <Award className="w-3.5 h-3.5" /> 40% Commission Ceiling
               </span>
             </div>
 
@@ -233,22 +233,18 @@ export const ConsumerNetwork: React.FC = () => {
                 Potential Matrix Dividends Notice
               </p>
               <p className="text-[11px] sm:text-xs text-emerald-100/90 leading-relaxed">
-                Up to <strong className="text-white font-semibold">₦12,212,500</strong> in potential community commissions are accessible across your 7 matrix tiers. Unlocked tiers credit directly into your Member Wallet. Sponsor direct partners to expand your payout depth.
+                Up to <strong className="text-white font-semibold">₦12,212,500</strong> in potential community commissions are accessible across your 7 matrix tiers. Sponsoring 5 active direct partners unlocks all 7 tiers simultaneously. Commissions credit directly into your Member Wallet.
               </p>
             </div>
 
             <div className="pt-2.5 border-t border-white/15 flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="text-[11px] text-emerald-100/90">
-                {unlockedLevel === 0 ? (
+                {directReferralsCount < 5 ? (
                   <span>
-                    Sponsor <strong className="text-amber-300">1 direct partner</strong> to unlock Levels 1 &amp; 2 (Directs + 1 Rule)
-                  </span>
-                ) : unlockedLevel < 7 ? (
-                  <span>
-                    Sponsor <strong className="text-amber-300">{Math.max(1, unlockedLevel - directReferralsCount)} more</strong> to unlock Level {unlockedLevel + 1} (Directs + 1 Rule)
+                    Sponsor <strong className="text-amber-300">{5 - directReferralsCount} more direct partner(s)</strong> (total 5) to unlock all 7 matrix tiers.
                   </span>
                 ) : (
-                  <span className="text-amber-300 font-bold">★ All 7 Matrix Levels Unlocked!</span>
+                  <span className="text-amber-300 font-bold">✓ All 7 Matrix Levels Unlocked!</span>
                 )}
               </div>
 
@@ -429,7 +425,7 @@ export const ConsumerNetwork: React.FC = () => {
               className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shrink-0 shadow-md"
             >
               <Link to="/dashboard/checkout?product=green_card">
-                <Sparkles className="w-4 h-4 mr-1.5" />
+                <ShieldCheck className="w-4 h-4 mr-1.5" />
                 Activate Green Card (₦2,000)
               </Link>
             </Button>
@@ -451,7 +447,7 @@ export const ConsumerNetwork: React.FC = () => {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-emerald-900 text-white uppercase text-[10px] tracking-wider">
                     <tr>
-                      <th className="py-3.5 px-4 rounded-tl-xl">Level Depth</th>
+                      <th className="py-3.5 px-4 rounded-tl-xl">Matrix Tier Level</th>
                       <th className="py-3.5 px-4">Commission %</th>
                       <th className="py-3.5 px-4">Payout Per ₦5k Product</th>
                       <th className="py-3.5 px-4">Max Capacity (5^L)</th>

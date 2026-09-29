@@ -56,7 +56,7 @@ const RequireSubscription = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   if (loading) {
-    return <LoadingSpinner message="Verifying member subscription..." />;
+    return <LoadingSpinner message="Loading..." />;
   }
 
   if (!hasActiveSubscription) {

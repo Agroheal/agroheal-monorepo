@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Users, Sprout, HeartHandshake, BellRing } from "lucide-react";
+import { Users, Sprout, HeartHandshake, BellRing } from "lucide-react";
 import { CTASection } from "../../components/webComponents/CTASection";
 
 const perks = [
@@ -46,7 +46,7 @@ export default function Careers() {
             className="text-center mb-14 max-w-3xl mx-auto"
           >
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-100 text-green-800 text-xs font-semibold tracking-wide uppercase mb-4">
-              <Sparkles className="w-3.5 h-3.5" />
+              <Sprout className="w-3.5 h-3.5" />
               Careers at Agroheal
             </span>
             <h1

@@ -7,7 +7,6 @@ import {
   CheckCircle2,
   Lock,
   ArrowRight,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,7 +72,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
       <div className="px-5 py-4 bg-muted/30 border-b border-border/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
-            <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div>
             <h2 className="text-sm md:text-base font-bold text-foreground flex items-center gap-2">

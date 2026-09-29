@@ -1,4 +1,4 @@
-import { Leaf, Shield, Sparkles } from "lucide-react";
+import { Leaf, Shield, Award } from "lucide-react";
 export const benefits = [
   {
     icon: Leaf,
@@ -6,7 +6,7 @@ export const benefits = [
     description: "Access all organic farming courses and materials",
   },
   {
-    icon: Sparkles,
+    icon: Award,
     title: "Expert-Led Content",
     description: "Learn from experienced organic farming practitioners",
   },

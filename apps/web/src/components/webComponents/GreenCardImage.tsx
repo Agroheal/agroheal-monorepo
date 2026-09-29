@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from "react";
-import { Download, Share2, ShieldCheck, Sparkles, Check, AlertCircle } from "lucide-react";
+import { Download, Share2, ShieldCheck, Check, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export interface GreenCardImageProps {

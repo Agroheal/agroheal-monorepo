@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, FileText, ArrowDownToLine } from "lucide-react";
+import { Leaf, FileText, ArrowDownToLine } from "lucide-react";
 import { CTASection } from "@/components/webComponents/CTASection";
 import HowItWorksContent from "@/components/webComponents/HowItWorksContent";
 
@@ -21,7 +21,7 @@ export default function HowItWorks() {
             className="text-center mb-16 max-w-3xl mx-auto"
           >
             <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-green-100 text-green-850 text-xs font-semibold tracking-wide uppercase mb-4 border border-green-200">
-              <Sparkles className="w-3.5 h-3.5 text-green-750" />
+              <Leaf className="w-3.5 h-3.5 text-green-750" />
               The LEAP Framework
             </span>
             <h1

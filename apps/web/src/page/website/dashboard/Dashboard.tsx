@@ -14,7 +14,6 @@ import {
   IdCard,
   Award,
   ShieldCheck,
-  Sparkles,
   GitBranch,
   Share2,
   MessageCircle,
@@ -736,7 +735,7 @@ const Dashboard = () => {
         </div>
 
         {/* ── ASSIGNED GROUP FARM BANNER ── */}
-        {assignedFarms.length > 0 && (
+        {totalSlotsPurchased > 0 && assignedFarms.length > 0 && (
           <div className="bg-white rounded-2xl p-4 sm:p-5 text-gray-900 shadow-sm border border-emerald-200/70 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
               <div className="w-12 h-12 rounded-xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-800 shrink-0 shadow-inner">
@@ -745,7 +744,9 @@ const Dashboard = () => {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-bold text-sm sm:text-base text-gray-900">
-                    Assigned Farm Group: {assignedFarms.map((f) => f.name).join(", ")}
+                    {assignedFarms.length === 1
+                      ? `Your Farm Group is: ${assignedFarms[0]?.name}`
+                      : `Your Farm Groups are: ${Array.from(new Set(assignedFarms.map((f) => f.name))).join(", ")}`}
                   </span>
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
@@ -753,7 +754,7 @@ const Dashboard = () => {
                   </span>
                 </div>
                 <p className="text-xs text-gray-600 mt-0.5">
-                  Category: <span className="font-semibold text-emerald-800">{assignedFarms.map((f) => f.project_category).join(", ")}</span> · Your agricultural production slots are physically hosted in this community farm.
+                  Category: <span className="font-semibold text-emerald-800">{Array.from(new Set(assignedFarms.map((f) => f.project_category))).join(", ")}</span> · Your agricultural production slots are physically hosted in this community farm.
                 </p>
               </div>
             </div>
@@ -849,7 +850,7 @@ const Dashboard = () => {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-emerald-800" />
+                    <Sprout className="w-5 h-5 text-emerald-800" />
                   </div>
                   <div>
                     <h2 className="text-base font-bold text-gray-900">
@@ -882,23 +883,14 @@ const Dashboard = () => {
                   iconBg: hasGreenCard ? "bg-emerald-50" : "bg-amber-50",
                   iconColor: hasGreenCard ? "text-emerald-800" : "text-amber-800",
                 },
-                totalSlotsPurchased > 0
-                  ? {
-                      to: "/dashboard/farm-operations/my-slots",
-                      icon: Sprout,
-                      label: "Producer Operations",
-                      desc: `${totalSlotsPurchased} active slot${totalSlotsPurchased > 1 ? "s" : ""} in production`,
-                      iconBg: "bg-emerald-50",
-                      iconColor: "text-emerald-800",
-                    }
-                  : {
-                      to: hasGreenCard ? "/dashboard/farm-operations/buy-slots" : "/dashboard/checkout?product=farm_slot",
-                      icon: Sprout,
-                      label: "Become a Producer",
-                      desc: hasGreenCard ? "Secure Mushroom Village slots" : "Secure slot (bundles Green Card)",
-                      iconBg: "bg-emerald-50",
-                      iconColor: "text-emerald-800",
-                    },
+                {
+                  to: "/dashboard/farm-operations/my-slots",
+                  icon: Sprout,
+                  label: totalSlotsPurchased > 0 ? "Producer Operations" : "Mushroom Production Slots",
+                  desc: totalSlotsPurchased > 0 ? `${totalSlotsPurchased} active slot${totalSlotsPurchased > 1 ? "s" : ""} in production` : "Mushroom Village Group Farming",
+                  iconBg: "bg-emerald-50",
+                  iconColor: "text-emerald-800",
+                },
                 {
                   to: "/dashboard/my-network",
                   icon: GitBranch,
@@ -979,8 +971,8 @@ const Dashboard = () => {
                 </div>
               </div>
 
-              {/* 5×7 Community Matrix Locked Commission Banner */}
-              <div className="rounded-2xl p-4 bg-gradient-to-br from-[#062414] to-[#0d3b22] text-white border border-emerald-600/30 shadow-md space-y-3">
+              {/* 5×7 Community Matrix Commission Banner */}
+              <div className="rounded-2xl p-4 bg-[#0c2415] text-white border border-emerald-800 shadow-md space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <GitBranch className="w-4 h-4 text-emerald-400" />
@@ -988,14 +980,14 @@ const Dashboard = () => {
                       5×7 Community Matrix
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30">
-                    7 Levels Depth
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-800 text-emerald-200 border border-emerald-700">
+                    7 Matrix Tiers
                   </span>
                 </div>
 
                 <div>
                   <p className="text-xs text-emerald-100/90 leading-relaxed">
-                    Potential <strong className="text-white font-mono">₦12,212,500</strong> community commissions across 7 tiers. Sponsor 5 active direct partners to unlock full depth.
+                    Potential <strong className="text-white font-mono">₦12,212,500</strong> community commissions across 7 tiers. Refer 5 active members to unlock 7-tier commissions.
                   </p>
                 </div>
 
