@@ -16,6 +16,7 @@ import {
   Sparkles,
   ShoppingBag,
   CornerDownRight,
+  PanelLeft,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
@@ -198,6 +199,8 @@ const SidebarContent = ({
   userName,
   userEmail,
   avatarUrl,
+  isCollapsed = false,
+  onToggleCollapse,
 }: {
   normalizedPath: string;
   onLogout: () => void;
@@ -205,6 +208,8 @@ const SidebarContent = ({
   userName?: string;
   userEmail?: string;
   avatarUrl?: string | null;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }) => {
   // Determine which group contains the active path
   const activeGroupId = useMemo(() => {
@@ -255,26 +260,32 @@ const SidebarContent = ({
   return (
     <div className="flex flex-col h-full select-none text-emerald-100">
       {/* Brand Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-emerald-800/50 bg-[#0a1e12]/80 shrink-0">
-        <div className="w-9 h-9 rounded-xl bg-emerald-950/80 border border-emerald-500/40 p-1 flex items-center justify-center shadow-md ring-1 ring-white/15 shrink-0">
+      <div className={`flex items-center ${isCollapsed ? "justify-center px-2 py-4" : "gap-3 px-5 py-4"} border-b border-emerald-800/50 bg-[#0a1e12]/80 shrink-0`}>
+        <div
+          onClick={onToggleCollapse}
+          className="w-9 h-9 rounded-xl bg-emerald-950/80 border border-emerald-500/40 p-1 flex items-center justify-center shadow-md ring-1 ring-white/15 shrink-0 cursor-pointer hover:border-emerald-400 transition-colors"
+          title={isCollapsed ? "Click to Expand Sidebar" : "AgroHeal Member Portal"}
+        >
           <img
             src="/apple-touch-icon.png"
             alt="AgroHeal"
             className="w-7 h-7 object-contain"
           />
         </div>
-        <div className="min-w-0 flex-1">
-          <span className="text-white font-black text-sm tracking-tight block leading-tight truncate">
-            AgroHeal Member Portal
-          </span>
-          <span className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase block truncate">
-            Web App
-          </span>
-        </div>
+        {!isCollapsed && (
+          <div className="min-w-0 flex-1">
+            <span className="text-white font-black text-sm tracking-tight block leading-tight truncate">
+              AgroHeal Member Portal
+            </span>
+            <span className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase block truncate">
+              Web App
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Navigation Groups with sleek custom scrollbar */}
-      <nav className="flex-1 px-3 py-3 space-y-1.5 overflow-y-auto scrollbar-thin scrollbar-thumb-emerald-700/50 hover:scrollbar-thumb-emerald-600/70 scrollbar-track-transparent">
+      <nav className={`flex-1 ${isCollapsed ? "px-2" : "px-3"} py-3 space-y-1.5 overflow-y-auto scrollbar-thin scrollbar-thumb-emerald-700/50 hover:scrollbar-thumb-emerald-600/70 scrollbar-track-transparent`}>
         {navGroups.map((group) => {
           const Icon = group.icon;
           const hasChildren = Boolean(
@@ -282,6 +293,34 @@ const SidebarContent = ({
           );
           const isGroupActive = activeGroupId === group.id;
           const isOpen = Boolean(openGroups[group.id]);
+
+          // Collapsed Icon-Only View
+          if (isCollapsed) {
+            return (
+              <NavLink
+                key={group.id}
+                to={group.path}
+                end={group.exact}
+                onClick={handleClose}
+                title={group.label}
+                className={({ isActive }) =>
+                  `flex items-center justify-center p-2.5 rounded-xl transition-all duration-150 ${
+                    isActive || isGroupActive
+                      ? "bg-white text-emerald-950 shadow-sm"
+                      : "text-emerald-100/90 hover:bg-emerald-800/40 hover:text-white"
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <Icon
+                    className={`w-5 h-5 shrink-0 ${
+                      isActive || isGroupActive ? "text-emerald-800" : "text-emerald-300/80"
+                    }`}
+                  />
+                )}
+              </NavLink>
+            );
+          }
 
           // Exact single link (Overview, Learning Academy, etc.)
           if (!hasChildren) {
@@ -418,42 +457,71 @@ const SidebarContent = ({
       </nav>
 
       {/* User Profile & Integrated Sign Out Footer */}
-      <div className="p-3 border-t border-emerald-800/50 bg-[#0a1e12]/70 shrink-0">
-        <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-emerald-900/30 border border-emerald-800/50 hover:border-emerald-700/60 transition-colors">
-          <NavLink
-            to="/dashboard/profile"
-            onClick={handleClose}
-            className="flex items-center gap-2.5 min-w-0 flex-1 group"
-          >
-            <UserAvatar
-              src={avatarUrl}
-              name={userName}
-              email={userEmail}
-              sizeClassName="w-8 h-8"
-              textClassName="text-xs font-bold"
-              roundedClassName="rounded-full"
-              className="border border-emerald-500/40 shrink-0"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-white truncate leading-tight group-hover:text-emerald-300 transition-colors">
-                {userName || "Agroheal Member"}
-              </p>
-              <p className="text-[10px] text-emerald-300/75 truncate leading-tight mt-0.5">
-                Profile & Settings
-              </p>
-            </div>
-          </NavLink>
+      <div className={`p-3 border-t border-emerald-800/50 bg-[#0a1e12]/70 shrink-0 ${isCollapsed ? "flex flex-col items-center gap-2" : ""}`}>
+        {isCollapsed ? (
+          <div className="flex flex-col items-center gap-2">
+            <NavLink
+              to="/dashboard/profile"
+              onClick={handleClose}
+              title={userName || "Profile & Settings"}
+            >
+              <UserAvatar
+                src={avatarUrl}
+                name={userName}
+                email={userEmail}
+                sizeClassName="w-8 h-8"
+                textClassName="text-xs font-bold"
+                roundedClassName="rounded-full"
+                className="border border-emerald-500/40 shrink-0 hover:border-emerald-300 transition-colors"
+              />
+            </NavLink>
+            <button
+              type="button"
+              onClick={onLogout}
+              title="Sign Out"
+              aria-label="Sign Out"
+              className="p-1.5 rounded-lg text-emerald-300/70 hover:text-rose-300 hover:bg-rose-500/20 transition-all shrink-0"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-emerald-900/30 border border-emerald-800/50 hover:border-emerald-700/60 transition-colors">
+            <NavLink
+              to="/dashboard/profile"
+              onClick={handleClose}
+              className="flex items-center gap-2.5 min-w-0 flex-1 group"
+            >
+              <UserAvatar
+                src={avatarUrl}
+                name={userName}
+                email={userEmail}
+                sizeClassName="w-8 h-8"
+                textClassName="text-xs font-bold"
+                roundedClassName="rounded-full"
+                className="border border-emerald-500/40 shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-white truncate leading-tight group-hover:text-emerald-300 transition-colors">
+                  {userName || "Agroheal Member"}
+                </p>
+                <p className="text-[10px] text-emerald-300/75 truncate leading-tight mt-0.5">
+                  Profile & Settings
+                </p>
+              </div>
+            </NavLink>
 
-          <button
-            type="button"
-            onClick={onLogout}
-            title="Sign Out"
-            aria-label="Sign Out"
-            className="p-2 rounded-lg text-emerald-300/70 hover:text-rose-300 hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 transition-all shrink-0"
-          >
-            <LogOut className="w-4 h-4" />
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={onLogout}
+              title="Sign Out"
+              aria-label="Sign Out"
+              className="p-2 rounded-lg text-emerald-300/70 hover:text-rose-300 hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 transition-all shrink-0"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -497,6 +565,24 @@ const DashboardLayout = () => {
 
   const hiddenPath = HIDDEN_ROUTES.includes(normalizedPath);
 
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("sidebar_collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleDesktopSidebar = useCallback(() => {
+    setDesktopSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("sidebar_collapsed", String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
+
   async function handleLogout() {
     try {
       await supabase.auth.signOut();
@@ -513,8 +599,8 @@ const DashboardLayout = () => {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      {/* ── DESKTOP SIDEBAR — visible on lg+ (256px - 288px width, zero scrollbar) ── */}
-      <aside className="hidden lg:flex flex-col w-64 xl:w-72 bg-[#0c2415] border-r border-emerald-900/60 shadow-xl shrink-0 h-full overflow-hidden">
+      {/* ── DESKTOP SIDEBAR — collapsible on lg+ (w-20 collapsed vs w-64/72 expanded, zero scrollbar) ── */}
+      <aside className={`hidden lg:flex flex-col ${desktopSidebarCollapsed ? "w-20" : "w-64 xl:w-72"} bg-[#0c2415] border-r border-emerald-900/60 shadow-xl shrink-0 h-full overflow-hidden transition-all duration-300 ease-in-out`}>
         <SidebarContent
           normalizedPath={normalizedPath}
           onLogout={handleLogout}
@@ -522,6 +608,8 @@ const DashboardLayout = () => {
           userName={profile?.full_name}
           userEmail={profile?.email || session?.user?.email}
           avatarUrl={profile?.avatar_url}
+          isCollapsed={desktopSidebarCollapsed}
+          onToggleCollapse={toggleDesktopSidebar}
         />
       </aside>
 
@@ -640,6 +728,17 @@ const DashboardLayout = () => {
               aria-label="Open navigation menu"
             >
               <Menu className="w-5 h-5" />
+            </button>
+
+            {/* Desktop Sidebar Collapse Toggle */}
+            <button
+              type="button"
+              onClick={toggleDesktopSidebar}
+              className="hidden lg:flex p-2 -ml-1 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors text-gray-700 shrink-0"
+              title={desktopSidebarCollapsed ? "Expand Sidebar (Wider Nav)" : "Collapse Sidebar (Full Page Width)"}
+              aria-label="Toggle navigation sidebar"
+            >
+              <PanelLeft className="w-4 h-4 text-gray-700" />
             </button>
 
             {/* Mobile Quick User DP in top-left */}
