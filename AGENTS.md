@@ -25,3 +25,12 @@
 - **Accurate & Up-to-Date Docs**:
   - Keep authoritative documentation (`TODO.md`, tracker files) updated whenever significant architectural decisions or milestone items are completed.
   - Do NOT modify or update docs if there is no genuine necessity.
+
+## 4. Direct Database Edits & Financial Ledger Protocol
+- **Mandatory Financial Invariants for Manual Credits**:
+  - Whenever manually provisioning or editing member activations (Green Cards, Starter Packages, Farm Slots, Product Orders) directly in the database, NEVER stop at inserting records into `transactions`, `orders`, or `slot_subscriptions`.
+  - ALWAYS execute the complete double-entry financial distributions into `wallet_ledger`:
+    1. **Direct Sponsor Referral & Slot Commission**: Credit the direct sponsor with their statutory bonus (`REFERRAL_BONUS`, `SLOT_BONUS`, `MATRIX_COMMISSION`).
+    2. **Core Driver Growth Pool**: Credit all 6 Core Drivers (Elijah, Esther, Taiwo, David, Fortune, Tony) with their ₦50 bonus (`CORE_DRIVER_BONUS`).
+    3. **Atomic Balance Updates**: Compute each recipient's `balance_after` dynamically (`current_available_balance + amount`) to maintain zero ledger leakage and strict solvency parity.
+
