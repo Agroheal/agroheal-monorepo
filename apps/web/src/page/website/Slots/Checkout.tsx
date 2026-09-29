@@ -1093,14 +1093,14 @@ const Checkout = () => {
             </p>
           </motion.div>
 
-          {/* 2-Column Responsive Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* ── LEFT COLUMN: WHO IS BUYING (7 Cols) ──────────────────────────────── */}
+          {/* 2-Column Responsive Layout (Side-by-Side from md: upward) */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start">
+            {/* ── LEFT COLUMN: WHO IS BUYING (6-7 Cols) ──────────────────────────────── */}
             <motion.div
               initial={{ opacity: 0, x: -15 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4 }}
-              className="lg:col-span-7 space-y-6"
+              className="md:col-span-6 lg:col-span-7 space-y-6"
             >
               {/* Card 1: Member Identity */}
               <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-sm border border-border/70 space-y-4">
@@ -1344,12 +1344,12 @@ const Checkout = () => {
               </div>
             </motion.div>
 
-            {/* ── RIGHT COLUMN: WHAT YOU'RE BUYING & INSTANT CTA (5 Cols) ─────────── */}
+            {/* ── RIGHT COLUMN: WHAT YOU'RE BUYING & INSTANT CTA (5-6 Cols) ─────────── */}
             <motion.div
               initial={{ opacity: 0, x: 15 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="lg:col-span-5 space-y-6 lg:sticky lg:top-8"
+              className="md:col-span-6 lg:col-span-5 space-y-6 md:sticky md:top-6 lg:top-8"
             >
               <div className="bg-card rounded-2xl overflow-hidden shadow-sm border border-border/80">
                 {/* Header */}
