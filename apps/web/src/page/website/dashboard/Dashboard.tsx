@@ -428,8 +428,8 @@ const Dashboard = () => {
       </div>
 
       <div className="px-4 md:px-8 -mt-8 pb-12 max-w-[96%] mx-auto">
-        {/* Journey Progression Infographic Banner (Only shown prior to purchasing first farm slot) */}
-        {totalSlotsPurchased === 0 && (
+        {/* Journey Progression Infographic Banner (Active through Milestones 1, 2, and 3) */}
+        {!Boolean(hasGreenCard && totalSlotsPurchased > 0 && (profile?.total_referrals || 0) >= 5) && (
           <JourneyProgressionHeader
             hasGreenCard={hasGreenCard}
             memberId={profile?.member_id as string}
@@ -840,199 +840,102 @@ const Dashboard = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="order-2 lg:order-1 lg:col-span-2 bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100 flex flex-col h-full min-h-0 lg:min-h-[calc(100vh-11rem)] overflow-hidden"
+            className="order-2 lg:order-1 lg:col-span-2 bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-gray-100 flex flex-col justify-between"
           >
-            <div className="flex items-center justify-between mb-5 shrink-0">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
-                  <Sprout className="w-5 h-5 text-emerald-800" />
-                </div>
-                <div>
-                  <h2 className="text-base font-bold text-gray-900">
-                    Commercial Farm Slots
-                  </h2>
-                  <p className="text-xs text-gray-500">
-                    Active agricultural production units & harvest cycle tracking
-                  </p>
-                </div>
-              </div>
-              {totalSlotsPurchased > 0 ? (
-                <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                  {totalSlotsPurchased} {totalSlotsPurchased === 1 ? "Slot Active" : "Slots Active"} · Producer
-                </span>
-              ) : (
-                <span className="text-xs font-medium px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                  No Farm Slots Yet
-                </span>
-              )}
-            </div>
-
-            <div className="flex-1 flex flex-col min-h-0 gap-4">
-              {totalSlotsPurchased > 0 && (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-emerald-50/70 border border-emerald-200/80 hover:border-emerald-300 transition-colors shrink-0 gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-700/10 border border-emerald-700/20 flex items-center justify-center shrink-0">
-                      <Sprout className="w-5 h-5 text-emerald-800" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-gray-900 text-sm truncate">
-                          Mushroom Flagship Slots
-                        </h3>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                          {totalSlotsPurchased} {totalSlotsPurchased === 1 ? "Slot" : "Slots"} Active
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-600 truncate mt-0.5">
-                        Fully funded production · Zero monthly maintenance fees
-                      </p>
-                    </div>
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                    <Sparkles className="w-5 h-5 text-emerald-800" />
                   </div>
-                  <div className="flex items-center gap-2 self-start sm:self-auto">
-                    <Button
-                      asChild
-                      size="sm"
-                      className="h-8 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold px-3 rounded-lg shadow-xs cursor-pointer"
-                    >
-                      <Link to="/dashboard/farm-operations/my-slots">Manage Slots</Link>
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden shrink-0">
-                <div className="px-4 py-3.5 sm:px-5 border-b border-emerald-700 bg-emerald-800 flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm sm:text-base font-bold text-white">
-                      Slot & Payment History
-                    </h3>
-                    <p className="text-[11px] text-emerald-100/80">
-                      Transactions synchronized with platform ledger
+                    <h2 className="text-base font-bold text-gray-900">
+                      Platform Actions & Shortcuts
+                    </h2>
+                    <p className="text-xs text-gray-500">
+                      Direct access to learning, producer clusters, matrix network &amp; ledger
                     </p>
                   </div>
-                  <Button
-                    asChild
-                    size="sm"
-                    variant="outline"
-                    className="h-8 px-3 text-xs border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white cursor-pointer"
-                  >
-                    <Link to="/dashboard/transactions">See all</Link>
-                  </Button>
                 </div>
-
-                <div className="overflow-x-auto px-4 sm:px-5 py-3">
-                  <table className="w-full text-xs sm:text-sm">
-                    <thead>
-                      <tr className="text-gray-500 border-b border-gray-100">
-                        <th className="text-left font-semibold py-2.5 pr-2">
-                          Number of Slots
-                        </th>
-                        <th className="text-left font-semibold py-2.5 pr-2">
-                          Amount
-                        </th>
-                        <th className="text-left font-semibold py-2.5">Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {slotPaymentHistory.length > 0 ? (
-                        slotPaymentHistory.map((item) => (
-                          <tr
-                            key={item.id}
-                            className="border-b border-gray-50 last:border-b-0 hover:bg-gray-50/60 transition-colors"
-                          >
-                            <td className="py-3 pr-2 text-gray-800 font-semibold">
-                              {item.slots}
-                            </td>
-                            <td className="py-3 pr-2 text-gray-700 font-medium">
-                              ₦{Number(item.amount ?? 0).toLocaleString()}
-                            </td>
-                            <td className="py-3 text-gray-500">
-                              {item.last_payment_date
-                                ? new Date(
-                                    item.last_payment_date,
-                                  ).toLocaleDateString("en-NG", {
-                                    day: "numeric",
-                                    month: "short",
-                                    year: "numeric",
-                                  })
-                                : "-"}
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={3}
-                            className="py-6 text-center text-gray-400"
-                          >
-                            No slot payments yet.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                {totalSlotsPurchased > 0 ? (
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    {totalSlotsPurchased} {totalSlotsPurchased === 1 ? "Slot Active" : "Slots Active"} · Producer
+                  </span>
+                ) : (
+                  <span className="text-xs font-medium px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    {hasGreenCard ? "Certified Member" : "Welcome Member"}
+                  </span>
+                )}
               </div>
-
-              <div className="flex-1 min-h-2" aria-hidden />
             </div>
 
-            <div className="mt-auto pt-5 border-t border-gray-100 shrink-0 bg-white rounded-b-2xl -mx-4 sm:-mx-6 -mb-6 px-4 sm:px-6 pb-6">
-              <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">
-                Quick Actions
-              </h2>
-              <div className="grid sm:grid-cols-2 gap-3">
-                {[
-                  {
-                    to: hasGreenCard ? "/dashboard/courses" : "/dashboard/checkout?product=green_card",
-                    icon: hasGreenCard ? BookOpen : Lock,
-                    label: hasGreenCard ? "Continue Learning" : "Unlock Courses",
-                    desc: hasGreenCard ? "Pick up where you left off" : "Requires Green Card — ₦2,000",
-                    iconBg: hasGreenCard ? "bg-emerald-50" : "bg-amber-50",
-                    iconColor: hasGreenCard ? "text-emerald-800" : "text-amber-800",
-                  },
-                  totalSlotsPurchased > 0
-                    ? {
-                        to: "/dashboard/farm-operations/my-slots",
-                        icon: Sprout,
-                        label: "Producer Operations",
-                        desc: "Active Producer · Slot allocation",
-                        iconBg: "bg-emerald-50",
-                        iconColor: "text-emerald-800",
-                      }
-                    : {
-                        to: hasGreenCard ? "/dashboard/farm-operations/buy-slots" : "/dashboard/checkout?product=farm_slot",
-                        icon: Sprout,
-                        label: "Become a Producer",
-                        desc: hasGreenCard ? "Secure commercial farm slot" : "Secure slot (bundles Green Card)",
-                        iconBg: "bg-emerald-50",
-                        iconColor: "text-emerald-800",
-                      },
-                ].map((action, i) => (
-                  <Link
-                    key={i}
-                    to={action.to}
-                    className="flex items-center justify-between p-3.5 bg-gray-50/70 rounded-2xl border border-gray-100 shadow-xs hover:border-emerald-300 hover:bg-emerald-50/30 transition-all group cursor-pointer"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-9 h-9 rounded-xl ${action.iconBg} flex items-center justify-center`}
-                      >
-                        <action.icon
-                          className={`w-4 h-4 ${action.iconColor}`}
-                        />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-gray-900 group-hover:text-emerald-900 transition-colors">
-                          {action.label}
-                        </p>
-                        <p className="text-[11px] text-gray-500">{action.desc}</p>
-                      </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {[
+                {
+                  to: hasGreenCard ? "/dashboard/courses" : "/dashboard/checkout?product=green_card",
+                  icon: hasGreenCard ? BookOpen : Lock,
+                  label: hasGreenCard ? "Continue Learning" : "Unlock Courses",
+                  desc: hasGreenCard ? "Practical organic masterclasses" : "Requires Green Card — ₦2,000",
+                  iconBg: hasGreenCard ? "bg-emerald-50" : "bg-amber-50",
+                  iconColor: hasGreenCard ? "text-emerald-800" : "text-amber-800",
+                },
+                totalSlotsPurchased > 0
+                  ? {
+                      to: "/dashboard/farm-operations/my-slots",
+                      icon: Sprout,
+                      label: "Producer Operations",
+                      desc: `${totalSlotsPurchased} active slot${totalSlotsPurchased > 1 ? "s" : ""} in production`,
+                      iconBg: "bg-emerald-50",
+                      iconColor: "text-emerald-800",
+                    }
+                  : {
+                      to: hasGreenCard ? "/dashboard/farm-operations/buy-slots" : "/dashboard/checkout?product=farm_slot",
+                      icon: Sprout,
+                      label: "Become a Producer",
+                      desc: hasGreenCard ? "Secure Mushroom Village slots" : "Secure slot (bundles Green Card)",
+                      iconBg: "bg-emerald-50",
+                      iconColor: "text-emerald-800",
+                    },
+                {
+                  to: "/dashboard/my-network",
+                  icon: GitBranch,
+                  label: "5×7 Community Network",
+                  desc: "View genealogy, team spillovers & downlines",
+                  iconBg: "bg-emerald-50",
+                  iconColor: "text-emerald-800",
+                },
+                {
+                  to: "/dashboard/transactions",
+                  icon: TrendingUp,
+                  label: "Financial Ledger",
+                  desc: "Wallet transactions, commissions & history",
+                  iconBg: "bg-emerald-50",
+                  iconColor: "text-emerald-800",
+                },
+              ].map((action, i) => (
+                <Link
+                  key={i}
+                  to={action.to}
+                  className="flex items-center justify-between p-4 bg-gray-50/70 rounded-2xl border border-gray-100 shadow-xs hover:border-emerald-300 hover:bg-emerald-50/40 transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-10 h-10 rounded-xl ${action.iconBg} flex items-center justify-center shrink-0`}
+                    >
+                      <action.icon
+                        className={`w-5 h-5 ${action.iconColor}`}
+                      />
                     </div>
-                    <ArrowUpRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-700 transition-colors" />
-                  </Link>
-                ))}
-              </div>
+                    <div>
+                      <p className="text-xs font-bold text-gray-900 group-hover:text-emerald-900 transition-colors">
+                        {action.label}
+                      </p>
+                      <p className="text-[11px] text-gray-500">{action.desc}</p>
+                    </div>
+                  </div>
+                  <ArrowUpRight className="w-4 h-4 text-gray-300 group-hover:text-emerald-700 transition-colors shrink-0" />
+                </Link>
+              ))}
             </div>
           </motion.div>
 

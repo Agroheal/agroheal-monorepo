@@ -85,6 +85,7 @@ export const Subscribe: React.FC = () => {
   const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
   const [emailTypoSuggestion, setEmailTypoSuggestion] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
+  const [addComboUpsell, setAddComboUpsell] = useState(false);
 
   // Post-payment guest password modal
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -157,6 +158,7 @@ export const Subscribe: React.FC = () => {
 
   const isLegacy = isLegacyMember(userCreatedAt);
   const activeGreenCardFee = getGreenCardFee(userCreatedAt);
+  const finalAmount = activeGreenCardFee + (addComboUpsell ? 10000 : 0);
 
   const handleFlutterwavePayment = async () => {
     setFormError(null);
@@ -196,13 +198,15 @@ export const Subscribe: React.FC = () => {
     setLoading(true);
 
     const targetUserId = user?.id || `guest_${Date.now()}`;
-    const reference = `GC_SUB_${Date.now()}_${targetUserId.slice(0, 8)}`;
+    const reference = addComboUpsell
+      ? `GC_COMBO_${Date.now()}_${targetUserId.slice(0, 8)}`
+      : `GC_SUB_${Date.now()}_${targetUserId.slice(0, 8)}`;
 
     try {
       window.FlutterwaveCheckout({
         public_key: flwKey,
         tx_ref: reference,
-        amount: activeGreenCardFee,
+        amount: finalAmount,
         currency: "NGN",
         payment_options: "card, banktransfer, ussd",
         customer: {
@@ -212,12 +216,17 @@ export const Subscribe: React.FC = () => {
         },
         meta: {
           user_id: targetUserId,
-          plan: "green_card",
+          plan: addComboUpsell ? "green_card_combo" : "green_card",
+          has_combo: addComboUpsell,
           referral_code: referralCode.trim() || undefined,
         },
         customizations: {
-          title: "AgroHeal Green Card Pass",
-          description: "Lifetime Certified Membership & Platform Access",
+          title: addComboUpsell
+            ? "AgroHeal Green Card + Starter Combo"
+            : "AgroHeal Green Card Pass",
+          description: addComboUpsell
+            ? "Lifetime Green Card + 1 Mushroom Village Slot + Mushroom Power 100g (Milestone 3 Unlock)"
+            : "Lifetime Certified Membership & Platform Access",
           logo: "https://ptowfacejneezksyhntk.supabase.co/storage/v1/object/sign/agroheal-%20buckets/logo.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iZGE2NjM1ZS00NTAzLTRkZDktOTdmOS0zYWExY2Y5NzNiOGQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhZ3JvaGVhbC0gYnVja2V0cy9sb2dvLnBuZyIsImlhdCI6MTc3NDAwODY3OCwiZXhwIjo0OTI3NjA4Njc4fQ.fuwva3-hMj5KmMRqElcclgJqzA5d4aigxCIlHVHgMak",
         },
         onclose: () => setLoading(false),
@@ -239,11 +248,11 @@ export const Subscribe: React.FC = () => {
                   last_name: cleanLastName,
                   email: cleanEmail,
                   phone: cleanPhone,
-                  amount: activeGreenCardFee,
+                  amount: finalAmount,
                   payment_method: "flutterwave",
                   transaction_ref: txId,
                   status: "paid",
-                  project_category: "Green Card",
+                  project_category: addComboUpsell ? "Green Card + Starter Combo" : "Green Card",
                 },
               ]);
             } catch (txErr) {
@@ -257,6 +266,7 @@ export const Subscribe: React.FC = () => {
                 const expiresAt = new Date();
                 expiresAt.setFullYear(expiresAt.getFullYear() + LIFETIME_YEARS);
 
+                // 1. Activate Green Card Subscription
                 await supabase.from("subscriptions").upsert(
                   [
                     {
@@ -270,14 +280,54 @@ export const Subscribe: React.FC = () => {
                   { onConflict: "user_id" },
                 );
 
+                // 2. Profile update
+                const profileUpdates: Record<string, any> = {
+                  is_green_card_holder: true,
+                  has_greencard: true,
+                  greencard_status: "active",
+                };
+                if (addComboUpsell) {
+                  profileUpdates.has_purchased_starter_pack = true;
+                  profileUpdates.is_wealth_creation_active = true;
+                }
+
                 await supabase
                   .from("profiles")
-                  .update({
-                    is_green_card_holder: true,
-                    has_greencard: true,
-                    greencard_status: "active",
-                  })
+                  .update(profileUpdates)
                   .eq("id", user.id);
+
+                // 3. If Combo included, allocate 1 slot in Mushroom Village and record Starter Pack
+                if (addComboUpsell) {
+                  const nextPay = new Date();
+                  nextPay.setDate(nextPay.getDate() + 365);
+
+                  await supabase.from("slot_subscriptions").insert([
+                    {
+                      user_id: user.id,
+                      project_category: "Mushroom Village",
+                      slots: 1,
+                      amount: 5000,
+                      slotprice: 5000,
+                      status: "active",
+                      is_starter_pack: false,
+                      last_payment_date: now.toISOString(),
+                      next_payment_date: nextPay.toISOString(),
+                    },
+                  ]);
+
+                  await supabase.from("orders").insert([
+                    {
+                      user_id: user.id,
+                      product_code: "SP-MUSH-100G",
+                      quantity: 1,
+                      unit_price: 5000,
+                      total_price: 5000,
+                      pv_earned: 5000,
+                      status: "PAID",
+                      notes: "Starter Pack: Mushroom Power 100g (SP-MUSH-100G)",
+                    },
+                  ]);
+                }
 
                 setShowSuccess(true);
               } catch (subErr) {
@@ -370,24 +420,66 @@ export const Subscribe: React.FC = () => {
           { onConflict: "user_id" },
         );
 
+        const profUpdates: Record<string, any> = {
+          is_green_card_holder: true,
+          has_greencard: true,
+          greencard_status: "active",
+        };
+        if (addComboUpsell) {
+          profUpdates.has_purchased_starter_pack = true;
+          profUpdates.is_wealth_creation_active = true;
+        }
+
         await supabase
           .from("profiles")
-          .update({
-            is_green_card_holder: true,
-            has_greencard: true,
-            greencard_status: "active",
-          })
+          .update(profUpdates)
           .eq("id", authedUser.id);
+
+        if (addComboUpsell) {
+          const nextPay = new Date();
+          nextPay.setDate(nextPay.getDate() + 365);
+
+          await supabase.from("slot_subscriptions").insert([
+            {
+              user_id: authedUser.id,
+              project_category: "Mushroom Village",
+              slots: 1,
+              amount: 5000,
+              slotprice: 5000,
+              status: "active",
+              is_starter_pack: false,
+              last_payment_date: now.toISOString(),
+              next_payment_date: nextPay.toISOString(),
+            },
+          ]);
+
+          await supabase.from("orders").insert([
+            {
+              user_id: authedUser.id,
+              product_code: "SP-MUSH-100G",
+              quantity: 1,
+              unit_price: 5000,
+              total_price: 5000,
+              pv_earned: 5000,
+              status: "PAID",
+              notes: "Starter Pack: Mushroom Power 100g (SP-MUSH-100G)",
+            },
+          ]);
+        }
       }
 
       showToast({
         variant: "success",
-        title: "Account Created & Green Card Active! 🎉",
-        description: "Welcome to AgroHeal! Your lifetime Digital Green Card is ready.",
+        title: addComboUpsell
+          ? "Account Created, Green Card & Combo Active! 🚀"
+          : "Account Created & Green Card Active! 🎉",
+        description: addComboUpsell
+          ? "Welcome to AgroHeal! You have advanced directly to Milestone 3."
+          : "Welcome to AgroHeal! Your lifetime Digital Green Card is ready.",
       });
 
       setShowPasswordModal(false);
-      navigate("/dashboard/profile/green-card");
+      navigate(addComboUpsell ? "/dashboard" : "/dashboard/profile/green-card");
     } catch (err: any) {
       setPasswordError(err.message || "Failed to set up account. Please try again.");
     } finally {
@@ -419,17 +511,21 @@ export const Subscribe: React.FC = () => {
               <CheckCircle2 className="w-6 h-6 text-white" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-xl font-black">Your Green Card is Active!</h3>
+              <h3 className="text-xl font-black">
+                {addComboUpsell ? "Green Card & Starter Combo Active! 🚀" : "Your Green Card is Active!"}
+              </h3>
               <p className="text-xs text-emerald-200">
-                Payment verified successfully. Your verified digital membership pass is unlocked.
+                {addComboUpsell
+                  ? "Green Card + 1 Mushroom Village Farm Slot + Mushroom Power 100g unlocked! You have automatically jumped to Milestone 3."
+                  : "Payment verified successfully. Your verified digital membership pass is unlocked."}
               </p>
             </div>
             <Button
               asChild
               className="bg-white text-emerald-900 hover:bg-emerald-50 font-bold text-xs rounded-xl shadow-xs"
             >
-              <Link to="/dashboard/profile/green-card">
-                <span>View Digital Green Card</span>
+              <Link to={addComboUpsell ? "/dashboard" : "/dashboard/profile/green-card"}>
+                <span>{addComboUpsell ? "Go to Dashboard (Milestone 3)" : "View Digital Green Card"}</span>
                 <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
               </Link>
             </Button>
@@ -624,6 +720,47 @@ export const Subscribe: React.FC = () => {
                 </div>
               )}
 
+              {/* Optional Wealth Creation Combo Upsell */}
+              <div
+                onClick={() => setAddComboUpsell(!addComboUpsell)}
+                className={`p-4 rounded-2xl border transition-all text-left cursor-pointer ${
+                  addComboUpsell
+                    ? "bg-emerald-50/90 border-emerald-500 ring-1 ring-emerald-500/40 shadow-xs"
+                    : "bg-gray-50/70 border-gray-200 hover:border-emerald-300"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <input
+                    type="checkbox"
+                    id="comboUpsell"
+                    checked={addComboUpsell}
+                    onChange={(e) => setAddComboUpsell(e.target.checked)}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-800 focus:ring-emerald-500 cursor-pointer"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <label htmlFor="comboUpsell" className="text-xs font-bold text-gray-900 cursor-pointer">
+                        Add Starter Combo (Milestone 2)
+                      </label>
+                      <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                        +₦10,000
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">
+                      Your starter package is <strong>₦10,000</strong> (<strong>₦5,000</strong> Mushroom Group farm setup + <strong>₦5,000</strong> Mushroom Power 100g).
+                    </p>
+                    <div className="mt-2.5 flex items-center gap-1.5 flex-wrap text-[10px] font-semibold text-emerald-800">
+                      <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
+                        🚀 Jumps straight to Milestone 3
+                      </span>
+                      <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
+                        🔓 Unlocks Bank Withdrawals
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Checkout Trigger */}
               <div className="space-y-3 pt-2">
                 <Button
@@ -638,7 +775,11 @@ export const Subscribe: React.FC = () => {
                     </span>
                   ) : (
                     <>
-                      <span>Get Green Card Pass ({formatNaira(activeGreenCardFee)})</span>
+                      <span>
+                        {addComboUpsell
+                          ? `Get Green Card + Starter Combo (${formatNaira(finalAmount)})`
+                          : `Get Green Card Pass (${formatNaira(activeGreenCardFee)})`}
+                      </span>
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}

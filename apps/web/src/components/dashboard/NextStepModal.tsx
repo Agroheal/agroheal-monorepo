@@ -82,7 +82,7 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
     step2: {
       title: "Secure Your Starter Commercial Farm Slot",
       subtitle:
-        "Your starter package is ₦10,000 (₦5,000 biological farm slot + ₦5,000 cluster setup & onboarding). This establishes your first 2 verified biological oyster mushroom fruiting bags managed within our community cluster farms. Subsequent slots scale at ₦5,000 each with zero recurring monthly fees.",
+        "Your starter package is ₦10,000 (₦5,000 Mushroom Group farm setup + ₦5,000 Mushroom Power). This establishes your practical biological oyster mushroom production managed within our community cluster farms. Subsequent slots scale at ₦5,000 each with zero recurring monthly fees.",
       priceText: "₦10,000 Complete Starter Package · Mushroom Village Flagship",
       badgeText: "Milestone 2 of 3 · Production",
       benefits: [
@@ -101,10 +101,11 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
       targetCount: 5,
       badgeText: "Milestone 3 of 3 · Expansion",
       benefits: [
-        "Earn ₦1,000 instant direct sponsor commission for every member you welcome",
-        "All 7 levels of 5×7 sales commissions are permanently unlocked for active members",
-        "Earn 10% (₦500) cash reward on every practical farm slot secured by your direct partners",
-        "Sponsor 5 active partners to qualify for Matrix Community Bank Withdrawals",
+        "Instant ₦1,000 Cash: You get ₦1,000 every time a friend signs up",
+        "₦500 per slot: Earn ₦500 whenever your direct referrals secure a slot.",
+        "5 x 7 Commissions: Earn cash bonuses whenever anyone in your network makes food purchases.",
+        "5 Friends Goal: Reach 5 friends to qualify for bank withdrawals",
+        "Harvest payouts shared every 3 months",
       ],
       buttonText: "Copy Referral Link & Share",
       targetRoute: "/dashboard/my-network",

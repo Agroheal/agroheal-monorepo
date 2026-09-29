@@ -87,6 +87,8 @@ async function recordSubscriptionWithFarmGroupSplit({
   slots,
   category,
   isStarterPack,
+  isCombo,
+  isFirstSlotPurchase,
 }: {
   userId: string;
   checkoutId: string;
@@ -95,12 +97,20 @@ async function recordSubscriptionWithFarmGroupSplit({
   slots: number;
   category: string;
   isStarterPack: boolean;
+  isCombo?: boolean;
+  isFirstSlotPurchase?: boolean;
 }) {
   const nextPaymentDate = new Date();
   nextPaymentDate.setDate(nextPaymentDate.getDate() + 365);
   const DEFAULT_GROUP_ID = "230ab237-0770-4dce-84fe-221f224276bc"; // Pioneers Farm [Mushroom Village]
 
-  if (isStarterPack || slots === 0) {
+  // If user only bought green card without combo or slots, return early
+  if (!isStarterPack && !isCombo && slots === 0) {
+    return;
+  }
+
+  // If pure starter pack product purchase
+  if (isStarterPack) {
     let productCode = "SP-MUSH-100G";
     let productId: string | null = null;
     let pvEarned = amount;
@@ -146,10 +156,36 @@ async function recordSubscriptionWithFarmGroupSplit({
 
     await supabase
       .from("profiles")
-      .update({ has_purchased_starter_pack: true })
+      .update({ has_purchased_starter_pack: true, is_wealth_creation_active: true })
       .eq("id", userId);
 
     return;
+  }
+
+  // If Combo or First Slot Purchase, allocate Starter Pack (Mushroom Power 100g) as part of the package
+  if (isCombo || isFirstSlotPurchase) {
+    try {
+      await supabase.from("orders").insert([
+        {
+          user_id: userId,
+          transaction_id: checkoutId,
+          product_code: "SP-MUSH-100G",
+          quantity: 1,
+          unit_price: 5000,
+          total_price: 5000,
+          pv_earned: 5000,
+          status: "PAID",
+          notes: "Starter Pack: Mushroom Power 100g (SP-MUSH-100G) included in package",
+        },
+      ]);
+    } catch (orderErr) {
+      console.warn("Could not record starter pack order:", orderErr);
+    }
+
+    await supabase
+      .from("profiles")
+      .update({ has_purchased_starter_pack: true, is_wealth_creation_active: true })
+      .eq("id", userId);
   }
 
   // 1,000-Slot Auto-Fill & Split Logic:
@@ -574,7 +610,9 @@ const Checkout = () => {
           amount: totalPrice,
           payment_method: method,
           status: "pending",
-          project_category: category,
+          project_category: isGreenCardOnly
+            ? (slotQuantity > 0 ? "Green Card + Starter Combo" : "Green Card")
+            : (isStarterPack ? "Starter Pack" : category),
         },
       ])
       .select()
@@ -673,23 +711,62 @@ const Checkout = () => {
         throw new Error(rpcRes?.message || "Wallet deduction failed.");
       }
 
-      // Record farm group cluster allocation if purchasing slots
-      if (!isStarterPack && slotQuantity > 0) {
+      // Record farm group cluster allocation if purchasing slots or combo
+      if (!isStarterPack && (slotQuantity > 0 || isGreenCardOnly)) {
         await recordSubscriptionWithFarmGroupSplit({
           userId: user.id,
           checkoutId: order.id,
-          amount: totalPrice,
+          amount: isGreenCardOnly && slotQuantity > 0 ? 5000 : totalPrice,
           slotPrice: SLOT_UNIT_PRICE,
           slots: slotQuantity,
-          category,
+          category: isGreenCardOnly ? "Mushroom Village" : category,
           isStarterPack,
+          isCombo: isGreenCardOnly && slotQuantity > 0,
+          isFirstSlotPurchase: isFirstSlotPurchase && !isGreenCardOnly,
         });
+      }
+
+      // If user did not previously hold a Green Card, activate it now
+      if (!hasGreenCard && !isStarterPack) {
+        const expiresAt = new Date();
+        expiresAt.setFullYear(expiresAt.getFullYear() + 100);
+        await supabase.from("subscriptions").upsert(
+          [
+            {
+              user_id: user.id,
+              plan: "green_card",
+              status: "active",
+              started_at: new Date().toISOString(),
+              expires_at: expiresAt.toISOString(),
+            },
+          ],
+          { onConflict: "user_id" },
+        );
+        await supabase.from("profiles").update({
+          is_green_card_holder: true,
+          has_greencard: true,
+          greencard_status: "active",
+        }).eq("id", user.id);
       }
 
       Sentry.metrics.count("wallet_reinvestment_success", 1);
       setWalletBalance((prev) => Math.max(0, prev - totalPrice));
 
-      if (isStarterPack) {
+      if (isGreenCardOnly) {
+        if (slotQuantity > 0) {
+          toast({
+            title: "Milestone 3 Unlocked! 🚀",
+            description: `₦${totalPrice.toLocaleString()} paid from wallet. Your Green Card + Starter Combo are active! You have jumped straight to Milestone 3.`,
+          });
+          navigate("/dashboard");
+        } else {
+          toast({
+            title: "Green Card Activated! 🌿",
+            description: `₦${totalPrice.toLocaleString()} paid from wallet. Your lifetime Green Card Pass is active.`,
+          });
+          navigate("/dashboard");
+        }
+      } else if (isStarterPack) {
         toast({
           title: "Starter Pack Activated!",
           description: "Your ₦5,000 Mushroom Starter Pack has been activated via your available wallet balance. 5×7 Compound Network and bank withdrawals are unlocked.",
@@ -782,12 +859,17 @@ const Checkout = () => {
         meta: {
           user_id: order.user_id,
           order_id: order.id,
-          plan: "slot",
-          project_category: category,
+          plan: isGreenCardOnly ? (slotQuantity > 0 ? "green_card_combo" : "green_card") : (isStarterPack ? "starter_pack" : "slot"),
+          project_category: isGreenCardOnly ? (slotQuantity > 0 ? "Green Card + Starter Combo" : "Green Card") : category,
+          has_combo: isGreenCardOnly && slotQuantity > 0,
         },
         customizations: {
-          title: "Agroheal Farm Slot",
-          description: `${slotQuantity} slot${slotQuantity > 1 ? "s" : ""} — ₦${totalPrice.toLocaleString()}`,
+          title: isGreenCardOnly
+            ? (slotQuantity > 0 ? "AgroHeal Green Card + Starter Combo" : "AgroHeal Green Card Pass")
+            : (isStarterPack ? "AgroHeal Starter Pack" : "Agroheal Farm Slot"),
+          description: isGreenCardOnly
+            ? (slotQuantity > 0 ? "Lifetime Green Card + 1 Mushroom Village Slot + Mushroom Power 100g (Milestone 3 Unlock)" : "Lifetime Certified Digital Membership")
+            : (isStarterPack ? "Mushroom Power 100g Starter Pack" : `${slotQuantity} slot${slotQuantity > 1 ? "s" : ""} — ₦${totalPrice.toLocaleString()}`),
           logo: "https://ptowfacejneezksyhntk.supabase.co/storage/v1/object/sign/agroheal-%20buckets/logo.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iZGE2NjM1ZS00NTAzLTRkZDktOTdmOS0zYWExY2Y5NzNiOGQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhZ3JvaGVhbC0gYnVja2V0cy9sb2dvLnBuZyIsImlhdCI6MTc3NDAwODY3OCwiZXhwIjo0OTI3NjA4Njc4fQ.fuwva3-hMj5KmMRqElcclgJqzA5d4aigxCIlHVHgMak",
         },
         onclose: () => {
@@ -830,11 +912,13 @@ const Checkout = () => {
                 await recordSubscriptionWithFarmGroupSplit({
                   userId: order.user_id,
                   checkoutId: order.id,
-                  amount: totalPrice,
+                  amount: isGreenCardOnly && slotQuantity > 0 ? 5000 : totalPrice,
                   slotPrice: SLOT_UNIT_PRICE,
                   slots: isStarterPack ? 0 : slotQuantity,
-                  category,
+                  category: isGreenCardOnly ? "Mushroom Village" : category,
                   isStarterPack,
+                  isCombo: isGreenCardOnly && slotQuantity > 0,
+                  isFirstSlotPurchase: isFirstSlotPurchase && !isGreenCardOnly,
                 });
 
                 // 3. If user did not previously hold a Green Card, activate it now
@@ -853,9 +937,28 @@ const Checkout = () => {
                     ],
                     { onConflict: "user_id" },
                   );
+                  await supabase.from("profiles").update({
+                    is_green_card_holder: true,
+                    has_greencard: true,
+                    greencard_status: "active",
+                  }).eq("id", order.user_id);
                 }
 
-                if (isStarterPack) {
+                if (isGreenCardOnly) {
+                  if (slotQuantity > 0) {
+                    toast({
+                      title: "Milestone 3 Unlocked! 🚀",
+                      description: "Your Green Card + Starter Combo (1 Farm Slot + Mushroom Power 100g) are active! You have jumped straight to Milestone 3.",
+                    });
+                    navigate("/dashboard");
+                  } else {
+                    toast({
+                      title: "Green Card Activated! 🌿",
+                      description: "Welcome! Your lifetime Green Card Pass is active. Next: activate Milestone 2!",
+                    });
+                    navigate("/dashboard");
+                  }
+                } else if (isStarterPack) {
                   toast({
                     title: "Starter Pack Activated!",
                     description: "Your ₦5,000 Mushroom Starter Pack has been activated. Your 5×7 Compound Network and bank withdrawals are now unlocked.",
@@ -1103,11 +1206,13 @@ const Checkout = () => {
                   await recordSubscriptionWithFarmGroupSplit({
                     userId: order.user_id,
                     checkoutId: order.id,
-                    amount: totalPrice,
+                    amount: isGreenCardOnly && slotQuantity > 0 ? 5000 : totalPrice,
                     slotPrice: SLOT_UNIT_PRICE,
                     slots: isStarterPack ? 0 : slotQuantity,
-                    category,
+                    category: isGreenCardOnly ? "Mushroom Village" : category,
                     isStarterPack,
+                    isCombo: isGreenCardOnly && slotQuantity > 0,
+                    isFirstSlotPurchase: isFirstSlotPurchase && !isGreenCardOnly,
                   });
                 }
 
@@ -1127,11 +1232,30 @@ const Checkout = () => {
                     ],
                     { onConflict: "user_id" },
                   );
+                  await supabase.from("profiles").update({
+                    is_green_card_holder: true,
+                    has_greencard: true,
+                    greencard_status: "active",
+                  }).eq("id", order.user_id);
                 }
 
                 setWalletBalance((prev) => Math.max(0, prev - usableWallet));
 
-                if (isStarterPack) {
+                if (isGreenCardOnly) {
+                  if (slotQuantity > 0) {
+                    toast({
+                      title: "Milestone 3 Unlocked! 🚀",
+                      description: "Split payment successful! Your Green Card + Starter Combo are active! You have jumped straight to Milestone 3.",
+                    });
+                    navigate("/dashboard");
+                  } else {
+                    toast({
+                      title: "Green Card Activated! 🌿",
+                      description: "Split payment successful! Your lifetime Green Card Pass is active.",
+                    });
+                    navigate("/dashboard");
+                  }
+                } else if (isStarterPack) {
                   toast({
                     title: "Starter Pack Activated!",
                     description: "Your ₦5,000 Mushroom Starter Pack has been activated. Your 5×7 Compound Network and bank withdrawals are now unlocked.",
@@ -1339,6 +1463,76 @@ const Checkout = () => {
                         <p className="text-[11px] text-gray-500 leading-relaxed">
                           Your pre-launch farm slots are already secured and productive in the physical cluster. This ₦5,000 Starter Pack activates your <strong>5×7 Forced Matrix</strong>, unlocks <strong>Level 1–7 compound referral commissions</strong>, and enables <strong>external bank withdrawals</strong>.
                         </p>
+                      </div>
+                    </div>
+                  ) : isGreenCardOnly ? (
+                    <div className="space-y-4">
+                      {/* Green Card Pass Overview Card */}
+                      <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-5 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-800">
+                              <Shield className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <h3 className="font-bold text-gray-900 text-base">
+                                AgroHeal Green Card Pass
+                              </h3>
+                              <p className="text-xs text-emerald-800 font-medium">
+                                Lifetime Certified Digital Membership {isLegacy ? "(Founding Rate)" : ""}
+                              </p>
+                            </div>
+                          </div>
+                          <span className="font-mono text-base font-black text-emerald-950 bg-emerald-100 px-3 py-1 rounded-xl border border-emerald-300">
+                            ₦{activeGreenCardRate.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="bg-white/90 p-3.5 rounded-xl border border-emerald-100 text-xs text-gray-600 space-y-1.5">
+                          <p className="text-[11px] text-gray-600 leading-relaxed">
+                            Official verified digital membership, immediate affiliate link (₦1,000 instant commission per direct signup), and unlocked Organic Academy courses.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Optional Combo Upsell Checkbox */}
+                      <div
+                        onClick={() => setSlotQuantity(slotQuantity === 0 ? 1 : 0)}
+                        className={`p-4 rounded-2xl border transition-all text-left cursor-pointer ${
+                          slotQuantity > 0
+                            ? "bg-emerald-50/90 border-emerald-500 ring-1 ring-emerald-500/40 shadow-xs"
+                            : "bg-gray-50/70 border-gray-200 hover:border-emerald-300"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="checkbox"
+                            id="checkoutComboUpsell"
+                            checked={slotQuantity > 0}
+                            onChange={(e) => setSlotQuantity(e.target.checked ? 1 : 0)}
+                            className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-800 focus:ring-emerald-500 cursor-pointer"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <label htmlFor="checkoutComboUpsell" className="text-xs font-bold text-gray-900 cursor-pointer">
+                                Add Starter Combo (Milestone 2)
+                              </label>
+                              <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                                +₦10,000
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">
+                              Your starter package is <strong>₦10,000</strong> (<strong>₦5,000</strong> Mushroom Group farm setup + <strong>₦5,000</strong> Mushroom Power 100g).
+                            </p>
+                            <div className="mt-2.5 flex items-center gap-1.5 flex-wrap text-[10px] font-semibold text-emerald-800">
+                              <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
+                                🚀 Jumps straight to Milestone 3
+                              </span>
+                              <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
+                                🔓 Unlocks Bank Withdrawals
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ) : (

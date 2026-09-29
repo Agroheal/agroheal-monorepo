@@ -48,11 +48,6 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   const navigate = useNavigate();
   const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
 
-  // If member has already purchased their first farm slot, hide the milestone onboarding banner
-  if (totalSlots > 0) {
-    return null;
-  }
-
   const isLegacy = isLegacyMember(createdAt);
   const activeFee = getGreenCardFee(createdAt);
 
@@ -65,6 +60,11 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   if (isStep1Done && !isStep2Done) currentStep = 2;
   else if (isStep1Done && isStep2Done && !isStep3Done) currentStep = 3;
   else if (isStep3Done) currentStep = 4;
+
+  // Only hide the banner if all 3 milestones are fully completed
+  if (isStep3Done) {
+    return null;
+  }
 
   return (
     <div className="w-full bg-card rounded-2xl border border-border/60 shadow-xs mb-8 overflow-hidden">
@@ -82,7 +82,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               </span>
             </h2>
             <p className="text-xs text-muted-foreground">
-              Follow this 2-step journey to unlock full commercial withdrawal rights and 7-level compound earnings.
+              Follow this 3-step journey to unlock full commercial withdrawal rights, producer harvests, and 5×7 compound earnings.
             </p>
           </div>
         </div>
@@ -121,13 +121,13 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
             <div className="p-3.5 rounded-xl bg-background border border-border/50">
               <div className="font-semibold text-foreground mb-1 flex items-center gap-1.5">
                 <Sprout className="w-4 h-4 text-emerald-600" />
-                <span>2. Producer-Consumer Package (₦10,000)</span>
+                <span>2. Starter Package (₦10,000)</span>
               </div>
               <p className="text-[11px] leading-relaxed mb-2">
-                ₦5,000 Group Farm Slot + ₦5,000 Mushroom Power 100g Starter Pack. <strong>Crucial milestone:</strong> This unlocks full external bank withdrawals for all your accumulated wallet bonuses!
+                Your starter package is ₦10,000 (₦5,000 Mushroom Group farm setup + ₦5,000 Mushroom Power). <strong>Crucial milestone:</strong> This unlocks full external bank withdrawals for all your accumulated wallet bonuses!
               </p>
               <Link
-                to="/dashboard/mushroom-village"
+                to="/dashboard/farm-operations/buy-slots"
                 className="text-primary hover:underline text-[11px] font-semibold inline-flex items-center gap-1"
               >
                 Mushroom Village Overview <ArrowRight className="w-3 h-3" />
@@ -140,7 +140,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                 <span>3. Build &amp; Compound (5 Friends Goal)</span>
               </div>
               <p className="text-[11px] leading-relaxed mb-2">
-                Share with friends! Earn ₦1,000 cash for each friend who joins, earn 5×7 bonuses when your community gets farm slots, and connect 5 friends to unlock bank payouts.
+                Share with friends! Earn ₦1,000 cash for each friend who joins, ₦500 per slot secured by your directs, and 5×7 commissions on food purchases.
               </p>
               <Link
                 to="/dashboard/my-network"
@@ -296,7 +296,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               </div>
               <div>
                 <h3 className="text-sm font-bold leading-tight">
-                  Producer-Consumer Package
+                  Starter Package
                 </h3>
                 <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                   ₦10,000 Combo Package
@@ -304,14 +304,18 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               </div>
             </div>
 
+            <p className="text-[11px] text-muted-foreground mb-2.5 leading-relaxed">
+              Your starter package is ₦10,000 (₦5,000 Mushroom Group farm setup + ₦5,000 Mushroom Power).
+            </p>
+
             <ul className="space-y-1.5 text-xs mb-4">
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>₦5,000 Group Farm Slot</span>
+                <span>₦5,000 Mushroom Group farm setup</span>
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>₦5,000 Mushroom Power 100g Starter Pack</span>
+                <span>₦5,000 Mushroom Power (100g)</span>
               </li>
               <li className="flex items-center gap-1.5 font-semibold text-foreground">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
@@ -319,7 +323,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               </li>
               <li className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
                 <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground shrink-0" />
-                <span>Group Farm dividends &amp; 5×7 sale commissions</span>
+                <span>Group Farm dividends &amp; 5×7 commissions</span>
               </li>
             </ul>
           </div>
@@ -340,7 +344,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
             ) : currentStep === 2 ? (
               <Button
                 size="sm"
-                onClick={() => navigate("/dashboard/mushroom-village")}
+                onClick={() => navigate("/dashboard/farm-operations/buy-slots")}
                 className="w-full text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white shadow-xs"
               >
                 Upgrade to ₦10k Package
@@ -412,7 +416,11 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span><strong>5×7 Team Commissions:</strong> Earn cash bonuses whenever anyone in your community gets slots</span>
+                <span><strong>₦500 per slot:</strong> Earn ₦500 whenever your direct referrals secure a slot.</span>
+              </li>
+              <li className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                <span><strong>5 x 7 Commissions:</strong> Earn cash bonuses whenever anyone in your network makes food purchases.</span>
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
