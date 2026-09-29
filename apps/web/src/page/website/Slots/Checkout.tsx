@@ -526,7 +526,10 @@ const Checkout = () => {
     const cleanFirstName = cleanName(formData.firstName);
     const cleanLastName = cleanName(formData.lastName);
     const normalizedEmail = cleanEmail(formData.email) || currentUser?.email || (user as any)?.email;
-    const normalizedPhone = normalizePhoneNumber(formData.phone);
+    const rawPhone = formData.phone || (user.user_metadata?.phone as string) || "";
+    const cleanPhone = normalizePhoneNumber(rawPhone);
+    // For logged-in users, phone is optional; fall back to safe default if empty
+    const normalizedPhone = cleanPhone || (user ? "08000000000" : "");
 
     if (!normalizedEmail) {
       toast({
@@ -537,11 +540,12 @@ const Checkout = () => {
       return null;
     }
 
-    if (!normalizedPhone || normalizedPhone.length < 10) {
+    // Phone is only compulsory for guest checkout (when not logged in)
+    if (!user && (!normalizedPhone || normalizedPhone.length < 10)) {
       setErrors((prev) => ({ ...prev, phone: "Please enter a valid phone number (at least 10 digits)" }));
       toast({
         title: "Phone Number Required",
-        description: "Please enter your phone number to complete payment.",
+        description: "Please enter your phone number to complete guest checkout.",
         variant: "destructive",
       });
       const el = document.getElementById("checkout-phone-input");
@@ -928,21 +932,23 @@ const Checkout = () => {
   };
 
   const handlePayClick = () => {
-    // Validate Phone Number
-    const cleanPhone = normalizePhoneNumber(formData.phone);
-    if (!cleanPhone || cleanPhone.length < 10) {
-      setErrors({ phone: "Please enter a valid phone number (at least 10 digits)" });
-      toast({
-        title: "Contact Phone Required",
-        description: "Please enter your contact phone number to complete payment.",
-        variant: "destructive",
-      });
-      const el = document.getElementById("checkout-phone-input");
-      if (el) {
-        el.focus();
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Only enforce phone number for guests without an authenticated session
+    if (!currentUser) {
+      const cleanPhone = normalizePhoneNumber(formData.phone);
+      if (!cleanPhone || cleanPhone.length < 10) {
+        setErrors({ phone: "Please enter a valid phone number (at least 10 digits)" });
+        toast({
+          title: "Contact Phone Required",
+          description: "Please enter your contact phone number to complete guest checkout.",
+          variant: "destructive",
+        });
+        const el = document.getElementById("checkout-phone-input");
+        if (el) {
+          el.focus();
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+        return;
       }
-      return;
     }
 
     if (!category) {
@@ -1071,13 +1077,15 @@ const Checkout = () => {
                           <Phone className="w-3.5 h-3.5 text-emerald-700" />
                           <span>Phone Number (for SMS & Payment Confirmation)</span>
                         </Label>
-                        <span className="text-[10px] text-amber-700 font-bold">* Compulsory</span>
+                        <span className="text-[10px] text-muted-foreground font-medium">
+                          {currentUser ? "(Optional)" : "* Compulsory for guest checkout"}
+                        </span>
                       </div>
                       <Input
                         id="checkout-phone-input"
                         name="phone"
                         type="tel"
-                        placeholder="e.g. 08012345678"
+                        placeholder="e.g. 08012345678 (optional)"
                         value={formData.phone}
                         onChange={handleInputChange}
                         className={`h-11 rounded-xl text-sm bg-background font-mono ${
