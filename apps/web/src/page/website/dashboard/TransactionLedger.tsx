@@ -988,7 +988,7 @@ export default function TransactionLedger() {
         {/* ── TOP DUAL CARDS (CREDIT CARD ASPECT RATIO) ── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           {/* ── CARD 1 (LEFT): EXECUTIVE MEMBER WALLET (CREDIT CARD HERO) ── */}
-          <div className="flex flex-col justify-between bg-gradient-to-br from-[#051c11] via-[#092917] to-[#03130b] border border-emerald-500/50 rounded-3xl p-4.5 sm:p-5 text-white shadow-xl relative overflow-hidden space-y-2.5">
+          <div className="flex flex-col justify-between bg-[#0c2415] border border-emerald-700/50 rounded-3xl p-4.5 sm:p-5 text-white shadow-xl relative overflow-hidden space-y-2.5">
             {/* Background Ambient Glows */}
             <div className="absolute top-0 right-0 -mr-16 -mt-16 w-60 h-60 rounded-full bg-emerald-400/10 blur-3xl pointer-events-none" />
             <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-60 h-60 rounded-full bg-amber-400/5 blur-3xl pointer-events-none" />
@@ -1140,9 +1140,9 @@ export default function TransactionLedger() {
             </div>
           </div>
 
-          {/* ── CARD 2 (RIGHT): CAPITAL GATEKEEPERS & LOCKED FUNDS BREAKDOWN (MATCHING COMPACT HEIGHT) ── */}
+          {/* ── CARD 2 (RIGHT): CAPITAL GATEKEEPERS & LOCKED FUNDS BREAKDOWN ── */}
           {loading ? (
-            <div className="bg-gradient-to-br from-[#fafcf9] via-white to-emerald-50/40 rounded-3xl p-4.5 sm:p-5 border border-emerald-200/80 shadow-sm flex flex-col justify-between relative overflow-hidden space-y-2.5">
+            <div className="bg-white rounded-3xl p-4.5 sm:p-5 border border-gray-200 shadow-sm flex flex-col justify-between relative overflow-hidden space-y-2.5">
               <div className="space-y-2.5 relative z-10">
                 <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                   <div className="flex items-center gap-2">
@@ -1152,36 +1152,25 @@ export default function TransactionLedger() {
                       <Skeleton className="h-3 w-48 bg-gray-100" />
                     </div>
                   </div>
-                  <Skeleton className="h-5 w-24 rounded-full bg-emerald-950/15" />
+                  <Skeleton className="h-5 w-24 rounded-full bg-gray-200" />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 bg-emerald-950/20 p-2.5 rounded-2xl border border-emerald-900/30">
+                <div className="grid grid-cols-2 gap-2 bg-gray-50 p-2.5 rounded-2xl border border-gray-100">
                   <div className="space-y-1">
-                    <Skeleton className="h-3 w-20 bg-emerald-900/30" />
-                    <Skeleton className="h-6 w-24 bg-emerald-900/40" />
-                    <Skeleton className="h-2.5 w-28 bg-emerald-900/20" />
+                    <Skeleton className="h-3 w-20 bg-gray-200" />
+                    <Skeleton className="h-6 w-24 bg-gray-300" />
                   </div>
-                  <div className="space-y-1 border-l border-emerald-900/20 pl-2.5">
-                    <Skeleton className="h-3 w-20 bg-emerald-900/30" />
-                    <Skeleton className="h-6 w-24 bg-emerald-900/40" />
-                    <Skeleton className="h-2.5 w-28 bg-emerald-900/20" />
+                  <div className="space-y-1 border-l border-gray-200 pl-2.5">
+                    <Skeleton className="h-3 w-20 bg-gray-200" />
+                    <Skeleton className="h-6 w-24 bg-gray-300" />
                   </div>
                 </div>
-
-                <div className="space-y-1.5 p-2 bg-gray-50/80 rounded-xl border border-gray-100">
-                  <Skeleton className="h-3 w-full bg-gray-200" />
-                  <Skeleton className="h-3 w-3/4 bg-gray-100" />
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-gray-100 mt-auto">
-                <Skeleton className="h-8.5 sm:h-9 w-full rounded-xl bg-gray-200" />
               </div>
             </div>
           ) : !hasGreenCard ? (
-            <div className="bg-gradient-to-br from-emerald-50/90 via-white to-green-50/60 text-gray-900 rounded-3xl p-4.5 sm:p-5 border border-emerald-200/90 shadow-sm flex flex-col justify-between relative overflow-hidden space-y-2.5">
+            <div className="bg-white text-gray-900 rounded-3xl p-4.5 sm:p-5 border border-amber-200 shadow-sm flex flex-col justify-between relative overflow-hidden space-y-2.5">
               <div className="space-y-2.5 relative z-10">
-                <div className="flex items-center justify-between pb-2 border-b border-emerald-100">
+                <div className="flex items-center justify-between pb-2 border-b border-amber-100">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center border border-amber-200 font-bold shrink-0">
                       <Lock className="w-4 h-4 text-amber-700" />
@@ -1196,7 +1185,7 @@ export default function TransactionLedger() {
                   </span>
                 </div>
 
-                <div className="bg-white/90 border border-amber-200/70 rounded-2xl p-3 space-y-2 shadow-2xs">
+                <div className="bg-amber-50/60 border border-amber-200/70 rounded-2xl p-3 space-y-2">
                   <p className="text-xs text-amber-950 font-semibold leading-relaxed">
                     Activate your <strong>₦2,000 AgroHeal Green Card</strong> to unlock:
                   </p>
@@ -1221,11 +1210,7 @@ export default function TransactionLedger() {
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-emerald-100 space-y-1.5 relative z-10 mt-auto">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-500">Activation Pass Fee</span>
-                  <span className="font-mono font-black text-base text-emerald-950">₦2,000</span>
-                </div>
+              <div className="pt-2 border-t border-gray-100 space-y-1.5 relative z-10 mt-auto">
                 <Button
                   asChild
                   className="w-full h-8.5 sm:h-9 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold text-xs shadow-xs transition-all"
@@ -1237,192 +1222,126 @@ export default function TransactionLedger() {
                 </Button>
               </div>
             </div>
-          ) : (
-            <div className="bg-gradient-to-br from-[#fafcf9] via-white to-emerald-50/40 rounded-3xl p-4.5 sm:p-5 border border-emerald-200/80 shadow-sm flex flex-col justify-between space-y-2 text-gray-900">
-              <div className="space-y-2">
-                {/* Header Row */}
+          ) : totalLockedAmount === 0 ? (
+            /* 100% Cleared View - Sleek & Simple */
+            <div className="bg-white rounded-3xl p-5 border border-emerald-200/90 shadow-sm flex flex-col justify-between space-y-3 text-gray-900">
+              <div className="space-y-3">
                 <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold shrink-0 ${
-                        totalLockedAmount > 0
-                          ? "bg-amber-100 text-amber-900 border border-amber-200"
-                          : "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                      }`}
-                    >
-                      {totalLockedAmount > 0 ? (
-                        <Lock className="w-4 h-4 text-amber-700" />
-                      ) : (
-                        <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                      )}
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shrink-0 border border-emerald-200">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                     </div>
                     <div>
-                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm">Locked Capital &amp; Gatekeepers</h3>
-                      <p className="text-[10px] text-gray-500">Real-time audit of restricted funds vs release conditions</p>
+                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm">Capital Clearance Status</h3>
+                      <p className="text-[10px] text-gray-500">Zero funds held in reserve</p>
                     </div>
                   </div>
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 inline-flex items-center gap-1 ${
-                      totalLockedAmount > 0
-                        ? "bg-amber-100 text-amber-900 border border-amber-200"
-                        : "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                    }`}
-                  >
-                    {totalLockedAmount > 0 ? (
-                      <>
-                        <Lock className="w-3 h-3 text-amber-700" />
-                        <span>₦{totalLockedAmount.toLocaleString()} Locked</span>
-                      </>
-                    ) : (
-                      <>
-                        <CheckCircle2 className="w-3 h-3 text-emerald-700" />
-                        <span>100% Cleared</span>
-                      </>
-                    )}
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
+                    100% Cleared
                   </span>
                 </div>
 
-                {/* Hero Total Locked Balance & Summary */}
-                <div className="grid grid-cols-2 gap-2 bg-emerald-950 text-white p-2.5 rounded-2xl shadow-inner border border-emerald-900">
-                  <div>
-                    <span className="text-[9px] text-emerald-300 font-bold uppercase tracking-wider block">
-                      Total Locked Capital
-                    </span>
-                    <p className="text-xl sm:text-2xl font-black font-mono text-amber-300 tracking-tight">
-                      ₦{totalLockedAmount.toLocaleString()}
-                    </p>
-                    <span className="text-[9px] text-emerald-200/70 block">
-                      Pending gatekeeper releases
-                    </span>
-                  </div>
+                <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/60 space-y-1">
+                  <p className="text-xs font-semibold text-emerald-950">
+                    All your earnings are fully qualified and unlocked.
+                  </p>
+                  <p className="text-[11px] text-emerald-800/80 leading-relaxed">
+                    You have no capital held in reserve. Eligible earnings above the statutory ₦2,000 floor can be withdrawn directly to your Nigerian bank account.
+                  </p>
+                </div>
+              </div>
 
-                  <div className="border-l border-white/10 pl-2.5">
-                    <span className="text-[9px] text-emerald-300 font-bold uppercase tracking-wider block">
-                      Cleared Available
-                    </span>
-                    <p className="text-xl sm:text-2xl font-black font-mono text-emerald-400 tracking-tight">
-                      ₦{availableBalance.toLocaleString()}
-                    </p>
-                    <span className="text-[9px] text-emerald-200/70 block">
-                      Ready for bank withdrawal
-                    </span>
+              <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs mt-auto">
+                <span className="text-gray-500 text-[11px]">How do locked reserves work?</span>
+                <Link
+                  to="/how-it-works/locked-withdrawals"
+                  className="font-bold text-emerald-800 hover:text-emerald-900 text-[11px] underline underline-offset-2 flex items-center gap-1"
+                >
+                  Read Plain Guide <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+            </div>
+          ) : (
+            /* Locked Reserves View - Clean, Non-Alarming & Informative */
+            <div className="bg-white rounded-3xl p-4.5 sm:p-5 border border-amber-200/80 shadow-sm flex flex-col justify-between space-y-2.5 text-gray-900">
+              <div className="space-y-2.5">
+                {/* Header Row */}
+                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-900 border border-amber-200 flex items-center justify-center font-bold shrink-0">
+                      <Lock className="w-4 h-4 text-amber-700" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm">Locked Capital Reserves</h3>
+                      <p className="text-[10px] text-gray-500">Funds awaiting statutory release conditions</p>
+                    </div>
                   </div>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 bg-amber-100 text-amber-900 border border-amber-200">
+                    ₦{totalLockedAmount.toLocaleString()} in Reserve
+                  </span>
                 </div>
 
-                {/* Breakdown List: Due to what? */}
+                {/* Concise Reasons List */}
                 <div className="space-y-1.5">
-                  {/* Gate 1: 5×7 Matrix Pool */}
-                  <div
-                    className={`p-2 rounded-xl border text-[11px] transition-all ${
-                      isMatrixQualified
-                        ? "bg-emerald-50/60 border-emerald-200/70 text-emerald-950"
-                        : "bg-amber-50/70 border-amber-200 text-amber-950"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between font-bold mb-0.5">
-                      <span className="flex items-center gap-1.5">
-                        {isMatrixQualified ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        ) : (
-                          <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                        )}
-                        <span>1. 5×7 Matrix Spillover</span>
+                  {!isMatrixQualified && matrixEarnings > 0 && (
+                    <div className="p-2 rounded-xl bg-amber-50/70 border border-amber-200 text-amber-950 text-[11px] flex items-center justify-between">
+                      <span className="font-semibold">
+                        Matrix Spillover: ₦{matrixEarnings.toLocaleString()}
                       </span>
-                      <span className="font-mono">₦{matrixEarnings.toLocaleString()}</span>
-                    </div>
-                    <div className="text-[10px] text-gray-600 flex items-center justify-between">
-                      <span>Condition: 5 Directs ({directReferralsCount}/5) &amp; ₦5k 30d PQV (₦{(activePqv30d / 1000).toFixed(0)}k/₦5k)</span>
-                      <span className={`font-semibold ${isMatrixQualified ? "text-emerald-700" : "text-amber-700"}`}>
-                        {isMatrixQualified ? "Cleared ✓" : "Locked in Ledger"}
+                      <span className="text-gray-600 text-[10px]">
+                        Requires 5 directs ({directReferralsCount}/5)
                       </span>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Gate 2: Direct Referral Bonuses */}
-                  <div
-                    className={`p-2 rounded-xl border text-[11px] transition-all ${
-                      isDirectReferralWithdrawable
-                        ? "bg-emerald-50/60 border-emerald-200/70 text-emerald-950"
-                        : "bg-amber-50/70 border-amber-200 text-amber-950"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between font-bold mb-0.5">
-                      <span className="flex items-center gap-1.5">
-                        {isDirectReferralWithdrawable ? (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        ) : (
-                          <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                        )}
-                        <span>2. Direct Referral Rewards</span>
+                  {!isProjectSubscribed && directReferralEarnings > 0 && (
+                    <div className="p-2 rounded-xl bg-amber-50/70 border border-amber-200 text-amber-950 text-[11px] flex items-center justify-between">
+                      <span className="font-semibold">
+                        Direct Referral Rewards: ₦{directReferralEarnings.toLocaleString()}
                       </span>
-                      <span className="font-mono">₦{directReferralEarnings.toLocaleString()}</span>
-                    </div>
-                    <div className="text-[10px] text-gray-600 flex items-center justify-between">
-                      <span>
-                        {!isProjectSubscribed
-                          ? "Condition: Farm Slot Project Subscription Required"
-                          : directReferralEarnings < 2000
-                          ? `Condition: ₦2,000 Min. Payout (₦${directReferralEarnings.toLocaleString()}/₦2,000)`
-                          : "Fully cleared for bank withdrawal"}
-                      </span>
-                      <span className={`font-semibold ${isDirectReferralWithdrawable ? "text-emerald-700" : "text-amber-700"}`}>
-                        {isDirectReferralWithdrawable ? "Withdrawable ✓" : "Locked / Accumulating"}
+                      <span className="text-gray-600 text-[10px]">
+                        ₦10k Starter Package required
                       </span>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Gate 3: Statutory Minimum Withdrawal Gate */}
                   {lockedBelowThresholdAmount > 0 && (
-                    <div className="p-2 rounded-xl border text-[11px] transition-all bg-amber-50/70 border-amber-200 text-amber-950">
-                      <div className="flex items-center justify-between font-bold mb-0.5">
-                        <span className="flex items-center gap-1.5">
-                          <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                          <span>3. Statutory Minimum Withdrawal Gate</span>
-                        </span>
-                        <span className="font-mono">₦{lockedBelowThresholdAmount.toLocaleString()}</span>
-                      </div>
-                      <div className="text-[10px] text-gray-600 flex items-center justify-between">
-                        <span>
-                          Condition: Statutory min. ₦2,000 required to release to Available Balance (₦{rawClearedBalance.toLocaleString()}/₦2,000)
-                        </span>
-                        <span className="font-semibold text-amber-700">
-                          Accumulating to ₦2k
-                        </span>
-                      </div>
+                    <div className="p-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 text-[11px] flex items-center justify-between">
+                      <span>Statutory Floor (₦{rawClearedBalance.toLocaleString()}/₦2,000)</span>
+                      <span className="text-[10px] font-semibold text-gray-500">Accumulating to ₦2k</span>
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Bottom Contextual Release Action */}
-              <div className="pt-1.5 border-t border-gray-100 mt-auto">
-                {!isProjectSubscribed && directReferralEarnings >= 10000 ? (
+              {/* Actionable Link to Full Public Guide */}
+              <div className="pt-2 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-auto">
+                <Link
+                  to="/how-it-works/locked-withdrawals"
+                  className="text-xs text-emerald-800 hover:text-emerald-950 font-semibold underline underline-offset-2 flex items-center gap-1"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  <span>Why is this held? Read Full Guide →</span>
+                </Link>
+
+                {!isMatrixQualified ? (
                   <Button
-                    onClick={handleSubscribeWithWallet}
-                    disabled={subscribingWithWallet}
-                    className="w-full h-8.5 rounded-xl bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    asChild
+                    size="sm"
+                    className="h-8 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold px-3"
                   >
-                    <Sprout className="w-3.5 h-3.5 text-purple-200" />
-                    {subscribingWithWallet ? "Activating..." : "Unlock with Wallet Credit (₦10,000)"}
+                    <Link to="/dashboard/my-network">Invite Partners ({5 - directReferralsCount} more)</Link>
                   </Button>
-                ) : !isMatrixQualified ? (
-                  <div className="flex items-center justify-between text-xs bg-gray-50 p-2 rounded-xl border border-gray-200/80">
-                    <span className="text-[11px] text-gray-600">
-                      Sponsor {Math.max(0, 5 - directReferralsCount)} more partners to unlock matrix spillover.
-                    </span>
-                    <Link
-                      to="/dashboard/my-network"
-                      className="font-bold text-emerald-800 hover:text-emerald-900 underline underline-offset-2 shrink-0 text-[11px]"
-                    >
-                      Invite Partners →
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center gap-1.5 text-xs text-emerald-800 font-semibold bg-emerald-50/80 py-1.5 rounded-xl border border-emerald-200/60">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>All Gatekeepers Satisfied · Funds 100% Cleared</span>
-                  </div>
-                )}
+                ) : !isProjectSubscribed && directReferralEarnings >= 10000 ? (
+                  <Button
+                    size="sm"
+                    disabled={subscribingWithWallet}
+                    onClick={handleSubscribeWithWallet}
+                    className="h-8 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-semibold px-3"
+                  >
+                    {subscribingWithWallet ? "Activating..." : "Unlock with Wallet (₦10k)"}
+                  </Button>
+                ) : null}
               </div>
             </div>
           )}

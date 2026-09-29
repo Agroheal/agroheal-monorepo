@@ -6,6 +6,8 @@ import Layout from "@/components/layout/Layout";
 import Error from "@/page/error/Error";
 import About from "@/page/website/About";
 import HowItWorks from "@/page/website/HowItWorks";
+import PresentationGuide from "@/page/website/PresentationGuide";
+import LockedReservesGuide from "@/page/website/LockedReservesGuide";
 import Careers from "@/page/website/Careers";
 import Login from "@/page/website/Login";
 import Signup from "@/page/website/Signup";
@@ -54,6 +56,11 @@ export const appRouter = createBrowserRouter([
       { index: true, element: <Home /> },
       { path: "about", element: <About /> },
       { path: "how-it-works", element: <HowItWorks /> },
+      { path: "how-it-works/presentation", element: <PresentationGuide /> },
+      { path: "how-it-works/presentation-text", element: <Navigate to="/how-it-works/presentation" replace /> },
+      { path: "how-it-works/locked-withdrawals", element: <LockedReservesGuide /> },
+      { path: "how-it-works/locked-reserves", element: <Navigate to="/how-it-works/locked-withdrawals" replace /> },
+      { path: "how-it-works/on-locked-withdrawals", element: <Navigate to="/how-it-works/locked-withdrawals" replace /> },
       { path: "courses", element: <CoursesBridge /> },
       { path: "farm-slots", element: <FarmSlotsBridge /> },
       { path: "slots", element: <FarmSlotsBridge /> },
@@ -175,7 +182,12 @@ export const appRouter = createBrowserRouter([
           { path: "manage-slots", element: <Navigate to="/dashboard/farm-operations/my-slots" replace /> },
           { path: "slots-subscription", element: <Navigate to="/dashboard/farm-operations/my-slots" replace /> },
           { path: "compound-referrals", element: <Navigate to="/dashboard/my-network" replace /> },
-          { path: "matrix", element: <Navigate to="/dashboard/my-network" replace /> },],
+          { path: "matrix", element: <Navigate to="/dashboard/my-network" replace /> },
+          { path: "how-it-works", element: <Navigate to="/how-it-works" replace /> },
+          { path: "how-it-works/presentation", element: <PresentationGuide /> },
+          { path: "how-it-works/locked-withdrawals", element: <LockedReservesGuide /> },
+          { path: "locked-withdrawals", element: <Navigate to="/how-it-works/locked-withdrawals" replace /> },
+          { path: "locked-reserves", element: <Navigate to="/how-it-works/locked-withdrawals" replace /> },],
       },
     ],
   },

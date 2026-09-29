@@ -421,30 +421,67 @@ export default function HowItWorksContent({
           </div>
         </div>
       )}
-      {/* Official Presentation Deck Download Banner */}
-      <div className="mt-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#0d2818] via-[#10331f] to-[#0a1e12] text-white border border-emerald-800/50 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Official Presentation Deck & Text Guide Banner */}
+      <div className="mt-8 p-5 rounded-2xl bg-[#0c2415] text-white border border-emerald-800 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-start sm:items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0">
             <FileText className="w-5 h-5 text-[#d1ef75]" />
           </div>
           <div>
             <h3 className="text-sm sm:text-base font-bold text-white">
-              Green Card Ecosystem Presentation Deck
+              Green Card Ecosystem Presentation &amp; Compensation Guide
             </h3>
             <p className="text-xs text-emerald-200/90 mt-0.5">
-              Read through our complete plain-language visual guide, model architecture, and community roadmap.
+              Read through our complete text presentation covering the 7-tier 5×7 matrix, product sales waterfall, and farm cluster models.
             </p>
           </div>
         </div>
-        <a
-          href="/documents/AgroHeal_Green_Card_Presentation.pdf"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#d1ef75] hover:bg-[#bce055] text-emerald-950 font-bold text-xs shrink-0 transition-colors shadow-xs"
-        >
-          <span>Download Presentation (PDF)</span>
-          <ArrowDownToLine className="w-4 h-4" />
-        </a>
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <Link
+            to="/how-it-works/presentation"
+            onClick={onNavigate}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 transition-all shadow-xs"
+          >
+            <span>Read Text Guide</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+          <a
+            href="/documents/AgroHeal_Green_Card_Presentation.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#d1ef75] hover:bg-[#bce055] text-emerald-950 font-bold text-xs transition-colors shadow-xs"
+          >
+            <span>Download PDF</span>
+            <ArrowDownToLine className="w-4 h-4" />
+          </a>
+        </div>
+      </div>
+
+      {/* ── Section: Withdrawable vs Locked Reserves Anchor ── */}
+      <div id="locked-reserves" className="mt-8 p-5 rounded-2xl bg-white border border-gray-200 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center shrink-0 text-amber-800">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-gray-900">
+                Understanding Withdrawable vs. Locked Reserves
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Why are some earnings held in reserve? Check the 3 statutory release rules or run a live check on your logged-in account.
+              </p>
+            </div>
+          </div>
+          <Link
+            to="/how-it-works/locked-withdrawals"
+            onClick={onNavigate}
+            className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-850 hover:bg-emerald-900 text-white font-bold text-xs shrink-0 transition-colors shadow-xs"
+          >
+            <span>Audit My Locked Reserves</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
       </div>
 
       {/* Statutory Community & Non-Investment Notice */}
