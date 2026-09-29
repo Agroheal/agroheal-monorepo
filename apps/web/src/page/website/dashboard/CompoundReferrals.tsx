@@ -820,11 +820,10 @@ const CompoundReferrals: React.FC = () => {
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                5×7 Matrix Organogram &amp; Referrals
+                Buy your Starter package (₦10,000) to enter the tree.
               </h1>
               <p className="text-sm text-emerald-100/80 max-w-2xl leading-relaxed">
-                Visual geometric tree with BFS automated spillover. Buy at least 1 farm slot (₦5,000) to enter the tree.
-                Fill 5 direct legs and maintain ₦10,000 rolling 30-day PQV to unlock matrix commissions across 7 levels.
+                Maintain a monthly PQV of ₦10,000 worth of food products to unlock matrix commissions across 7 levels.
               </p>
             </div>
 
@@ -980,7 +979,7 @@ const CompoundReferrals: React.FC = () => {
 
               <div className="space-y-2">
                 <span className="text-xs font-bold text-amber-700 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-                  Farm Slot Subscription Required
+                  Starter Package Required
                 </span>
                 <h3 className="text-2xl font-black text-gray-900">
                   5×7 Farm Matrix is Locked
@@ -989,17 +988,17 @@ const CompoundReferrals: React.FC = () => {
                   Your <strong>₦2,000 Green Card</strong> entitles you to lifetime educational curriculum access and <strong>₦1,000 direct referral rewards</strong>.
                 </p>
                 <p className="text-xs text-gray-500 leading-relaxed max-w-lg mx-auto">
-                  However, the <strong>5×7 Matrix</strong> is an operational farm cluster structure reserved for members who subscribe to an active farm slot. Once you subscribe for a Farm Slot (₦5,000), you will be assigned a placement node under your Group Farm cluster, unlocking the 5×7 organogram tree, community spillover, and 7-level harvest distributions.
+                  The <strong>5×7 Matrix</strong> is reserved for members who have subscribed to the <strong>₦10,000 starter package (₦5,000 Starter Mushroom farm slot and ₦5,000 Mushroom Power)</strong>. Remember that a farm slot alone won't qualify without a mushroom 100g product—we only sell it together as a combo. Once secured, you will be assigned an active node in the tree with automated spillover and 7-level commissions.
                 </p>
               </div>
 
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
                 <Link
-                  to="/dashboard/checkout"
+                  to="/dashboard/farm-operations/buy-slots"
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow-md transition-all"
                 >
                   <Sprout className="w-4 h-4" />
-                  Secure a Farm Slot (₦5,000)
+                  Secure your Starter Package (₦10,000)
                 </Link>
                 <button
                   type="button"

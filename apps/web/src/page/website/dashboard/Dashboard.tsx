@@ -406,19 +406,6 @@ const Dashboard = () => {
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            {totalSlotsPurchased === 0 && (
-              <button
-                type="button"
-                onClick={() => setForceOpenNextStep(true)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-400/20 hover:bg-emerald-400/30 text-emerald-200 border border-emerald-400/35 text-xs sm:text-sm font-semibold backdrop-blur-sm transition-all shadow-xs cursor-pointer"
-                title="View Next Member Milestone"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-emerald-300 shrink-0" />
-                <span>Next Milestone</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              </button>
-            )}
-
             {profile?.member_id ? (
               <Link
                 to="/dashboard/profile/green-card"
@@ -459,36 +446,6 @@ const Dashboard = () => {
             onOpenShareModal={() => setShowShareModal(true)}
           />
         )}
-
-        {/* How It Works Quick Access Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#0d2818] via-[#10331f] to-[#0a1e12] text-white border border-emerald-800/40 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4"
-        >
-          <div className="flex items-start sm:items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0">
-              <Sparkles className="w-5 h-5 text-[#d1ef75]" />
-            </div>
-            <div>
-              <h2 className="text-sm sm:text-base font-bold text-white">
-                How Agroheal Works: Learn, Practice & Earn
-              </h2>
-              <p className="text-xs text-emerald-200/90 mt-0.5">
-                Secure practical farm slots (₦5,000/slot) for Mushroom Group Farming and share in quarterly harvest dividends.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => outletContext?.openHowItWorks?.()}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#d1ef75] hover:bg-[#bce055] text-emerald-950 font-bold text-xs shrink-0 transition-colors shadow-xs cursor-pointer"
-          >
-            <span>Explore Guide</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
-          </button>
-        </motion.div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-6">
           {stats.map((stat, index) => (
@@ -706,7 +663,7 @@ const Dashboard = () => {
                     NO GREENCARD YET
                   </Link>
                 )}{" "}
-                · Qualifies for 5×7 community matrix upon securing a farm slot.
+                · Qualifies for 5×7 community matrix upon securing your ₦10,000 starter package. Remember that a farm slot alone won't qualify without a mushroom 100g product—we only sell it together as a combo.
               </p>
             </div>
           </div>

@@ -144,7 +144,7 @@ export const NotificationBell: React.FC = () => {
         notifs.push({
           id: "notif-gc-active",
           title: "AgroHeal Green Card Active",
-          message: `Your official digital credential ${agcId} is validated. You are eligible for matrix placement upon securing a farm slot.`,
+          message: `Your official digital credential ${agcId} is validated. You are eligible for matrix placement upon securing your ₦10,000 starter package (₦5,000 Mushroom farm slot + ₦5,000 Mushroom Power 100g combo).`,
           type: "greencard",
           created_at: greenCardSub.started_at || new Date().toISOString(),
           read: false,

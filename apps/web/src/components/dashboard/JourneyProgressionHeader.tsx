@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   IdCard,
@@ -7,19 +7,10 @@ import {
   CheckCircle2,
   Lock,
   ArrowRight,
-  ExternalLink,
-  ChevronDown,
-  ChevronUp,
   Sparkles,
-  Info,
-  Gift,
-  Wallet,
-  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
-  isLegacyMember,
   getGreenCardFee,
   formatNaira,
 } from "@shared/businessRules";
@@ -48,9 +39,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   onOpenShareModal,
 }) => {
   const navigate = useNavigate();
-  const [showDetailsDrawer, setShowDetailsDrawer] = useState(false);
 
-  const isLegacy = isLegacyMember(createdAt);
   const activeFee = getGreenCardFee(createdAt);
 
   // Determine current active milestone
@@ -88,7 +77,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
           </div>
           <div>
             <h2 className="text-sm md:text-base font-bold text-foreground flex items-center gap-2">
-              Member Journey &amp; Earning Pathway
+              Member Milestones &amp; Earning Pathway
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                 {currentStep === 3
                   ? `Milestone 3 of 3 Active (Day ${Math.min(21, Math.max(1, daysSinceMilestone3 + 1))}/21)`
@@ -98,80 +87,15 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               </span>
             </h2>
             <p className="text-xs text-muted-foreground">
-              Follow this 3-step journey to unlock full commercial withdrawal rights, producer harvests, and 5×7 compound earnings.
+              Follow this 3-milestone pathway to unlock full commercial withdrawal rights, producer harvests, and 5×7 compound earnings.
             </p>
           </div>
         </div>
-
-        <button
-          type="button"
-          onClick={() => setShowDetailsDrawer((v) => !v)}
-          className="text-xs font-medium text-primary hover:text-primary/80 transition-colors flex items-center gap-1.5 shrink-0 self-end sm:self-auto cursor-pointer"
-        >
-          <Info className="w-3.5 h-3.5" />
-          <span>{showDetailsDrawer ? "Hide Journey Details" : "How Journey Works"}</span>
-          {showDetailsDrawer ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-        </button>
       </div>
 
-      {/* Expandable Intelligent Guidance Drawer */}
-      {showDetailsDrawer && (
-        <div className="p-5 bg-muted/15 border-b border-border/40 text-xs text-muted-foreground animate-in fade-in duration-200">
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="p-3.5 rounded-xl bg-background border border-border/50">
-              <div className="font-semibold text-foreground mb-1 flex items-center gap-1.5">
-                <IdCard className="w-4 h-4 text-emerald-600" />
-                <span>1. Agroheal Green Card ({formatNaira(activeFee)}{isLegacy ? " - Founding Rate" : ""})</span>
-              </div>
-              <p className="text-[11px] leading-relaxed mb-2">
-                Grants verified digital membership, immediate affiliate link, and pays ₦1,000 instant commission per referral into your wallet.
-              </p>
-              <Link
-                to="/dashboard/profile/green-card"
-                className="text-primary hover:underline text-[11px] font-semibold inline-flex items-center gap-1"
-              >
-                View Green Card &amp; Passes <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-background border border-border/50">
-              <div className="font-semibold text-foreground mb-1 flex items-center gap-1.5">
-                <Sprout className="w-4 h-4 text-emerald-600" />
-                <span>2. Starter Package (₦10,000)</span>
-              </div>
-              <p className="text-[11px] leading-relaxed mb-2">
-                Your starter package is ₦10,000 (₦5,000 Mushroom Group farm setup + ₦5,000 Mushroom Power). <strong>Crucial milestone:</strong> This unlocks full external bank withdrawals for all your accumulated wallet bonuses!
-              </p>
-              <Link
-                to="/dashboard/farm-operations/buy-slots"
-                className="text-primary hover:underline text-[11px] font-semibold inline-flex items-center gap-1"
-              >
-                Mushroom Village Overview <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-background border border-border/50">
-              <div className="font-semibold text-foreground mb-1 flex items-center gap-1.5">
-                <Users className="w-4 h-4 text-emerald-600" />
-                <span>3. Build &amp; Compound (5 Friends Goal)</span>
-              </div>
-              <p className="text-[11px] leading-relaxed mb-2">
-                Share with friends! Earn ₦1,000 cash for each friend who joins, ₦500 per slot secured by your directs, and 5×7 commissions on food purchases.
-              </p>
-              <Link
-                to="/dashboard/my-network"
-                className="text-primary hover:underline text-[11px] font-semibold inline-flex items-center gap-1"
-              >
-                5×7 Community Network <ArrowRight className="w-3 h-3" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 3-Step Infographic Stepper Ribbon */}
+      {/* 3-Milestone Infographic Ribbon */}
       <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* ── STEP 1: GREEN CARD ──────────────────────────────────────────────── */}
+        {/* ── MILESTONE 1: GREEN CARD ────────────────────────────────────────── */}
         <div
           className={`relative rounded-xl p-4 transition-all border flex flex-col justify-between ${
             isStep1Done
@@ -184,7 +108,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-muted-foreground">
-                Step 01
+                Milestone 01
               </span>
               {isStep1Done ? (
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
@@ -192,7 +116,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 animate-pulse">
-                  Active Next Step
+                  Active Milestone
                 </span>
               )}
             </div>
@@ -261,14 +185,14 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                   className="w-full text-[11px] font-medium text-emerald-700 dark:text-emerald-400 hover:underline flex items-center justify-center gap-1 py-0.5 text-center transition-colors cursor-pointer"
                 >
                   <Sprout className="w-3.5 h-3.5 shrink-0" />
-                  <span>Afford both? Bundle Green Card + Slot</span>
+                  <span>Afford both? Bundle Green Card + Starter Package (₦12,000)</span>
                 </button>
               </div>
             )}
           </div>
         </div>
 
-        {/* ── STEP 2: MUSHROOM VILLAGE PACKAGE ───────────────────────────────── */}
+        {/* ── MILESTONE 2: MUSHROOM VILLAGE STARTER PACKAGE ───────────────────── */}
         <div
           className={`relative rounded-xl p-4 transition-all border flex flex-col justify-between ${
             isStep2Done
@@ -281,7 +205,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-muted-foreground">
-                Step 02
+                Milestone 02
               </span>
               {isStep2Done ? (
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
@@ -321,7 +245,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
             </div>
 
             <p className="text-[11px] text-muted-foreground mb-2.5 leading-relaxed">
-              Your starter package is ₦10,000 (₦5,000 Mushroom Group farm setup + ₦5,000 Mushroom Power).
+              Your starter package is ₦10,000 (₦5,000 Mushroom Group farm setup + ₦5,000 Mushroom Power 100g). Remember that a farm slot alone won't qualify without the Mushroom 100g product—we only sell it together as a combo.
             </p>
 
             <ul className="space-y-1.5 text-xs mb-4">
@@ -331,7 +255,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>₦5,000 Mushroom Power (100g)</span>
+                <span>₦5,000 Mushroom Power (100g) combo</span>
               </li>
               <li className="flex items-center gap-1.5 font-semibold text-foreground">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
@@ -363,17 +287,17 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                 onClick={() => navigate("/dashboard/farm-operations/buy-slots")}
                 className="w-full text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white shadow-xs"
               >
-                Upgrade to ₦10k Package
+                Secure Starter Package (₦10,000)
               </Button>
             ) : (
               <div className="text-center py-1 text-[11px] text-muted-foreground font-medium flex items-center justify-center gap-1">
-                <Lock className="w-3 h-3" /> Complete Step 1 First
+                <Lock className="w-3 h-3" /> Complete Milestone 1 First
               </div>
             )}
           </div>
         </div>
 
-        {/* ── STEP 3: 5 DIRECTS & MATRIX ─────────────────────────────────────── */}
+        {/* ── MILESTONE 3: 5 DIRECTS & MATRIX ─────────────────────────────────── */}
         <div
           className={`relative rounded-xl p-4 transition-all border flex flex-col justify-between ${
             isStep3Done
@@ -386,7 +310,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-muted-foreground">
-                Step 03
+                Milestone 03
               </span>
               {isStep3Done ? (
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
@@ -398,7 +322,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                  <Lock className="w-3 h-3" /> Step 2 Required
+                  <Lock className="w-3 h-3" /> Milestone 2 Required
                 </span>
               )}
             </div>
@@ -469,7 +393,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               </div>
             ) : (
               <div className="text-center py-1 text-[11px] text-muted-foreground font-medium flex items-center justify-center gap-1">
-                <Lock className="w-3 h-3" /> Complete Steps 1 &amp; 2
+                <Lock className="w-3 h-3" /> Complete Milestones 1 &amp; 2
               </div>
             )}
           </div>

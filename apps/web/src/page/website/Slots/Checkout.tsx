@@ -1521,7 +1521,7 @@ const Checkout = () => {
                               </span>
                             </div>
                             <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">
-                              Your starter package is <strong>₦10,000</strong> (<strong>₦5,000</strong> Mushroom Group farm setup + <strong>₦5,000</strong> Mushroom Power 100g).
+                              Your starter package is <strong>₦10,000</strong> (<strong>₦5,000</strong> Mushroom Group farm setup + <strong>₦5,000</strong> Mushroom Power 100g). Remember that a farm slot alone won't qualify without the Mushroom 100g product—we only sell it together as a combo.
                             </p>
                             <div className="mt-2.5 flex items-center gap-1.5 flex-wrap text-[10px] font-semibold text-emerald-800">
                               <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
