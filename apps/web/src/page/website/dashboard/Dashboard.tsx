@@ -35,6 +35,7 @@ import DashboardSkeleton from "@/components/dashboard/DashboardSkeleton";
 import NextStepModal from "@/components/dashboard/NextStepModal";
 import JourneyProgressionHeader from "@/components/dashboard/JourneyProgressionHeader";
 import ForcePasswordChangeModal from "@/components/dashboard/ForcePasswordChangeModal";
+import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
 import { isLegacyMember, getGreenCardFee, formatNaira } from "@shared/businessRules";
 
 interface ReferralProps {
@@ -496,7 +497,7 @@ const Dashboard = () => {
                       variant="outline"
                       onClick={() => {
                         toast.error("You need an active Green Card to secure farm slots. Bundling with Green Card at checkout...");
-                        navigate("/dashboard/checkout?product=farm_slot");
+                        navigate("/dashboard/checkout?product=green_card_combo");
                       }}
                       className="mt-2.5 sm:mt-4 w-full rounded-xl border border-gray-200 bg-gray-100 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-900 text-gray-500 px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5"
                     >
@@ -664,7 +665,7 @@ const Dashboard = () => {
         </div>
 
         {/* ── OFFICIAL GREEN CARD (AGC) QUICK BANNER ── */}
-        <div className="bg-gradient-to-r from-emerald-950 via-green-900 to-emerald-950 rounded-2xl p-4 sm:p-5 text-white shadow-sm border border-emerald-700/40 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="bg-[#0c2415] rounded-2xl p-4 sm:p-5 text-white shadow-sm border border-emerald-800/60 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 shrink-0 shadow-inner">
               <IdCard className="w-6 h-6" />
@@ -1112,6 +1113,8 @@ const Dashboard = () => {
           onCloseExternal={() => setForceOpenNextStep(false)}
         />
       )}
+
+      <RegulatoryNotice className="mt-8 mb-2" />
     </div>
   );
 };

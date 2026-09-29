@@ -164,18 +164,41 @@ async function recordSubscriptionWithFarmGroupSplit({
 
   // If Combo or First Slot Purchase, allocate Starter Pack (Mushroom Power 100g) as part of the package
   if (isCombo || isFirstSlotPurchase) {
+    let productId: string | null = null;
+    let productCode = "SP-MUSH-100G";
+    let productName = "Mushroom Power 100g";
+    let pvEarned = 5000;
+
+    try {
+      const { data: prod } = await supabase
+        .from("products")
+        .select("id, code, name, price, pv")
+        .eq("code", "SP-MUSH-100G")
+        .maybeSingle();
+
+      if (prod) {
+        productId = prod.id;
+        productCode = prod.code || productCode;
+        pvEarned = Number(prod.pv) || pvEarned;
+        productName = prod.name || productName;
+      }
+    } catch (e) {
+      console.warn("Could not query products table for SP-MUSH-100G:", e);
+    }
+
     try {
       await supabase.from("orders").insert([
         {
           user_id: userId,
           transaction_id: checkoutId,
-          product_code: "SP-MUSH-100G",
+          product_id: productId,
+          product_code: productCode,
           quantity: 1,
           unit_price: 5000,
           total_price: 5000,
-          pv_earned: 5000,
+          pv_earned: pvEarned,
           status: "PAID",
-          notes: "Starter Pack: Mushroom Power 100g (SP-MUSH-100G) included in package",
+          notes: `Starter Pack: ${productName} (${productCode}) included in package`,
         },
       ]);
     } catch (orderErr) {
@@ -461,7 +484,7 @@ const Checkout = () => {
         ] = await Promise.all([
           supabase
             .from("profiles")
-            .select("full_name, phone, email, referral_earnings, wallet_balance, created_at, has_purchased_starter_pack, is_wealth_creation_active")
+            .select("full_name, phone, email, referral_earnings, wallet_balance, created_at, has_purchased_starter_pack, is_wealth_creation_active, is_green_card_holder, has_greencard, member_id")
             .eq("id", user.id)
             .maybeSingle(),
           supabase
@@ -546,12 +569,18 @@ const Checkout = () => {
         setLockedLedgerBalance(ledgerLockedCredits);
         setWalletAmountToUse(Math.min(computedAvailable, totalPrice));
 
-        // Check active Green Card subscription strictly on plan = 'green_card'
-        const userHasGreenCard = Boolean(
+        // Check active Green Card subscription or profile credential
+        const isSubActive = Boolean(
           subs &&
             subs.some(
               (s) => !s.expires_at || new Date(s.expires_at).getTime() > Date.now()
             )
+        );
+        const userHasGreenCard = Boolean(
+          profile?.member_id ||
+          profile?.is_green_card_holder ||
+          profile?.has_greencard ||
+          isSubActive
         );
         setHasGreenCard(userHasGreenCard);
 
@@ -898,6 +927,7 @@ const Checkout = () => {
             ? "Green Card"
             : category,
           has_combo: isCombo,
+          isCombo: isCombo,
         },
         customizations: {
           title: isCombo

@@ -180,11 +180,11 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                 </Button>
                 <button
                   type="button"
-                  onClick={() => navigate("/dashboard/checkout?slots=1&category=Mushroom%20Village")}
+                  onClick={() => navigate("/dashboard/checkout?product=green_card_combo")}
                   className="w-full text-[11px] font-medium text-emerald-700 dark:text-emerald-400 hover:underline flex items-center justify-center gap-1 py-0.5 text-center transition-colors cursor-pointer"
                 >
                   <Sprout className="w-3.5 h-3.5 shrink-0" />
-                  <span>Afford both? Bundle Green Card + Starter Package (₦12,000)</span>
+                  <span>Afford both? Bundle Green Card + Starter Package ({formatNaira(activeFee + 10000)})</span>
                 </button>
               </div>
             )}
