@@ -28,6 +28,7 @@ import {
   CornerDownRight,
   ArrowUpRight,
   Info,
+  Zap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -737,9 +738,13 @@ const CompoundReferrals: React.FC = () => {
   };
 
   // Active Referral Link & Multi-Farm Resolution
+  const [linkMode, setLinkMode] = useState<"signup" | "subscribe">("signup");
   const activeReferralCode = referralCode || currentUserProfile?.referral_code || currentUserProfile?.member_id || currentUserId;
 
   const activeReferralLink = useMemo(() => {
+    if (linkMode === "subscribe") {
+      return `${SITE_URL}/subscribe?ref=${activeReferralCode}`;
+    }
     if (selectedFarmId && selectedFarmId !== "all") {
       const targetFarm = userFarms.find((f) => f.id === selectedFarmId);
       const farmSlug = targetFarm?.name
@@ -748,14 +753,18 @@ const CompoundReferrals: React.FC = () => {
       return `${SITE_URL}/signup?ref=${activeReferralCode}&farm=${farmSlug}`;
     }
     return `${SITE_URL}/signup?ref=${activeReferralCode}`;
-  }, [selectedFarmId, userFarms, activeReferralCode]);
+  }, [linkMode, selectedFarmId, userFarms, activeReferralCode]);
 
   // Copy Referral Link
   const handleCopyReferralLink = async () => {
     try {
       await navigator.clipboard.writeText(activeReferralLink);
       setCopiedLink(true);
-      toast.success("Affiliate link copied to clipboard!");
+      if (linkMode === "subscribe") {
+        toast.success("Fast-Track Direct Pass link copied! Note: Enrollees can pay before setting a password; please follow up with them to help them complete account login!", { duration: 6500 });
+      } else {
+        toast.success("Affiliate signup link copied to clipboard!");
+      }
       setTimeout(() => setCopiedLink(false), 3000);
     } catch {
       toast.error("Failed to copy link");
@@ -764,6 +773,11 @@ const CompoundReferrals: React.FC = () => {
 
   // WhatsApp Share
   const handleShareWhatsApp = () => {
+    if (linkMode === "subscribe") {
+      const text = `Secure your AgroHeal Digital Green Card directly! Get permanent access to the LEAP organic curriculum and affiliate earnings: ${activeReferralLink}`;
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
+      return;
+    }
     const selectedFarm = userFarms.find((f) => f.id === selectedFarmId);
     const farmNote = selectedFarm ? ` to participate in ${selectedFarm.name}` : "";
     const text = `Join me on AgroHeal${farmNote}! Secure your Digital Green Card, activate your 5×7 Producer-Consumer network, and build sustainable agro-wealth. Sign up here: ${activeReferralLink}`;
@@ -918,16 +932,58 @@ const CompoundReferrals: React.FC = () => {
             </div>
           </div>
 
+          {/* Link Format Mode Selector */}
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-gray-700">Link Mode:</span>
+              <div className="inline-flex bg-gray-100 p-1 rounded-xl text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setLinkMode("signup")}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                    linkMode === "signup"
+                      ? "bg-white text-emerald-900 shadow-xs font-bold"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  Standard Registration (/signup)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLinkMode("subscribe")}
+                  className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 ${
+                    linkMode === "subscribe"
+                      ? "bg-amber-500 text-slate-950 shadow-xs font-bold"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5 fill-current" />
+                  Fast-Track Pass (/subscribe)
+                </button>
+              </div>
+            </div>
+            {linkMode === "subscribe" && (
+              <Badge className="bg-amber-100 text-amber-900 border-amber-300 text-[10px] font-bold">
+                Direct Green Card Pass Checkout
+              </Badge>
+            )}
+          </div>
+
           <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            {/* Farm Selector Dropdown */}
+            {/* Farm Selector Dropdown (Active for standard signup) */}
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Assign to Specific Farm (Optional)
+                Assign to Specific Farm {linkMode === "subscribe" ? "(Optional)" : ""}
               </label>
               <select
+                disabled={linkMode === "subscribe"}
                 value={selectedFarmId}
                 onChange={(e) => setSelectedFarmId(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white transition-all"
+                className={`w-full border rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all ${
+                  linkMode === "subscribe"
+                    ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                    : "bg-gray-50 border-gray-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white"
+                }`}
               >
                 <option value="all">General Platform Enrolment (No Specific Farm)</option>
                 {userFarms.map((farm) => (
@@ -940,8 +996,13 @@ const CompoundReferrals: React.FC = () => {
 
             {/* Link Preview & Copy */}
             <div className="md:col-span-2 space-y-1.5">
-              <label className="block text-xs font-semibold text-gray-700">
-                Generated Invite Link
+              <label className="block text-xs font-semibold text-gray-700 flex items-center justify-between">
+                <span>
+                  {linkMode === "subscribe" ? "Fast-Track Direct Pass Link" : "Generated Invite Link"}
+                </span>
+                <span className="text-[10px] text-gray-400 font-normal">
+                  Sponsor code attached
+                </span>
               </label>
               <div className="flex items-center gap-2">
                 <input
@@ -952,14 +1013,14 @@ const CompoundReferrals: React.FC = () => {
                 />
                 <Button
                   onClick={handleCopyReferralLink}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 transition-all flex items-center gap-1.5 shadow-xs"
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   {copiedLink ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
                   {copiedLink ? "Copied" : "Copy Link"}
                 </Button>
                 <Button
                   onClick={handleShareWhatsApp}
-                  className="bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 transition-all flex items-center gap-1.5 shadow-xs"
+                  className="bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   <Share2 className="w-4 h-4" />
                   WhatsApp
@@ -967,6 +1028,19 @@ const CompoundReferrals: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Follow-up advisory banner for Fast-Track Pass */}
+          {linkMode === "subscribe" && (
+            <div className="mt-4 p-3.5 rounded-xl bg-amber-50/90 border border-amber-200/90 text-amber-900 text-xs flex items-start gap-2.5 shadow-2xs">
+              <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-amber-950 text-xs">Direct Pass Follow-up Advisory</p>
+                <p className="text-[11px] text-amber-800 leading-relaxed mt-0.5">
+                  When guests purchase their Green Card through the <strong>Fast-Track Pass (/subscribe)</strong> link, your sponsor referral code is permanently preserved and they can pay immediately without pre-registering an account password. Because guests pay first, please follow up with your direct enrollee after payment using their phone or email to ensure they complete setting their password and log in to activate their 5×7 network organogram!
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── 5×7 VISUAL ORGANOGRAM ── */}

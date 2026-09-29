@@ -20,6 +20,7 @@ import {
   MessageCircle,
   Send,
   Lock,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -596,40 +597,67 @@ const Dashboard = () => {
               )}
 
               {stat.label === "Total Referrals" && (
-                <div className="mt-2.5 sm:mt-4 flex w-full gap-1.5">
-                  <Button
-                    asChild
-                    variant="outline"
-                    className="flex-1 min-w-0 rounded-xl border border-emerald-800 bg-emerald-800 hover:bg-emerald-700 text-white px-2 py-2 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer"
-                  >
-                    <Link to="/dashboard/my-network">
-                      My Network
-                    </Link>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(
-                          `${SITE_URL}/signup?ref=${profile?.referral_code ?? ""}`,
-                        );
-                        if (!hasGreenCard) {
-                          toast.success(
-                            "Referral link copied! Share to earn ₦1,000 per registration. You can convert accumulated earnings to activate your Green Card & slots!",
-                            { duration: 5000 }
+                <div className="mt-2.5 sm:mt-4 space-y-2">
+                  <div className="flex w-full gap-1.5">
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="flex-1 min-w-0 rounded-xl border border-emerald-800 bg-emerald-800 hover:bg-emerald-700 text-white px-2 py-2 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer"
+                    >
+                      <Link to="/dashboard/my-network">
+                        My Network
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(
+                            `${SITE_URL}/signup?ref=${profile?.referral_code ?? ""}`,
                           );
-                        } else {
-                          toast.success("Referral link copied!");
+                          if (!hasGreenCard) {
+                            toast.success(
+                              "Standard signup link copied! Share to enrol new members directly.",
+                              { duration: 5000 }
+                            );
+                          } else {
+                            toast.success("Standard signup link copied!");
+                          }
+                        } catch {
+                          toast.error("Failed to copy referral link");
                         }
-                      } catch {
-                        toast.error("Failed to copy referral link");
-                      }
-                    }}
-                    title="Copy Referral Link"
-                    className="px-2.5 py-2 rounded-xl border border-emerald-800 bg-emerald-800 hover:bg-emerald-700 text-white text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer shrink-0"
-                  >
-                    <Copy className="w-3.5 h-3.5" />
-                  </Button>
+                      }}
+                      title="Copy Standard Signup Link (/signup?ref=...)"
+                      className="px-2.5 py-2 rounded-xl border border-emerald-800 bg-emerald-800 hover:bg-emerald-700 text-white text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer shrink-0 flex items-center gap-1"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span className="text-[10px] hidden xs:inline">Signup</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(
+                            `${SITE_URL}/subscribe?ref=${profile?.referral_code ?? ""}`,
+                          );
+                          toast.success(
+                            "Fast-Track Pass link (/subscribe) copied! Important: Guests can pay directly before setting a password, so be sure to follow up with your enrollee to help them complete account login!",
+                            { duration: 6500 }
+                          );
+                        } catch {
+                          toast.error("Failed to copy pass link");
+                        }
+                      }}
+                      title="Copy Direct Green Card Pass Link (/subscribe?ref=...)"
+                      className="px-2.5 py-2 rounded-xl border border-amber-500 bg-amber-500 hover:bg-amber-600 text-slate-950 text-[11px] sm:text-xs font-bold shadow-xs transition-all duration-200 cursor-pointer shrink-0 flex items-center gap-1"
+                    >
+                      <Zap className="w-3.5 h-3.5 fill-current" />
+                      <span className="text-[10px] hidden xs:inline">Direct Pass</span>
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-slate-500 leading-tight">
+                    Tip: <strong>Direct Pass</strong> allows instant checkout on <code>/subscribe</code>. Remember to follow up with guests to set their password.
+                  </p>
                 </div>
               )}
             </motion.div>

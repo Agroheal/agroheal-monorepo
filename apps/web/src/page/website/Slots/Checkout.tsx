@@ -1675,7 +1675,8 @@ const Checkout = () => {
                       Select Payment Method
                     </Label>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      {/* Case 1: Wallet can cover 100% of order */}
+                      {/* [FOUNDER INSTRUCTION] Pay with Wallet & Split payment methods temporarily commented out; can be reactivated later */}
+                      {/*
                       {walletBalance >= totalPrice && (
                         <div
                           onClick={() => setPaymentMethod("wallet")}
@@ -1719,7 +1720,6 @@ const Checkout = () => {
                         </div>
                       )}
 
-                      {/* Case 2: Partial Wallet (0 < walletBalance < totalPrice) */}
                       {walletBalance > 0 && walletBalance < totalPrice && (
                         <div
                           onClick={() => {
@@ -1772,6 +1772,7 @@ const Checkout = () => {
                           />
                         </div>
                       )}
+                      */}
 
                       {/* Online Flutterwave Card (Always available) */}
                       <div
@@ -1794,10 +1795,10 @@ const Checkout = () => {
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold text-sm text-foreground truncate">
-                              {walletBalance > 0 ? "Pay Full Online" : "Flutterwave"}
+                              Pay Online (Flutterwave)
                             </p>
                             <p className="text-xs text-muted-foreground truncate">
-                              Card, Transfer, USSD (Full ₦{totalPrice.toLocaleString()})
+                              Card, Bank Transfer, USSD (₦{totalPrice.toLocaleString()})
                             </p>
                           </div>
                         </div>
@@ -1826,7 +1827,8 @@ const Checkout = () => {
                       </div>
                     )}
 
-                    {/* Wallet Guidance Message */}
+                    {/* [FOUNDER INSTRUCTION] Wallet guidance & split adjuster commented out; can be reactivated later */}
+                    {/*
                     {paymentMethod === "wallet" && (
                       <motion.div
                         initial={{ opacity: 0, y: -6 }}
@@ -1877,7 +1879,6 @@ const Checkout = () => {
                       </motion.div>
                     )}
 
-                    {/* Split Payment Guidance & Amount Adjuster */}
                     {paymentMethod === "split" && (
                       <motion.div
                         initial={{ opacity: 0, y: -6 }}
@@ -1932,6 +1933,7 @@ const Checkout = () => {
                         </p>
                       </motion.div>
                     )}
+                    */}
                   </div>
                 </div>
 

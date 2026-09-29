@@ -51,6 +51,284 @@ const SALES_CHANNELS = [
   "Community Retail Stakeholder"
 ];
 
+interface ClusterFinancialsLedgerProps {
+  sub: FarmClusterItem;
+  isUserCoordinator: boolean;
+  onRecordExpense: () => void;
+  onRecordSale: () => void;
+}
+
+const ClusterFinancialsLedger: React.FC<ClusterFinancialsLedgerProps> = ({
+  sub,
+  isUserCoordinator,
+  onRecordExpense,
+  onRecordSale,
+}) => {
+  const [filter, setFilter] = useState<'all' | 'expenses' | 'sales'>('all');
+
+  const unifiedLedger = React.useMemo(() => {
+    const list: Array<{
+      date: string;
+      rawDate: number;
+      type: 'EXPENSE' | 'SALE';
+      categoryOrProduce: string;
+      descriptionOrBuyer: string;
+      quantity?: string;
+      amount: number;
+    }> = [];
+
+    (sub.expenses || []).forEach((exp: any) => {
+      list.push({
+        date: exp.date || '—',
+        rawDate: exp.date ? new Date(exp.date).getTime() : 0,
+        type: 'EXPENSE',
+        categoryOrProduce: exp.category || 'General Expense',
+        descriptionOrBuyer: exp.description || '—',
+        amount: Number(exp.amount) || 0,
+      });
+    });
+
+    (sub.sales || []).forEach((sale: any) => {
+      list.push({
+        date: sale.date || '—',
+        rawDate: sale.date ? new Date(sale.date).getTime() : 0,
+        type: 'SALE',
+        categoryOrProduce: sale.produce || 'Oyster Mushrooms',
+        descriptionOrBuyer: sale.buyer || 'Commercial Wholesale',
+        quantity: sale.quantity,
+        amount: Number(sale.amount) || 0,
+      });
+    });
+
+    return list.sort((a, b) => b.rawDate - a.rawDate);
+  }, [sub.expenses, sub.sales]);
+
+  return (
+    <div className="space-y-4">
+      {/* Coordinator Action Header or Transparency Banner */}
+      {isUserCoordinator ? (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-200 p-4 rounded-xl shadow-2xs">
+          <div className="flex items-center gap-3 text-blue-900">
+            <div className="p-2 bg-blue-100 rounded-lg text-blue-700 shrink-0">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-bold text-sm">Cluster Coordinator Operations Desk</p>
+              <p className="text-xs text-blue-700">
+                You manage this farm cluster. Record operating costs and crop harvests to keep the shared ledger transparent.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <Button
+              size="sm"
+              variant="outline"
+              className="bg-white border-blue-300 text-blue-800 hover:bg-blue-50 shadow-2xs flex-1 sm:flex-none text-xs font-semibold cursor-pointer"
+              onClick={onRecordExpense}
+            >
+              <Receipt className="w-3.5 h-3.5 mr-1 text-red-600" />
+              Record Expense
+            </Button>
+            <Button
+              size="sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-2xs flex-1 sm:flex-none text-xs font-semibold cursor-pointer"
+              onClick={onRecordSale}
+            >
+              <ShoppingBag className="w-3.5 h-3.5 mr-1" />
+              Record Produce Sale
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 text-slate-600 text-xs bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
+          <Eye className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span>
+            <strong>Community Transparency Ledger:</strong> All cluster stakeholders have read access to financial statements, produce harvests, and the verified membership roster. Only assigned coordinators can record entries.
+          </span>
+        </div>
+      )}
+
+      {/* Financial Health Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-2xs">
+          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Total Produce Sales</p>
+          <p className="text-lg font-bold text-emerald-700 mt-0.5">+₦{sub.financials.sales.toLocaleString()}</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">{sub.sales.length} harvest sale(s) logged</p>
+        </div>
+        <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-2xs">
+          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Operating Expenses</p>
+          <p className="text-lg font-bold text-red-600 mt-0.5">-₦{sub.financials.expenses.toLocaleString()}</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">{sub.expenses.length} operating expense(s)</p>
+        </div>
+        <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-2xs">
+          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Net Cluster Balance</p>
+          <p className={`text-lg font-extrabold mt-0.5 ${sub.financials.net_balance >= 0 ? "text-slate-800" : "text-amber-700"}`}>
+            ₦{sub.financials.net_balance.toLocaleString()}
+          </p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Surplus for 40% dividend settlement</p>
+        </div>
+      </div>
+
+      {/* Sub-Filter Toggles / Pills */}
+      <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+        <div className="inline-flex bg-slate-200/80 p-1 rounded-xl text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setFilter('all')}
+            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              filter === 'all' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            All Ledger Records ({sub.expenses.length + sub.sales.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter('expenses')}
+            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              filter === 'expenses' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Operating Expenses ({sub.expenses.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilter('sales')}
+            className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              filter === 'sales' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            Produce Sales ({sub.sales.length})
+          </button>
+        </div>
+      </div>
+
+      {/* Filter Views */}
+      {filter === 'all' && (
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-50 text-slate-500 uppercase text-[11px] font-bold tracking-wider border-b border-slate-200">
+              <tr>
+                <th className="px-6 py-3">Date</th>
+                <th className="px-6 py-3">Type</th>
+                <th className="px-6 py-3">Item / Category</th>
+                <th className="px-6 py-3">Description / Buyer</th>
+                <th className="px-6 py-3 text-right">Cashflow</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {unifiedLedger.map((item, idx) => (
+                <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                  <td className="px-6 py-3.5 whitespace-nowrap text-slate-600 text-xs">{item.date}</td>
+                  <td className="px-6 py-3.5 whitespace-nowrap">
+                    {item.type === 'SALE' ? (
+                      <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                        Produce Sale
+                      </span>
+                    ) : (
+                      <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800">
+                        Operating Expense
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-6 py-3.5 font-semibold text-slate-800 text-xs">
+                    {item.categoryOrProduce}
+                    {item.quantity ? <span className="text-[11px] font-normal text-slate-500 ml-1.5">({item.quantity})</span> : null}
+                  </td>
+                  <td className="px-6 py-3.5 text-slate-600 text-xs">{item.descriptionOrBuyer}</td>
+                  <td className={`px-6 py-3.5 text-right font-bold text-xs whitespace-nowrap ${item.type === 'SALE' ? 'text-emerald-600' : 'text-red-600'}`}>
+                    {item.type === 'SALE' ? `+₦${item.amount.toLocaleString()}` : `-₦${item.amount.toLocaleString()}`}
+                  </td>
+                </tr>
+              ))}
+              {unifiedLedger.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400 text-xs">
+                    No financial ledger entries recorded for this cluster yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {filter === 'expenses' && (
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-50 text-slate-500 uppercase text-[11px] font-bold tracking-wider border-b border-slate-200">
+              <tr>
+                <th className="px-6 py-3">Date</th>
+                <th className="px-6 py-3">Category</th>
+                <th className="px-6 py-3">Description</th>
+                <th className="px-6 py-3 text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {sub.expenses.map((exp: any, idx: number) => (
+                <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                  <td className="px-6 py-3.5 whitespace-nowrap text-slate-600 text-xs">{exp.date}</td>
+                  <td className="px-6 py-3.5">
+                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                      {exp.category || "General"}
+                    </span>
+                  </td>
+                  <td className="px-6 py-3.5 font-medium text-slate-800 text-xs">{exp.description}</td>
+                  <td className="px-6 py-3.5 text-right text-red-600 font-bold text-xs whitespace-nowrap">
+                    -₦{exp.amount.toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+              {sub.expenses.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-slate-400 text-xs">
+                    No operational expenses recorded for this cluster yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {filter === 'sales' && (
+        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-slate-50 text-slate-500 uppercase text-[11px] font-bold tracking-wider border-b border-slate-200">
+              <tr>
+                <th className="px-6 py-3">Date</th>
+                <th className="px-6 py-3">Produce</th>
+                <th className="px-6 py-3">Quantity</th>
+                <th className="px-6 py-3">Offtaker / Buyer</th>
+                <th className="px-6 py-3 text-right">Revenue</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {sub.sales.map((sale: any, idx: number) => (
+                <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
+                  <td className="px-6 py-3.5 whitespace-nowrap text-slate-600 text-xs">{sale.date}</td>
+                  <td className="px-6 py-3.5 font-semibold text-slate-800 text-xs">{sale.produce}</td>
+                  <td className="px-6 py-3.5 text-xs text-slate-600">{sale.quantity || "—"}</td>
+                  <td className="px-6 py-3.5 text-xs text-slate-600">{sale.buyer || "Commercial Wholesale"}</td>
+                  <td className="px-6 py-3.5 text-right text-emerald-600 font-bold text-xs whitespace-nowrap">
+                    +₦{sale.amount.toLocaleString()}
+                  </td>
+                </tr>
+              ))}
+              {sub.sales.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400 text-xs">
+                    No harvest sales logged yet for this cluster cycle.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const MyFarmSlots: React.FC = () => {
   const { session, profile } = useAuth();
   const user = session?.user;
@@ -532,140 +810,18 @@ const MyFarmSlots: React.FC = () => {
                 {expandedCluster === sub.id && (
                   <div className="border-t border-slate-200 bg-slate-50/60 p-6 space-y-6">
                     
-                    {/* Coordinator Operations Desk OR Transparency Notice */}
-                    {isUserCoordinator ? (
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-200 p-4 rounded-xl shadow-2xs">
-                        <div className="flex items-center gap-3 text-blue-900">
-                          <div className="p-2 bg-blue-100 rounded-lg text-blue-700 shrink-0">
-                            <ShieldCheck className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <p className="font-bold text-sm">Cluster Coordinator Operations Desk</p>
-                            <p className="text-xs text-blue-700">
-                              You manage this farm cluster. Record operating costs and crop harvests to keep the shared ledger transparent.
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="bg-white border-blue-300 text-blue-800 hover:bg-blue-50 shadow-2xs flex-1 sm:flex-none text-xs font-semibold"
-                            onClick={() => setExpenseModalCluster(sub)}
-                          >
-                            <Receipt className="w-3.5 h-3.5 mr-1 text-red-600" />
-                            Record Expense
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            className="bg-blue-600 hover:bg-blue-700 text-white shadow-2xs flex-1 sm:flex-none text-xs font-semibold"
-                            onClick={() => setSaleModalCluster(sub)}
-                          >
-                            <ShoppingBag className="w-3.5 h-3.5 mr-1" />
-                            Record Produce Sale
-                          </Button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 text-slate-600 text-xs bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
-                        <Eye className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <span>
-                          <strong>Community Transparency Ledger:</strong> All cluster stakeholders have read access to financial statements, produce harvests, and the verified membership roster.
-                        </span>
-                      </div>
-                    )}
-
-                    {/* 3 Detail Tabs: Expenses, Sales, and Roster */}
-                    <Tabs defaultValue="expenses" className="w-full">
-                      <TabsList className="grid w-full grid-cols-3 max-w-[550px] bg-slate-200/80 p-1 rounded-xl">
-                        <TabsTrigger value="expenses" className="text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-xs">
-                          Operating Expenses ({sub.expenses.length})
-                        </TabsTrigger>
-                        <TabsTrigger value="sales" className="text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-xs">
-                          Produce Sales ({sub.sales.length})
-                        </TabsTrigger>
+                    {/* Primary Detail Tabs: 1. Stakeholder Roster (First), 2. Financials & Ledger */}
+                    <Tabs defaultValue="roster" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2 max-w-[460px] bg-slate-200/80 p-1 rounded-xl">
                         <TabsTrigger value="roster" className="text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-xs">
                           Stakeholder Roster ({sub.members.length})
                         </TabsTrigger>
+                        <TabsTrigger value="financials" className="text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-xs">
+                          Financials &amp; Ledger ({sub.expenses.length + sub.sales.length})
+                        </TabsTrigger>
                       </TabsList>
-                      
-                      {/* Tab 1: Operating Expenses */}
-                      <TabsContent value="expenses" className="mt-4">
-                        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-                          <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50 text-slate-500 uppercase text-[11px] font-bold tracking-wider border-b border-slate-200">
-                              <tr>
-                                <th className="px-6 py-3">Date</th>
-                                <th className="px-6 py-3">Category</th>
-                                <th className="px-6 py-3">Description</th>
-                                <th className="px-6 py-3 text-right">Amount</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                              {sub.expenses.map((exp: any, idx: number) => (
-                                <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                                  <td className="px-6 py-3.5 whitespace-nowrap text-slate-600 text-xs">{exp.date}</td>
-                                  <td className="px-6 py-3.5">
-                                    <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
-                                      {exp.category || "General"}
-                                    </span>
-                                  </td>
-                                  <td className="px-6 py-3.5 font-medium text-slate-800 text-xs">{exp.description}</td>
-                                  <td className="px-6 py-3.5 text-right text-red-600 font-bold text-xs whitespace-nowrap">
-                                    -₦{exp.amount.toLocaleString()}
-                                  </td>
-                                </tr>
-                              ))}
-                              {sub.expenses.length === 0 && (
-                                <tr>
-                                  <td colSpan={4} className="px-6 py-10 text-center text-slate-400 text-xs">
-                                    No operational expenses recorded for this cluster yet.
-                                  </td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </TabsContent>
-                      
-                      {/* Tab 2: Produce Sales */}
-                      <TabsContent value="sales" className="mt-4">
-                        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
-                          <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50 text-slate-500 uppercase text-[11px] font-bold tracking-wider border-b border-slate-200">
-                              <tr>
-                                <th className="px-6 py-3">Date</th>
-                                <th className="px-6 py-3">Produce</th>
-                                <th className="px-6 py-3">Quantity</th>
-                                <th className="px-6 py-3">Offtaker / Buyer</th>
-                                <th className="px-6 py-3 text-right">Revenue</th>
-                              </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                              {sub.sales.map((sale: any, idx: number) => (
-                                <tr key={idx} className="hover:bg-slate-50/70 transition-colors">
-                                  <td className="px-6 py-3.5 whitespace-nowrap text-slate-600 text-xs">{sale.date}</td>
-                                  <td className="px-6 py-3.5 font-semibold text-slate-800 text-xs">{sale.produce}</td>
-                                  <td className="px-6 py-3.5 text-xs text-slate-600">{sale.quantity || "—"}</td>
-                                  <td className="px-6 py-3.5 text-xs text-slate-600">{sale.buyer || "Commercial Wholesale"}</td>
-                                  <td className="px-6 py-3.5 text-right text-emerald-600 font-bold text-xs whitespace-nowrap">
-                                    +₦{sale.amount.toLocaleString()}
-                                  </td>
-                                </tr>
-                              ))}
-                              {sub.sales.length === 0 && (
-                                <tr>
-                                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400 text-xs">
-                                    No harvest sales logged yet for this cluster cycle.
-                                  </td>
-                                </tr>
-                              )}
-                            </tbody>
-                          </table>
-                        </div>
-                      </TabsContent>
 
-                      {/* Tab 3: Stakeholders Roster */}
+                      {/* Tab 1: Stakeholders Roster (Comes First) */}
                       <TabsContent value="roster" className="mt-4">
                         <div className="space-y-3">
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -738,6 +894,16 @@ const MyFarmSlots: React.FC = () => {
                             </table>
                           </div>
                         </div>
+                      </TabsContent>
+
+                      {/* Tab 2: Financials & Ledger (Unified Expenses & Produce Sales with Coordinator Controls) */}
+                      <TabsContent value="financials" className="mt-4">
+                        <ClusterFinancialsLedger
+                          sub={sub}
+                          isUserCoordinator={isUserCoordinator}
+                          onRecordExpense={() => setExpenseModalCluster(sub)}
+                          onRecordSale={() => setSaleModalCluster(sub)}
+                        />
                       </TabsContent>
                     </Tabs>
                   </div>
