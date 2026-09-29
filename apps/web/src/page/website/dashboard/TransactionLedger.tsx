@@ -94,6 +94,36 @@ export default function TransactionLedger() {
   const [isProjectSubscribed, setIsProjectSubscribed] = useState<boolean>(false);
   const [subscribingWithWallet, setSubscribingWithWallet] = useState<boolean>(false);
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
+  const [copiedDesc, setCopiedDesc] = useState<string | null>(null);
+
+  const getCategoryLabel = (category: string) => {
+    switch (category) {
+      case "COMBO_PACKAGE":
+        return "Starter Bundle";
+      case "CORE_DRIVER_BONUS":
+        return "Growth Driver Pool";
+      case "RETAIL_PURCHASE":
+        return "Starter Pack Product";
+      case "FARM_CONTRIBUTION":
+        return "Farm Contribution";
+      case "SLOT_PURCHASE":
+        return "Farm Slot";
+      case "SUBSCRIPTION":
+        return "Green Card Pass";
+      case "DIRECT_REFERRAL":
+        return "Direct Sponsor Bonus";
+      case "MATRIX_SPILLOVER":
+        return "Matrix Commission";
+      case "SLOT_BONUS":
+        return "Slot Bonus";
+      case "HARVEST_DIVIDEND":
+        return "Harvest Dividend";
+      case "WITHDRAWAL":
+        return "Bank Withdrawal";
+      default:
+        return category.replace(/_/g, " ");
+    }
+  };
 
   // Matrix Withdrawal Qualification: 5 direct referrals AND ₦10,000 PQV in 30 days
   const isMatrixQualified = directReferralsCount >= 5 && activePqv30d >= 10000;
@@ -441,6 +471,11 @@ export default function TransactionLedger() {
           amount === 2000 ||
           (amount === 1000 && isLegacyMember(c.created_at));
 
+        // For members whose green card was not paid for, it should not reflect in their transaction history
+        if (isGreenCardTx && !isCCompleted) {
+          return;
+        }
+
         if (isCCompleted && (isComboTx || isGreenCardTx)) {
           hasCompletedOnlineGreenCard = true;
         }
@@ -542,35 +577,16 @@ export default function TransactionLedger() {
         });
       });
 
-      // 5. Green Card Subscriptions
-      (subscriptions || []).forEach((s: any, idx: number) => {
-        // If Green Card was activated as part of an online checkout (Combo or Green Card pass),
-        // it is already accounted for by the master transaction debit.
-        if (hasCompletedOnlineGreenCard && s.plan === "green_card") {
-          return;
-        }
-
-        const sStatus = (s.status || "").toLowerCase();
-        const isSubCompleted = ["active", "paid", "success", "confirmed", "completed"].includes(sStatus);
-        const isSubFailed = ["cancelled", "canceled", "failed", "expired"].includes(sStatus);
-        items.push({
-          id: `sub-${s.id || idx}`,
-          date: s.started_at || new Date().toISOString(),
-          type: "DEBIT",
-          category: "SUBSCRIPTION",
-          amount: 2000,
-          description: `AgroHeal Green Card Activation (${s.plan || "Annual"})`,
-          status: isSubCompleted ? "COMPLETED" : isSubFailed ? "FAILED" : "PENDING",
-          reference: `GC-${(s.id || idx).toString().slice(0, 8).toUpperCase()}`,
-          is_legacy: Boolean(isLegacyMember(s.started_at)),
-        });
-      });
-
-      // 6. Other payments
+      // 5. Other verified payments (direct transfers/receipts)
       (otherPayments || []).forEach((p: any) => {
         const pStatus = (p.status || "").toLowerCase();
         const isPCompleted = ["confirmed", "active", "success", "paid", "completed"].includes(pStatus);
         const isPFailed = ["failed", "rejected"].includes(pStatus);
+        const pType = (p.payment_type || "").toLowerCase();
+        // Unpaid Green Cards must not reflect in transaction ledger
+        if (pType.includes("green") && !isPCompleted) {
+          return;
+        }
         items.push({
           id: `pay-${p.id}`,
           date: p.created_at,
@@ -985,10 +1001,25 @@ export default function TransactionLedger() {
           </div>
         </div>
 
-        {/* ── TOP DUAL CARDS (CREDIT CARD ASPECT RATIO) ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-          {/* ── CARD 1 (LEFT): EXECUTIVE MEMBER WALLET (CREDIT CARD HERO) ── */}
-          <div className="flex flex-col justify-between bg-[#0c2415] border border-emerald-700/50 rounded-3xl p-4.5 sm:p-5 text-white shadow-xl relative overflow-hidden space-y-2.5">
+        {/* Informative notice for held funds */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-5 py-3 rounded-2xl bg-amber-50/80 border border-amber-200/80 text-amber-950 text-xs max-w-2xl mx-auto shadow-2xs">
+          <div className="flex items-center gap-2">
+            <HelpCircle className="w-4 h-4 text-amber-700 shrink-0" />
+            <span className="font-medium text-amber-900">
+              Why are some of my funds 'held' in ledger balance?
+            </span>
+          </div>
+          <Link
+            to="/how-it-works/locked-withdrawals"
+            className="font-bold text-emerald-800 hover:text-emerald-950 underline underline-offset-2 shrink-0 flex items-center gap-1 text-[11px]"
+          >
+            Click here to read more <ArrowRight className="w-3 h-3" />
+          </Link>
+        </div>
+
+        {/* ── CENTRALIZED EXECUTIVE MEMBER WALLET ── */}
+        <div className="max-w-2xl mx-auto">
+          <div className="flex flex-col justify-between bg-[#0c2415] border border-emerald-700/50 rounded-3xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden space-y-3">
             {/* Background Ambient Glows */}
             <div className="absolute top-0 right-0 -mr-16 -mt-16 w-60 h-60 rounded-full bg-emerald-400/10 blur-3xl pointer-events-none" />
             <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-60 h-60 rounded-full bg-amber-400/5 blur-3xl pointer-events-none" />
@@ -1072,7 +1103,7 @@ export default function TransactionLedger() {
 
               {/* Dual Financial Balances */}
               <div className="grid grid-cols-2 gap-2">
-                <div className="bg-white/5 backdrop-blur-xs p-2.5 rounded-2xl border border-white/10 space-y-0.5">
+                <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-white/10 space-y-0.5">
                   <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">
                     Available Balance
                   </span>
@@ -1088,7 +1119,7 @@ export default function TransactionLedger() {
                   </span>
                 </div>
 
-                <div className="bg-white/5 backdrop-blur-xs p-2.5 rounded-2xl border border-white/10 space-y-0.5">
+                <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-white/10 space-y-0.5">
                   <span className="text-[10px] text-gray-300 font-bold uppercase tracking-wider block">
                     Ledger Balance
                   </span>
@@ -1107,7 +1138,7 @@ export default function TransactionLedger() {
             </div>
 
             {/* Bottom Actions Directly on Card */}
-            <div className="relative z-10 pt-2 border-t border-white/10 space-y-1.5 mt-auto">
+            <div className="relative z-10 pt-2 border-t border-white/10 space-y-2 mt-auto">
               {canSubscribeWithWallet && (
                 <Button
                   disabled={subscribingWithWallet}
@@ -1124,7 +1155,7 @@ export default function TransactionLedger() {
                 onClick={() => {
                   setIsWithdrawModalOpen(true);
                 }}
-                className={`w-full h-8.5 sm:h-9 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
+                className={`w-full h-9 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
                   availableBalance >= 2000
                     ? "bg-emerald-700 hover:bg-emerald-600 text-white shadow-xs cursor-pointer"
                     : "bg-white/10 text-gray-400 border border-white/10 cursor-not-allowed"
@@ -1137,214 +1168,23 @@ export default function TransactionLedger() {
                   ? "Withdrawal Locked (Project Subscription Required)"
                   : `Accumulate ₦${(2000 - rawClearedBalance).toLocaleString()} More to Withdraw (Min. ₦2,000)`}
               </Button>
+
+              {totalLockedAmount > 0 && (
+                <div className="pt-1 flex items-center justify-between text-[11px] text-amber-200/80">
+                  <span className="flex items-center gap-1.5">
+                    <Lock className="w-3 h-3 text-amber-400 shrink-0" />
+                    <span>₦{totalLockedAmount.toLocaleString()} held in reserve</span>
+                  </span>
+                  <Link
+                    to="/how-it-works/locked-withdrawals"
+                    className="underline underline-offset-2 hover:text-white transition-colors"
+                  >
+                    Release conditions →
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
-
-          {/* ── CARD 2 (RIGHT): CAPITAL GATEKEEPERS & LOCKED FUNDS BREAKDOWN ── */}
-          {loading ? (
-            <div className="bg-white rounded-3xl p-4.5 sm:p-5 border border-gray-200 shadow-sm flex flex-col justify-between relative overflow-hidden space-y-2.5">
-              <div className="space-y-2.5 relative z-10">
-                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="w-8 h-8 rounded-xl bg-gray-200" />
-                    <div className="space-y-1">
-                      <Skeleton className="h-4 w-36 bg-gray-200" />
-                      <Skeleton className="h-3 w-48 bg-gray-100" />
-                    </div>
-                  </div>
-                  <Skeleton className="h-5 w-24 rounded-full bg-gray-200" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 bg-gray-50 p-2.5 rounded-2xl border border-gray-100">
-                  <div className="space-y-1">
-                    <Skeleton className="h-3 w-20 bg-gray-200" />
-                    <Skeleton className="h-6 w-24 bg-gray-300" />
-                  </div>
-                  <div className="space-y-1 border-l border-gray-200 pl-2.5">
-                    <Skeleton className="h-3 w-20 bg-gray-200" />
-                    <Skeleton className="h-6 w-24 bg-gray-300" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : !hasGreenCard ? (
-            <div className="bg-white text-gray-900 rounded-3xl p-4.5 sm:p-5 border border-amber-200 shadow-sm flex flex-col justify-between relative overflow-hidden space-y-2.5">
-              <div className="space-y-2.5 relative z-10">
-                <div className="flex items-center justify-between pb-2 border-b border-amber-100">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center border border-amber-200 font-bold shrink-0">
-                      <Lock className="w-4 h-4 text-amber-700" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm">Locked Capital &amp; Green Card Gate</h3>
-                      <p className="text-[10px] text-gray-500">Official Membership Credential Required</p>
-                    </div>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-200 shrink-0">
-                    Pass Inactive
-                  </span>
-                </div>
-
-                <div className="bg-amber-50/60 border border-amber-200/70 rounded-2xl p-3 space-y-2">
-                  <p className="text-xs text-amber-950 font-semibold leading-relaxed">
-                    Activate your <strong>₦2,000 AgroHeal Green Card</strong> to unlock:
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] text-gray-700">
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span className="truncate">₦1,000 Direct Referral Rewards</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span className="truncate">7-Tier 5×7 Matrix Placement</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span className="truncate">Official Member ID &amp; QR</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span className="truncate">Academy Video Curricula</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-gray-100 space-y-1.5 relative z-10 mt-auto">
-                <Button
-                  asChild
-                  className="w-full h-8.5 sm:h-9 rounded-xl bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold text-xs shadow-xs transition-all"
-                >
-                  <Link to="/dashboard/checkout?product=green_card">
-                    <ShieldCheck className="w-3.5 h-3.5 mr-1.5" />
-                    Activate Green Card — ₦2,000
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          ) : totalLockedAmount === 0 ? (
-            /* 100% Cleared View - Sleek & Simple */
-            <div className="bg-white rounded-3xl p-5 border border-emerald-200/90 shadow-sm flex flex-col justify-between space-y-3 text-gray-900">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shrink-0 border border-emerald-200">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm">Capital Clearance Status</h3>
-                      <p className="text-[10px] text-gray-500">Zero funds held in reserve</p>
-                    </div>
-                  </div>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">
-                    100% Cleared
-                  </span>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/60 space-y-1">
-                  <p className="text-xs font-semibold text-emerald-950">
-                    All your earnings are fully qualified and unlocked.
-                  </p>
-                  <p className="text-[11px] text-emerald-800/80 leading-relaxed">
-                    You have no capital held in reserve. Eligible earnings above the statutory ₦2,000 floor can be withdrawn directly to your Nigerian bank account.
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs mt-auto">
-                <span className="text-gray-500 text-[11px]">How do locked reserves work?</span>
-                <Link
-                  to="/how-it-works/locked-withdrawals"
-                  className="font-bold text-emerald-800 hover:text-emerald-900 text-[11px] underline underline-offset-2 flex items-center gap-1"
-                >
-                  Read Plain Guide <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-            </div>
-          ) : (
-            /* Locked Reserves View - Clean, Non-Alarming & Informative */
-            <div className="bg-white rounded-3xl p-4.5 sm:p-5 border border-amber-200/80 shadow-sm flex flex-col justify-between space-y-2.5 text-gray-900">
-              <div className="space-y-2.5">
-                {/* Header Row */}
-                <div className="flex items-center justify-between pb-2 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-900 border border-amber-200 flex items-center justify-center font-bold shrink-0">
-                      <Lock className="w-4 h-4 text-amber-700" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900 text-xs sm:text-sm">Locked Capital Reserves</h3>
-                      <p className="text-[10px] text-gray-500">Funds awaiting statutory release conditions</p>
-                    </div>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 bg-amber-100 text-amber-900 border border-amber-200">
-                    ₦{totalLockedAmount.toLocaleString()} in Reserve
-                  </span>
-                </div>
-
-                {/* Concise Reasons List */}
-                <div className="space-y-1.5">
-                  {!isMatrixQualified && matrixEarnings > 0 && (
-                    <div className="p-2 rounded-xl bg-amber-50/70 border border-amber-200 text-amber-950 text-[11px] flex items-center justify-between">
-                      <span className="font-semibold">
-                        Matrix Spillover: ₦{matrixEarnings.toLocaleString()}
-                      </span>
-                      <span className="text-gray-600 text-[10px]">
-                        Requires 5 directs ({directReferralsCount}/5)
-                      </span>
-                    </div>
-                  )}
-
-                  {!isProjectSubscribed && directReferralEarnings > 0 && (
-                    <div className="p-2 rounded-xl bg-amber-50/70 border border-amber-200 text-amber-950 text-[11px] flex items-center justify-between">
-                      <span className="font-semibold">
-                        Direct Referral Rewards: ₦{directReferralEarnings.toLocaleString()}
-                      </span>
-                      <span className="text-gray-600 text-[10px]">
-                        ₦10k Starter Package required
-                      </span>
-                    </div>
-                  )}
-
-                  {lockedBelowThresholdAmount > 0 && (
-                    <div className="p-2 rounded-xl bg-gray-50 border border-gray-200 text-gray-700 text-[11px] flex items-center justify-between">
-                      <span>Statutory Floor (₦{rawClearedBalance.toLocaleString()}/₦2,000)</span>
-                      <span className="text-[10px] font-semibold text-gray-500">Accumulating to ₦2k</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Actionable Link to Full Public Guide */}
-              <div className="pt-2 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-auto">
-                <Link
-                  to="/how-it-works/locked-withdrawals"
-                  className="text-xs text-emerald-800 hover:text-emerald-950 font-semibold underline underline-offset-2 flex items-center gap-1"
-                >
-                  <HelpCircle className="w-3.5 h-3.5" />
-                  <span>Why is this held? Read Full Guide →</span>
-                </Link>
-
-                {!isMatrixQualified ? (
-                  <Button
-                    asChild
-                    size="sm"
-                    className="h-8 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold px-3"
-                  >
-                    <Link to="/dashboard/my-network">Invite Partners ({5 - directReferralsCount} more)</Link>
-                  </Button>
-                ) : !isProjectSubscribed && directReferralEarnings >= 10000 ? (
-                  <Button
-                    size="sm"
-                    disabled={subscribingWithWallet}
-                    onClick={handleSubscribeWithWallet}
-                    className="h-8 rounded-xl bg-purple-700 hover:bg-purple-800 text-white text-xs font-semibold px-3"
-                  >
-                    {subscribingWithWallet ? "Activating..." : "Unlock with Wallet (₦10k)"}
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          )}
         </div>
 
 
@@ -1459,88 +1299,125 @@ export default function TransactionLedger() {
             <table className="w-full text-left text-xs text-gray-600">
               <thead className="bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
                 <tr>
-                  <th className="py-3.5 px-5">Date</th>
-                  <th className="py-3.5 px-5">Description</th>
-                  <th className="py-3.5 px-5">Category</th>
-                  <th className="py-3.5 px-5">Reference</th>
-                  <th className="py-3.5 px-5 text-right">Amount</th>
-                  <th className="py-3.5 px-5 text-center">Status</th>
+                  <th className="py-3.5 px-4">Date</th>
+                  <th className="py-3.5 px-4">Description</th>
+                  <th className="py-3.5 px-4">Reference</th>
+                  <th className="py-3.5 px-4 text-right">Amount</th>
+                  <th className="py-3.5 px-4 text-center">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="animate-pulse">
-                      <td className="py-4 px-5">
+                      <td className="py-4 px-4">
                         <Skeleton className="h-4 w-24" />
                       </td>
-                      <td className="py-4 px-5">
-                        <Skeleton className="h-4 w-48" />
+                      <td className="py-4 px-4">
+                        <Skeleton className="h-4 w-56 mb-1.5" />
+                        <Skeleton className="h-3 w-32" />
                       </td>
-                      <td className="py-4 px-5">
-                        <Skeleton className="h-6 w-24 rounded-full" />
-                      </td>
-                      <td className="py-4 px-5">
+                      <td className="py-4 px-4">
                         <Skeleton className="h-4 w-28" />
                       </td>
-                      <td className="py-4 px-5 text-right">
+                      <td className="py-4 px-4 text-right">
                         <Skeleton className="h-4 w-20 ml-auto" />
                       </td>
-                      <td className="py-4 px-5 text-center">
+                      <td className="py-4 px-4 text-center">
                         <Skeleton className="h-6 w-16 mx-auto rounded-full" />
                       </td>
                     </tr>
                   ))
                 ) : filteredTransactions.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="py-12 text-center text-gray-400">
+                    <td colSpan={5} className="py-12 text-center text-gray-400">
                       No transactions found matching your criteria.
                     </td>
                   </tr>
                 ) : (
                   filteredTransactions.map((t) => (
                     <tr key={t.id} className="hover:bg-gray-50/80 transition-colors">
-                      <td className="py-4 px-5 whitespace-nowrap font-medium text-gray-900">
+                      <td className="py-4 px-4 whitespace-nowrap font-medium text-gray-900">
                         {new Date(t.date).toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric",
                           year: "numeric",
                         })}
                       </td>
-                      <td className="py-4 px-5 font-medium text-gray-800 max-w-xs truncate">
-                        <span>{t.description}</span>
-                        {t.is_legacy && (
-                          <span className="ml-1.5 inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                            Founding Member
-                          </span>
-                        )}
+                      <td className="py-4 px-4">
+                        <div className="flex flex-col gap-1.5 min-w-[220px]">
+                          <div className="flex items-start gap-1.5 group">
+                            <span className="font-semibold text-gray-900 leading-snug line-clamp-2" title={t.description}>
+                              {t.description}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigator.clipboard.writeText(t.description);
+                                setCopiedDesc(t.id);
+                                setTimeout(() => setCopiedDesc(null), 2000);
+                                showToast({
+                                  variant: "success",
+                                  title: "Description Copied",
+                                  description: "Full transaction description copied to clipboard.",
+                                });
+                              }}
+                              className="p-1 rounded hover:bg-gray-200/80 text-gray-400 hover:text-gray-700 transition-colors shrink-0 mt-0.5"
+                              title="Copy full description"
+                            >
+                              {copiedDesc === t.id ? (
+                                <Check className="w-3 h-3 text-emerald-600" />
+                              ) : (
+                                <Copy className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                              )}
+                            </button>
+                          </div>
+                          
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {/* Credit / Debit Pill */}
+                            <span
+                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                t.type === "CREDIT"
+                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                  : "bg-rose-100 text-rose-800 border border-rose-200"
+                              }`}
+                            >
+                              {t.type === "CREDIT" ? "Credit" : "Debit"}
+                            </span>
+
+                            {/* Category Pill */}
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${
+                                t.category === "COMBO_PACKAGE"
+                                  ? "bg-teal-50 text-teal-800 border border-teal-200"
+                                  : t.category === "CORE_DRIVER_BONUS"
+                                  ? "bg-amber-50 text-amber-900 border border-amber-200"
+                                  : t.category === "RETAIL_PURCHASE"
+                                  ? "bg-purple-50 text-purple-900 border border-purple-200"
+                                  : t.category === "REFERRAL_BONUS"
+                                  ? "bg-emerald-50 text-emerald-900 border border-emerald-200"
+                                  : t.category === "SLOT_PURCHASE"
+                                  ? "bg-blue-50 text-blue-900 border border-blue-200"
+                                  : t.category === "SUBSCRIPTION"
+                                  ? "bg-emerald-50 text-emerald-950 border border-emerald-300"
+                                  : "bg-gray-100 text-gray-700 border border-gray-200"
+                              }`}
+                            >
+                              {getCategoryLabel(t.category)}
+                            </span>
+
+                            {t.is_legacy && (
+                              <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                                Founding Member
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </td>
-                      <td className="py-4 px-5 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[10px] font-bold ${
-                          t.category === "COMBO_PACKAGE"
-                            ? "bg-emerald-100 text-emerald-950 border border-emerald-300 font-bold"
-                            : t.category === "CORE_DRIVER_BONUS"
-                            ? "bg-amber-100 text-amber-900 border border-amber-300"
-                            : t.category === "RETAIL_PURCHASE"
-                            ? "bg-purple-100 text-purple-900 border border-purple-200"
-                            : t.category === "FARM_CONTRIBUTION"
-                            ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
-                            : "bg-gray-100 text-gray-700"
-                        }`}>
-                          {t.category === "COMBO_PACKAGE"
-                            ? "Starter Bundle"
-                            : t.category === "CORE_DRIVER_BONUS"
-                            ? "Growth Driver Bonus"
-                            : t.category === "RETAIL_PURCHASE"
-                            ? "Retail / Starter Pack"
-                            : t.category === "FARM_CONTRIBUTION"
-                            ? "Farm Contribution"
-                            : t.category.replace(/_/g, " ")}
-                        </span>
-                      </td>
-                      <td className="py-4 px-5 font-mono text-[11px] text-gray-500 max-w-[140px] sm:max-w-[180px]">
+                      <td className="py-4 px-4 font-mono text-[11px] text-gray-500 whitespace-nowrap">
                         <div className="flex items-center gap-1.5 group">
-                          <span className="truncate select-all" title={t.reference}>
+                          <span className="select-all" title={t.reference}>
                             {t.reference}
                           </span>
                           <button
@@ -1568,8 +1445,8 @@ export default function TransactionLedger() {
                         </div>
                       </td>
                       <td
-                        className={`py-4 px-5 whitespace-nowrap text-right font-mono font-bold ${
-                          t.type === "CREDIT" ? "text-emerald-700" : "text-gray-900"
+                        className={`py-4 px-4 whitespace-nowrap text-right font-mono font-bold text-sm ${
+                          t.type === "CREDIT" ? "text-emerald-700" : "text-rose-600"
                         }`}
                       >
                         {t.type === "CREDIT" ? "+" : "-"}₦{t.amount.toLocaleString()}

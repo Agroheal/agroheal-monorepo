@@ -209,16 +209,108 @@ async function recordSubscriptionWithFarmGroupSplit({
       .eq("id", userId);
   }
 
-  // Farm Slot Allocation
+  // Farm Slot Allocation (Strictly Mushroom Village with Sponsor Group & 1,000-slot overflow clusters)
   try {
-    const { data: activeGroups } = await supabase
-      .from("farm_groups")
-      .select("id, name, slug")
-      .eq("project_category", category || "Mushroom Village")
-      .order("created_at", { ascending: true });
+    let targetGroupId = DEFAULT_GROUP_ID;
 
-    const primaryGroup = activeGroups && activeGroups.length > 0 ? activeGroups[0] : null;
-    const primaryGroupId = primaryGroup?.id || DEFAULT_GROUP_ID;
+    // 1. Fetch sponsor/referrer to link to their Mushroom Village cluster
+    const { data: userProfile } = await supabase
+      .from("profiles")
+      .select("referred_by")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const sponsorId = userProfile?.referred_by;
+    if (sponsorId) {
+      // 1a. Check if sponsor coordinates a Mushroom Village farm group
+      const { data: coordGroup } = await supabase
+        .from("farm_groups")
+        .select("id, name")
+        .eq("coordinator_id", sponsorId)
+        .eq("project_category", "Mushroom Village")
+        .maybeSingle();
+
+      if (coordGroup?.id) {
+        targetGroupId = coordGroup.id;
+      } else {
+        // 1b. Check if sponsor has slots in a Mushroom Village farm group
+        const { data: sponsorSlot } = await supabase
+          .from("slot_subscriptions")
+          .select("farm_group_id")
+          .eq("user_id", sponsorId)
+          .eq("status", "active")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (sponsorSlot?.farm_group_id) {
+          targetGroupId = sponsorSlot.farm_group_id;
+        }
+      }
+    }
+
+    // 2. Fetch base group details
+    const { data: baseGroup } = await supabase
+      .from("farm_groups")
+      .select("id, name, slug, coordinator_id, project_category")
+      .eq("id", targetGroupId)
+      .maybeSingle();
+
+    if (baseGroup) {
+      const baseRootName = baseGroup.name.replace(/\s*\(\d+\)$/, "").trim();
+      const baseRootSlug = (baseGroup.slug || "mushroom-farm").replace(/-\d+$/, "").trim();
+
+      // Find all clusters in this family
+      const { data: familyClusters } = await supabase
+        .from("farm_groups")
+        .select("id, name, slug, coordinator_id")
+        .ilike("name", `${baseRootName}%`)
+        .order("created_at", { ascending: true });
+
+      const clustersList = familyClusters && familyClusters.length > 0 ? familyClusters : [baseGroup];
+      let resolvedGroupId: string | null = null;
+
+      for (const cluster of clustersList) {
+        const { data: subs } = await supabase
+          .from("slot_subscriptions")
+          .select("slots")
+          .eq("farm_group_id", cluster.id)
+          .eq("status", "active");
+
+        const totalSlots = (subs || []).reduce((acc: number, curr: any) => acc + (Number(curr.slots) || 1), 0);
+        if (totalSlots + slots <= 1000) {
+          resolvedGroupId = cluster.id;
+          break;
+        }
+      }
+
+      if (resolvedGroupId) {
+        targetGroupId = resolvedGroupId;
+      } else {
+        // All existing clusters are full (>= 1,000 slots) -> create the next overflow cluster!
+        const nextIndex = clustersList.length + 1;
+        const nextClusterName = `${baseRootName} (${nextIndex})`;
+        const nextClusterSlug = `${baseRootSlug}-${nextIndex}`;
+
+        const { data: newCluster } = await supabase
+          .from("farm_groups")
+          .insert([
+            {
+              name: nextClusterName,
+              slug: nextClusterSlug,
+              project_category: "Mushroom Village",
+              coordinator_id: baseGroup.coordinator_id || null,
+              description: `Sub-Cluster ${nextIndex} for ${baseRootName} (Capacity: 1,000 slots)`,
+            },
+          ])
+          .select("id")
+          .single();
+
+        if (newCluster?.id) {
+          targetGroupId = newCluster.id;
+        }
+      }
+    }
 
     await supabase.from("slot_subscriptions").insert([
       {
@@ -231,7 +323,7 @@ async function recordSubscriptionWithFarmGroupSplit({
         last_payment_date: new Date().toISOString(),
         next_payment_date: nextPaymentDate.toISOString(),
         project_category: category || "Mushroom Village",
-        farm_group_id: primaryGroupId,
+        farm_group_id: targetGroupId,
         is_starter_pack: false,
       },
     ]);

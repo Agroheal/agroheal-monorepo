@@ -745,15 +745,8 @@ const CompoundReferrals: React.FC = () => {
     if (linkMode === "subscribe") {
       return `${SITE_URL}/subscribe?ref=${activeReferralCode}`;
     }
-    if (selectedFarmId && selectedFarmId !== "all") {
-      const targetFarm = userFarms.find((f) => f.id === selectedFarmId);
-      const farmSlug = targetFarm?.name
-        ? encodeURIComponent(targetFarm.name.toLowerCase().replace(/\s+/g, "-"))
-        : selectedFarmId;
-      return `${SITE_URL}/signup?ref=${activeReferralCode}&farm=${farmSlug}`;
-    }
     return `${SITE_URL}/signup?ref=${activeReferralCode}`;
-  }, [linkMode, selectedFarmId, userFarms, activeReferralCode]);
+  }, [linkMode, activeReferralCode]);
 
   // Copy Referral Link
   const handleCopyReferralLink = async () => {
@@ -778,9 +771,7 @@ const CompoundReferrals: React.FC = () => {
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
       return;
     }
-    const selectedFarm = userFarms.find((f) => f.id === selectedFarmId);
-    const farmNote = selectedFarm ? ` to participate in ${selectedFarm.name}` : "";
-    const text = `Join me on AgroHeal${farmNote}! Secure your Digital Green Card, activate your 5×7 Producer-Consumer network, and build sustainable agro-wealth. Sign up here: ${activeReferralLink}`;
+    const text = `Join me on AgroHeal! Secure your Digital Green Card, activate your 5×7 Producer-Consumer network, and build sustainable agro-wealth in Mushroom Village. Sign up here: ${activeReferralLink}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
   };
 
@@ -1198,42 +1189,31 @@ const CompoundReferrals: React.FC = () => {
             )}
           </div>
 
-          <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            {/* Farm Selector Dropdown (Active for standard signup) */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Assign to Specific Farm {linkMode === "subscribe" ? "(Optional)" : ""}
-              </label>
-              <select
-                disabled={linkMode === "subscribe"}
-                value={selectedFarmId}
-                onChange={(e) => setSelectedFarmId(e.target.value)}
-                className={`w-full border rounded-xl px-3.5 py-2.5 text-xs font-medium transition-all ${
-                  linkMode === "subscribe"
-                    ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                    : "bg-gray-50 border-gray-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:bg-white"
-                }`}
-              >
-                <option value="all">General Platform Enrolment (No Specific Farm)</option>
-                {userFarms.map((farm) => (
-                  <option key={farm.id} value={farm.id}>
-                    {farm.name} {farm.project_category ? `(${farm.project_category})` : ""}
-                  </option>
-                ))}
-              </select>
+          <div className="mt-4 space-y-3">
+            {/* Cluster destination indicator */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 text-xs">
+              <div className="flex items-center gap-2">
+                <Sprout className="w-4 h-4 text-emerald-700 shrink-0" />
+                <span className="font-semibold text-emerald-950">
+                  Referral Farm Cluster: <span className="font-bold text-emerald-800">Mushroom Village</span>
+                </span>
+              </div>
+              <span className="text-[11px] font-medium text-emerald-800 bg-white/90 px-2.5 py-0.5 rounded-full border border-emerald-200/70 shrink-0">
+                Auto-assigned to your farm group (Spillover at 1,000 slots)
+              </span>
             </div>
 
             {/* Link Preview & Copy */}
-            <div className="md:col-span-2 space-y-1.5">
+            <div className="space-y-1.5">
               <label className="block text-xs font-semibold text-gray-700 flex items-center justify-between">
                 <span>
-                  {linkMode === "subscribe" ? "Fast-Track Direct Pass Link" : "Generated Invite Link"}
+                  {linkMode === "subscribe" ? "Fast-Track Direct Pass Link" : "Standard Invite Link"}
                 </span>
                 <span className="text-[10px] text-gray-400 font-normal">
                   Sponsor code attached
                 </span>
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <input
                   type="text"
                   readOnly
@@ -1242,14 +1222,14 @@ const CompoundReferrals: React.FC = () => {
                 />
                 <Button
                   onClick={handleCopyReferralLink}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   {copiedLink ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
                   {copiedLink ? "Copied" : "Copy Link"}
                 </Button>
                 <Button
                   onClick={handleShareWhatsApp}
-                  className="bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 transition-all flex items-center gap-1.5 shadow-xs cursor-pointer"
+                  className="bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
                 >
                   <Share2 className="w-4 h-4" />
                   WhatsApp
