@@ -96,8 +96,8 @@ export default function TransactionLedger() {
   const [subscribingWithWallet, setSubscribingWithWallet] = useState<boolean>(false);
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
 
-  // Matrix Withdrawal Qualification: 5 direct referrals AND ₦5,000 PQV in 30 days
-  const isMatrixQualified = directReferralsCount >= 5 && activePqv30d >= 5000;
+  // Matrix Withdrawal Qualification: 5 direct referrals AND ₦10,000 PQV in 30 days
+  const isMatrixQualified = directReferralsCount >= 5 && activePqv30d >= 10000;
 
   // Direct Referral Withdrawal Qualification: Active Project Subscribed AND >= ₦2,000
   const isDirectReferralWithdrawable = isProjectSubscribed && directReferralEarnings >= 2000;
@@ -111,7 +111,7 @@ export default function TransactionLedger() {
   );
 
   // Gatekeeper locked capital:
-  // If user is not qualified for 5x7 matrix (5 directs + ₦5k 30d PQV), all matrix earnings are locked.
+  // If user is not qualified for 5x7 matrix (5 directs + ₦10k 30d PQV), all matrix earnings are locked.
   const lockedMatrixAmount = !isMatrixQualified ? matrixEarnings : 0;
   // If direct referral earnings do not meet withdrawal conditions (active project + ₦2k threshold), lock them.
   const lockedDirectAmount = !isDirectReferralWithdrawable ? directReferralEarnings : 0;

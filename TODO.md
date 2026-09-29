@@ -76,7 +76,7 @@
   - **Harvest Close & Dividend Payout Alerts**: Automated alerts to verified slot owners when a harvest cycle closes and funds post to wallets.
   - **MLM Commission & Spillover Alerts**: Push/SMS/Email notifications when direct bonuses or matrix commissions are earned.
   - **Treasury & Withdrawal Status Alerts**: Instant notifications when bank withdrawal requests are queued, approved by Solvency Shield, and disbursed.
-  - **Monthly PQV Qualification Reminders**: Gentle nudge alerts before month-end for members nearing the ₦5,000 PQV threshold.
+  - **Monthly PQV Qualification Reminders**: Gentle nudge alerts before month-end for members nearing the ₦10,000 PQV threshold.
 
 ---
 

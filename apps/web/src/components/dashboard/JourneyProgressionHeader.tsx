@@ -32,6 +32,7 @@ export interface JourneyProgressionHeaderProps {
   referralCode?: string;
   walletBalance?: number;
   createdAt?: string | null;
+  milestone3ActiveDate?: string | null;
   onOpenShareModal?: () => void;
 }
 
@@ -43,6 +44,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   referralCode,
   walletBalance = 0,
   createdAt,
+  milestone3ActiveDate,
   onOpenShareModal,
 }) => {
   const navigate = useNavigate();
@@ -61,6 +63,16 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   else if (isStep1Done && isStep2Done && !isStep3Done) currentStep = 3;
   else if (isStep3Done) currentStep = 4;
 
+  // Management Rule: When Milestone 3 is active, stop showing the milestone banner after 21 days
+  const m3Date = milestone3ActiveDate || createdAt;
+  const daysSinceMilestone3 = m3Date
+    ? Math.floor((Date.now() - new Date(m3Date).getTime()) / (1000 * 60 * 60 * 24))
+    : 0;
+
+  if (currentStep === 3 && m3Date && daysSinceMilestone3 > 21) {
+    return null;
+  }
+
   // Only hide the banner if all 3 milestones are fully completed
   if (isStep3Done) {
     return null;
@@ -78,7 +90,11 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
             <h2 className="text-sm md:text-base font-bold text-foreground flex items-center gap-2">
               Member Journey &amp; Earning Pathway
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                {currentStep <= 3 ? `Milestone ${currentStep} of 3 Active` : "All Milestones Completed"}
+                {currentStep === 3
+                  ? `Milestone 3 of 3 Active (Day ${Math.min(21, Math.max(1, daysSinceMilestone3 + 1))}/21)`
+                  : currentStep <= 3
+                  ? `Milestone ${currentStep} of 3 Active`
+                  : "All Milestones Completed"}
               </span>
             </h2>
             <p className="text-xs text-muted-foreground">

@@ -65,7 +65,12 @@ export const MATRIX_COMMISSIONS_TIERS: readonly MatrixCommissionTier[] = [
   { level: 7, percentage: 2.5, amount: 125, maxMembers: 78125, potential: 9765625, requiredDirects: 0 },
 ] as const;
 
-// ── 5. HELPER FUNCTIONS ──
+// ── 5. MONTHLY QUALIFYING VOLUME (PQV) ──
+export const MIN_PQV_FOR_MATRIX_WITHDRAWAL = 10000; // ₦10,000 monthly personal qualifying volume (PQV)
+export const STATUTORY_PQV_THRESHOLD = 10000; // ₦10,000
+export const PQV_WINDOW_DAYS = 30; // 30-day rolling window
+
+// ── 6. HELPER FUNCTIONS ──
 export const getUnlockedMatrixLevel = (directCount?: number): number => {
   const count = Number(directCount) || 0;
   if (count <= 0) return 0;

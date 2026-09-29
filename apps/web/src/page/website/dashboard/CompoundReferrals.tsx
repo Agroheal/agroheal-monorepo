@@ -67,7 +67,7 @@ interface BreadcrumbItem {
 
 export const ESTHER_APEX_EMAIL = "estherbola888@gmail.com";
 export const MIN_DIRECT_REFERRALS_FOR_MATRIX = 5;
-export const MIN_PQV_FOR_MATRIX_WITHDRAWAL = 5000;
+export const MIN_PQV_FOR_MATRIX_WITHDRAWAL = 10000;
 export const PQV_WINDOW_DAYS = 30;
 export const MIN_DIRECT_REFERRAL_WITHDRAWAL = 2000;
 
@@ -824,7 +824,7 @@ const CompoundReferrals: React.FC = () => {
               </h1>
               <p className="text-sm text-emerald-100/80 max-w-2xl leading-relaxed">
                 Visual geometric tree with BFS automated spillover. Buy at least 1 farm slot (₦5,000) to enter the tree.
-                Fill 5 direct legs and maintain ₦5,000 rolling 30-day PQV to unlock matrix commissions across 7 levels.
+                Fill 5 direct legs and maintain ₦10,000 rolling 30-day PQV to unlock matrix commissions across 7 levels.
               </p>
             </div>
 
@@ -876,7 +876,7 @@ const CompoundReferrals: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-emerald-100/80 mt-0.5 max-w-3xl leading-relaxed">
-                You have up to 7 matrix tiers waiting to be unlocked. Refer 5 active members per tier and maintain ₦5,000 rolling 30-day PQV to unlock full matrix depth withdrawal. See Wallet page for details.
+                You have up to 7 matrix tiers waiting to be unlocked. Refer 5 active members per tier and maintain ₦10,000 rolling 30-day PQV to unlock full matrix depth withdrawal. See Wallet page for details.
               </p>
             </div>
           </div>

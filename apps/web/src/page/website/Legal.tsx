@@ -253,14 +253,14 @@ const legalSections: LegalSectionItem[] = [
         number: "3.4",
         heading: "Monthly Qualification (PQV) & Withdrawal Entitlement",
         body: [
-          "Monthly PQV: Members must maintain ₦5,000 Personal Qualifying Volume (PQV) per calendar month through personal product purchases and/or verified retail customer sales.",
+          "Monthly PQV: Members must maintain ₦10,000 Personal Qualifying Volume (PQV) per calendar month through personal product purchases and/or verified retail customer sales.",
           "Earnings Protection: Missing PQV in any given month does not forfeit earnings or alter matrix placement. Unqualified earnings are securely held in the member's wallet until qualification is satisfied.",
-          "Multilevel Withdrawal Criteria: Within a rolling 30-day window, a member must have: (a) 5 direct referrals filled, and (b) ₦5,000 monthly PQV to withdraw multilevel network commissions.",
+          "Multilevel Withdrawal Criteria: Within a rolling 30-day window, a member must have: (a) 5 direct referrals filled, and (b) ₦10,000 monthly PQV to withdraw multilevel network commissions.",
           "Direct Referral Liquidity: Direct referral bonuses (₦1,000 Green Card, ₦500 Slot, 12% retail sales) are exempt from matrix gating and withdrawable independently once the wallet balance reaches the ₦2,000 minimum threshold.",
           "Refunds & Reversals: Any returned or refunded product commissions are posted as linked reversal entries and deducted from the recipient's subsequent future earnings.",
         ],
         highlights: [
-          "₦5,000 Monthly PQV (Purchases + Retail Sales)",
+          "₦10,000 Monthly PQV (Purchases + Retail Sales)",
           "Unqualified Earnings Held Indefinitely (Never Forfeited)",
           "Direct Bonuses Withdrawable at ₦2,000 Minimum",
           "5 Directs + PQV Required for Multilevel Withdrawals",

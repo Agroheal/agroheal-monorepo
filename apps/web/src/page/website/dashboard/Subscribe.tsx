@@ -158,7 +158,10 @@ export const Subscribe: React.FC = () => {
 
   const isLegacy = isLegacyMember(userCreatedAt);
   const activeGreenCardFee = getGreenCardFee(userCreatedAt);
-  const finalAmount = activeGreenCardFee + (addComboUpsell ? 10000 : 0);
+  // Management Rule: Only registered, authenticated members can opt into farm slots/combos.
+  // Guests are restricted to the minimal-risk ₦2,000 Green Card registration.
+  const isComboApplicable = Boolean(user && addComboUpsell);
+  const finalAmount = activeGreenCardFee + (isComboApplicable ? 10000 : 0);
 
   const handleFlutterwavePayment = async () => {
     setFormError(null);
@@ -198,7 +201,7 @@ export const Subscribe: React.FC = () => {
     setLoading(true);
 
     const targetUserId = user?.id || `guest_${Date.now()}`;
-    const reference = addComboUpsell
+    const reference = isComboApplicable
       ? `GC_COMBO_${Date.now()}_${targetUserId.slice(0, 8)}`
       : `GC_SUB_${Date.now()}_${targetUserId.slice(0, 8)}`;
 
@@ -216,15 +219,15 @@ export const Subscribe: React.FC = () => {
         },
         meta: {
           user_id: targetUserId,
-          plan: addComboUpsell ? "green_card_combo" : "green_card",
-          has_combo: addComboUpsell,
+          plan: isComboApplicable ? "green_card_combo" : "green_card",
+          has_combo: isComboApplicable,
           referral_code: referralCode.trim() || undefined,
         },
         customizations: {
-          title: addComboUpsell
+          title: isComboApplicable
             ? "AgroHeal Green Card + Starter Combo"
             : "AgroHeal Green Card Pass",
-          description: addComboUpsell
+          description: isComboApplicable
             ? "Lifetime Green Card + 1 Mushroom Village Slot + Mushroom Power 100g (Milestone 3 Unlock)"
             : "Lifetime Certified Membership & Platform Access",
           logo: "https://ptowfacejneezksyhntk.supabase.co/storage/v1/object/sign/agroheal-%20buckets/logo.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iZGE2NjM1ZS00NTAzLTRkZDktOTdmOS0zYWExY2Y5NzNiOGQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhZ3JvaGVhbC0gYnVja2V0cy9sb2dvLnBuZyIsImlhdCI6MTc3NDAwODY3OCwiZXhwIjo0OTI3NjA4Njc4fQ.fuwva3-hMj5KmMRqElcclgJqzA5d4aigxCIlHVHgMak",
@@ -720,46 +723,62 @@ export const Subscribe: React.FC = () => {
                 </div>
               )}
 
-              {/* Optional Wealth Creation Combo Upsell */}
-              <div
-                onClick={() => setAddComboUpsell(!addComboUpsell)}
-                className={`p-4 rounded-2xl border transition-all text-left cursor-pointer ${
-                  addComboUpsell
-                    ? "bg-emerald-50/90 border-emerald-500 ring-1 ring-emerald-500/40 shadow-xs"
-                    : "bg-gray-50/70 border-gray-200 hover:border-emerald-300"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    id="comboUpsell"
-                    checked={addComboUpsell}
-                    onChange={(e) => setAddComboUpsell(e.target.checked)}
-                    className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-800 focus:ring-emerald-500 cursor-pointer"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <label htmlFor="comboUpsell" className="text-xs font-bold text-gray-900 cursor-pointer">
-                        Add Starter Combo (Milestone 2)
-                      </label>
-                      <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                        +₦10,000
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">
-                      Your starter package is <strong>₦10,000</strong> (<strong>₦5,000</strong> Mushroom Group farm setup + <strong>₦5,000</strong> Mushroom Power 100g).
-                    </p>
-                    <div className="mt-2.5 flex items-center gap-1.5 flex-wrap text-[10px] font-semibold text-emerald-800">
-                      <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
-                        🚀 Jumps straight to Milestone 3
-                      </span>
-                      <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
-                        🔓 Unlocks Bank Withdrawals
-                      </span>
+              {/* Optional Wealth Creation Combo Upsell (Available to Authenticated Members) */}
+              {user ? (
+                <div
+                  onClick={() => setAddComboUpsell(!addComboUpsell)}
+                  className={`p-4 rounded-2xl border transition-all text-left cursor-pointer ${
+                    addComboUpsell
+                      ? "bg-emerald-50/90 border-emerald-500 ring-1 ring-emerald-500/40 shadow-xs"
+                      : "bg-gray-50/70 border-gray-200 hover:border-emerald-300"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      id="comboUpsell"
+                      checked={addComboUpsell}
+                      onChange={(e) => setAddComboUpsell(e.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-800 focus:ring-emerald-500 cursor-pointer"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <label htmlFor="comboUpsell" className="text-xs font-bold text-gray-900 cursor-pointer">
+                          Add Starter Combo (Milestone 2)
+                        </label>
+                        <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                          +₦10,000
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">
+                        Your starter package is <strong>₦10,000</strong> (<strong>₦5,000</strong> Mushroom Group farm setup + <strong>₦5,000</strong> Mushroom Power 100g).
+                      </p>
+                      <div className="mt-2.5 flex items-center gap-1.5 flex-wrap text-[10px] font-semibold text-emerald-800">
+                        <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
+                          🚀 Jumps straight to Milestone 3
+                        </span>
+                        <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
+                          🔓 Unlocks Bank Withdrawals
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-emerald-50/70 border border-emerald-200/80 rounded-2xl p-4 flex items-start gap-3 text-left">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-800 shrink-0 mt-0.5">
+                    <Shield className="w-4 h-4" />
+                  </div>
+                  <div className="space-y-1">
+                    <h4 className="text-xs font-bold text-gray-900">
+                      Minimal-Risk Guarantee: ₦{activeGreenCardFee.toLocaleString()} Pass
+                    </h4>
+                    <p className="text-[11px] text-gray-600 leading-relaxed">
+                      To prevent reconciliation risks and protect your funds, guests complete their ₦{activeGreenCardFee.toLocaleString()} Green Card account setup first. Once your account is active, you can seamlessly add commercial farm slots and starter combos from inside your dashboard.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Checkout Trigger */}
               <div className="space-y-3 pt-2">

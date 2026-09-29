@@ -92,7 +92,7 @@ const FAQS: FaqItem[] = [
     category: "matrix",
     question: "What are the requirements to unlock Matrix Spillover withdrawals?",
     answer:
-      "To prevent passive free-riding and maintain community economic vitality, matrix spillover withdrawals require two conditions: (1) You must have at least 5 personally sponsored direct active referrals, and (2) You must maintain an active rolling 30-day Personal Qualifying Volume (PQV) of at least ₦5,000 (achieved through slot purchases or community product subscriptions).",
+      "To prevent passive free-riding and maintain community economic vitality, matrix spillover withdrawals require two conditions: (1) You must have at least 5 personally sponsored direct active referrals, and (2) You must maintain an active rolling 30-day Personal Qualifying Volume (PQV) of at least ₦10,000 (achieved through slot purchases or community product subscriptions).",
     tags: ["matrix unlock", "pqv", "5 referrals", "qualifications", "gate"],
   },
   {

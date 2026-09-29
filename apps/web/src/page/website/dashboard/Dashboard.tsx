@@ -93,6 +93,7 @@ const Dashboard = () => {
   const [assignedFarms, setAssignedFarms] = useState<
     Array<{ id: string; name: string; project_category: string; slots: number }>
   >([]);
+  const [milestone3ActiveDate, setMilestone3ActiveDate] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -224,6 +225,22 @@ const Dashboard = () => {
         }
       });
       setAssignedFarms(userAssignedFarms);
+
+      // Track earliest slot date when Milestone 3 began
+      let earliestSlotDate: string | null = null;
+      (subscriptions || []).forEach((s: any) => {
+        const d = s.created_at || s.last_payment_date;
+        if (d && (!earliestSlotDate || new Date(d) < new Date(earliestSlotDate))) {
+          earliestSlotDate = d;
+        }
+      });
+      farmRecs.forEach((r: any) => {
+        const d = r.created_at || r.subscription_date;
+        if (d && (!earliestSlotDate || new Date(d) < new Date(earliestSlotDate))) {
+          earliestSlotDate = d;
+        }
+      });
+      setMilestone3ActiveDate(earliestSlotDate);
 
       // Build unified recent payments from subscriptions and checkouts
       const combinedHistory: SlotPaymentHistoryItem[] = [];
@@ -428,7 +445,7 @@ const Dashboard = () => {
       </div>
 
       <div className="px-4 md:px-8 -mt-8 pb-12 max-w-[96%] mx-auto">
-        {/* Journey Progression Infographic Banner (Active through Milestones 1, 2, and 3) */}
+        {/* Journey Progression Infographic Banner (Active through Milestones 1, 2, and 3 - stops after 21 days in Milestone 3) */}
         {!Boolean(hasGreenCard && totalSlotsPurchased > 0 && (profile?.total_referrals || 0) >= 5) && (
           <JourneyProgressionHeader
             hasGreenCard={hasGreenCard}
@@ -438,6 +455,7 @@ const Dashboard = () => {
             referralCode={profile?.referral_code}
             walletBalance={Number(profile?.wallet_balance || profile?.referral_earnings || 0)}
             createdAt={profile?.created_at}
+            milestone3ActiveDate={milestone3ActiveDate}
             onOpenShareModal={() => setShowShareModal(true)}
           />
         )}
