@@ -1002,7 +1002,7 @@ export default function TransactionLedger() {
         </div>
 
         {/* Informative notice for held funds */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-5 py-3 rounded-2xl bg-amber-50/80 border border-amber-200/80 text-amber-950 text-xs max-w-2xl mx-auto shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-5 py-3 rounded-2xl bg-amber-50/80 border border-amber-200/80 text-amber-950 text-xs w-full max-w-[470px] mx-auto shadow-2xs">
           <div className="flex items-center gap-2">
             <HelpCircle className="w-4 h-4 text-amber-700 shrink-0" />
             <span className="font-medium text-amber-900">
@@ -1017,9 +1017,9 @@ export default function TransactionLedger() {
           </Link>
         </div>
 
-        {/* ── CENTRALIZED EXECUTIVE MEMBER WALLET ── */}
-        <div className="max-w-2xl mx-auto">
-          <div className="flex flex-col justify-between bg-[#0c2415] border border-emerald-700/50 rounded-3xl p-5 sm:p-6 text-white shadow-xl relative overflow-hidden space-y-3">
+        {/* ── CENTRALIZED EXECUTIVE MEMBER WALLET (CANONICAL CREDIT CARD ASPECT RATIO) ── */}
+        <div className="w-full max-w-[470px] mx-auto">
+          <div className="flex flex-col justify-between bg-[#0c2415] border border-emerald-700/50 rounded-3xl p-5 sm:p-5.5 text-white shadow-xl relative overflow-hidden space-y-3">
             {/* Background Ambient Glows */}
             <div className="absolute top-0 right-0 -mr-16 -mt-16 w-60 h-60 rounded-full bg-emerald-400/10 blur-3xl pointer-events-none" />
             <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-60 h-60 rounded-full bg-amber-400/5 blur-3xl pointer-events-none" />
@@ -1296,35 +1296,35 @@ export default function TransactionLedger() {
 
           {/* Table Content */}
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-gray-600">
+            <table className="w-full table-fixed text-left text-xs text-gray-600">
               <thead className="bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
                 <tr>
-                  <th className="py-3.5 px-4">Date</th>
-                  <th className="py-3.5 px-4">Description</th>
-                  <th className="py-3.5 px-4">Reference</th>
-                  <th className="py-3.5 px-4 text-right">Amount</th>
-                  <th className="py-3.5 px-4 text-center">Status</th>
+                  <th className="py-3 px-2.5 sm:px-3 w-[95px] sm:w-[105px] whitespace-nowrap">Date</th>
+                  <th className="py-3 px-2.5 sm:px-3">Description</th>
+                  <th className="py-3 px-2 w-[110px] sm:w-[130px] whitespace-nowrap">Reference</th>
+                  <th className="py-3 px-2.5 sm:px-3 w-[95px] sm:w-[110px] text-right whitespace-nowrap">Amount</th>
+                  <th className="py-3 px-2 w-[100px] sm:w-[110px] text-center whitespace-nowrap">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="animate-pulse">
-                      <td className="py-4 px-4">
-                        <Skeleton className="h-4 w-24" />
+                      <td className="py-3.5 px-2.5 sm:px-3">
+                        <Skeleton className="h-4 w-16 sm:w-20" />
                       </td>
-                      <td className="py-4 px-4">
-                        <Skeleton className="h-4 w-56 mb-1.5" />
-                        <Skeleton className="h-3 w-32" />
+                      <td className="py-3.5 px-2.5 sm:px-3">
+                        <Skeleton className="h-4 w-36 sm:w-52 mb-1.5" />
+                        <Skeleton className="h-3 w-24 sm:w-28" />
                       </td>
-                      <td className="py-4 px-4">
-                        <Skeleton className="h-4 w-28" />
+                      <td className="py-3.5 px-2">
+                        <Skeleton className="h-4 w-16 sm:w-20" />
                       </td>
-                      <td className="py-4 px-4 text-right">
-                        <Skeleton className="h-4 w-20 ml-auto" />
+                      <td className="py-3.5 px-2.5 sm:px-3 text-right">
+                        <Skeleton className="h-4 w-14 sm:w-16 ml-auto" />
                       </td>
-                      <td className="py-4 px-4 text-center">
-                        <Skeleton className="h-6 w-16 mx-auto rounded-full" />
+                      <td className="py-3.5 px-2 text-center">
+                        <Skeleton className="h-5 w-16 mx-auto rounded-full" />
                       </td>
                     </tr>
                   ))
@@ -1337,17 +1337,20 @@ export default function TransactionLedger() {
                 ) : (
                   filteredTransactions.map((t) => (
                     <tr key={t.id} className="hover:bg-gray-50/80 transition-colors">
-                      <td className="py-4 px-4 whitespace-nowrap font-medium text-gray-900">
+                      <td className="py-3.5 px-2.5 sm:px-3 whitespace-nowrap font-medium text-gray-900 text-[11px] sm:text-xs">
                         {new Date(t.date).toLocaleDateString("en-US", {
                           month: "short",
                           day: "numeric",
                           year: "numeric",
                         })}
                       </td>
-                      <td className="py-4 px-4">
-                        <div className="flex flex-col gap-1.5 min-w-[220px]">
-                          <div className="flex items-start gap-1.5 group">
-                            <span className="font-semibold text-gray-900 leading-snug line-clamp-2" title={t.description}>
+                      <td className="py-3.5 px-2.5 sm:px-3 min-w-0">
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <div className="flex items-start gap-1.5 group min-w-0">
+                            <span
+                              className="font-semibold text-gray-900 leading-snug line-clamp-2 break-words"
+                              title={t.description}
+                            >
                               {t.description}
                             </span>
                             <button
@@ -1374,10 +1377,10 @@ export default function TransactionLedger() {
                             </button>
                           </div>
                           
-                          <div className="flex flex-wrap items-center gap-1.5">
+                          <div className="flex flex-wrap items-center gap-1">
                             {/* Credit / Debit Pill */}
                             <span
-                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-bold ${
                                 t.type === "CREDIT"
                                   ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
                                   : "bg-rose-100 text-rose-800 border border-rose-200"
@@ -1388,7 +1391,7 @@ export default function TransactionLedger() {
 
                             {/* Category Pill */}
                             <span
-                              className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold ${
+                              className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-semibold truncate max-w-[130px] sm:max-w-[160px] ${
                                 t.category === "COMBO_PACKAGE"
                                   ? "bg-teal-50 text-teal-800 border border-teal-200"
                                   : t.category === "CORE_DRIVER_BONUS"
@@ -1409,15 +1412,18 @@ export default function TransactionLedger() {
 
                             {t.is_legacy && (
                               <span className="inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                                Founding Member
+                                Founding
                               </span>
                             )}
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 px-4 font-mono text-[11px] text-gray-500 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5 group">
-                          <span className="select-all" title={t.reference}>
+                      <td className="py-3.5 px-2 font-mono text-[11px] text-gray-500 whitespace-nowrap">
+                        <div className="flex items-center justify-between gap-1 group w-full min-w-0">
+                          <span
+                            className="truncate flex-1 min-w-0 select-all block font-mono"
+                            title={t.reference}
+                          >
                             {t.reference}
                           </span>
                           <button
@@ -1434,7 +1440,7 @@ export default function TransactionLedger() {
                               });
                             }}
                             className="p-1 rounded hover:bg-gray-200/80 text-gray-400 hover:text-gray-700 transition-colors shrink-0"
-                            title="Copy full reference"
+                            title={`Copy reference: ${t.reference}`}
                           >
                             {copiedRef === t.reference ? (
                               <Check className="w-3 h-3 text-emerald-600" />
@@ -1445,16 +1451,16 @@ export default function TransactionLedger() {
                         </div>
                       </td>
                       <td
-                        className={`py-4 px-4 whitespace-nowrap text-right font-mono font-bold text-sm ${
+                        className={`py-3.5 px-2.5 sm:px-3 whitespace-nowrap text-right font-mono font-bold text-xs sm:text-sm ${
                           t.type === "CREDIT" ? "text-emerald-700" : "text-rose-600"
                         }`}
                       >
                         {t.type === "CREDIT" ? "+" : "-"}₦{t.amount.toLocaleString()}
                       </td>
-                      <td className="py-4 px-5 whitespace-nowrap text-center">
-                        <div className="inline-flex items-center justify-center gap-2">
+                      <td className="py-3.5 px-2 whitespace-nowrap text-center">
+                        <div className="inline-flex items-center justify-center gap-1">
                           <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                            className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9.5px] sm:text-[10px] font-semibold ${
                               t.status === "COMPLETED"
                                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                 : t.status === "FAILED"
@@ -1463,13 +1469,13 @@ export default function TransactionLedger() {
                             }`}
                           >
                             {t.status === "COMPLETED" ? (
-                              <CheckCircle2 className="w-3 h-3" />
+                              <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
                             ) : t.status === "FAILED" ? (
-                              <AlertCircle className="w-3 h-3 text-rose-600" />
+                              <AlertCircle className="w-3 h-3 text-rose-600 shrink-0" />
                             ) : (
-                              <Clock className="w-3 h-3 text-amber-600" />
+                              <Clock className="w-3 h-3 text-amber-600 shrink-0" />
                             )}
-                            {t.status.toUpperCase()}
+                            <span className="uppercase font-bold text-[9px] sm:text-[9.5px]">{t.status}</span>
                           </span>
 
                           {t.status === "PENDING" && (
@@ -1477,21 +1483,16 @@ export default function TransactionLedger() {
                               type="button"
                               onClick={() => handleRequery(t.reference)}
                               disabled={requeryLoading && activeRequeryRef === t.reference}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+                              className="inline-flex items-center p-1 rounded-md text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 transition-colors cursor-pointer disabled:opacity-50"
                               title={`Requery payment for reference ${t.reference}`}
                             >
                               <RefreshCw
-                                className={`w-2.5 h-2.5 ${
+                                className={`w-3 h-3 ${
                                   requeryLoading && activeRequeryRef === t.reference
                                     ? "animate-spin text-emerald-600"
                                     : "text-emerald-700"
                                 }`}
                               />
-                              <span>
-                                {requeryLoading && activeRequeryRef === t.reference
-                                  ? "Checking..."
-                                  : "Requery"}
-                              </span>
                             </button>
                           )}
                         </div>
