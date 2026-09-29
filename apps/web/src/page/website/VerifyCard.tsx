@@ -68,7 +68,7 @@ export const VerifyCard: React.FC = () => {
               fullName: rpcData.fullName || "AgroHeal Member",
               memberSince: formattedDate,
               status: rpcData.status === "active" ? "active" : "inactive",
-              tier: rpcData.tier || "AgroHeal Green Card Pioneer",
+              tier: rpcData.tier || "AgroHeal Green Card Founding Member",
               verifiedAt: rpcData.verifiedAt || new Date().toISOString(),
               avatarUrl: rpcData.avatarUrl || undefined,
             });
@@ -96,7 +96,7 @@ export const VerifyCard: React.FC = () => {
               fullName: apiData.fullName || "AgroHeal Member",
               memberSince: formattedDate,
               status: apiData.isVerified ? "active" : "inactive",
-              tier: "AgroHeal Green Card Pioneer",
+              tier: "AgroHeal Green Card Founding Member",
               verifiedAt: new Date().toISOString(),
             });
             setLoading(false);
@@ -157,7 +157,7 @@ export const VerifyCard: React.FC = () => {
           fullName: profile.full_name || "AgroHeal Member",
           memberSince: formattedDate,
           status: isActive ? "active" : "inactive",
-          tier: "AgroHeal Green Card Pioneer",
+          tier: "AgroHeal Green Card Founding Member",
           verifiedAt: new Date().toISOString(),
           avatarUrl: profile.avatar_url || undefined,
         });

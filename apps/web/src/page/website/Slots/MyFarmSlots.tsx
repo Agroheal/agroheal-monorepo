@@ -314,7 +314,7 @@ const MyFarmSlots: React.FC = () => {
           {isLegacy && (
             <div className="inline-flex items-center gap-1 p-0.5 bg-amber-50/90 border border-amber-200 rounded-xl text-xs">
               <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 px-2 hidden sm:inline">
-                Pioneer Members' Filter:
+                Founding Members' Filter:
               </span>
               <button
                 type="button"
@@ -347,7 +347,7 @@ const MyFarmSlots: React.FC = () => {
                     : "text-amber-800 hover:text-amber-950"
                 }`}
               >
-                Pioneer Members' Slots ({subscriptions.filter((c) => c.is_legacy).length})
+                Founding Members' Slots ({subscriptions.filter((c) => c.is_legacy).length})
               </button>
             </div>
           )}
@@ -391,7 +391,7 @@ const MyFarmSlots: React.FC = () => {
                         </Badge>
                         {sub.is_legacy && (
                           <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 font-bold text-xs">
-                            Pioneer Member Slot
+                            Founding Member Slot
                           </Badge>
                         )}
                         {isUserCoordinator && (
@@ -476,6 +476,40 @@ const MyFarmSlots: React.FC = () => {
                     </div>
                     <div className={cycle.progress_percent >= 100 ? "text-emerald-700 font-bold" : ""}>
                       4. Offtake & Payout
+                    </div>
+                  </div>
+
+                  {/* Biological Cycle Dividend Statement (40% Proportional Net Yield) */}
+                  <div className="mt-3.5 pt-3 border-t border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white/70 p-3 rounded-xl border">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+                        <TrendingUp className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs font-bold text-slate-800">
+                            Commercial Yield & 40% Dividend Statement
+                          </p>
+                          <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                            Statutory 40% Payout
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          Net commercial harvest profit is distributed 40% directly to slot holders upon Stage 4 offtake settlement.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-baseline gap-2 shrink-0 self-end sm:self-center bg-emerald-50/80 border border-emerald-200 px-3 py-1.5 rounded-lg text-right">
+                      <div>
+                        <p className="text-[10px] uppercase font-bold text-emerald-700 tracking-wider">
+                          Your Stake ({sub.slots_held} Slot{sub.slots_held > 1 ? "s" : ""})
+                        </p>
+                        <p className="text-sm font-extrabold text-emerald-900">
+                          ₦{((sub.slots_held || 0) * 2400).toLocaleString()}{" "}
+                          <span className="text-[10px] font-normal text-emerald-700">(@ ₦2,400/slot)</span>
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -674,7 +708,7 @@ const MyFarmSlots: React.FC = () => {
                                     <td className="px-6 py-3.5">
                                       {member.is_legacy ? (
                                         <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 text-[10px] font-semibold">
-                                          Pioneer Stakeholder
+                                          Founding Stakeholder
                                         </Badge>
                                       ) : (
                                         <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 text-[10px] font-semibold">

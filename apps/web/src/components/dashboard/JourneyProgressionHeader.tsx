@@ -105,7 +105,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
             <div className="p-3.5 rounded-xl bg-background border border-border/50">
               <div className="font-semibold text-foreground mb-1 flex items-center gap-1.5">
                 <IdCard className="w-4 h-4 text-emerald-600" />
-                <span>1. Agroheal Green Card ({formatNaira(activeFee)}{isLegacy ? " - Pioneer Rate" : ""})</span>
+                <span>1. Agroheal Green Card ({formatNaira(activeFee)}{isLegacy ? " - Founding Rate" : ""})</span>
               </div>
               <p className="text-[11px] leading-relaxed mb-2">
                 Grants verified digital membership, immediate affiliate link, and pays ₦1,000 instant commission per referral into your wallet.

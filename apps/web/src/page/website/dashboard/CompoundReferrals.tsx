@@ -1187,7 +1187,7 @@ const CompoundReferrals: React.FC = () => {
                   <p className="text-xs sm:text-sm text-gray-600 mt-2 leading-relaxed">
                     {isLegacyNeedsStarterPack ? (
                       <>
-                        As a valued Pioneer/Legacy member, please activate your account with the{" "}
+                        As a valued Founding member, please activate your account with the{" "}
                         <strong className="text-emerald-700 font-bold">Mushroom Starter Pack (₦5,000)</strong> to unlock your 5×7 organogram matrix, downline spillover placements, and commercial wallet withdrawals.
                       </>
                     ) : (

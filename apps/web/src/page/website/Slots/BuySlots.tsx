@@ -86,7 +86,7 @@ const BuySlots: React.FC = () => {
                   </Badge>
                 </div>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  As a verified Pioneer / Legacy Member, your pre-launch farm slots are already secured and productive in the physical farms! 
+                  As a verified Founding Member, your pre-launch farm slots are already secured and productive in the physical farms! 
                   To activate your <strong>5×7 Compound Network Organogram</strong>, unlock <strong>Level 1–7 compound referral commissions</strong>, and enable <strong>external bank withdrawals</strong>, please complete your one-time <strong>₦5,000 Mushroom Starter Pack (100g)</strong> purchase.
                 </p>
                 <div className="border-t border-amber-100 pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

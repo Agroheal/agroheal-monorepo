@@ -265,8 +265,8 @@ export const useFarmStore = create<FarmState>((set, get) => ({
             const slots = Number(fr.farm_slots) || 1;
             rosterMap[fr.farm_id].push({
               id: fr.id,
-              name: fr.name || "Pioneer Stakeholder",
-              email: fr.email || "Pioneer Member",
+              name: fr.name || "Founding Stakeholder",
+              email: fr.email || "Founding Member",
               slots,
               fruiting_bags: slots * 2,
               created_at: fr.created_at || new Date().toISOString(),
@@ -387,7 +387,7 @@ export const useFarmStore = create<FarmState>((set, get) => ({
           const clusterMembers = rosterMap[farmId] || [
             {
               id: fr.id,
-              name: fr.name || "Pioneer Stakeholder",
+              name: fr.name || "Founding Stakeholder",
               email: fr.email || "Archived Contact",
               slots: slotsCount,
               fruiting_bags: bagsCount,

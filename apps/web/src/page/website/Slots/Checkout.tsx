@@ -1450,7 +1450,7 @@ const Checkout = () => {
                               <div className="flex items-center justify-between text-amber-900 pt-1.5 border-t border-green-200/60 font-semibold">
                                 <span className="flex items-center gap-1">
                                   <Shield className="w-3.5 h-3.5 text-amber-700" />
-                                  Green Card Lifetime Pass {isLegacy ? "(Pioneer Rate)" : "(Auto-bundled)"}
+                                  Green Card Lifetime Pass {isLegacy ? "(Founding Rate)" : "(Auto-bundled)"}
                                 </span>
                                 <span>₦{activeGreenCardRate.toLocaleString()}</span>
                               </div>
@@ -1868,7 +1868,7 @@ const Checkout = () => {
                     <div className="flex justify-between items-start text-xs bg-amber-50 border border-amber-200/80 p-3 rounded-xl">
                       <div>
                         <span className="text-amber-950 font-bold block">
-                          Green Card Lifetime Pass {isLegacy && <span className="text-emerald-700 ml-1">(Pioneer Rate)</span>}
+                          Green Card Lifetime Pass {isLegacy && <span className="text-emerald-700 ml-1">(Founding Rate)</span>}
                         </span>
                         <span className="text-[11px] text-amber-800">
                           {isLegacy ? "Grandfathered rate (Joined before Sep 6)" : "Auto-bundled (Required for payouts & ID)"}

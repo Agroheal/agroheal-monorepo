@@ -25,6 +25,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Wifi,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
@@ -92,6 +94,7 @@ export default function TransactionLedger() {
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState<boolean>(false);
   const [isProjectSubscribed, setIsProjectSubscribed] = useState<boolean>(false);
   const [subscribingWithWallet, setSubscribingWithWallet] = useState<boolean>(false);
+  const [copiedRef, setCopiedRef] = useState<string | null>(null);
 
   // Matrix Withdrawal Qualification: 5 direct referrals AND ₦5,000 PQV in 30 days
   const isMatrixQualified = directReferralsCount >= 5 && activePqv30d >= 5000;
@@ -1377,7 +1380,7 @@ export default function TransactionLedger() {
               {isLegacyUser && (
                 <div className="inline-flex items-center gap-1 p-0.5 bg-amber-50/80 border border-amber-200 rounded-xl text-xs ml-0 sm:ml-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 px-1.5 hidden md:inline">
-                    Pioneer Members' Records:
+                    Founding Members' Records:
                   </span>
                   <button
                     type="button"
@@ -1410,7 +1413,7 @@ export default function TransactionLedger() {
                         : "text-amber-800 hover:text-amber-950"
                     }`}
                   >
-                    Pioneer Members ({transactions.filter((t) => t.is_legacy).length})
+                    Founding Members ({transactions.filter((t) => t.is_legacy).length})
                   </button>
                 </div>
               )}
@@ -1517,7 +1520,7 @@ export default function TransactionLedger() {
                         <span>{t.description}</span>
                         {t.is_legacy && (
                           <span className="ml-1.5 inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                            Pioneer Member
+                            Founding Member
                           </span>
                         )}
                       </td>
@@ -1540,8 +1543,34 @@ export default function TransactionLedger() {
                             : t.category.replace(/_/g, " ")}
                         </span>
                       </td>
-                      <td className="py-4 px-5 whitespace-nowrap font-mono text-[11px] text-gray-500">
-                        {t.reference}
+                      <td className="py-4 px-5 font-mono text-[11px] text-gray-500 max-w-[140px] sm:max-w-[180px]">
+                        <div className="flex items-center gap-1.5 group">
+                          <span className="truncate select-all" title={t.reference}>
+                            {t.reference}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigator.clipboard.writeText(t.reference);
+                              setCopiedRef(t.reference);
+                              setTimeout(() => setCopiedRef(null), 2000);
+                              showToast({
+                                variant: "success",
+                                title: "Reference Copied",
+                                description: `${t.reference} copied to clipboard.`,
+                              });
+                            }}
+                            className="p-1 rounded hover:bg-gray-200/80 text-gray-400 hover:text-gray-700 transition-colors shrink-0"
+                            title="Copy full reference"
+                          >
+                            {copiedRef === t.reference ? (
+                              <Check className="w-3 h-3 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-3 h-3 opacity-60 group-hover:opacity-100" />
+                            )}
+                          </button>
+                        </div>
                       </td>
                       <td
                         className={`py-4 px-5 whitespace-nowrap text-right font-mono font-bold ${
@@ -1662,6 +1691,8 @@ export default function TransactionLedger() {
           directReferralBalance={directReferralEarnings}
           matrixBalance={matrixEarnings}
           walletBalance={walletBalance}
+          availableBalance={availableBalance}
+          isDirectReferralWithdrawable={isDirectReferralWithdrawable}
           isMatrixQualified={isMatrixQualified}
           savedBankName={userProfile?.bank_name}
           savedAccountNumber={userProfile?.bank_account_number}

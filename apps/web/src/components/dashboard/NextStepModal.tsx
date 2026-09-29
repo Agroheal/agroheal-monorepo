@@ -411,7 +411,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                   {currentStep === 1 && bundleSlot
                     ? `Green Card (${formatNaira(activeFee)}) + Starter Slot (₦10,000) Bundled at Checkout`
                     : currentStep === 1
-                    ? `${formatNaira(activeFee)} One-Time Lifetime Membership${isLegacy ? " (Pioneer Rate)" : ""}`
+                    ? `${formatNaira(activeFee)} One-Time Lifetime Membership${isLegacy ? " (Founding Rate)" : ""}`
                     : "priceText" in currentData
                     ? currentData.priceText
                     : ""}

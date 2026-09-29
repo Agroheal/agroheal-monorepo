@@ -30,6 +30,8 @@ interface WithdrawalModalProps {
   directReferralBalance: number;
   matrixBalance: number;
   walletBalance?: number;
+  availableBalance?: number;
+  isDirectReferralWithdrawable?: boolean;
   isMatrixQualified: boolean;
   savedBankName?: string;
   savedAccountNumber?: string;
@@ -51,6 +53,8 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
   directReferralBalance,
   matrixBalance,
   walletBalance = 0,
+  availableBalance = 0,
+  isDirectReferralWithdrawable = true,
   isMatrixQualified,
   savedBankName,
   savedAccountNumber,
@@ -98,10 +102,11 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
     savedAccountNumber.trim().length >= 10
   );
 
+  // Authoritative Available Cleared Balance (strictly enforcing ₦2k gate and qualification rules)
   const currentAvailableBalance =
     walletType === "DIRECT_REFERRAL"
-      ? Math.max(directReferralBalance, walletBalance || 0)
-      : matrixBalance;
+      ? (isDirectReferralWithdrawable && directReferralBalance >= 2000 ? directReferralBalance : 0)
+      : (isMatrixQualified && matrixBalance >= 2000 ? matrixBalance : 0);
 
   const handleMaxAmount = () => {
     setAmount(Math.max(0, currentAvailableBalance).toString());
@@ -134,7 +139,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
 
     if (isLegacy && !hasPurchasedStarterPack) {
       setErrorMsg(
-        "Mushroom Starter Pack Required: As a Pioneer / Legacy Member, please complete your one-time ₦5,000 Mushroom Starter Pack (100g) purchase to unlock external bank withdrawals."
+        "Mushroom Starter Pack Required: As a Founding Member, please complete your one-time ₦5,000 Mushroom Starter Pack (100g) purchase to unlock external bank withdrawals."
       );
       return;
     }
