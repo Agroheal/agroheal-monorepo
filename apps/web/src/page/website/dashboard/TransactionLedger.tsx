@@ -42,7 +42,7 @@ interface LedgerItem {
   id: string;
   date: string;
   type: "CREDIT" | "DEBIT";
-  category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION" | "CORE_DRIVER_BONUS" | "RETAIL_PURCHASE";
+  category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION" | "CORE_DRIVER_BONUS" | "RETAIL_PURCHASE" | "FARM_CONTRIBUTION";
   amount: number;
   description: string;
   status: "COMPLETED" | "PENDING" | "FAILED";
@@ -112,10 +112,12 @@ export default function TransactionLedger() {
   const lockedMatrixAmount = !isMatrixQualified ? matrixEarnings : 0;
   // If direct referral earnings do not meet withdrawal conditions (active project + ₦2k threshold), lock them.
   const lockedDirectAmount = !isDirectReferralWithdrawable ? directReferralEarnings : 0;
-  const totalLockedAmount = lockedMatrixAmount + lockedDirectAmount;
 
-  // Immediately withdrawable / available cleared balance:
-  const availableBalance = Math.max(0, ledgerBalance - totalLockedAmount);
+  // Statutory Gate: A balance cannot appear in Available Balance if it is less than ₦2,000 (minimum statutory payout).
+  const rawClearedBalance = Math.max(0, ledgerBalance - (lockedMatrixAmount + lockedDirectAmount));
+  const availableBalance = rawClearedBalance >= 2000 ? rawClearedBalance : 0;
+  const lockedBelowThresholdAmount = rawClearedBalance < 2000 ? rawClearedBalance : 0;
+  const totalLockedAmount = lockedMatrixAmount + lockedDirectAmount + lockedBelowThresholdAmount;
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -207,12 +209,25 @@ export default function TransactionLedger() {
       try {
         const { data: txData } = await supabase
           .from("transactions")
-          .select("id, amount, created_at, transaction_ref, payment_reference, status, is_legacy, project_category")
+          .select("id, amount, created_at, transaction_ref, payment_reference, status, is_legacy, project_category, user_id, email")
           .or(`user_id.eq.${user.id},email.ilike.${user.email || ""}`)
-          .limit(50);
+          .limit(100);
         checkouts = txData || [];
       } catch {
         checkouts = [];
+      }
+
+      let farmRecords: any[] = [];
+      if (user.email) {
+        try {
+          const { data: frData } = await supabase
+            .from("farm_records")
+            .select("id, name, email, farm_slots, months_farm_setup, months_farm_support, absentee_fine, project_category, created_at, is_legacy")
+            .ilike("email", user.email.trim());
+          farmRecords = frData || [];
+        } catch {
+          farmRecords = [];
+        }
       }
 
       const [
@@ -234,11 +249,11 @@ export default function TransactionLedger() {
         user.email
           ? supabase
               .from("slot_subscriptions")
-              .select("id, slots, amount, status, project_category, created_at, farm_group_id, is_legacy, last_payment_date, member_name, member_email")
+              .select("id, user_id, slots, amount, status, project_category, created_at, farm_group_id, is_legacy, last_payment_date, member_name, member_email")
               .or(`user_id.eq.${user.id},member_email.ilike.${user.email.trim()}`)
           : supabase
               .from("slot_subscriptions")
-              .select("id, slots, amount, status, project_category, created_at, farm_group_id, is_legacy, last_payment_date, member_name, member_email")
+              .select("id, user_id, slots, amount, status, project_category, created_at, farm_group_id, is_legacy, last_payment_date, member_name, member_email")
               .eq("user_id", user.id),
         supabase
           .from("other_payments")
@@ -404,6 +419,11 @@ export default function TransactionLedger() {
 
       // 3. Slot Subscriptions (Physical & Digital Group Farm Slots)
       (slotSubscriptions || []).forEach((ss: any, idx: number) => {
+        const isBelongingToUser =
+          (ss.user_id && ss.user_id === user.id) ||
+          (user.email && ss.member_email && ss.member_email.toLowerCase() === user.email.toLowerCase());
+        if (!isBelongingToUser) return;
+
         const slotsCount = Number(ss.slots || 1);
         const ssStatus = (ss.status || "active").toLowerCase();
         const isSsCompleted = ["active", "paid", "success", "confirmed", "completed"].includes(ssStatus);
@@ -441,11 +461,23 @@ export default function TransactionLedger() {
         });
       });
 
-      // 5. Online Checkouts & Gateway Transactions
+      // 5. Online Checkouts & Gateway Transactions (Strictly user-scoped and verified)
       (checkouts || []).forEach((c: any) => {
+        const isBelongingToUser =
+          (c.user_id && c.user_id === user.id) ||
+          (user.email && c.email && c.email.toLowerCase() === user.email.toLowerCase());
+        if (!isBelongingToUser) return;
+
+        const cStatus = (c.status || "").toLowerCase();
+        const hasPaymentRef = Boolean(c.transaction_ref || c.payment_reference);
+
+        // Omit uncompleted / abandoned checkout clicks (e.g. pending without any gateway payment reference like CHK-270)
+        if (cStatus === "pending" && !hasPaymentRef) {
+          return;
+        }
+
         const ref = c.transaction_ref || c.payment_reference || `CHK-${c.id.toString().slice(0, 8)}`;
         if (!items.some((i) => i.reference === ref || (c.transaction_ref && i.reference === c.transaction_ref))) {
-          const cStatus = (c.status || "").toLowerCase();
           const isCCompleted = ["paid", "success", "completed", "confirmed", "active"].includes(cStatus);
           const isCFailed = ["failed", "cancelled", "abandoned", "declined"].includes(cStatus);
           items.push({
@@ -459,6 +491,58 @@ export default function TransactionLedger() {
             reference: ref,
             is_legacy: Boolean(c.is_legacy || isLegacyMember(c.created_at)),
           });
+        }
+      });
+
+      // 6. Farm Setup & Support Contributions (from audited farm_records)
+      (farmRecords || []).forEach((fr: any) => {
+        if (fr.months_farm_setup && fr.months_farm_setup.toLowerCase() !== "0" && fr.months_farm_setup.toLowerCase() !== "unpaid") {
+          const ref = `SETUP-${fr.id.slice(0, 8).toUpperCase()}`;
+          if (!items.some((it) => it.reference === ref)) {
+            items.push({
+              id: `fr-setup-${fr.id}`,
+              date: fr.created_at || "2024-01-01T00:00:00.000Z",
+              type: "DEBIT",
+              category: "FARM_CONTRIBUTION",
+              amount: 0,
+              description: `Farm Setup Contribution — ${fr.project_category || "Group Farm"} (${fr.months_farm_setup})`,
+              status: "COMPLETED",
+              reference: ref,
+              is_legacy: true,
+            });
+          }
+        }
+        if (fr.months_farm_support && fr.months_farm_support.toLowerCase() !== "0" && fr.months_farm_support.toLowerCase() !== "unpaid") {
+          const ref = `SUPP-${fr.id.slice(0, 8).toUpperCase()}`;
+          if (!items.some((it) => it.reference === ref)) {
+            items.push({
+              id: `fr-supp-${fr.id}`,
+              date: fr.created_at || "2024-01-01T00:00:00.000Z",
+              type: "DEBIT",
+              category: "FARM_CONTRIBUTION",
+              amount: 0,
+              description: `Farm Support Contribution — ${fr.project_category || "Group Farm"} (${fr.months_farm_support})`,
+              status: "COMPLETED",
+              reference: ref,
+              is_legacy: true,
+            });
+          }
+        }
+        if (fr.absentee_fine && Number(fr.absentee_fine) > 0) {
+          const ref = `FINE-${fr.id.slice(0, 8).toUpperCase()}`;
+          if (!items.some((it) => it.reference === ref)) {
+            items.push({
+              id: `fr-fine-${fr.id}`,
+              date: fr.created_at || "2024-01-01T00:00:00.000Z",
+              type: "DEBIT",
+              category: "FARM_CONTRIBUTION",
+              amount: Number(fr.absentee_fine),
+              description: `Absentee Fine / Penalty — ${fr.project_category || "Group Farm"}`,
+              status: "COMPLETED",
+              reference: ref,
+              is_legacy: true,
+            });
+          }
         }
       });
 
@@ -800,25 +884,11 @@ export default function TransactionLedger() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              {memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING") ? (
+              {memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING") && (
                 <span className="px-3 py-1 bg-emerald-50 text-emerald-800 font-mono font-bold text-xs rounded-full border border-emerald-200">
                   {memberId}
                 </span>
-              ) : (
-                <Link
-                  to="/dashboard/checkout?product=green_card"
-                  className="px-3 py-1 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs rounded-full border border-amber-200 inline-flex items-center gap-1.5 transition-colors underline underline-offset-2 uppercase"
-                  title="Click to activate your AgroHeal Green Card"
-                >
-                  <Award className="w-3.5 h-3.5 text-amber-600" />
-                  <span>NO GREENCARD YET</span>
-                  <ArrowRight className="w-3 h-3 text-amber-600" />
-                </Link>
               )}
-              <span className="text-xs text-gray-400">•</span>
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                Audited Member Ledger
-              </span>
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
               Transaction Ledger & Wallets
@@ -991,7 +1061,7 @@ export default function TransactionLedger() {
                   ? `Withdraw Available Funds (₦${availableBalance.toLocaleString()})`
                   : !isProjectSubscribed && walletBalance < 2000
                   ? "Withdrawal Locked (Project Subscription Required)"
-                  : `Accumulate ₦${(2000 - availableBalance).toLocaleString()} More to Withdraw (Min. ₦2,000)`}
+                  : `Accumulate ₦${(2000 - rawClearedBalance).toLocaleString()} More to Withdraw (Min. ₦2,000)`}
               </Button>
             </div>
           </div>
@@ -1226,6 +1296,27 @@ export default function TransactionLedger() {
                       </span>
                     </div>
                   </div>
+
+                  {/* Gate 3: Statutory Minimum Withdrawal Gate */}
+                  {lockedBelowThresholdAmount > 0 && (
+                    <div className="p-2 rounded-xl border text-[11px] transition-all bg-amber-50/70 border-amber-200 text-amber-950">
+                      <div className="flex items-center justify-between font-bold mb-0.5">
+                        <span className="flex items-center gap-1.5">
+                          <Lock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          <span>3. Statutory Minimum Withdrawal Gate</span>
+                        </span>
+                        <span className="font-mono">₦{lockedBelowThresholdAmount.toLocaleString()}</span>
+                      </div>
+                      <div className="text-[10px] text-gray-600 flex items-center justify-between">
+                        <span>
+                          Condition: Statutory min. ₦2,000 required to release to Available Balance (₦{rawClearedBalance.toLocaleString()}/₦2,000)
+                        </span>
+                        <span className="font-semibold text-amber-700">
+                          Accumulating to ₦2k
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1286,7 +1377,7 @@ export default function TransactionLedger() {
               {isLegacyUser && (
                 <div className="inline-flex items-center gap-1 p-0.5 bg-amber-50/80 border border-amber-200 rounded-xl text-xs ml-0 sm:ml-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 px-1.5 hidden md:inline">
-                    Pioneer:
+                    Pioneer Members' Records:
                   </span>
                   <button
                     type="button"
@@ -1319,7 +1410,7 @@ export default function TransactionLedger() {
                         : "text-amber-800 hover:text-amber-950"
                     }`}
                   >
-                    Pioneer Only ({transactions.filter((t) => t.is_legacy).length})
+                    Pioneer Members ({transactions.filter((t) => t.is_legacy).length})
                   </button>
                 </div>
               )}
@@ -1351,6 +1442,7 @@ export default function TransactionLedger() {
                 <option value="REFERRAL_BONUS">Referral Bonuses</option>
                 <option value="CORE_DRIVER_BONUS">Core Driver Growth Bonuses</option>
                 <option value="SLOT_PURCHASE">Slot Purchases</option>
+                <option value="FARM_CONTRIBUTION">Farm Contributions</option>
                 <option value="RETAIL_PURCHASE">Retail / Starter Packs</option>
                 <option value="SUBSCRIPTION">Subscriptions</option>
                 <option value="CREDIT">Credits Only</option>
@@ -1425,7 +1517,7 @@ export default function TransactionLedger() {
                         <span>{t.description}</span>
                         {t.is_legacy && (
                           <span className="ml-1.5 inline-flex items-center text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
-                            Pioneer
+                            Pioneer Member
                           </span>
                         )}
                       </td>
@@ -1435,12 +1527,16 @@ export default function TransactionLedger() {
                             ? "bg-amber-100 text-amber-900 border border-amber-300"
                             : t.category === "RETAIL_PURCHASE"
                             ? "bg-purple-100 text-purple-900 border border-purple-200"
+                            : t.category === "FARM_CONTRIBUTION"
+                            ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
                             : "bg-gray-100 text-gray-700"
                         }`}>
                           {t.category === "CORE_DRIVER_BONUS"
                             ? "Growth Driver Bonus"
                             : t.category === "RETAIL_PURCHASE"
                             ? "Retail / Starter Pack"
+                            : t.category === "FARM_CONTRIBUTION"
+                            ? "Farm Contribution"
                             : t.category.replace(/_/g, " ")}
                         </span>
                       </td>

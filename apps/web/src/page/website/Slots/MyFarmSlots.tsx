@@ -314,7 +314,7 @@ const MyFarmSlots: React.FC = () => {
           {isLegacy && (
             <div className="inline-flex items-center gap-1 p-0.5 bg-amber-50/90 border border-amber-200 rounded-xl text-xs">
               <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 px-2 hidden sm:inline">
-                Pioneer Filter:
+                Pioneer Members' Filter:
               </span>
               <button
                 type="button"
@@ -347,7 +347,7 @@ const MyFarmSlots: React.FC = () => {
                     : "text-amber-800 hover:text-amber-950"
                 }`}
               >
-                Pioneer Clusters ({subscriptions.filter((c) => c.is_legacy).length})
+                Pioneer Members' Slots ({subscriptions.filter((c) => c.is_legacy).length})
               </button>
             </div>
           )}
@@ -391,7 +391,7 @@ const MyFarmSlots: React.FC = () => {
                         </Badge>
                         {sub.is_legacy && (
                           <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 font-bold text-xs">
-                            Pioneer Record
+                            Pioneer Member Slot
                           </Badge>
                         )}
                         {isUserCoordinator && (

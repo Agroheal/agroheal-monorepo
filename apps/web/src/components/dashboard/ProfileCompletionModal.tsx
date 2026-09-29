@@ -31,6 +31,7 @@ export interface ProfileCompletionModalProps {
     bank_account_number?: string;
     bank_account_name?: string;
   } | null;
+  defaultOpenBankSection?: boolean;
   canDismiss?: boolean;
   onClose?: () => void;
   onComplete: () => void;
@@ -41,6 +42,7 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
   initialPhone = "",
   initialKin = null,
   initialBank = null,
+  defaultOpenBankSection = false,
   canDismiss = false,
   onClose,
   onComplete,
@@ -50,8 +52,10 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
   const [kinPhone, setKinPhone] = useState(initialKin?.kin_number || "");
   const [kinAddress, setKinAddress] = useState(initialKin?.kin_address || "");
 
-  // Optional Bank Section
-  const [showBankSection, setShowBankSection] = useState(false);
+  // Optional Bank Section (auto-expanded if requested or if bank details exist)
+  const [showBankSection, setShowBankSection] = useState(
+    defaultOpenBankSection || Boolean(initialBank?.bank_name || initialBank?.bank_account_number)
+  );
   const [bankName, setBankName] = useState(initialBank?.bank_name || "");
   const [accountNumber, setAccountNumber] = useState(
     initialBank?.bank_account_number || "",

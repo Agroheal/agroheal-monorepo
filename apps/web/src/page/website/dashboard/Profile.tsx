@@ -16,6 +16,10 @@ import {
   Camera,
   LoaderCircle,
   Trash2,
+  Building2,
+  CreditCard,
+  AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
@@ -40,6 +44,10 @@ interface UserProfile {
   total_referrals?: number;
   referral_earnings?: number;
   avatar_url?: string | null;
+  bank_name?: string | null;
+  bank_account_number?: string | null;
+  bank_account_name?: string | null;
+  bank_code?: string | null;
 }
 
 interface KinData {
@@ -54,6 +62,7 @@ export const ProfileComponent: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [openBankSectionDirectly, setOpenBankSectionDirectly] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -197,6 +206,12 @@ export const ProfileComponent: React.FC = () => {
         day: "numeric",
       })
     : "Member";
+
+  const hasLinkedBank = Boolean(
+    profile?.bank_name &&
+    profile?.bank_account_number &&
+    profile.bank_account_number.trim().length >= 10
+  );
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8 pb-16 font-sans">
@@ -368,8 +383,90 @@ export const ProfileComponent: React.FC = () => {
           </div>
         </div>
 
-        {/* Card 2: Next of Kin / POD Record */}
-        <div className="bg-white rounded-3xl p-7 sm:p-8 shadow-sm border border-gray-200/90 space-y-6">
+        {/* Card 2: Banking & Payout Account (Always Previewable) */}
+        <div
+          className={`bg-white rounded-3xl p-7 sm:p-8 shadow-sm border ${
+            hasLinkedBank ? "border-gray-200/90" : "border-amber-300 bg-amber-50/20"
+          } space-y-6 flex flex-col justify-between`}
+        >
+          <div>
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-9 h-9 rounded-full ${
+                    hasLinkedBank ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+                  } flex items-center justify-center`}
+                >
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-sm">Banking & Payout Account</h3>
+                  <p className="text-[11px] text-gray-500">Destination for wallet withdrawals</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setOpenBankSectionDirectly(true);
+                  setShowCompletionModal(true);
+                }}
+                className={`text-xs font-bold ${
+                  hasLinkedBank
+                    ? "text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
+                    : "text-amber-900 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 border-amber-300"
+                } px-3 py-1.5 rounded-xl border transition-colors cursor-pointer`}
+              >
+                {hasLinkedBank ? "Edit Bank" : "Add Bank"}
+              </button>
+            </div>
+
+            {hasLinkedBank ? (
+              <div className="space-y-4 text-xs mt-6">
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                  <span className="text-gray-500 font-medium">Bank Name</span>
+                  <span className="font-bold text-gray-900 text-right">{profile?.bank_name}</span>
+                </div>
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                  <span className="text-gray-500 font-medium">Account Number</span>
+                  <span className="font-mono font-bold text-emerald-900 bg-emerald-50/80 border border-emerald-200/60 px-2.5 py-0.5 rounded-lg text-right">
+                    {profile?.bank_account_number}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                  <span className="text-gray-500 font-medium">Account Holder</span>
+                  <span className="font-bold text-gray-900 text-right">
+                    {profile?.bank_account_name || profile?.full_name}
+                  </span>
+                </div>
+                <div className="pt-2 flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Verified NUBAN linked for instant automated bank withdrawals</span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 space-y-3 bg-amber-50/70 rounded-2xl border border-dashed border-amber-200/90 mt-4 p-4">
+                <AlertCircle className="w-8 h-8 text-amber-500 mx-auto" />
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-amber-900">No Bank Account Linked</p>
+                  <p className="text-[11px] text-amber-800/80 max-w-xs mx-auto">
+                    You have not configured your payout bank details. Link your verified Nigerian bank account now so you can withdraw cleared earnings.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => {
+                    setOpenBankSectionDirectly(true);
+                    setShowCompletionModal(true);
+                  }}
+                  className="bg-amber-600 hover:bg-amber-700 text-white text-xs h-8 px-4 rounded-xl font-bold shadow-xs cursor-pointer"
+                >
+                  Link Bank Account Now
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Card 3: Next of Kin / POD Record */}
+        <div className="bg-white rounded-3xl p-7 sm:p-8 shadow-sm border border-gray-200/90 space-y-6 md:col-span-2">
           <div className="flex items-center justify-between border-b border-gray-100 pb-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-800">
@@ -381,15 +478,18 @@ export const ProfileComponent: React.FC = () => {
               </div>
             </div>
             <button
-              onClick={() => setShowCompletionModal(true)}
-              className="text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 transition-colors"
+              onClick={() => {
+                setOpenBankSectionDirectly(false);
+                setShowCompletionModal(true);
+              }}
+              className="text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 transition-colors cursor-pointer"
             >
               {kin?.kin_name ? "Update Next of Kin" : "Add Next of Kin"}
             </button>
           </div>
 
           {kin?.kin_name ? (
-            <div className="space-y-4 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
                 <span className="text-gray-500 font-medium">Beneficiary Name</span>
                 <span className="font-bold text-gray-900 text-right">{kin.kin_name}</span>
@@ -398,7 +498,7 @@ export const ProfileComponent: React.FC = () => {
                 <span className="text-gray-500 font-medium">Phone Contact</span>
                 <span className="font-mono font-medium text-gray-900 text-right">{kin.kin_number || "None"}</span>
               </div>
-              <div className="flex flex-col py-1.5">
+              <div className="flex flex-col py-1.5 sm:col-span-2">
                 <span className="text-gray-500 font-medium mb-1">Residential Address</span>
                 <span className="text-gray-800 leading-relaxed bg-gray-50 p-3 rounded-xl border border-gray-100">
                   {kin.kin_address || "None"}
@@ -415,8 +515,11 @@ export const ProfileComponent: React.FC = () => {
                 </p>
               </div>
               <Button
-                onClick={() => setShowCompletionModal(true)}
-                className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-8 px-4 rounded-xl font-bold"
+                onClick={() => {
+                  setOpenBankSectionDirectly(false);
+                  setShowCompletionModal(true);
+                }}
+                className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-8 px-4 rounded-xl font-bold cursor-pointer"
               >
                 Configure Next of Kin
               </Button>
@@ -444,17 +547,26 @@ export const ProfileComponent: React.FC = () => {
         </div>
       </div>
 
-
       {/* Unified Profile Completion Modal */}
       {showCompletionModal && profile && (
         <ProfileCompletionModal
           userId={profile.id}
           initialPhone={profile.phone || ""}
           initialKin={kin}
+          initialBank={{
+            bank_name: profile.bank_name || "",
+            bank_account_number: profile.bank_account_number || "",
+            bank_account_name: profile.bank_account_name || "",
+          }}
+          defaultOpenBankSection={openBankSectionDirectly}
           canDismiss={true}
-          onClose={() => setShowCompletionModal(false)}
+          onClose={() => {
+            setShowCompletionModal(false);
+            setOpenBankSectionDirectly(false);
+          }}
           onComplete={() => {
             setShowCompletionModal(false);
+            setOpenBankSectionDirectly(false);
             fetchProfile();
           }}
         />

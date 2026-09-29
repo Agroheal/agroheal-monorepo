@@ -7,7 +7,6 @@ import {
   Shield,
   ArrowRight,
   Sparkles,
-  Sprout,
   AlertCircle,
   Mail,
   User as UserIcon,
@@ -15,7 +14,6 @@ import {
   Lock,
   CheckCircle2,
   ExternalLink,
-  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -480,31 +478,6 @@ export const Subscribe: React.FC = () => {
                 ))}
               </div>
 
-              {/* Fast-Track Farm Slot Bundle */}
-              <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-left">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-2">
-                    <Sprout className="w-4 h-4 text-emerald-800" />
-                    <span className="text-xs font-bold text-emerald-950">
-                      Looking to invest in commercial farm slots today?
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-600">
-                    Bundle your Green Card ({formatNaira(activeGreenCardFee)}) with 1 Oyster Mushroom Slot (₦5,000) for {formatNaira(activeGreenCardFee + 5000)} total.
-                  </p>
-                </div>
-                <Button
-                  asChild
-                  size="sm"
-                  variant="outline"
-                  className="rounded-xl border-emerald-300 text-emerald-900 hover:bg-emerald-100/60 text-xs font-bold shrink-0"
-                >
-                  <Link to="/checkout?slots=1&category=Mushroom%20Village">
-                    <span>Bundle Slot</span>
-                    <ChevronRight className="w-3.5 h-3.5 ml-1" />
-                  </Link>
-                </Button>
-              </div>
             </div>
           </div>
 
