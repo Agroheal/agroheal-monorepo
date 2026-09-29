@@ -119,7 +119,7 @@ export function IssueGreenCardDialog({ open, onOpenChange, members, activatingMe
                 <p className="leading-relaxed">
                   &bull; <strong className="text-foreground">Member:</strong> {selected.full_name} ({selected.email})
                   <br />&bull; <strong className="text-foreground">Subscription:</strong> Lifetime Permanent Agroheal Green Card Membership
-                  <br />&bull; <strong className="text-foreground">Offline Fee:</strong> {isLegacy ? "₦1,000 (Legacy Member Rate - Registered before Sep 6)" : "₦2,000 (Standard Rate - Registered from Sep 6)"}
+                  <br />&bull; <strong className="text-foreground">Fee:</strong> ₦2,000 (Standard Member Rate)
                   <br />&bull; <strong className="text-foreground">Action:</strong> Assigns sequential Member ID &amp; enables
                   community benefits
                 </p>

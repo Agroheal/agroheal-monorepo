@@ -10,8 +10,10 @@ import {
   Wallet,
   CheckCircle2,
   AlertCircle,
-  Coins,
   Lock,
+  Sparkles,
+  Phone,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,16 +23,12 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
 import * as Sentry from "@sentry/react";
-import { PROJECT_CATEGORIES, DEFAULT_CATEGORY } from "@/constant/projectCategories";
-import { cleanName, cleanEmail, normalizePhoneNumber, parsePositiveInt } from "@shared/dataSanitizers";
+import { DEFAULT_CATEGORY } from "@/constant/projectCategories";
+import { cleanName, cleanEmail, normalizePhoneNumber } from "@shared/dataSanitizers";
 import {
   BASE_SLOT_PRICE as SLOT_UNIT_PRICE,
-  CLUSTER_SETUP_FEE,
   GREEN_CARD_FEE,
-  LEGACY_GREEN_CARD_FEE,
-  isLegacyMember,
   getGreenCardFee,
-  calculateSlotSubtotal,
 } from "@shared/businessRules";
 import { FLUTTERWAVE_KEYS } from "@/config/Index";
 
@@ -211,7 +209,7 @@ async function recordSubscriptionWithFarmGroupSplit({
       .eq("id", userId);
   }
 
-  // 1,000-Slot Auto-Fill & Split Logic:
+  // Farm Slot Allocation
   try {
     const { data: activeGroups } = await supabase
       .from("farm_groups")
@@ -222,92 +220,6 @@ async function recordSubscriptionWithFarmGroupSplit({
     const primaryGroup = activeGroups && activeGroups.length > 0 ? activeGroups[0] : null;
     const primaryGroupId = primaryGroup?.id || DEFAULT_GROUP_ID;
 
-    // Check capacity
-    const { data: curSlotsData } = await supabase
-      .from("slot_subscriptions")
-      .select("slots")
-      .eq("farm_group_id", primaryGroupId)
-      .eq("status", "active");
-
-    const currentTotalSlots = (curSlotsData || []).reduce((sum: number, r: any) => sum + (Number(r.slots) || 0), 0);
-    const remainingCapacity = Math.max(0, 1000 - currentTotalSlots);
-
-    if (slots <= remainingCapacity) {
-      await supabase.from("slot_subscriptions").insert([
-        {
-          user_id: userId,
-          checkout_id: checkoutId,
-          amount: amount,
-          slotprice: slotPrice,
-          status: "active",
-          slots: slots,
-          last_payment_date: new Date().toISOString(),
-          next_payment_date: nextPaymentDate.toISOString(),
-          project_category: category,
-          farm_group_id: primaryGroupId,
-          is_starter_pack: false,
-        },
-      ]);
-    } else {
-      const slotsForCurrent = remainingCapacity;
-      const overflowSlots = slots - remainingCapacity;
-
-      let secondaryGroup = activeGroups && activeGroups.length > 1 ? activeGroups[1] : null;
-      if (!secondaryGroup && primaryGroup) {
-        const newName = `${primaryGroup.name.replace(/\[.*\]/, '').trim()} 2 [${category || 'Mushroom Village'}]`;
-        const newSlug = `${primaryGroup.slug}-2`;
-        const { data: created } = await supabase
-          .from("farm_groups")
-          .insert([
-            {
-              name: newName,
-              slug: newSlug,
-              project_category: category || "Mushroom Village",
-            },
-          ])
-          .select()
-          .single();
-        secondaryGroup = created;
-      }
-      const secondaryGroupId = secondaryGroup?.id || primaryGroupId;
-
-      const rows = [];
-      if (slotsForCurrent > 0) {
-        rows.push({
-          user_id: userId,
-          checkout_id: checkoutId,
-          amount: Math.round((amount * slotsForCurrent) / slots),
-          slotprice: slotPrice,
-          status: "active",
-          slots: slotsForCurrent,
-          last_payment_date: new Date().toISOString(),
-          next_payment_date: nextPaymentDate.toISOString(),
-          project_category: category,
-          farm_group_id: primaryGroupId,
-          is_starter_pack: false,
-        });
-      }
-      if (overflowSlots > 0) {
-        rows.push({
-          user_id: userId,
-          checkout_id: checkoutId,
-          amount: Math.round((amount * overflowSlots) / slots),
-          slotprice: slotPrice,
-          status: "active",
-          slots: overflowSlots,
-          last_payment_date: new Date().toISOString(),
-          next_payment_date: nextPaymentDate.toISOString(),
-          project_category: category,
-          farm_group_id: secondaryGroupId,
-          is_starter_pack: false,
-        });
-      }
-      if (rows.length > 0) {
-        await supabase.from("slot_subscriptions").insert(rows);
-      }
-    }
-  } catch (farmSplitErr) {
-    console.warn("Farm group split fallback to direct insert:", farmSplitErr);
     await supabase.from("slot_subscriptions").insert([
       {
         user_id: userId,
@@ -318,7 +230,24 @@ async function recordSubscriptionWithFarmGroupSplit({
         slots: slots,
         last_payment_date: new Date().toISOString(),
         next_payment_date: nextPaymentDate.toISOString(),
-        project_category: category,
+        project_category: category || "Mushroom Village",
+        farm_group_id: primaryGroupId,
+        is_starter_pack: false,
+      },
+    ]);
+  } catch (farmErr) {
+    console.warn("Farm group slot assignment fallback:", farmErr);
+    await supabase.from("slot_subscriptions").insert([
+      {
+        user_id: userId,
+        checkout_id: checkoutId,
+        amount: amount,
+        slotprice: slotPrice,
+        status: "active",
+        slots: slots,
+        last_payment_date: new Date().toISOString(),
+        next_payment_date: nextPaymentDate.toISOString(),
+        project_category: category || "Mushroom Village",
         farm_group_id: DEFAULT_GROUP_ID,
         is_starter_pack: false,
       },
@@ -327,16 +256,14 @@ async function recordSubscriptionWithFarmGroupSplit({
 }
 
 const Checkout = () => {
-  const { toast } = useToast();
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const requestedProductCode = searchParams.get("code") || searchParams.get("product_code") || searchParams.get("sku");
   const isStarterPack =
     searchParams.get("item") === "starter_pack" ||
-    searchParams.get("type") === "starter_pack" ||
-    searchParams.get("product") === "starter_pack" ||
-    (Boolean(requestedProductCode) && requestedProductCode!.toUpperCase().startsWith("SP-"));
+    searchParams.get("product") === "starter_pack";
+  const requestedProductCode = searchParams.get("code") || "SP-MUSH-100G";
 
   const [starterProduct, setStarterProduct] = useState<{
     id?: string;
@@ -344,28 +271,22 @@ const Checkout = () => {
     name: string;
     price: number;
     pv: number;
-    product_spec?: Record<string, any>;
+    product_spec?: any;
     description?: string;
   }>({
-    code: requestedProductCode || "SP-MUSH-100G",
+    code: "SP-MUSH-100G",
     name: "Mushroom Power 100g",
     price: 5000,
     pv: 5000,
-    product_spec: {
-      crop: "mushroom",
-      weight: "100g",
-      form: "powder",
-      pack_edition: "2026-GEN1",
-    },
+    product_spec: { weight: "100g" },
   });
 
   useEffect(() => {
     if (isStarterPack) {
-      const codeToQuery = requestedProductCode || "SP-MUSH-100G";
       supabase
         .from("products")
         .select("id, code, name, price, pv, product_spec, description")
-        .or(`code.eq.${codeToQuery},category.eq.STARTER_PACK`)
+        .or(`code.eq.${requestedProductCode},code.eq.SP-MUSH-100G`)
         .eq("is_active", true)
         .limit(1)
         .maybeSingle()
@@ -373,7 +294,7 @@ const Checkout = () => {
           if (data) {
             setStarterProduct({
               id: data.id,
-              code: data.code || codeToQuery,
+              code: data.code,
               name: data.name,
               price: Number(data.price) || 5000,
               pv: Number(data.pv) || 5000,
@@ -404,7 +325,7 @@ const Checkout = () => {
     : (!isNaN(parsedSlots) && parsedSlots >= 0 ? parsedSlots : 1);
 
   const [slotQuantity, setSlotQuantity] = useState(initialSlots);
-  const [category, setCategory] = useState(isStarterPack ? "Mushroom Village" : DEFAULT_CATEGORY);
+  const [category, setCategory] = useState(DEFAULT_CATEGORY);
 
   const [hasGreenCard, setHasGreenCard] = useState<boolean>(false);
   const [hasPriorSlots, setHasPriorSlots] = useState<boolean>(false);
@@ -426,19 +347,17 @@ const Checkout = () => {
             : slotQuantity * SLOT_UNIT_PRICE)
         : 0);
 
-  const isLegacy = isLegacyMember(memberCreatedAt);
-  const activeGreenCardRate = getGreenCardFee(memberCreatedAt);
+  // Green Card fee is strictly fixed at ₦2,000 for everyone
+  const activeGreenCardRate = 2000;
   const greenCardFee = isStarterPack
     ? 0
     : (isGreenCardOnly || isCombo || !hasGreenCard ? activeGreenCardRate : 0);
   const totalPrice = slotsSubtotal + greenCardFee;
-  const isOrganicFoodNation =
-    category === "Organic FoodNation (1 Million Hectares against Hunger)";
+
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"flutterwave" | "wallet" | "split">("flutterwave");
+  const [paymentMethod, setPaymentMethod] = useState<"flutterwave" | "wallet">("flutterwave");
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [lockedLedgerBalance, setLockedLedgerBalance] = useState<number>(0);
-  const [walletAmountToUse, setWalletAmountToUse] = useState<number>(0);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true);
   const [currentUser, setCurrentUser] = useState<{ id: string; email?: string } | null>(null);
   const [formData, setFormData] = useState({
@@ -450,13 +369,8 @@ const Checkout = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const isPhoneValid = normalizePhoneNumber(formData.phone).length >= 10;
-  const isFormValid = Boolean(
-    (cleanEmail(formData.email) || currentUser?.email) &&
-    isPhoneValid &&
-    category
-  );
 
-  // ── Load Flutterwave script ───────────────────────────────────────────────
+  // Load Flutterwave script
   useEffect(() => {
     if (document.getElementById("flutterwave-script")) return;
     const script = document.createElement("script");
@@ -466,7 +380,7 @@ const Checkout = () => {
     document.body.appendChild(script);
   }, []);
 
-  // ── Auto-prefill logged in member details & check subscriptions ──────────
+  // Auto-prefill logged in member details & subscriptions
   useEffect(() => {
     const loadProfile = async () => {
       try {
@@ -475,7 +389,6 @@ const Checkout = () => {
         } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Fetch profile, Green Card status, active slots, and wallet_ledger concurrently
         const [
           { data: profile },
           { data: subs },
@@ -516,17 +429,11 @@ const Checkout = () => {
           extractedLastName = parts.slice(1).join(" ") || "";
         }
 
-        // Fallbacks from user metadata
         if (!extractedFirstName && user.user_metadata?.first_name) {
           extractedFirstName = String(user.user_metadata.first_name).trim();
         }
         if (!extractedLastName && user.user_metadata?.last_name) {
           extractedLastName = String(user.user_metadata.last_name).trim();
-        }
-        if (!extractedFirstName && user.user_metadata?.full_name) {
-          const parts = String(user.user_metadata.full_name).trim().split(/\s+/);
-          extractedFirstName = parts[0] || "";
-          extractedLastName = extractedLastName || parts.slice(1).join(" ") || "";
         }
 
         const resolvedEmail = user.email || profile?.email || "";
@@ -546,9 +453,8 @@ const Checkout = () => {
           email: resolvedEmail,
         });
 
-        // Calculate strictly AVAILABLE balance (not locked ledger balance)
+        // Compute available spendable wallet balance
         const directEarnings = Math.max(0, Number(profile?.referral_earnings) || 0);
-
         let ledgerAvailNet = 0;
         let ledgerLockedCredits = 0;
 
@@ -562,14 +468,10 @@ const Checkout = () => {
           }
         });
 
-        // The user's spendable available balance is direct referral earnings plus any positive available ledger credits
         const computedAvailable = Math.max(0, directEarnings + Math.max(0, ledgerAvailNet));
-
         setWalletBalance(computedAvailable);
         setLockedLedgerBalance(ledgerLockedCredits);
-        setWalletAmountToUse(Math.min(computedAvailable, totalPrice));
 
-        // Check active Green Card subscription or profile credential
         const isSubActive = Boolean(
           subs &&
             subs.some(
@@ -584,7 +486,6 @@ const Checkout = () => {
         );
         setHasGreenCard(userHasGreenCard);
 
-        // Check if user already owns any slots
         setHasPriorSlots(Boolean((count && count > 0) || (slotsData && slotsData.length > 0)));
         setHasPurchasedStarterPack(Boolean(profile?.has_purchased_starter_pack || profile?.is_wealth_creation_active));
       } catch (err) {
@@ -597,33 +498,26 @@ const Checkout = () => {
     loadProfile();
   }, []);
 
-  // Sync wallet amount to use if total price changes
-  useEffect(() => {
-    if (walletBalance > 0) {
-      setWalletAmountToUse((prev) => {
-        if (prev <= 0) return Math.min(walletBalance, totalPrice);
-        return Math.min(prev, Math.min(walletBalance, totalPrice));
-      });
-    }
-  }, [totalPrice, walletBalance]);
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
   };
 
   const incrementSlot = () => setSlotQuantity((q) => Math.min(q + 1, 100));
   const decrementSlot = () => setSlotQuantity((q) => Math.max(q - 1, 1));
 
-  const createCheckout = async (method: "flutterwave" | "wallet" | "split" = "flutterwave") => {
+  const createCheckout = async (method: "flutterwave" | "wallet" = "flutterwave") => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user) {
       toast({
-        title: "Login required",
-        description: "You must be logged in to make payment.",
+        title: "Login Required",
+        description: "Please sign in to make payment.",
         variant: "destructive",
       });
       return null;
@@ -636,19 +530,25 @@ const Checkout = () => {
 
     if (!normalizedEmail) {
       toast({
-        title: "Contact Email Required",
-        description: "Please provide a valid contact email address before proceeding.",
+        title: "Email Required",
+        description: "Please provide a valid contact email address.",
         variant: "destructive",
       });
       return null;
     }
 
     if (!normalizedPhone || normalizedPhone.length < 10) {
+      setErrors((prev) => ({ ...prev, phone: "Please enter a valid phone number (at least 10 digits)" }));
       toast({
-        title: "Valid phone number required",
-        description: "Please provide a valid contact phone number (at least 10 digits) before making payment.",
+        title: "Phone Number Required",
+        description: "Please enter your phone number to complete payment.",
         variant: "destructive",
       });
+      const el = document.getElementById("checkout-phone-input");
+      if (el) {
+        el.focus();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
       return null;
     }
 
@@ -684,7 +584,7 @@ const Checkout = () => {
       return null;
     }
 
-    // Auto-save full_name and phone to profiles if previously empty
+    // Auto-save full_name and phone to profiles if empty
     try {
       const combinedName = `${cleanFirstName} ${cleanLastName}`.trim();
       await supabase
@@ -703,29 +603,10 @@ const Checkout = () => {
   };
 
   const handleWalletPayment = async () => {
-    const resolvedEmail = cleanEmail(formData.email) || currentUser?.email;
-    if (!resolvedEmail) {
-      toast({
-        title: "Contact Email Required",
-        description: "User contact email not found. Please provide an email or sign in again.",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!category) {
-      setErrors({ category: "Please select a project category" });
-      toast({
-        title: "Category Required",
-        description: "Please select a project category.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (walletBalance < totalPrice) {
       toast({
-        title: "Insufficient Available Balance",
-        description: `Your cleared available wallet balance is ₦${walletBalance.toLocaleString()}, but this order requires ₦${totalPrice.toLocaleString()}. Please choose Pay Difference or Flutterwave.`,
+        title: "Insufficient Wallet Balance",
+        description: `Your available wallet balance is ₦${walletBalance.toLocaleString()}, but this order requires ₦${totalPrice.toLocaleString()}. Please choose Pay Online (Flutterwave).`,
         variant: "destructive",
       });
       return;
@@ -746,7 +627,6 @@ const Checkout = () => {
 
       if (!user) throw new Error("User session expired");
 
-      // Invoke atomic PostgreSQL stored procedure on production DB
       const { data: rpcRes, error: rpcErr } = await supabase.rpc(
         "pay_checkout_with_wallet",
         {
@@ -767,7 +647,6 @@ const Checkout = () => {
         throw new Error(rpcRes?.message || "Wallet deduction failed.");
       }
 
-      // Record farm group cluster allocation if purchasing slots or combo
       if (!isStarterPack && (slotQuantity > 0 || isGreenCardOnly || isCombo)) {
         await recordSubscriptionWithFarmGroupSplit({
           userId: user.id,
@@ -782,7 +661,6 @@ const Checkout = () => {
         });
       }
 
-      // If user did not previously hold a Green Card, activate it now
       if (!hasGreenCard && !isStarterPack) {
         const expiresAt = new Date();
         expiresAt.setFullYear(expiresAt.getFullYear() + 100);
@@ -805,14 +683,13 @@ const Checkout = () => {
         }).eq("id", user.id);
       }
 
-      Sentry.metrics.count("wallet_reinvestment_success", 1);
       setWalletBalance((prev) => Math.max(0, prev - totalPrice));
 
       if (isGreenCardOnly) {
         if (slotQuantity > 0) {
           toast({
             title: "Milestone 3 Unlocked! 🚀",
-            description: `₦${totalPrice.toLocaleString()} paid from wallet. Your Green Card + Starter Combo are active! You have jumped straight to Milestone 3.`,
+            description: `₦${totalPrice.toLocaleString()} paid from wallet. Your Green Card + Starter Combo are active!`,
           });
           navigate("/dashboard");
         } else {
@@ -825,13 +702,13 @@ const Checkout = () => {
       } else if (isStarterPack) {
         toast({
           title: "Starter Pack Activated!",
-          description: "Your ₦5,000 Mushroom Starter Pack has been activated via your available wallet balance. 5×7 Compound Network and bank withdrawals are unlocked.",
+          description: "Your ₦5,000 Mushroom Starter Pack has been activated via wallet.",
         });
         navigate("/dashboard/my-network");
       } else {
         toast({
           title: "Slot Secured Successfully!",
-          description: `₦${totalPrice.toLocaleString()} paid from available wallet balance. ${slotQuantity} slot(s) activated!`,
+          description: `₦${totalPrice.toLocaleString()} paid from wallet. ${slotQuantity} slot(s) activated!`,
         });
         navigate("/dashboard/farm-operations/my-slots");
       }
@@ -858,17 +735,6 @@ const Checkout = () => {
       });
       return;
     }
-    if (!category) {
-      setErrors({ category: "Please select a project category" });
-      toast({
-        title: "Category Required",
-        description: "Please select a project category.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setErrors({}); // Clear errors if valid
 
     if (typeof window !== "undefined" && !(window as any).FlutterwaveCheckout) {
       setIsProcessing(true);
@@ -889,10 +755,9 @@ const Checkout = () => {
       import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY ||
       "FLWPUBK-e0ee54e207921a92e105e466380a9cfc-X";
 
-    Sentry.metrics.count("payment_initiated", 1);
     setIsProcessing(true);
 
-    const order = await createCheckout();
+    const order = await createCheckout("flutterwave");
     if (!order) {
       setIsProcessing(false);
       return;
@@ -910,7 +775,7 @@ const Checkout = () => {
         customer: {
           email: order.email,
           phone_number: order.phone,
-          name: `${formData.firstName} ${formData.lastName}`,
+          name: `${formData.firstName} ${formData.lastName}`.trim(),
         },
         meta: {
           user_id: order.user_id,
@@ -938,9 +803,9 @@ const Checkout = () => {
             ? "AgroHeal Starter Pack"
             : "Agroheal Farm Slot",
           description: isCombo
-            ? "Lifetime Green Card + 1 Mushroom Village Slot + Mushroom Power 100g (Milestone 3 Unlock)"
+            ? "Lifetime Green Card + 1 Mushroom Village Slot + Mushroom Power 100g"
             : isGreenCardOnly
-            ? "Lifetime Certified Digital Membership"
+            ? "Lifetime Certified Digital Membership (₦2,000)"
             : isStarterPack
             ? "Mushroom Power 100g Starter Pack"
             : `${slotQuantity} slot${slotQuantity > 1 ? "s" : ""} — ₦${totalPrice.toLocaleString()}`,
@@ -948,7 +813,7 @@ const Checkout = () => {
         },
         onclose: () => {
           toast({
-            title: "Payment cancelled",
+            title: "Payment Cancelled",
             description: "You closed the payment window.",
           });
           setIsProcessing(false);
@@ -959,20 +824,12 @@ const Checkout = () => {
             response.status === "completed"
           ) {
             Sentry.metrics.count("payment_success", 1);
-
-            const reference = `SUB_${Date.now()}_${order.user_id.slice(0, 8)}`;
-            localStorage.setItem("pending_payment_ref", reference);
-            localStorage.setItem("pending_payment_provider", "flutterwave");
-            localStorage.setItem("pending_payment_userId", order.user_id);
-
             const flwTransactionId =
               response.transaction_id || response.id || response.flw_ref;
-            console.log("Payment successful. Activating slot directly...");
 
             const activateSlot = async () => {
               try {
-                // 1. Update transaction status
-                const { error: checkoutErr } = await supabase
+                await supabase
                   .from("transactions")
                   .update({
                     status: "paid",
@@ -980,9 +837,6 @@ const Checkout = () => {
                   })
                   .eq("id", order.id);
 
-                if (checkoutErr) throw checkoutErr;
-
-                // 2. Create the subscription with farm group allocation & split
                 await recordSubscriptionWithFarmGroupSplit({
                   userId: order.user_id,
                   checkoutId: order.id,
@@ -995,7 +849,6 @@ const Checkout = () => {
                   isFirstSlotPurchase,
                 });
 
-                // 3. If user did not previously hold a Green Card, activate it now
                 if (!hasGreenCard && !isStarterPack) {
                   const expiresAt = new Date();
                   expiresAt.setFullYear(expiresAt.getFullYear() + 100);
@@ -1022,25 +875,25 @@ const Checkout = () => {
                   if (slotQuantity > 0) {
                     toast({
                       title: "Milestone 3 Unlocked! 🚀",
-                      description: "Your Green Card + Starter Combo (1 Farm Slot + Mushroom Power 100g) are active! You have jumped straight to Milestone 3.",
+                      description: "Your Green Card + Starter Combo are active! You have jumped straight to Milestone 3.",
                     });
                     navigate("/dashboard");
                   } else {
                     toast({
                       title: "Green Card Activated! 🌿",
-                      description: "Welcome! Your lifetime Green Card Pass is active. Next: activate Milestone 2!",
+                      description: "Welcome! Your lifetime Green Card Pass is active.",
                     });
                     navigate("/dashboard");
                   }
                 } else if (isStarterPack) {
                   toast({
                     title: "Starter Pack Activated!",
-                    description: "Your ₦5,000 Mushroom Starter Pack has been activated. Your 5×7 Compound Network and bank withdrawals are now unlocked.",
+                    description: "Your ₦5,000 Mushroom Starter Pack has been activated.",
                   });
-                  navigate("/dashboard/referrals/compound");
+                  navigate("/dashboard/my-network");
                 } else {
                   toast({
-                    title: "Payment successful",
+                    title: "Payment Successful!",
                     description: "Your slot has been secured!",
                   });
                   navigate("/dashboard/farm-operations/my-slots");
@@ -1049,8 +902,7 @@ const Checkout = () => {
                 console.error("Direct activation failed:", err);
                 toast({
                   title: "Activation Error",
-                  description:
-                    "Payment received but failed to update record. Please contact support.",
+                  description: "Payment received but failed to update record. Please contact support.",
                   variant: "destructive",
                 });
               } finally {
@@ -1068,1169 +920,604 @@ const Checkout = () => {
       Sentry.captureException(error);
       toast({
         title: "Payment Error",
-        description:
-          error instanceof Error
-            ? error.message
-            : "Failed to initialize payment.",
+        description: error instanceof Error ? error.message : "Failed to initialize payment.",
         variant: "destructive",
       });
       setIsProcessing(false);
     }
   };
 
-  const handleSplitPayment = async () => {
-    const resolvedEmail = cleanEmail(formData.email) || currentUser?.email;
-    if (!resolvedEmail) {
+  const handlePayClick = () => {
+    // Validate Phone Number
+    const cleanPhone = normalizePhoneNumber(formData.phone);
+    if (!cleanPhone || cleanPhone.length < 10) {
+      setErrors({ phone: "Please enter a valid phone number (at least 10 digits)" });
       toast({
-        title: "Session Error",
-        description: "User session email not found. Please refresh or sign in again.",
+        title: "Contact Phone Required",
+        description: "Please enter your contact phone number to complete payment.",
         variant: "destructive",
       });
+      const el = document.getElementById("checkout-phone-input");
+      if (el) {
+        el.focus();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
       return;
     }
+
     if (!category) {
-      setErrors({ category: "Please select a project category" });
-      toast({
-        title: "Category Required",
-        description: "Please select a project category.",
-        variant: "destructive",
-      });
-      return;
+      setCategory(DEFAULT_CATEGORY);
     }
 
     setErrors({});
 
-    const usableWallet = Math.min(walletBalance, Math.max(1, walletAmountToUse));
-    const cardAmountToPay = totalPrice - usableWallet;
-
-    if (usableWallet <= 0) {
-      toast({
-        title: "No Wallet Balance Applied",
-        description: "Please apply a wallet amount or choose Flutterwave for full card payment.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (cardAmountToPay <= 0) {
-      await handleWalletPayment();
-      return;
-    }
-
-    if (typeof window !== "undefined" && !(window as any).FlutterwaveCheckout) {
-      setIsProcessing(true);
-      const loaded = await ensureFlutterwaveScript();
-      if (!loaded || !(window as any).FlutterwaveCheckout) {
-        setIsProcessing(false);
-        toast({
-          title: "Payment Error",
-          description: "Flutterwave payment script failed to load. Please check your internet connection and try again.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    const flwKey =
-      FLUTTERWAVE_KEYS.publicKey ||
-      import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY ||
-      "FLWPUBK-e0ee54e207921a92e105e466380a9cfc-X";
-
-    Sentry.metrics.count("split_payment_initiated", 1);
-    setIsProcessing(true);
-
-    const order = await createCheckout("split");
-    if (!order) {
-      setIsProcessing(false);
-      return;
-    }
-
-    try {
-      const txRef = `SPLIT_${order.id}_${Date.now()}`;
-
-      window.FlutterwaveCheckout({
-        public_key: flwKey,
-        tx_ref: txRef,
-        amount: cardAmountToPay,
-        currency: "NGN",
-        payment_options: "card, banktransfer, ussd",
-        customer: {
-          email: order.email,
-          phone_number: order.phone,
-          name: `${formData.firstName} ${formData.lastName}`,
-        },
-        meta: {
-          user_id: order.user_id,
-          order_id: order.id,
-          plan: "slot_split",
-          wallet_used: usableWallet,
-          card_paid: cardAmountToPay,
-          project_category: category,
-        },
-        customizations: {
-          title: "Agroheal Farm Slot (Split Payment)",
-          description: `₦${usableWallet.toLocaleString()} wallet + ₦${cardAmountToPay.toLocaleString()} card (${slotQuantity} slots)`,
-          logo: "https://ptowfacejneezksyhntk.supabase.co/storage/v1/object/sign/agroheal-%20buckets/logo.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iZGE2NjM1ZS00NTAzLTRkZDktOTdmOS0zYWExY2Y5NzNiOGQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhZ3JvaGVhbC0gYnVja2V0cy9sb2dvLnBuZyIsImlhdCI6MTc3NDAwODY3OCwiZXhwIjo0OTI3NjA4Njc4fQ.fuwva3-hMj5KmMRqElcclgJqzA5d4aigxCIlHVHgMak",
-        },
-        onclose: () => {
-          toast({
-            title: "Payment cancelled",
-            description: "You closed the payment window. No charges were made.",
-          });
-          setIsProcessing(false);
-        },
-        callback: function (response) {
-          if (
-            response.status === "successful" ||
-            response.status === "completed"
-          ) {
-            Sentry.metrics.count("split_payment_success", 1);
-            const flwTransactionId =
-              response.transaction_id || response.id || response.flw_ref;
-
-            const finalizeSplit = async () => {
-              try {
-                let splitSuccess = false;
-                const walletRef = `WAL-SPLIT-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-
-                try {
-                  // Call atomic split procedure
-                  const { data: rpcRes, error: rpcErr } = await supabase.rpc(
-                    "pay_checkout_with_split",
-                    {
-                      p_user_id: order.user_id,
-                      p_checkout_id: order.id,
-                      p_wallet_amount: usableWallet,
-                      p_card_amount: cardAmountToPay,
-                      p_slots: slotQuantity,
-                      p_slot_price: SLOT_UNIT_PRICE,
-                      p_category: category,
-                      p_flw_ref: String(flwTransactionId),
-                    }
-                  );
-
-                  if (!rpcErr && rpcRes?.success) {
-                    splitSuccess = true;
-                  } else if (rpcErr) {
-                    console.warn("RPC pay_checkout_with_split not found or errored, executing direct ledger reconciliation fallback:", rpcErr.message);
-                  }
-                } catch (rpcCallErr: any) {
-                  console.warn("RPC call threw, falling back to direct ledger recording:", rpcCallErr.message);
-                }
-
-                if (!splitSuccess) {
-                  // Direct client-side resilient fallback maintaining strict double-entry ledger & audit records
-                  const { data: curProf } = await supabase
-                    .from("profiles")
-                    .select("referral_earnings, wallet_balance")
-                    .eq("id", order.user_id)
-                    .single();
-
-                  const curRefEarnings = Number(curProf?.referral_earnings) || 0;
-                  const curWalletBal = Number(curProf?.wallet_balance) || 0;
-
-                  // 1. Deduct wallet portion from profile
-                  await supabase
-                    .from("profiles")
-                    .update({
-                      referral_earnings: Math.max(0, curRefEarnings - usableWallet),
-                      wallet_balance: Math.max(0, curWalletBal - usableWallet),
-                    })
-                    .eq("id", order.user_id);
-
-                  // 2. Double-entry debit record in wallet_ledger
-                  await supabase.from("wallet_ledger").insert([
-                    {
-                      user_id: order.user_id,
-                      amount: -usableWallet,
-                      balance_after: Math.max(0, walletBalance - usableWallet),
-                      category: "SLOT_PURCHASE",
-                      status: "AVAILABLE",
-                      reference_id: walletRef,
-                      description: `Split Payment Reinvestment: ₦${usableWallet.toLocaleString()} applied from available wallet towards ${slotQuantity} slot(s) (Card paid: ₦${cardAmountToPay.toLocaleString()}, FLW ref: ${flwTransactionId})`,
-                      entry_type: "DEBIT",
-                    },
-                  ]);
-
-                  // 3. Record card payment receipt in other_payments
-                  await supabase.from("other_payments").insert([
-                    {
-                      user_id: order.user_id,
-                      payment_type: "slot_split_card",
-                      months: 12,
-                      slots: slotQuantity,
-                      amount: cardAmountToPay,
-                      status: "completed",
-                      transaction_ref: String(flwTransactionId),
-                      project_category: category,
-                    },
-                  ]);
-
-                  // 4. Update transaction record
-                  await supabase
-                    .from("transactions")
-                    .update({
-                      status: "paid",
-                      payment_method: "split",
-                      transaction_ref: `${flwTransactionId} / ${walletRef}`,
-                    })
-                    .eq("id", order.id);
-
-                  // 5. Create active slot subscription with farm group allocation & split
-                  await recordSubscriptionWithFarmGroupSplit({
-                    userId: order.user_id,
-                    checkoutId: order.id,
-                    amount: isGreenCardOnly && slotQuantity > 0 ? 5000 : totalPrice,
-                    slotPrice: SLOT_UNIT_PRICE,
-                    slots: isStarterPack ? 0 : slotQuantity,
-                    category: isGreenCardOnly ? "Mushroom Village" : category,
-                    isStarterPack,
-                    isCombo: isGreenCardOnly && slotQuantity > 0,
-                    isFirstSlotPurchase: isFirstSlotPurchase && !isGreenCardOnly,
-                  });
-                }
-
-                // If user did not previously hold a Green Card, activate it
-                if (!hasGreenCard && !isStarterPack) {
-                  const expiresAt = new Date();
-                  expiresAt.setFullYear(expiresAt.getFullYear() + 100);
-                  await supabase.from("subscriptions").upsert(
-                    [
-                      {
-                        user_id: order.user_id,
-                        plan: "green_card",
-                        status: "active",
-                        started_at: new Date().toISOString(),
-                        expires_at: expiresAt.toISOString(),
-                      },
-                    ],
-                    { onConflict: "user_id" },
-                  );
-                  await supabase.from("profiles").update({
-                    is_green_card_holder: true,
-                    has_greencard: true,
-                    greencard_status: "active",
-                  }).eq("id", order.user_id);
-                }
-
-                setWalletBalance((prev) => Math.max(0, prev - usableWallet));
-
-                if (isGreenCardOnly) {
-                  if (slotQuantity > 0) {
-                    toast({
-                      title: "Milestone 3 Unlocked! 🚀",
-                      description: "Split payment successful! Your Green Card + Starter Combo are active! You have jumped straight to Milestone 3.",
-                    });
-                    navigate("/dashboard");
-                  } else {
-                    toast({
-                      title: "Green Card Activated! 🌿",
-                      description: "Split payment successful! Your lifetime Green Card Pass is active.",
-                    });
-                    navigate("/dashboard");
-                  }
-                } else if (isStarterPack) {
-                  toast({
-                    title: "Starter Pack Activated!",
-                    description: "Your ₦5,000 Mushroom Starter Pack has been activated. Your 5×7 Compound Network and bank withdrawals are now unlocked.",
-                  });
-                  navigate("/dashboard/referrals/compound");
-                } else {
-                  toast({
-                    title: "Split Payment Successful!",
-                    description: `₦${usableWallet.toLocaleString()} deducted from wallet & ₦${cardAmountToPay.toLocaleString()} paid via card. ${slotQuantity} slot(s) activated!`,
-                  });
-                  navigate("/dashboard/farm-operations/my-slots");
-                }
-              } catch (finalizeErr: any) {
-                console.error("Error finalizing split payment:", finalizeErr);
-                toast({
-                  title: "Activation Notice",
-                  description:
-                    "Card payment succeeded. If your slots do not appear immediately, support will reconcile with ref: " +
-                    flwTransactionId,
-                });
-                navigate("/dashboard/farm-operations/my-slots");
-              } finally {
-                setIsProcessing(false);
-              }
-            };
-
-            finalizeSplit();
-          } else {
-            toast({
-              title: "Payment Unsuccessful",
-              description: "Card payment was not completed.",
-              variant: "destructive",
-            });
-            setIsProcessing(false);
-          }
-        },
-      });
-    } catch (err: any) {
-      console.error("Flutterwave split launch error:", err);
-      toast({
-        title: "Payment Error",
-        description: err.message || "Failed to initialize payment.",
-        variant: "destructive",
-      });
-      setIsProcessing(false);
+    if (paymentMethod === "wallet") {
+      handleWalletPayment();
+    } else {
+      handleFlutterwave();
     }
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="pt-0 pb-16">
-        <div className="container mx-auto px-4 max-w-4xl">
-          <Link
-            to="/dashboard/farm-operations/buy-slots"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Slots
-          </Link>
+    <div className="min-h-screen bg-slate-50/60 pb-16">
+      <main className="pt-6">
+        <div className="container mx-auto px-4 max-w-6xl">
+          {/* Header & Breadcrumb */}
+          <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Dashboard
+            </Link>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Shield className="w-4 h-4 text-emerald-700" />
+              <span>256-Bit SSL Encrypted & Verified Checkout</span>
+            </div>
+          </div>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.3 }}
+            className="mb-8"
           >
-            <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-2">
-              Secure Your Farm Slot
+            <h1 className="font-display text-2xl sm:text-3xl font-black text-foreground tracking-tight">
+              {isStarterPack
+                ? "Activate Your Mushroom Starter Pack (100g)"
+                : isGreenCardOnly || isCombo
+                ? "Complete Your AgroHeal Membership Activation"
+                : "Secure Commercial Farm Slots"}
             </h1>
-            <p className="text-muted-foreground mb-8">
-              Pay securely via Flutterwave.
+            <p className="text-sm text-muted-foreground mt-1">
+              Confirm your member details and review what you are purchasing below.
             </p>
           </motion.div>
 
-          <div className="grid lg:grid-cols-5 gap-8">
-            {/* Billing Form */}
+          {/* 2-Column Responsive Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            {/* ── LEFT COLUMN: WHO IS BUYING (7 Cols) ──────────────────────────────── */}
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: -15 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="lg:col-span-3"
+              transition={{ duration: 0.4 }}
+              className="lg:col-span-7 space-y-6"
             >
-              <div className="bg-card rounded-2xl p-6 md:p-8 shadow-soft border border-border/50">
-                <h2 className="font-display text-xl font-semibold text-foreground mb-6 flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-primary" />
-                  Account & Order Details
-                </h2>
-
-                <div className="space-y-5">
-                  {isLoadingProfile ? (
-                    <div className="p-5 rounded-2xl border border-border/60 bg-muted/30 space-y-3 animate-pulse">
-                      <div className="flex items-center gap-3">
-                        <Skeleton className="w-10 h-10 rounded-full" />
-                        <div className="space-y-1.5 flex-1">
-                          <Skeleton className="h-4 w-36" />
-                          <Skeleton className="h-3 w-48" />
-                        </div>
-                      </div>
+              {/* Card 1: Member Identity */}
+              <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-sm border border-border/70 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-border/50">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-600/10 text-emerald-700 flex items-center justify-center font-bold text-sm">
+                      1
                     </div>
-                  ) : (
-                    <div className="bg-emerald-50/50 rounded-2xl p-5 border border-emerald-200/80">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <div className="w-11 h-11 rounded-2xl bg-emerald-800 text-white font-bold flex items-center justify-center text-sm shadow-xs shrink-0">
-                            {(formData.firstName?.[0] || formData.email?.[0] || currentUser?.email?.[0] || "M").toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <span className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wider block">
-                              You are purchasing as
-                            </span>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="font-bold text-gray-900 text-base truncate">
-                                {formData.firstName || formData.lastName
-                                  ? `${formData.firstName} ${formData.lastName}`.trim()
-                                  : currentUser?.email?.split("@")[0] || "Member"}
-                              </p>
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0 inline-flex items-center gap-1">
-                                <Lock className="w-2.5 h-2.5" />
-                                Verified Profile
-                              </span>
-                            </div>
-                            <p className="text-xs text-gray-600 font-mono truncate flex items-center gap-1 mt-0.5">
-                              {formData.email || currentUser?.email}
-                            </p>
-                          </div>
-                        </div>
+                    <h2 className="font-bold text-base text-foreground">
+                      Who is Buying
+                    </h2>
+                  </div>
+                  <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-100/80 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-700" />
+                    Verified Member Account
+                  </span>
+                </div>
 
-                        {/* Escape hatch: Not you? Log out */}
-                        <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-emerald-100 sm:border-l sm:pl-4">
-                          <span className="text-xs text-gray-500">Not you?</span>
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                await supabase.auth.signOut();
-                              } catch (e) {
-                                console.warn("Logout error:", e);
-                              }
-                              navigate("/signin");
-                            }}
-                            className="text-xs font-bold text-rose-600 hover:text-rose-700 underline underline-offset-2 transition-colors cursor-pointer"
-                          >
-                            Log out
-                          </button>
+                {isLoadingProfile ? (
+                  <div className="space-y-2 animate-pulse">
+                    <Skeleton className="h-10 w-full rounded-xl" />
+                    <Skeleton className="h-10 w-full rounded-xl" />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="bg-emerald-50/50 rounded-xl p-4 border border-emerald-200/60 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-full bg-emerald-800 text-white font-bold flex items-center justify-center text-sm shrink-0 shadow-xs">
+                          {(formData.firstName?.[0] || formData.email?.[0] || "M").toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm text-foreground truncate">
+                            {formData.firstName || formData.lastName
+                              ? `${formData.firstName} ${formData.lastName}`.trim()
+                              : currentUser?.email?.split("@")[0] || "Member"}
+                          </p>
+                          <p className="text-xs text-muted-foreground truncate font-mono">
+                            {formData.email || currentUser?.email}
+                          </p>
                         </div>
                       </div>
 
-                      {/* Contact Phone (Locked if present, else input field) */}
-                      {formData.phone && isPhoneValid ? (
-                        <div className="mt-3.5 pt-3 border-t border-emerald-100 flex items-center justify-between text-xs text-gray-600">
-                          <span>
-                            Contact Phone: <strong className="font-mono text-gray-900">{formData.phone}</strong>
-                          </span>
-                          <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded">
-                            Verified from Profile
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="mt-3.5 pt-3 border-t border-amber-200/90 space-y-2">
-                          <div className="flex items-center justify-between text-xs text-amber-900">
-                            <span className="font-semibold flex items-center gap-1">
-                              <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                              Contact Phone (for delivery &amp; payment SMS receipt)
-                            </span>
-                            <span className="text-[10px] text-amber-700 font-bold">* Compulsory</span>
-                          </div>
-                          <Input
-                            id="phone"
-                            name="phone"
-                            type="tel"
-                            placeholder="e.g. 08012345678"
-                            value={formData.phone}
-                            onChange={handleInputChange}
-                            className={`h-9 text-xs bg-white ${!isPhoneValid && formData.phone ? "border-amber-400" : ""}`}
-                            required
-                          />
-                        </div>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await supabase.auth.signOut();
+                          } catch (e) {
+                            console.warn("Logout error:", e);
+                          }
+                          navigate("/signin");
+                        }}
+                        className="text-xs font-semibold text-rose-600 hover:text-rose-700 hover:underline shrink-0 cursor-pointer"
+                      >
+                        Not you? Log out
+                      </button>
+                    </div>
+
+                    {/* Phone Number Field */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <Label
+                          htmlFor="checkout-phone-input"
+                          className="font-semibold text-foreground flex items-center gap-1.5"
+                        >
+                          <Phone className="w-3.5 h-3.5 text-emerald-700" />
+                          <span>Phone Number (for SMS & Payment Confirmation)</span>
+                        </Label>
+                        <span className="text-[10px] text-amber-700 font-bold">* Compulsory</span>
+                      </div>
+                      <Input
+                        id="checkout-phone-input"
+                        name="phone"
+                        type="tel"
+                        placeholder="e.g. 08012345678"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        className={`h-11 rounded-xl text-sm bg-background font-mono ${
+                          errors.phone ? "border-red-500 focus-visible:ring-red-500" : ""
+                        }`}
+                      />
+                      {errors.phone && (
+                        <p className="text-xs text-red-600 font-medium flex items-center gap-1 mt-1">
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                          {errors.phone}
+                        </p>
                       )}
                     </div>
-                  )}
-                  {isStarterPack ? (
-                    <div className="bg-amber-50/80 border border-amber-200 rounded-2xl p-5 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-800">
-                            <Sprout className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <h3 className="font-bold text-gray-900 text-base">
-                              Mushroom Starter Pack (100g)
-                            </h3>
-                            <p className="text-xs text-amber-800 font-medium">
-                              Mushroom Power 100g — Legacy Member Activation Package
-                            </p>
-                          </div>
-                        </div>
-                        <span className="font-mono text-base font-black text-amber-950 bg-amber-100 px-3 py-1 rounded-xl border border-amber-300">
-                          ₦5,000
-                        </span>
-                      </div>
-                      <div className="bg-white/90 p-3.5 rounded-xl border border-amber-100 text-xs text-gray-600 space-y-2">
-                        <div className="flex items-center justify-between font-semibold text-gray-800">
-                          <span>Package Fee</span>
-                          <span>₦5,000</span>
-                        </div>
-                        <p className="text-[11px] text-gray-500 leading-relaxed">
-                          Your pre-launch farm slots are already secured and productive in the physical cluster. This ₦5,000 Starter Pack activates your <strong>5×7 Forced Matrix</strong>, unlocks <strong>Level 1–7 compound referral commissions</strong>, and enables <strong>external bank withdrawals</strong>.
-                        </p>
-                      </div>
-                    </div>
-                  ) : isGreenCardOnly ? (
-                    <div className="space-y-4">
-                      {/* Green Card Pass Overview Card */}
-                      <div className="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-5 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-800">
-                              <Shield className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <h3 className="font-bold text-gray-900 text-base">
-                                AgroHeal Green Card Pass
-                              </h3>
-                              <p className="text-xs text-emerald-800 font-medium">
-                                Lifetime Certified Digital Membership {isLegacy ? "(Founding Rate)" : ""}
-                              </p>
-                            </div>
-                          </div>
-                          <span className="font-mono text-base font-black text-emerald-950 bg-emerald-100 px-3 py-1 rounded-xl border border-emerald-300">
-                            ₦{activeGreenCardRate.toLocaleString()}
-                          </span>
-                        </div>
-                        <div className="bg-white/90 p-3.5 rounded-xl border border-emerald-100 text-xs text-gray-600 space-y-1.5">
-                          <p className="text-[11px] text-gray-600 leading-relaxed">
-                            Official verified digital membership, immediate affiliate link (₦1,000 instant commission per direct signup), and unlocked Organic Academy courses.
-                          </p>
-                        </div>
-                      </div>
+                  </div>
+                )}
+              </div>
 
-                      {/* Optional Combo Upsell Checkbox */}
-                      <div
-                        onClick={() => setSlotQuantity(slotQuantity === 0 ? 1 : 0)}
-                        className={`p-4 rounded-2xl border transition-all text-left cursor-pointer ${
-                          slotQuantity > 0
-                            ? "bg-emerald-50/90 border-emerald-500 ring-1 ring-emerald-500/40 shadow-xs"
-                            : "bg-gray-50/70 border-gray-200 hover:border-emerald-300"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <input
-                            type="checkbox"
-                            id="checkoutComboUpsell"
-                            checked={slotQuantity > 0}
-                            onChange={(e) => setSlotQuantity(e.target.checked ? 1 : 0)}
-                            className="mt-1 h-4 w-4 rounded border-gray-300 text-emerald-800 focus:ring-emerald-500 cursor-pointer"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <label htmlFor="checkoutComboUpsell" className="text-xs font-bold text-gray-900 cursor-pointer">
-                                ✔️ ₦10,000 Producer-Consumer Starter Package
-                              </label>
-                              <span className="text-xs font-black text-emerald-800 bg-emerald-100 px-2.5 py-0.5 rounded-full border border-emerald-200 font-mono">
-                                +₦10,000
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-gray-600 mt-1 leading-relaxed">
-                              Upgrade to our complete Producer-Consumer bundle: <strong>₦5,000 Initial Mushroom Farm Slot</strong> (automated biological farm production with cycle doubling) + <strong>₦5,000 Mushroom Power 100g</strong> organic wellness beverage. Combined with your <strong>₦{activeGreenCardRate.toLocaleString()} Green Card Pass</strong>, your complete onboarding total is <strong>₦{(COMBO_PRICE + activeGreenCardRate).toLocaleString()}</strong>.
-                            </p>
-                            <div className="mt-2.5 flex items-center gap-1.5 flex-wrap text-[10px] font-semibold text-emerald-800">
-                              <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
-                                🍄 1 Farm Slot (Cycle Doubling)
-                              </span>
-                              <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
-                                ☕ Mushroom Power 100g Included
-                              </span>
-                              <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
-                                🔓 Immediate Bank Withdrawals
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="category">Project Category</Label>
-                        <select
-                          id="category"
-                          value={category}
-                          onChange={(e) => {
-                            setCategory(e.target.value);
-                            if (errors.category)
-                              setErrors((prev) => ({ ...prev, category: "" }));
-                          }}
-                          className={`w-full h-10 px-3 rounded-md border bg-background text-sm mb-1.5 ${errors.category ? "border-red-500" : "border-input"}`}
-                          required
-                        >
-                          <option value="Mushroom Village">
-                            Mushroom Village - Organic Mushrooms (Active Cluster)
-                          </option>
-                          <option
-                            value="Ginger Town"
-                            disabled
-                            className="text-muted-foreground bg-muted/40"
-                          >
-                            Gingertown - Organic Ginger (Funded via Proceeds · Opens Q2)
-                          </option>
-                          <option
-                            value="Organic FoodNation (1 Million Hectares against Hunger)"
-                            disabled
-                            className="text-muted-foreground bg-muted/40"
-                          >
-                            Organic FoodNation - Organic Food Crops & Livestock (Funded via Proceeds · Opens Q2)
-                          </option>
-                        </select>
-                        <p className="text-[11px] text-muted-foreground mb-4">
-                          Currently, only the <strong>Mushroom Village</strong> cluster is open for active slot allocation. Gingertown (₦33,000/slot) and Organic FoodNation (₦15,000/slot) are to be funded from Mushroom Village proceeds and opened from the second quarter.
-                        </p>
-                        {errors.category && (
-                          <p className="text-xs text-red-500 -mt-2 mb-4">
-                            {errors.category}
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label>Number of Slots</Label>
-                        <div className="flex items-center gap-4">
-                          <button
-                            type="button"
-                            onClick={decrementSlot}
-                            disabled={slotQuantity <= 1}
-                            className="w-10 h-10 rounded-xl border border-border bg-background flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            <Minus className="w-4 h-4" />
-                          </button>
-
-                          <div className="flex-1 text-center">
-                            <span className="text-3xl font-bold text-foreground">
-                              {slotQuantity}
-                            </span>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {slotQuantity === 1 ? "slot" : "slots"}
-                            </p>
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={incrementSlot}
-                            disabled={slotQuantity >= 100}
-                            className="w-10 h-10 rounded-xl border border-border bg-background flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        <motion.div
-                          initial={{ opacity: 0, y: -4 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="space-y-3 mt-3"
-                        >
-                          <div className="bg-green-50/80 border border-green-200/80 rounded-xl p-3.5 space-y-2 text-xs">
-                            <div className="flex items-center justify-between text-green-900 font-semibold text-sm">
-                              <span>
-                                {isFirstSlotPurchase
-                                  ? "First Slot & Starter Pack"
-                                  : `${slotQuantity} Farm Slot${slotQuantity > 1 ? "s" : ""}`}
-                              </span>
-                              <span>
-                                ₦{(isFirstSlotPurchase ? 10000 : slotQuantity * SLOT_UNIT_PRICE).toLocaleString()}
-                              </span>
-                            </div>
-
-                            {isFirstSlotPurchase && (
-                              <div className="text-[11px] text-green-700 space-y-0.5">
-                                <p>• ₦5,000 Farm Slot set up</p>
-                                <p>• ₦5,000 Mushroom Power 100g starter pack</p>
-                              </div>
-                            )}
-
-                            {isFirstSlotPurchase && slotQuantity > 1 && (
-                              <div className="flex items-center justify-between text-green-800 pt-1 border-t border-green-200/60 font-medium">
-                                <span>+ {slotQuantity - 1} Additional slot{slotQuantity > 2 ? "s" : ""} (@ ₦5,000)</span>
-                                <span>₦{((slotQuantity - 1) * SLOT_UNIT_PRICE).toLocaleString()}</span>
-                              </div>
-                            )}
-
-                            {!hasGreenCard && (
-                              <div className="flex items-center justify-between text-amber-900 pt-1.5 border-t border-green-200/60 font-semibold">
-                                <span className="flex items-center gap-1">
-                                  <Shield className="w-3.5 h-3.5 text-amber-700" />
-                                  Green Card Lifetime Pass {isLegacy ? "(Founding Rate)" : "(Auto-bundled)"}
-                                </span>
-                                <span>₦{activeGreenCardRate.toLocaleString()}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="space-y-2 bg-muted/30 rounded-xl p-3.5 border border-border/50">
-                            <div className="flex items-center gap-2">
-                              <Sprout className="w-4 h-4 text-green-700 shrink-0" />
-                              <span className="text-xs font-bold text-green-900 uppercase tracking-wider">
-                                LEAP Practical Cluster Model
-                              </span>
-                            </div>
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                              {isFirstSlotPurchase
-                                ? "Your starter slot package covers biological materials, physical cluster preparation, and Mushroom Power 100g starter pack (₦10,000). Subsequent slots scale at ₦5,000 each with zero recurring monthly fees."
-                                : "Subsequent slots scale at ₦5,000 each with zero recurring monthly fees. Ongoing operations are sustained via harvest yields."}
-                            </p>
-                          </div>
-                        </motion.div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Payment Method Selector */}
-                  <div className="space-y-3 pt-2">
-                    <Label className="text-sm font-semibold text-foreground block">
-                      Select Payment Method
-                    </Label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      {/* [FOUNDER INSTRUCTION] Pay with Wallet & Split payment methods temporarily commented out; can be reactivated later */}
-                      {/*
-                      {walletBalance >= totalPrice && (
-                        <div
-                          onClick={() => setPaymentMethod("wallet")}
-                          className={`cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between gap-3 select-none ${
-                            paymentMethod === "wallet"
-                              ? "border-green-800 bg-green-50/60 shadow-sm"
-                              : "border-border hover:border-gray-300 bg-card"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <div
-                              className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center transition-colors ${
-                                paymentMethod === "wallet"
-                                  ? "bg-green-800 text-white shadow-sm"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              <Wallet className="w-5 h-5 shrink-0" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <p className="font-semibold text-sm text-foreground">
-                                  Pay from Wallet
-                                </p>
-                                <span className="bg-green-100 text-green-800 text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0">
-                                  100% Covered
-                                </span>
-                              </div>
-                              <p className="text-xs font-semibold text-green-700 truncate">
-                                ₦{walletBalance.toLocaleString()} available (₦0 card fee)
-                              </p>
-                            </div>
-                          </div>
-                          <input
-                            type="radio"
-                            name="paymentMethod"
-                            checked={paymentMethod === "wallet"}
-                            onChange={() => setPaymentMethod("wallet")}
-                            className="w-4 h-4 shrink-0 text-green-800 focus:ring-green-800 accent-green-800 cursor-pointer"
-                          />
-                        </div>
-                      )}
-
-                      {walletBalance > 0 && walletBalance < totalPrice && (
-                        <div
-                          onClick={() => {
-                            setPaymentMethod("split");
-                            if (walletAmountToUse <= 0) {
-                              setWalletAmountToUse(Math.min(walletBalance, totalPrice));
-                            }
-                          }}
-                          className={`cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between gap-3 select-none ${
-                            paymentMethod === "split"
-                              ? "border-green-800 bg-green-50/60 shadow-sm"
-                              : "border-border hover:border-gray-300 bg-card"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            <div
-                              className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center transition-colors ${
-                                paymentMethod === "split"
-                                  ? "bg-green-800 text-white shadow-sm"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              <Coins className="w-5 h-5 shrink-0" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <p className="font-semibold text-sm text-foreground">
-                                  Pay Difference
-                                </p>
-                                <span className="bg-amber-100 text-amber-900 text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0">
-                                  Wallet + Card
-                                </span>
-                              </div>
-                              <p className="text-xs text-green-700 font-medium truncate">
-                                Apply ₦{walletBalance.toLocaleString()} + Pay ₦{(totalPrice - walletBalance).toLocaleString()} Card
-                              </p>
-                            </div>
-                          </div>
-                          <input
-                            type="radio"
-                            name="paymentMethod"
-                            checked={paymentMethod === "split"}
-                            onChange={() => {
-                              setPaymentMethod("split");
-                              if (walletAmountToUse <= 0) {
-                                setWalletAmountToUse(Math.min(walletBalance, totalPrice));
-                              }
-                            }}
-                            className="w-4 h-4 shrink-0 text-green-800 focus:ring-green-800 accent-green-800 cursor-pointer"
-                          />
-                        </div>
-                      )}
-                      */}
-
-                      {/* Online Flutterwave Card (Always available) */}
-                      <div
-                        onClick={() => setPaymentMethod("flutterwave")}
-                        className={`cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between gap-3 select-none ${
-                          paymentMethod === "flutterwave"
-                            ? "border-green-800 bg-green-50/60 shadow-sm"
-                            : "border-border hover:border-gray-300 bg-card"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div
-                            className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center transition-colors ${
-                              paymentMethod === "flutterwave"
-                                ? "bg-green-800 text-white shadow-sm"
-                                : "bg-muted text-muted-foreground"
-                            }`}
-                          >
-                            <CreditCard className="w-5 h-5 shrink-0" />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-sm text-foreground truncate">
-                              Pay Online (Flutterwave)
-                            </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              Card, Bank Transfer, USSD (₦{totalPrice.toLocaleString()})
-                            </p>
-                          </div>
-                        </div>
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          checked={paymentMethod === "flutterwave"}
-                          onChange={() => setPaymentMethod("flutterwave")}
-                          className="w-4 h-4 shrink-0 text-green-800 focus:ring-green-800 accent-green-800 cursor-pointer"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Locked Ledger Transparency Notice */}
-                    {lockedLedgerBalance > 0 && (
-                      <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50/60 border border-amber-200/70 text-xs text-amber-900 mt-2">
-                        <Lock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                        <div>
-                          <p className="font-semibold">
-                            ₦{lockedLedgerBalance.toLocaleString()} Locked in Ledger
-                          </p>
-                          <p className="text-[11px] text-amber-800/90 mt-0.5 leading-relaxed">
-                            This amount represents matrix commission spillover currently locked pending direct referral qualifications. It cannot be applied to checkout. Only your cleared available balance (<strong>₦{walletBalance.toLocaleString()}</strong>) can be spent or applied towards paying the difference.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* [FOUNDER INSTRUCTION] Wallet guidance & split adjuster commented out; can be reactivated later */}
-                    {/*
-                    {paymentMethod === "wallet" && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`rounded-xl p-3.5 border text-sm ${
-                          walletBalance >= totalPrice
-                            ? "bg-emerald-50 border-emerald-200 text-emerald-900"
-                            : "bg-amber-50 border-amber-200 text-amber-900"
-                        }`}
-                      >
-                        {walletBalance >= totalPrice ? (
-                          <div className="flex items-start gap-2.5">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-                            <div>
-                              <p className="font-bold text-xs">
-                                Instant Balance Reinvestment
-                              </p>
-                              <p className="text-xs mt-0.5 text-emerald-800">
-                                ₦{totalPrice.toLocaleString()} will be deducted from your earnings balance. Remaining: ₦{(walletBalance - totalPrice).toLocaleString()}.
-                              </p>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-start gap-2.5">
-                            <AlertCircle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
-                            <div className="space-y-1.5 flex-1">
-                              <p className="font-bold text-xs">
-                                Partial Wallet Balance Available
-                              </p>
-                              <p className="text-xs text-amber-800">
-                                This order requires ₦{totalPrice.toLocaleString()}, but you have ₦{walletBalance.toLocaleString()} in available balance. You can pay the remaining ₦{(totalPrice - walletBalance).toLocaleString()} via card/bank transfer.
-                              </p>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setPaymentMethod("split");
-                                  setWalletAmountToUse(walletBalance);
-                                }}
-                                className="h-7 text-xs border-amber-300 bg-white hover:bg-amber-100 text-amber-900 font-semibold"
-                              >
-                                Switch to Pay Difference (Pay ₦{(totalPrice - walletBalance).toLocaleString()} via Card)
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </motion.div>
-                    )}
-
-                    {paymentMethod === "split" && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="rounded-xl p-4 border bg-emerald-50/80 border-emerald-200 text-emerald-950 space-y-3.5 shadow-2xs"
-                      >
-                        <div className="flex items-center justify-between text-xs pb-2 border-b border-emerald-200/70">
-                          <span className="font-semibold text-emerald-900">Total Order Amount:</span>
-                          <span className="text-sm font-bold text-gray-900 font-mono">₦{totalPrice.toLocaleString()}</span>
-                        </div>
-
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between text-xs">
-                            <label className="font-medium text-emerald-900">Apply from Available Wallet:</label>
-                            <span className="font-bold text-emerald-800 font-mono">
-                              ₦{Math.min(walletBalance, Math.max(1, walletAmountToUse)).toLocaleString()} (of ₦{walletBalance.toLocaleString()} available)
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              min={1}
-                              max={Math.min(walletBalance, totalPrice)}
-                              value={walletAmountToUse}
-                              onChange={(e) => {
-                                const val = Math.max(0, Math.min(Number(e.target.value) || 0, Math.min(walletBalance, totalPrice)));
-                                setWalletAmountToUse(val);
-                              }}
-                              className="h-9 text-xs bg-white rounded-lg font-mono font-bold"
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setWalletAmountToUse(Math.min(walletBalance, totalPrice))}
-                              className="h-9 text-xs border-emerald-300 text-emerald-900 hover:bg-emerald-100 font-semibold shrink-0"
-                            >
-                              Use Max Available
-                            </Button>
-                          </div>
-                        </div>
-
-                        <div className="pt-2 border-t border-emerald-200 flex items-center justify-between text-xs font-semibold">
-                          <span className="text-gray-700">Remaining to Pay via Card / Transfer:</span>
-                          <span className="text-base font-black text-emerald-900 font-mono">
-                            ₦{Math.max(0, totalPrice - Math.min(walletBalance, Math.max(1, walletAmountToUse))).toLocaleString()}
-                          </span>
-                        </div>
-
-                        <p className="text-[11px] text-emerald-800/90 leading-relaxed bg-white/70 p-2.5 rounded-lg border border-emerald-200/50">
-                          ₦{Math.min(walletBalance, Math.max(1, walletAmountToUse)).toLocaleString()} will be automatically debited from your cleared available wallet, and you will pay the remaining ₦{Math.max(0, totalPrice - Math.min(walletBalance, Math.max(1, walletAmountToUse))).toLocaleString()} securely through Flutterwave card or bank transfer.
-                        </p>
-                      </motion.div>
-                    )}
-                    */}
+              {/* Card 2: Payment Method */}
+              <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-sm border border-border/70 space-y-4">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-border/50">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-600/10 text-emerald-700 flex items-center justify-center font-bold text-sm">
+                    2
+                  </div>
+                  <div>
+                    <h2 className="font-bold text-base text-foreground">
+                      Payment Method
+                    </h2>
+                    <p className="text-xs text-muted-foreground">
+                      Select how you want to pay for this transaction.
+                    </p>
                   </div>
                 </div>
 
-                <div className="mt-8 space-y-3">
-                  {!isPhoneValid && (
-                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/90 text-amber-900 text-xs flex items-center gap-2.5 shadow-2xs">
-                      <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
-                      <span>
-                        Please provide your valid contact phone number (at least 10 digits) in the contact section above to enable payment.
-                      </span>
-                    </div>
-                  )}
-
-                  {!category && (
-                    <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200/90 text-amber-900 text-xs flex items-center gap-2.5 shadow-2xs">
-                      <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
-                      <span>Please select a Project Category above to proceed with payment.</span>
-                    </div>
-                  )}
-
-                  <Button
-                    onClick={
-                      paymentMethod === "wallet"
-                        ? handleWalletPayment
-                        : paymentMethod === "split"
-                        ? handleSplitPayment
-                        : handleFlutterwave
-                    }
-                    disabled={
-                      isProcessing ||
-                      !isFormValid ||
-                      (paymentMethod === "wallet" && walletBalance < totalPrice) ||
-                      (paymentMethod === "split" && walletAmountToUse <= 0)
-                    }
-                    className="w-full h-12 bg-green-800 hover:bg-green-900 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-sm transition-all"
+                <div className="space-y-3">
+                  {/* Flutterwave Option */}
+                  <div
+                    onClick={() => setPaymentMethod("flutterwave")}
+                    className={`cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between gap-3 select-none ${
+                      paymentMethod === "flutterwave"
+                        ? "border-emerald-700 bg-emerald-50/50 shadow-xs"
+                        : "border-border hover:border-gray-300 bg-card"
+                    }`}
                   >
-                    {isProcessing ? (
-                      <span className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        Processing Secure Payment...
-                      </span>
-                    ) : !isPhoneValid ? (
-                      "Provide Contact Phone to Pay"
-                    ) : !category ? (
-                      "Select Project Category to Pay"
-                    ) : paymentMethod === "wallet" ? (
-                      `Pay ₦${totalPrice.toLocaleString()} from Wallet Balance`
-                    ) : paymentMethod === "split" ? (
-                      `Pay ₦${Math.max(0, totalPrice - Math.min(walletBalance, Math.max(1, walletAmountToUse))).toLocaleString()} via Card (Using ₦${Math.min(walletBalance, Math.max(1, walletAmountToUse)).toLocaleString()} from Wallet)`
-                    ) : (
-                      `Pay ₦${totalPrice.toLocaleString()} with Flutterwave`
-                    )}
-                  </Button>
-                </div>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center transition-colors ${
+                          paymentMethod === "flutterwave"
+                            ? "bg-emerald-800 text-white"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        <CreditCard className="w-5 h-5 shrink-0" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm text-foreground">
+                          Pay Online with Flutterwave
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Instant Card, Bank Transfer, or USSD
+                        </p>
+                      </div>
+                    </div>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      checked={paymentMethod === "flutterwave"}
+                      onChange={() => setPaymentMethod("flutterwave")}
+                      className="w-4 h-4 text-emerald-800 focus:ring-emerald-800 accent-emerald-800 cursor-pointer"
+                    />
+                  </div>
 
-                <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
-                  <Shield className="w-4 h-4" />
-                  <span>Your payment information is secure and encrypted.</span>
+                  {/* Wallet Option */}
+                  {walletBalance > 0 && (
+                    <div
+                      onClick={() => {
+                        if (walletBalance >= totalPrice) {
+                          setPaymentMethod("wallet");
+                        } else {
+                          toast({
+                            title: "Insufficient Balance",
+                            description: `You have ₦${walletBalance.toLocaleString()}, but this order is ₦${totalPrice.toLocaleString()}. Please pay via Flutterwave.`,
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      className={`rounded-xl border-2 p-4 transition-all flex items-center justify-between gap-3 select-none ${
+                        walletBalance < totalPrice
+                          ? "opacity-60 cursor-not-allowed border-border bg-muted/30"
+                          : paymentMethod === "wallet"
+                          ? "border-emerald-700 bg-emerald-50/50 shadow-xs cursor-pointer"
+                          : "border-border hover:border-gray-300 bg-card cursor-pointer"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center transition-colors ${
+                            paymentMethod === "wallet"
+                              ? "bg-emerald-800 text-white"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          <Wallet className="w-5 h-5 shrink-0" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm text-foreground flex items-center gap-2">
+                            Pay from Wallet Balance
+                            <span className="font-mono text-xs font-normal text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
+                              ₦{walletBalance.toLocaleString()} Available
+                            </span>
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {walletBalance >= totalPrice
+                              ? "Instant deduction from your cleared referral earnings"
+                              : `Insufficient (₦${(totalPrice - walletBalance).toLocaleString()} more needed)`}
+                          </p>
+                        </div>
+                      </div>
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        checked={paymentMethod === "wallet"}
+                        disabled={walletBalance < totalPrice}
+                        onChange={() => {
+                          if (walletBalance >= totalPrice) setPaymentMethod("wallet");
+                        }}
+                        className="w-4 h-4 text-emerald-800 focus:ring-emerald-800 accent-emerald-800 cursor-pointer"
+                      />
+                    </div>
+                  )}
+
+                  {lockedLedgerBalance > 0 && (
+                    <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900">
+                      <Lock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold">
+                          ₦{lockedLedgerBalance.toLocaleString()} Locked in Ledger
+                        </p>
+                        <p className="text-[11px] text-amber-800/90 mt-0.5 leading-relaxed">
+                          This represents matrix spillover commissions awaiting direct referral qualification. Only cleared available balance can be spent.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Trust Badges */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-1">
+                <div className="p-3 rounded-xl bg-card border border-border/60 text-center">
+                  <Shield className="w-4 h-4 text-emerald-700 mx-auto mb-1" />
+                  <p className="text-[11px] font-semibold text-foreground">Bank Grade Security</p>
+                  <p className="text-[10px] text-muted-foreground">PCI-DSS Certified</p>
+                </div>
+                <div className="p-3 rounded-xl bg-card border border-border/60 text-center">
+                  <Sprout className="w-4 h-4 text-emerald-700 mx-auto mb-1" />
+                  <p className="text-[11px] font-semibold text-foreground">Biological Asset</p>
+                  <p className="text-[10px] text-muted-foreground">Managed in Farm Cluster</p>
+                </div>
+                <div className="p-3 rounded-xl bg-card border border-border/60 text-center col-span-2 sm:col-span-1">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700 mx-auto mb-1" />
+                  <p className="text-[11px] font-semibold text-foreground">Instant Activation</p>
+                  <p className="text-[10px] text-muted-foreground">Automated ID & Ledger</p>
                 </div>
               </div>
             </motion.div>
 
-            {/* Order Summary */}
+            {/* ── RIGHT COLUMN: WHAT YOU'RE BUYING & INSTANT CTA (5 Cols) ─────────── */}
             <motion.div
-              initial={{ opacity: 0, x: 20 }}
+              initial={{ opacity: 0, x: 15 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="lg:col-span-2"
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className="lg:col-span-5 space-y-6 lg:sticky lg:top-8"
             >
-              <div className="bg-card rounded-2xl overflow-hidden shadow-soft border border-border/50 sticky top-28">
-                <div className="bg-gradient-hero p-6 text-center">
-                  <div className="w-12 h-12 rounded-full bg-primary-foreground/10 flex items-center justify-center mx-auto mb-3">
-                    <Sprout className="w-6 h-6 text-primary-foreground" />
+              <div className="bg-card rounded-2xl overflow-hidden shadow-sm border border-border/80">
+                {/* Header */}
+                <div className="bg-emerald-900 text-white p-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[11px] uppercase tracking-wider text-emerald-300 font-bold block">
+                        Order Summary
+                      </span>
+                      <h3 className="font-bold text-lg text-white">
+                        What You're Buying
+                      </h3>
+                    </div>
+                    <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
+                      <Sprout className="w-5 h-5 text-emerald-300" />
+                    </div>
                   </div>
-                  <h3 className="font-display text-lg font-semibold text-primary-foreground">
-                    {isStarterPack
-                      ? starterProduct.name
-                      : isCombo
-                      ? "AgroHeal Starter Combo"
-                      : isGreenCardOnly
-                      ? "Digital Green Card Pass"
-                      : "Practicals Farm Slot"}
-                  </h3>
-                  <p className="text-primary-foreground/80 text-sm">
-                    {isStarterPack
-                      ? `Codename: ${starterProduct.code} • ${starterProduct.product_spec?.weight || "100g"}`
-                      : isCombo
-                      ? "Initial Farm Slot + Mushroom Power 100g"
-                      : isGreenCardOnly
-                      ? "Lifetime Certified Digital Membership"
-                      : "One growing season"}
-                  </p>
                 </div>
 
-                <div className="p-6 space-y-4">
-                  {isStarterPack ? (
-                    <div className="space-y-1.5 pb-2 border-b border-border/40">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground font-medium">{starterProduct.name}</span>
-                        <span className="text-foreground font-bold font-mono">₦{starterProduct.price.toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-[11px] font-semibold text-primary">
-                          {starterProduct.code}
-                        </span>
-                        <span className="text-emerald-700 font-medium">+{starterProduct.pv} PV (30d PQV Qualified)</span>
-                      </div>
-                    </div>
-                  ) : isCombo ? (
-                    <div className="space-y-2.5 pb-2 border-b border-border/40">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-foreground font-bold">Starter Combo Package</span>
-                        <span className="text-foreground font-bold font-mono">₦10,000</span>
-                      </div>
-                      <div className="text-[11px] text-emerald-800 bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200/60 space-y-1">
-                        <div className="flex justify-between">
-                          <span>• Initial Farm Slot (2 Bags · Mushroom Village)</span>
-                          <span className="font-semibold font-mono">₦5,000</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>• Mushroom Power 100g Starter Product</span>
-                          <span className="font-semibold font-mono">₦5,000</span>
-                        </div>
-                      </div>
-                      {slotQuantity > 1 && (
-                        <div className="flex justify-between text-sm pt-1">
-                          <span className="text-muted-foreground">
-                            + {slotQuantity - 1} Additional Slot{slotQuantity > 2 ? "s" : ""}
-                          </span>
-                          <span className="text-foreground font-semibold font-mono">
-                            ₦{((slotQuantity - 1) * SLOT_UNIT_PRICE).toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ) : isFirstSlotPurchase && slotQuantity > 0 ? (
-                    <div className="space-y-2.5 pb-2 border-b border-border/40">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-foreground font-bold">Starter Slot &amp; Product Combo</span>
-                        <span className="text-foreground font-bold font-mono">₦10,000</span>
-                      </div>
-                      <div className="text-[11px] text-emerald-800 bg-emerald-50/70 p-2.5 rounded-xl border border-emerald-200/60 space-y-1">
-                        <div className="flex justify-between">
-                          <span>• Initial Farm Slot (2 Bags · Mushroom Village)</span>
-                          <span className="font-semibold font-mono">₦5,000</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>• Mushroom Power 100g Starter Product</span>
-                          <span className="font-semibold font-mono">₦5,000</span>
-                        </div>
-                      </div>
-                      {slotQuantity > 1 && (
-                        <div className="flex justify-between text-sm pt-1">
-                          <span className="text-muted-foreground">
-                            + {slotQuantity - 1} Additional Slot{slotQuantity > 2 ? "s" : ""}
-                          </span>
-                          <span className="text-foreground font-semibold font-mono">
-                            ₦{((slotQuantity - 1) * SLOT_UNIT_PRICE).toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  ) : slotQuantity > 0 ? (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">
-                        {slotQuantity} Farm Slot{slotQuantity > 1 ? "s" : ""}
+                <div className="p-5 sm:p-6 space-y-5">
+                  {/* SCENARIO 1: Green Card / Onboarding Bump Selector */}
+                  {(isGreenCardOnly || !hasGreenCard) && !isStarterPack && (
+                    <div className="space-y-3">
+                      <span className="text-xs font-bold text-foreground block">
+                        Select Membership Option:
                       </span>
-                      <span className="text-foreground font-semibold font-mono">
-                        ₦{(slotQuantity * SLOT_UNIT_PRICE).toLocaleString()}
-                      </span>
-                    </div>
-                  ) : null}
 
-                  {greenCardFee > 0 && (
-                    <div className="flex justify-between items-start text-xs bg-amber-50 border border-amber-200/80 p-3 rounded-xl">
-                      <div>
-                        <span className="text-amber-950 font-bold block">
-                          Green Card Lifetime Pass {isLegacy && <span className="text-emerald-700 ml-1">(Founding Rate)</span>}
-                        </span>
-                        <span className="text-[11px] text-amber-800">
-                          {isLegacy ? "Grandfathered rate (Joined before Sep 6)" : "Verified ID, LMS Access & Referral Rights"}
-                        </span>
+                      {/* Option 1: Green Card Alone */}
+                      <div
+                        onClick={() => setSlotQuantity(0)}
+                        className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer select-none ${
+                          slotQuantity === 0
+                            ? "border-emerald-700 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-600/30"
+                            : "border-border bg-card hover:border-gray-300"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-2.5">
+                            <input
+                              type="radio"
+                              name="orderBumpOption"
+                              checked={slotQuantity === 0}
+                              onChange={() => setSlotQuantity(0)}
+                              className="mt-0.5 h-4 w-4 text-emerald-800 accent-emerald-800 cursor-pointer"
+                            />
+                            <div>
+                              <p className="text-xs sm:text-sm font-bold text-foreground">
+                                Activate Your Agroheal Green Card
+                              </p>
+                              <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
+                                Gain access to the Learning platform, digital Green Card ID, and affiliate referral earning.
+                              </p>
+                            </div>
+                          </div>
+                          <span className="font-mono text-xs sm:text-sm font-bold text-foreground shrink-0 bg-muted px-2 py-0.5 rounded-lg">
+                            ₦2,000
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-amber-950 font-bold font-mono">
-                        ₦{greenCardFee.toLocaleString()}
-                      </span>
+
+                      {/* Option 2: Green Card + Starter Combo (RECOMMENDED BUMP) */}
+                      <div
+                        onClick={() => setSlotQuantity(1)}
+                        className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer select-none relative overflow-hidden ${
+                          slotQuantity > 0
+                            ? "border-emerald-700 bg-emerald-50/90 shadow-sm ring-2 ring-emerald-600/40"
+                            : "border-border bg-card hover:border-emerald-300"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="inline-flex items-center gap-1 bg-emerald-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
+                            <Sparkles className="w-3 h-3" /> Recommended
+                          </span>
+                          <span className="font-mono text-sm font-black text-emerald-950 bg-emerald-200/70 px-2 py-0.5 rounded-lg border border-emerald-300">
+                            ₦12,000
+                          </span>
+                        </div>
+
+                        <div className="flex items-start gap-2.5">
+                          <input
+                            type="radio"
+                            name="orderBumpOption"
+                            checked={slotQuantity > 0}
+                            onChange={() => setSlotQuantity(1)}
+                            className="mt-0.5 h-4 w-4 text-emerald-800 accent-emerald-800 cursor-pointer"
+                          />
+                          <div className="space-y-1.5">
+                            <p className="text-xs sm:text-sm font-bold text-emerald-950">
+                              Activate Green Card PLUS Starter Combo
+                            </p>
+                            <div className="text-[11px] text-emerald-900/90 font-medium space-y-0.5">
+                              <p className="flex items-center gap-1.5">
+                                <Check className="w-3 h-3 text-emerald-700 shrink-0" />
+                                <span>₦2,000 Green Card</span>
+                              </p>
+                              <p className="flex items-center gap-1.5">
+                                <Check className="w-3 h-3 text-emerald-700 shrink-0" />
+                                <span>₦5,000 Group farm slot (2 Bags · Cycle Doubling)</span>
+                              </p>
+                              <p className="flex items-center gap-1.5">
+                                <Check className="w-3 h-3 text-emerald-700 shrink-0" />
+                                <span>₦5,000 Mushroom Power pack (100g)</span>
+                              </p>
+                            </div>
+                            <p className="text-[10px] text-muted-foreground pt-1 leading-snug">
+                              Unlocks full commercial farming, 5×7 community matrix placement, and bank withdrawals.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
-                  <div className="border-t border-border pt-4">
-                    <div className="flex justify-between font-semibold">
-                      <span className="text-foreground">Total</span>
-                      <span className="text-foreground text-xl font-bold font-mono text-emerald-950">
+                  {/* SCENARIO 2: Pure Starter Pack for Founding Members with Slots */}
+                  {isStarterPack && (
+                    <div className="bg-amber-50/80 border border-amber-200/90 rounded-xl p-4 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <Sprout className="w-5 h-5 text-amber-800 shrink-0" />
+                          <div>
+                            <h4 className="font-bold text-sm text-foreground">
+                              {starterProduct.name}
+                            </h4>
+                            <p className="text-xs text-amber-900 font-mono">
+                              Codename: {starterProduct.code}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="font-mono font-bold text-sm text-foreground bg-amber-100 px-2.5 py-1 rounded-lg">
+                          ₦{starterProduct.price.toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
+                        Required activation for slot holders. Qualifies 30-day PQV, activates your 5×7 Compound Network commissions, and enables bank withdrawals.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* SCENARIO 3: Additional Farm Slots Counter */}
+                  {!isGreenCardOnly && !isStarterPack && (
+                    <div className="space-y-3 pb-3 border-b border-border/50">
+                      <Label className="font-semibold text-xs text-foreground">
+                        Number of Commercial Farm Slots
+                      </Label>
+                      <div className="flex items-center justify-between gap-3 bg-muted/40 p-2.5 rounded-xl border border-border/60">
+                        <button
+                          type="button"
+                          onClick={decrementSlot}
+                          disabled={slotQuantity <= 1}
+                          className="w-9 h-9 rounded-lg border border-border bg-card flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40 cursor-pointer"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <div className="text-center">
+                          <span className="text-xl font-bold font-mono text-foreground">
+                            {slotQuantity}
+                          </span>
+                          <span className="text-xs text-muted-foreground ml-1.5">
+                            {slotQuantity === 1 ? "Slot" : "Slots"}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={incrementSlot}
+                          disabled={slotQuantity >= 100}
+                          className="w-9 h-9 rounded-lg border border-border bg-card flex items-center justify-center hover:bg-muted transition-colors disabled:opacity-40 cursor-pointer"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tabular Price Breakdown */}
+                  <div className="space-y-2 pt-2 text-xs border-t border-border/50">
+                    {greenCardFee > 0 && (
+                      <div className="flex justify-between items-center text-muted-foreground">
+                        <span>Lifetime Green Card Pass</span>
+                        <span className="font-mono font-semibold text-foreground">
+                          ₦{greenCardFee.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+
+                    {isCombo && (
+                      <>
+                        <div className="flex justify-between items-center text-muted-foreground">
+                          <span>Group Farm Slot (Mushroom Village)</span>
+                          <span className="font-mono font-semibold text-foreground">
+                            ₦5,000
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-muted-foreground">
+                          <span>Mushroom Power Pack (100g)</span>
+                          <span className="font-mono font-semibold text-foreground">
+                            ₦5,000
+                          </span>
+                        </div>
+                        {slotQuantity > 1 && (
+                          <div className="flex justify-between items-center text-muted-foreground">
+                            <span>{slotQuantity - 1} Additional Slot(s) (@ ₦5,000)</span>
+                            <span className="font-mono font-semibold text-foreground">
+                              ₦{((slotQuantity - 1) * SLOT_UNIT_PRICE).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {!isCombo && slotQuantity > 0 && !isStarterPack && (
+                      <div className="flex justify-between items-center text-muted-foreground">
+                        <span>{slotQuantity} Farm Slot(s)</span>
+                        <span className="font-mono font-semibold text-foreground">
+                          ₦{(slotQuantity * SLOT_UNIT_PRICE).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+
+                    {isStarterPack && (
+                      <div className="flex justify-between items-center text-muted-foreground">
+                        <span>{starterProduct.name}</span>
+                        <span className="font-mono font-semibold text-foreground">
+                          ₦{starterProduct.price.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Total Row */}
+                    <div className="pt-3 border-t border-border flex justify-between items-center">
+                      <span className="font-bold text-sm text-foreground">
+                        Total Amount to Pay
+                      </span>
+                      <span className="font-black font-mono text-xl text-emerald-950">
                         ₦{totalPrice.toLocaleString()}
                       </span>
                     </div>
                   </div>
 
-                  <ul className="text-xs text-muted-foreground space-y-2 pt-4 border-t border-border">
-                    <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      Practice slot in shared commercial cluster
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      Resident agronomist supervision
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      Up to 40% projected quarterly harvest distributions
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                      Zero recurring monthly maintenance fees
-                    </li>
-                  </ul>
+                  {/* PROMINENT PRIMARY ACTION BUTTON */}
+                  <div className="pt-2">
+                    <Button
+                      type="button"
+                      onClick={handlePayClick}
+                      disabled={isProcessing}
+                      className="w-full h-13 bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-base rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                          <span>Processing Payment...</span>
+                        </>
+                      ) : paymentMethod === "wallet" ? (
+                        <span>Pay ₦{totalPrice.toLocaleString()} from Wallet</span>
+                      ) : (
+                        <span>Pay ₦{totalPrice.toLocaleString()} with Flutterwave</span>
+                      )}
+                    </Button>
+                    <p className="text-[11px] text-center text-muted-foreground mt-2">
+                      Cards, Bank Transfers, and USSD accepted securely.
+                    </p>
+                  </div>
 
-                  <div className="mt-5 p-3.5 rounded-xl bg-muted/60 border border-border/60 text-[11px] text-muted-foreground leading-relaxed">
-                    <strong className="text-foreground block mb-0.5 font-semibold">Production & Risk Notice:</strong>
-                    AgroHeal is an agribusiness enablement and commercial production platform, not an investment company. Slot contributions finance physical biological inputs and farm grow-houses. Projected surplus returns (up to 40%) depend on biological crop yields and realized commodity market sales.
+                  {/* Concise Production Notice */}
+                  <div className="p-3 rounded-xl bg-muted/40 border border-border/50 text-[11px] text-muted-foreground leading-snug">
+                    <strong className="text-foreground block font-semibold mb-0.5">
+                      AgroHeal Production Notice:
+                    </strong>
+                    AgroHeal is an agricultural production collective, not a financial investment platform. Slot funds finance biological substrate bags and farm facilities. Returns reflect harvested crop sales.
                   </div>
                 </div>
               </div>

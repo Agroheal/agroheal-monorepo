@@ -81,7 +81,7 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
     step2: {
       title: "Secure Your Starter Commercial Farm Slot",
       subtitle:
-        "Your starter package is ₦10,000 (₦5,000 Mushroom Group farm setup + ₦5,000 Mushroom Power 100g). Remember that a farm slot alone won't qualify without a mushroom 100g product—we only sell it together as a combo. This establishes your practical biological oyster mushroom production managed within our community cluster farms.",
+        "Your ₦10,000 starter combo includes a ₦5,000 Mushroom Farm Slot (2 Bags · Cycle Doubling) and a ₦5,000 Mushroom Power 100g pack. This establishes your biological oyster mushroom production in our shared community farms.",
       priceText: "₦10,000 Complete Starter Package · Mushroom Village Flagship",
       badgeText: "Milestone 2 of 3 · Production",
       benefits: [

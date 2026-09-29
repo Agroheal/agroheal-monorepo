@@ -496,7 +496,7 @@ const Dashboard = () => {
                       type="button"
                       variant="outline"
                       onClick={() => {
-                        toast.error("You need an active Green Card to secure farm slots. Bundling with Green Card at checkout...");
+                        toast("A Green Card is required to secure farm slots. Bundling both together for you...", { icon: "🌿" });
                         navigate("/dashboard/checkout?product=green_card_combo");
                       }}
                       className="mt-2.5 sm:mt-4 w-full rounded-xl border border-gray-200 bg-gray-100 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-900 text-gray-500 px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5"
@@ -510,7 +510,7 @@ const Dashboard = () => {
                     type="button"
                     variant="outline"
                     onClick={() => {
-                      toast.error("Active Green Card required to access course modules. Redirecting to checkout...");
+                      toast("Active Green Card required to access courses. Redirecting to checkout...", { icon: "💳" });
                       navigate("/dashboard/checkout?product=green_card");
                     }}
                     className="mt-2.5 sm:mt-4 w-full rounded-xl border border-gray-200 bg-gray-100 hover:bg-amber-50 hover:border-amber-300 hover:text-amber-900 text-gray-500 px-2.5 sm:px-3 py-2 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5"
@@ -691,7 +691,7 @@ const Dashboard = () => {
                     NO GREENCARD YET
                   </Link>
                 )}{" "}
-                · Qualifies for 5×7 community matrix upon securing your ₦10,000 starter package. Remember that a farm slot alone won't qualify without a mushroom 100g product—we only sell it together as a combo.
+                · Unlocks your 5×7 community network once you activate the ₦10,000 Starter Combo (Farm Slot + Mushroom Power 100g).
               </p>
             </div>
           </div>
