@@ -29,6 +29,7 @@ import {
   ArrowUpRight,
   Info,
   Zap,
+  CheckCircle2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -729,11 +730,24 @@ const CompoundReferrals: React.FC = () => {
     }
   };
 
+  // Selected Matrix Depth for landscape mode
+  const [selectedMatrixDepth, setSelectedMatrixDepth] = useState<number>(1);
+
   // Reset to Self
-  const handleResetToSelf = () => {
+  const handleResetToSelf = async () => {
     if (currentUserId) {
-      buildSubtree(currentUserId, true);
-      toast.success("Reset to your root organogram");
+      setRefreshing(true);
+      try {
+        setSearchStatus("");
+        setSearchQuery("");
+        await buildSubtree(currentUserId, true);
+        toast.success("Reset to your root organogram");
+      } catch (err) {
+        console.error("Failed to reset tree:", err);
+        toast.error("Could not reset tree");
+      } finally {
+        setRefreshing(false);
+      }
     }
   };
 
@@ -844,14 +858,39 @@ const CompoundReferrals: React.FC = () => {
             <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-700">
               Landscape Format Mode
             </span>
+
+            {/* Landscape Matrix Level / Depth Selector */}
+            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-xs">
+              <span className="text-[11px] text-slate-400 font-medium hidden md:inline">Load Depth:</span>
+              <select
+                value={selectedMatrixDepth}
+                onChange={(e) => {
+                  const depth = Number(e.target.value);
+                  setSelectedMatrixDepth(depth);
+                  toast.success(`Matrix depth set to Level ${depth}`);
+                }}
+                className="bg-transparent text-emerald-300 font-semibold text-xs border-0 outline-none cursor-pointer"
+              >
+                <option value={1} className="bg-slate-900 text-white">Level 1 (Default)</option>
+                <option value={2} className="bg-slate-900 text-white">Level 2</option>
+                <option value={3} className="bg-slate-900 text-white">Level 3</option>
+                <option value={4} className="bg-slate-900 text-white">Level 4</option>
+                <option value={5} className="bg-slate-900 text-white">Level 5</option>
+                <option value={6} className="bg-slate-900 text-white">Level 6</option>
+                <option value={7} className="bg-slate-900 text-white">Level 7</option>
+              </select>
+            </div>
+
             {activeRootNode && activeRootNode.id !== currentUserId && (
               <Button
                 type="button"
                 size="sm"
                 onClick={handleResetToSelf}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-8 px-3 rounded-xl cursor-pointer"
+                disabled={refreshing}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-8 px-3 rounded-xl cursor-pointer flex items-center gap-1"
               >
-                Reset to My Tree
+                {refreshing ? <RefreshCw className="w-3 h-3 animate-spin" /> : null}
+                <span>Reset to My Tree</span>
               </Button>
             )}
           </div>
@@ -1093,34 +1132,143 @@ const CompoundReferrals: React.FC = () => {
           </div>
         </div>
 
-        {/* ── POTENTIAL COMMISSION BANNER ── */}
-        <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-start sm:items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 shrink-0">
-              <Lock className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-bold text-sm sm:text-base text-white">
-                  Potential ₦12,212,500 in Community Commissions Waiting to be Unlocked
-                </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                  7 Matrix Tiers
-                </span>
+        {/* ── CONDITIONAL MATRIX COMMISSION STATUS BANNER ── */}
+        {(() => {
+          const hasCard = Boolean(currentUserProfile?.member_id);
+          const hasStarter = userSlotsHeld > 0;
+          const hasActivePqv = activePqv30d > 0;
+          
+          if (!hasCard) {
+            return (
+              <div className="bg-amber-950/90 text-white p-4 sm:p-5 rounded-2xl border border-amber-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-sm sm:text-base text-white">
+                        AgroHeal Digital Green Card Required
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                        Tier Qualification
+                      </span>
+                    </div>
+                    <p className="text-xs text-amber-100/90 mt-0.5 max-w-3xl leading-relaxed">
+                      Activate your Green Card (₦2,000) to register your credentials and participate in the 5×7 community matrix.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  asChild
+                  size="sm"
+                  className="shrink-0 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow-xs"
+                >
+                  <Link to="/dashboard/checkout?product=green_card">Get Green Card</Link>
+                </Button>
               </div>
-              <p className="text-xs text-gray-300 mt-0.5 max-w-3xl leading-relaxed">
-                You have up to 7 matrix tiers waiting to be unlocked. Refer 5 active members to unlock the entire 7-tier community commissions simultaneously.
-              </p>
+            );
+          }
+
+          if (!hasStarter) {
+            return (
+              <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-sm sm:text-base text-white">
+                        Starter Combo Required to Lock Matrix Node
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                        Placement Pending
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-300 mt-0.5 max-w-3xl leading-relaxed">
+                      Activate the ₦10,000 Starter Combo (1 Farm Slot + 100g Mushroom Power) to lock your permanent node in the 5×7 community matrix and unlock Level 1 & 2 commissions.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  asChild
+                  size="sm"
+                  className="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs"
+                >
+                  <Link to="/dashboard/farm-operations/buy-slots">Secure Starter Combo</Link>
+                </Button>
+              </div>
+            );
+          }
+
+          if (!hasActivePqv) {
+            return (
+              <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-sm sm:text-base text-white">
+                        Maintain Monthly PQV to Receive Matrix Dividends
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                        Monthly Activity
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-300 mt-0.5 max-w-3xl leading-relaxed">
+                      Your matrix node is locked! Maintain your 30-day Personal Qualifying Volume (₦10,000 product order or active slot subscription) to qualify for real-time downline commissions.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  asChild
+                  size="sm"
+                  className="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs"
+                >
+                  <Link to="/dashboard/farm-operations/buy-slots">Maintain Monthly PQV</Link>
+                </Button>
+              </div>
+            );
+          }
+
+          const unlockedLvl = getUnlockedMatrixLevel(directReferralsCount);
+          return (
+            <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 shrink-0">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-sm sm:text-base text-white">
+                      {directReferralsCount >= 5
+                        ? "Full 7-Tier Matrix Commissions Unlocked! (₦12,212,500 Capacity)"
+                        : `Potential ₦12,212,500 Community Pool (Level ${unlockedLvl} of 7 Active)`}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                      {directReferralsCount >= 5 ? "All 7 Tiers Active" : `Level ${unlockedLvl} Active`}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-300 mt-0.5 max-w-3xl leading-relaxed">
+                    {directReferralsCount >= 5
+                      ? "Congratulations! You have unlocked all 7 matrix tiers. Maintain your monthly PQV to continuously earn from all 97,655 possible community positions."
+                      : `You have unlocked Level ${unlockedLvl} of 7. Sponsor ${5 - directReferralsCount} more active partner(s) to unlock all 7 matrix tiers and the full ₦12,212,500 potential community commissions.`}
+                  </p>
+                </div>
+              </div>
+              <Button
+                asChild
+                size="sm"
+                className="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs"
+              >
+                <Link to="/dashboard/transactions">View Wallet &amp; Ledger</Link>
+              </Button>
             </div>
-          </div>
-          <Button
-            asChild
-            size="sm"
-            className="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs"
-          >
-            <Link to="/dashboard/transactions">View Wallet &amp; Ledger</Link>
-          </Button>
-        </div>
+          );
+        })()}
 
         {/* ── MULTI-FARM REFERRAL CODE & AFFILIATE SHARING TOOL ── */}
         <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-emerald-100">
@@ -1138,7 +1286,7 @@ const CompoundReferrals: React.FC = () => {
                 </Badge>
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Share your personal affiliate link to enrol members into your 5×7 organogram matrix. If you manage or participate in multiple farms, select a specific farm below to generate an auto-assigned invite link.
+                Share your personal affiliate link to enrol members into your 5×7 community network.
               </p>
             </div>
 

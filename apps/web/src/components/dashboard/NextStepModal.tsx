@@ -104,7 +104,6 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
         "₦500 per slot: Earn ₦500 whenever your direct referrals secure a slot.",
         "5 x 7 Commissions: Earn cash bonuses whenever anyone in your network makes food purchases.",
         "5 Friends Goal: Reach 5 friends to qualify for bank withdrawals",
-        "Harvest payouts shared every 3 months",
       ],
       buttonText: "Copy Referral Link & Share",
       targetRoute: "/dashboard/my-network",

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   IdCard,
@@ -7,6 +7,8 @@ import {
   CheckCircle2,
   Lock,
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +40,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   onOpenShareModal,
 }) => {
   const navigate = useNavigate();
+  const [isManuallyToggled, setIsManuallyToggled] = useState<boolean | null>(null);
 
   const activeFee = getGreenCardFee(createdAt);
 
@@ -51,7 +54,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   else if (isStep1Done && isStep2Done && !isStep3Done) currentStep = 3;
   else if (isStep3Done) currentStep = 4;
 
-  // Management Rule: When Milestone 3 is active, stop showing the milestone banner after 21 days
+  // Management Rule: When Milestone 3 is active and in-progress, stop showing after 21 days
   const m3Date = milestone3ActiveDate || createdAt;
   const daysSinceMilestone3 = m3Date
     ? Math.floor((Date.now() - new Date(m3Date).getTime()) / (1000 * 60 * 60 * 24))
@@ -61,9 +64,68 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
     return null;
   }
 
-  // Only hide the banner if all 3 milestones are fully completed
+  // Management Rule: Once Milestone 3 is COMPLETED, allow the milestone stuff to be there for 3 days open,
+  // after which it folds on its own, but user can re-open/draw it down for another 18 days (21 days total),
+  // after which it disappears completely on its own.
+  const m3CompletedKey = memberId ? `agroheal_m3_completed_${memberId}` : "agroheal_m3_completed_default";
+  let completionTimestamp = 0;
   if (isStep3Done) {
+    const stored = typeof window !== "undefined" ? localStorage.getItem(m3CompletedKey) : null;
+    if (!stored) {
+      const nowIso = new Date().toISOString();
+      if (typeof window !== "undefined") {
+        try { localStorage.setItem(m3CompletedKey, nowIso); } catch {}
+      }
+      completionTimestamp = Date.now();
+    } else {
+      completionTimestamp = new Date(stored).getTime();
+    }
+  }
+
+  const daysSinceCompleted = isStep3Done && completionTimestamp
+    ? Math.floor((Date.now() - completionTimestamp) / (1000 * 60 * 60 * 24))
+    : 0;
+
+  // Disappears after 21 days total (3 days open + 18 days folded)
+  if (isStep3Done && daysSinceCompleted >= 21) {
     return null;
+  }
+
+  // Auto-fold after 3 days
+  const isAutoFolded = isStep3Done && daysSinceCompleted >= 3;
+  const isFolded = isManuallyToggled !== null ? isManuallyToggled : isAutoFolded;
+
+  // If folded, render the compact drawer
+  if (isStep3Done && isFolded) {
+    return (
+      <div className="w-full bg-emerald-950/15 dark:bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-4 shadow-xs mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <CheckCircle2 className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              All 3 Milestones Completed! 🎉
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                Day {Math.min(21, daysSinceCompleted + 1)} of 21
+              </span>
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Milestone pathway folded automatically. Tap to review your completed badges and earning progress.
+            </p>
+          </div>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsManuallyToggled(false)}
+          className="rounded-xl text-xs h-8 px-3 shrink-0 flex items-center gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer self-start sm:self-auto"
+        >
+          <span>View Pathway</span>
+          <ChevronDown className="w-3.5 h-3.5" />
+        </Button>
+      </div>
+    );
   }
 
   return (
@@ -78,11 +140,11 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
             <h2 className="text-sm md:text-base font-bold text-foreground flex items-center gap-2">
               Member Milestones &amp; Earning Pathway
               <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                {currentStep === 3
+                {isStep3Done
+                  ? `All 3 Milestones Completed 🎉 (Day ${Math.min(21, daysSinceCompleted + 1)}/21)`
+                  : currentStep === 3
                   ? `Milestone 3 of 3 Active (Day ${Math.min(21, Math.max(1, daysSinceMilestone3 + 1))}/21)`
-                  : currentStep <= 3
-                  ? `Milestone ${currentStep} of 3 Active`
-                  : "All Milestones Completed"}
+                  : `Milestone ${currentStep} of 3 Active`}
               </span>
             </h2>
             <p className="text-xs text-muted-foreground">
@@ -90,6 +152,18 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
             </p>
           </div>
         </div>
+
+        {isStep3Done && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsManuallyToggled(true)}
+            className="text-xs h-7 px-2.5 text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer shrink-0"
+          >
+            <span>Fold Ribbon</span>
+            <ChevronUp className="w-3.5 h-3.5" />
+          </Button>
+        )}
       </div>
 
       {/* 3-Milestone Infographic Ribbon */}
@@ -364,10 +438,6 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                 <span><strong>5 Friends Goal:</strong> Reach 5 friends to qualify for bank withdrawals</span>
-              </li>
-              <li className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
-                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground shrink-0" />
-                <span>Harvest payouts shared every 3 months</span>
               </li>
             </ul>
           </div>

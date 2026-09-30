@@ -45,7 +45,7 @@ interface LedgerItem {
   id: string;
   date: string;
   type: "CREDIT" | "DEBIT";
-  category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION" | "CORE_DRIVER_BONUS" | "RETAIL_PURCHASE" | "FARM_CONTRIBUTION" | "COMBO_PACKAGE";
+  category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION" | "CORE_DRIVER_BONUS" | "RETAIL_PURCHASE" | "FARM_CONTRIBUTION" | "COMBO_PACKAGE" | "SLOT_BONUS";
   amount: number;
   description: string;
   status: "COMPLETED" | "PENDING" | "FAILED";
@@ -76,6 +76,8 @@ export default function TransactionLedger() {
     is_legacy?: boolean;
     has_purchased_starter_pack?: boolean;
     created_at?: string;
+    referral_earnings?: number;
+    slot_bonus?: number;
   } | null>(null);
   const [legacyFilter, setLegacyFilter] = useState<"ALL" | "RECENT" | "LEGACY">("ALL");
   const [directReferralEarnings, setDirectReferralEarnings] = useState<number>(0);
@@ -101,10 +103,12 @@ export default function TransactionLedger() {
 
   const legacyTransactions = React.useMemo(() => transactions.filter((t) => t.is_legacy), [transactions]);
   const legacyEarnings = React.useMemo(() => {
-    return legacyTransactions
+    const historicalTxSum = legacyTransactions
       .filter((t) => t.type === "CREDIT" && t.status === "COMPLETED")
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-  }, [legacyTransactions]);
+    const profileLegacySum = Number(userProfile?.referral_earnings || 0) + Number(userProfile?.slot_bonus || 0);
+    return Math.max(historicalTxSum, profileLegacySum);
+  }, [legacyTransactions, userProfile]);
   const legacySlotsCount = React.useMemo(() => {
     return legacyTransactions.filter((t) => t.category === "SLOT_PURCHASE" || t.category === "FARM_CONTRIBUTION").length;
   }, [legacyTransactions]);
@@ -317,6 +321,8 @@ export default function TransactionLedger() {
 
       const orders = dbOrders || [];
 
+      const isLegacy = Boolean(profile?.is_legacy || isLegacyMember(profile?.created_at));
+
       if (profile) {
         setUserProfile({
           full_name: profile.full_name,
@@ -325,8 +331,10 @@ export default function TransactionLedger() {
           bank_account_number: profile.bank_account_number,
           bank_account_name: profile.bank_account_name,
           bank_code: profile.bank_code,
-          is_legacy: Boolean(profile.is_legacy),
+          is_legacy: isLegacy,
           created_at: profile.created_at,
+          referral_earnings: Number(profile.referral_earnings || 0),
+          slot_bonus: Number(profile.slot_bonus || 0),
         });
       }
 
@@ -358,17 +366,37 @@ export default function TransactionLedger() {
         setMemberId("NO GREENCARD YET");
       }
 
-      const refEarnings = apiSummary?.directReferralWallet?.balance !== undefined
-        ? Number(apiSummary.directReferralWallet.balance)
-        : Number(profile?.referral_earnings || 0);
+      // STRICT BARRICADE: Live wallet MUST NOT pull legacy balances (profiles.referral_earnings, profiles.slot_bonus)
+      // Live wallet balances strictly derive from the live double-entry wallet_ledger and live profile.wallet_balance
+      const liveLedgerList = dbWalletLedger || [];
+      let refEarnings = 0;
+      if (apiSummary?.directReferralWallet?.balance !== undefined) {
+        refEarnings = Number(apiSummary.directReferralWallet.balance) || 0;
+      } else {
+        refEarnings = liveLedgerList
+          .filter((e: any) => e.category === "REFERRAL_BONUS" && e.entry_type === "CREDIT" && !e.is_legacy)
+          .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+        if (!isLegacy && refEarnings === 0 && profile?.referral_earnings) {
+          refEarnings = Number(profile.referral_earnings || 0);
+        }
+      }
       setDirectReferralEarnings(refEarnings);
 
       const wBal = Number(profile?.wallet_balance) || 0;
       setWalletBalance(wBal);
 
-      if (apiSummary?.matrixSpilloverWallet?.balance === undefined && profile?.slot_bonus) {
-        setMatrixEarnings(Number(profile.slot_bonus || 0));
+      let matEarnings = 0;
+      if (apiSummary?.matrixSpilloverWallet?.balance !== undefined) {
+        matEarnings = Number(apiSummary.matrixSpilloverWallet.balance) || 0;
+      } else {
+        matEarnings = liveLedgerList
+          .filter((e: any) => (e.category === "MATRIX_COMMISSION" || e.category === "SLOT_BONUS") && e.entry_type === "CREDIT" && !e.is_legacy)
+          .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+        if (!isLegacy && matEarnings === 0 && profile?.slot_bonus) {
+          matEarnings = Number(profile.slot_bonus || 0);
+        }
       }
+      setMatrixEarnings(matEarnings);
 
       const hasActiveSub = Boolean(
         isCardHolder ||
@@ -412,9 +440,10 @@ export default function TransactionLedger() {
       // Build unified ledger list
       const items: LedgerItem[] = [];
 
-      // If official wallet_ledger entries returned from API, map them first
-      if (apiLedgerEntries.length > 0) {
-        apiLedgerEntries.forEach((entry: any) => {
+      // Official wallet_ledger entries from API or direct DB query
+      const ledgerSource = apiLedgerEntries.length > 0 ? apiLedgerEntries : (dbWalletLedger || []);
+      if (ledgerSource.length > 0) {
+        ledgerSource.forEach((entry: any) => {
           items.push({
             id: entry.id || `ledger-${entry.reference_id || Math.random()}`,
             date: entry.created_at || new Date().toISOString(),
@@ -429,8 +458,8 @@ export default function TransactionLedger() {
         });
       }
 
-      // 1. Direct referral earnings entries (synthetic aggregation or records)
-      if (refEarnings > 0) {
+      // 1. Direct referral earnings entries (for non-legacy or fallback if no ledger entries)
+      if (!isLegacy && refEarnings > 0 && !items.some((i) => i.category === "REFERRAL_BONUS" && !i.is_legacy)) {
         items.push({
           id: `ref-total-${user.id}`,
           date: profile?.created_at || new Date().toISOString(),
@@ -440,8 +469,38 @@ export default function TransactionLedger() {
           description: `Direct Referral Bonuses (${refCount} active referrals)`,
           status: "COMPLETED",
           reference: `DIR-REF-${refCount}`,
-          is_legacy: Boolean(profile?.is_legacy || isLegacyMember(profile?.created_at)),
+          is_legacy: false,
         });
+      }
+
+      // For legacy users, inject their pre-migration earnings strictly into Founding Records
+      if (isLegacy) {
+        if (Number(profile?.referral_earnings || 0) > 0 && !items.some((i) => i.reference === "FOUNDING-REF-ARCHIVE")) {
+          items.push({
+            id: `legacy-ref-${user.id}`,
+            date: profile?.created_at || "2024-01-01T00:00:00Z",
+            type: "CREDIT",
+            category: "REFERRAL_BONUS",
+            amount: Number(profile.referral_earnings),
+            description: "Preserved Founding Referral Earnings (Pre-Migration)",
+            status: "COMPLETED",
+            reference: "FOUNDING-REF-ARCHIVE",
+            is_legacy: true,
+          });
+        }
+        if (Number(profile?.slot_bonus || 0) > 0 && !items.some((i) => i.reference === "FOUNDING-SLOT-ARCHIVE")) {
+          items.push({
+            id: `legacy-slot-${user.id}`,
+            date: profile?.created_at || "2024-01-01T00:00:00Z",
+            type: "CREDIT",
+            category: "SLOT_BONUS",
+            amount: Number(profile.slot_bonus),
+            description: "Preserved Founding Slot Bonus (Pre-Migration)",
+            status: "COMPLETED",
+            reference: "FOUNDING-SLOT-ARCHIVE",
+            is_legacy: true,
+          });
+        }
       }
 
       // 2. Master Online Checkouts & Gateway Transactions (Authoritative Parent Cashflow Ledger)
@@ -1025,7 +1084,10 @@ export default function TransactionLedger() {
               <div className="inline-flex p-1 bg-emerald-950/90 border border-emerald-700/60 rounded-2xl shadow-sm">
                 <button
                   type="button"
-                  onClick={() => setWalletMode("live")}
+                  onClick={() => {
+                    setWalletMode("live");
+                    setLegacyFilter("RECENT");
+                  }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     walletMode === "live"
                       ? "bg-emerald-600 text-white shadow-xs"
@@ -1034,10 +1096,16 @@ export default function TransactionLedger() {
                 >
                   <Zap className="w-3.5 h-3.5" />
                   <span>Live Wallet</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-900/90 border border-emerald-500/40 text-emerald-200 font-bold">
+                    {transactions.filter((t) => !t.is_legacy).length}
+                  </span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setWalletMode("legacy")}
+                  onClick={() => {
+                    setWalletMode("legacy");
+                    setLegacyFilter("LEGACY");
+                  }}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     walletMode === "legacy"
                       ? "bg-amber-600 text-white shadow-xs font-extrabold"
@@ -1045,7 +1113,10 @@ export default function TransactionLedger() {
                   }`}
                 >
                   <Landmark className="w-3.5 h-3.5" />
-                  <span>Legacy Vault</span>
+                  <span>Founding Vault</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-950/90 border border-amber-500/40 text-amber-200 font-bold">
+                    {transactions.filter((t) => t.is_legacy).length}
+                  </span>
                 </button>
               </div>
             </div>
@@ -1329,7 +1400,10 @@ export default function TransactionLedger() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setLegacyFilter("RECENT")}
+                    onClick={() => {
+                      setLegacyFilter("RECENT");
+                      setWalletMode("live");
+                    }}
                     className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
                       legacyFilter === "RECENT"
                         ? "bg-white text-emerald-950 shadow-xs border border-amber-300 font-extrabold"
@@ -1340,7 +1414,10 @@ export default function TransactionLedger() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setLegacyFilter("LEGACY")}
+                    onClick={() => {
+                      setLegacyFilter("LEGACY");
+                      setWalletMode("legacy");
+                    }}
                     className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
                       legacyFilter === "LEGACY"
                         ? "bg-amber-600 text-white shadow-xs font-extrabold"
