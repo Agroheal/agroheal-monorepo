@@ -105,6 +105,16 @@
   - **Bundle Itemization & Farm Name Deduplication**: Refactored ₦10k (Free GC), ₦11k (Legacy GC), and ₦12k (Standard GC) transactions to display explicit package contents and cleaned duplicated `"Mushroom Farm, Mushroom Farm"` descriptions.
   - **Production Day 1 Crop Stage**: Reset all 6 farm cycles on production database to `stage = 'PLANNING'` with zero yield and zero false harvest distributions.
   - **Unified Webhook Financial Engine**: Automated Green Card activation, sequential AGC member ID assignment, ₦1,000 sponsor referral bounty, 6 Core Drivers growth pool (₦50 × 6 = ₦300), ₦500 slot bonus, and 40% product commission distribution in `webhooks.controller.ts`.
+- [x] **Universal 5×7 Organogram, Aerial View & Production Settlement (COMPLETED)**:
+  - **Universal Matrix Organogram**: Organized 552 active profiles into the 5×7 community tree under Esther Adetayo as Apex Root (Depth 0) with direct legs and downstream tree linkage. Pacesetters Farm designated as default/fallback farm group.
+  - **Fullscreen Level 1 Default & Aerial View Canvas**: Initialized fullscreen level boundaries to Level 1 to Level 1 (`1` to `1`). Interactive drill-down (Root + 5 legs) maintained as default. Added "Aerial View" panoramic multi-tier canvas displaying all downline nodes across chosen levels with zoom (`40%`–`180%`) and horizontal panning.
+  - **Overview Quick-Checkout Tile #1 Inverse Contrast**: Converted tile #1 into a high-contrast filled emerald/forest container with gold/amber badges and icons, white metric values, and prominent action buttons.
+  - **Dynamic Network Action Heading**: Replaced hardcoded prompt with member-aware messaging (prompting legacy members without Mushroom Power to activate for ₦5,000).
+  - **Wallet Payment Deactivation**: Commented out wallet balance payment in `Checkout.tsx` and locked `canSubscribeWithWallet = false` in `TransactionLedger.tsx`.
+  - **Kabiru Samaila (Tx #337) Production Settlement**: Reconciled payment reference `090405260930115509805004909080` (Transaction ID `SLOT_337_1790765447617`). Transaction 337 marked paid for ₦12,000 Combo, Member ID `GC-2026-02546` assigned, active Green Card provisioned, Pacesetters Mushroom Village slot and Mushroom Power 100g order created. Complete double-entry ledger distributions credited to sponsor Taiwo (₦1,000 referral + ₦500 slot) and all 6 Core Drivers (₦50 each).
+  - **Live vs. Legacy Wallet Ledger Isolation**: Isolated `/api/v1/wallet/summary` to strictly tally live double-entry `wallet_ledger` credits, ensuring Esther Bola's live wallet reads exactly ₦2,700 while preserving historical ₦12,000 referral earnings in the legacy Founding Vault. Restricted "Wallet Ledger" vs. "Orders & Receipts" sub-tabs to Live mode.
+  - **Strict Content & Copy Fidelity Enshrined**: Added Rule 5 to `AGENTS.md` strictly prohibiting unsolicited marketing copy, invented text, or unauthorized business rules.
+
 
 ---
 
