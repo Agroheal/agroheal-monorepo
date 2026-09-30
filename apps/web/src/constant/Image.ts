@@ -26,6 +26,8 @@ import HowItWorksOne from "@/assets/Image/about-image-1.png";
 import HowItWorksTwo from "@/assets/Image/about-image-2.png";
 import heroFarm from "@/assets/Image/hero-farm.jpg";
 import initiative from "@/assets/Image/ginger.jpeg";
+import GingerCropFarm from "@/assets/Image/ginger-farm-crop.jpg";
+import MushroomCropFarm from "@/assets/Image/mushroom-farm-crop.jpg";
 // imports arranged alphabetically
 
 // auth image
@@ -59,6 +61,8 @@ export const AgrohealImages = {
   Maize,
   Bean,
   initiative,
+  GingerCropFarm,
+  MushroomCropFarm,
 
   authImage,
 };

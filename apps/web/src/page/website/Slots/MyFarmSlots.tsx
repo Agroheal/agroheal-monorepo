@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
   Sprout, 
-  TrendingUp, 
+  TrendingUp,
   AlertCircle, 
   Eye, 
   ChevronDown, 
@@ -750,43 +750,6 @@ const MyFarmSlots: React.FC = () => {
                     </div>
                     <div className={cycle.progress_percent >= 100 ? "text-emerald-700 font-bold" : ""}>
                       4. Offtake & Payout
-                    </div>
-                  </div>
-
-                  {/* Estimated Harvest Return */}
-                  <div className="mt-3.5 pt-3 border-t border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white/80 p-3.5 rounded-2xl border border-emerald-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-800 shrink-0">
-                        <TrendingUp className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs font-bold text-gray-900">
-                            Estimated Harvest Return
-                          </p>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
-                            Harvest Share
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-gray-500 mt-0.5">
-                          When this crop batch is harvested and sold to commercial off-takers, net harvest proceeds will be credited directly to your wallet.{" "}
-                          <Link to="/how-it-works/presentation" className="text-emerald-700 font-semibold underline hover:text-emerald-800">
-                            How harvest returns work →
-                          </Link>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-baseline gap-2 shrink-0 self-end sm:self-center bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-200 text-right">
-                      <div>
-                        <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
-                          Estimated Return ({sub.slots_held} Slot{sub.slots_held > 1 ? "s" : ""})
-                        </p>
-                        <p className="text-base font-black text-emerald-950 font-mono">
-                          ₦{((sub.slots_held || 0) * 2400).toLocaleString()}{" "}
-                          <span className="text-[10px] font-normal text-gray-500">(Quarterly Offtake)</span>
-                        </p>
-                      </div>
                     </div>
                   </div>
                 </div>

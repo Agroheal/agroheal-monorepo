@@ -505,6 +505,9 @@ export default function TransactionLedger() {
         } else if (catLower.includes("starter pack") || (amount === 5000 && catLower.includes("product"))) {
           category = "RETAIL_PURCHASE";
           description = "Starter Pack Product: Mushroom Power 100g";
+        } else if (amount === 11000) {
+          category = "SLOT_PURCHASE";
+          description = `Secured 2 Farm Slot(s) (₦10,000) + Legacy Green Card Upgrade (₦1,000) — ${c.project_category || "Pioneers Farm [Mushroom Village]"}`;
         } else if (catLower.includes("slot") || amount >= 5000) {
           const count = Math.max(1, Math.floor(amount / 5000));
           category = "SLOT_PURCHASE";
@@ -1333,7 +1336,7 @@ export default function TransactionLedger() {
                         : "text-amber-800 hover:text-amber-950"
                     }`}
                   >
-                    New Platform
+                    New Platform ({transactions.filter((t) => !t.is_legacy).length})
                   </button>
                   <button
                     type="button"
