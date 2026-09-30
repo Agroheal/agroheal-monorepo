@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LayoutDashboard, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AgrohealImages } from "@/constant/Image";
+import { supabase } from "@/lib/supabaseClient";
 
 const navLinks = [
   { name: "Home", href: "/" },
@@ -16,11 +17,22 @@ const navLinks = [
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const { pathname } = useLocation();
 
   const isHome = pathname === "/";
   // Only the home page hero is dark; all other pages have light backgrounds and need dark navbar text
   const isDarkHeader = isHome && !isScrolled;
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(Boolean(session?.user));
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(Boolean(session?.user));
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setIsScrolled(window.scrollY > 8);
@@ -80,21 +92,33 @@ export default function Header() {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
-            <Link to="/signin">
-              <Button
-                variant={isDarkHeader ? "outline" : "ghost"}
-                className={
-                  isDarkHeader
-                    ? "border-white/30 text-white hover:bg-white/10"
-                    : "text-green-900 hover:bg-green-50"
-                }
-              >
-                Sign In
-              </Button>
-            </Link>
-            <Link to="/signup">
-              <Button className="bg-green-800 text-white hover:bg-green-900">Sign Up</Button>
-            </Link>
+            {isAuthenticated ? (
+              <Link to="/dashboard">
+                <Button className="bg-emerald-800 text-white hover:bg-emerald-900 font-bold flex items-center gap-2 px-5 py-2 rounded-xl shadow-xs cursor-pointer">
+                  <LayoutDashboard className="w-4 h-4" />
+                  <span>Dashboard</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Button>
+              </Link>
+            ) : (
+              <>
+                <Link to="/signin">
+                  <Button
+                    variant="ghost"
+                    className={
+                      isDarkHeader
+                        ? "border border-white/40 text-white hover:bg-white/20 hover:text-white bg-transparent font-medium"
+                        : "border border-emerald-800/25 text-emerald-900 hover:bg-emerald-50 hover:text-emerald-950 bg-transparent font-medium"
+                    }
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/signup">
+                  <Button className="bg-green-800 text-white hover:bg-green-900">Sign Up</Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -133,16 +157,28 @@ export default function Header() {
                 ))}
 
                 <div className="pt-4 flex flex-col gap-3">
-                  <Link to="/signin" className="w-full">
-                    <Button className="w-full bg-green-800 text-white">
-                      Sign In
-                    </Button>
-                  </Link>
-                  <Link to="/signup" className="w-full">
-                    <Button className="w-full bg-green-800 text-white">
-                      Sign Up
-                    </Button>
-                  </Link>
+                  {isAuthenticated ? (
+                    <Link to="/dashboard" className="w-full" onClick={() => setIsOpen(false)}>
+                      <Button className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold flex items-center justify-center gap-2 py-2.5 rounded-xl shadow-xs">
+                        <LayoutDashboard className="w-4 h-4" />
+                        <span>Go to Dashboard</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
+                  ) : (
+                    <>
+                      <Link to="/signin" className="w-full" onClick={() => setIsOpen(false)}>
+                        <Button className="w-full bg-green-800 text-white">
+                          Sign In
+                        </Button>
+                      </Link>
+                      <Link to="/signup" className="w-full" onClick={() => setIsOpen(false)}>
+                        <Button className="w-full bg-green-800 text-white">
+                          Sign Up
+                        </Button>
+                      </Link>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>

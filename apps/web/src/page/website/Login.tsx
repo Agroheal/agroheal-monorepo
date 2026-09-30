@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { motion } from "framer-motion";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Leaf, Mail, Lock, EyeOff, Eye, ArrowRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Toaster } from "react-hot-toast";
 import { showToast } from "@/components/ui/ToastComponent";
@@ -21,6 +21,14 @@ const Login = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [emailNotConfirmed, setEmailNotConfirmed] = useState<boolean>(false);
   const [resending, setResending] = useState<boolean>(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        navigate(redirectUrl, { replace: true });
+      }
+    });
+  }, [navigate, redirectUrl]);
 
   const handleResendFromLogin = async () => {
     if (!email) {

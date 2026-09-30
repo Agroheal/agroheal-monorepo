@@ -1001,22 +1001,6 @@ export default function TransactionLedger() {
           </div>
         </div>
 
-        {/* Informative notice for held funds */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-5 py-3 rounded-2xl bg-amber-50/80 border border-amber-200/80 text-amber-950 text-xs w-full max-w-[470px] mx-auto shadow-2xs">
-          <div className="flex items-center gap-2">
-            <HelpCircle className="w-4 h-4 text-amber-700 shrink-0" />
-            <span className="font-medium text-amber-900">
-              Why are some of my funds 'held' in ledger balance?
-            </span>
-          </div>
-          <Link
-            to="/how-it-works/locked-withdrawals"
-            className="font-bold text-emerald-800 hover:text-emerald-950 underline underline-offset-2 shrink-0 flex items-center gap-1 text-[11px]"
-          >
-            Click here to read more <ArrowRight className="w-3 h-3" />
-          </Link>
-        </div>
-
         {/* ── CENTRALIZED EXECUTIVE MEMBER WALLET (CANONICAL CREDIT CARD ASPECT RATIO) ── */}
         <div className="w-full max-w-[470px] mx-auto">
           <div className="flex flex-col justify-between bg-[#0c2415] border border-emerald-700/50 rounded-3xl p-5 sm:p-5.5 text-white shadow-xl relative overflow-hidden space-y-3">
@@ -1090,8 +1074,8 @@ export default function TransactionLedger() {
                       Withdrawable
                     </span>
                   ) : canSubscribeWithWallet ? (
-                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border shadow-xs backdrop-blur-md bg-purple-500/25 text-purple-200 border-purple-400/40">
-                      <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border shadow-xs backdrop-blur-md bg-emerald-500/25 text-emerald-200 border-emerald-400/40">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       ₦10k Ready to Activate
                     </span>
                   ) : null}
@@ -1143,9 +1127,9 @@ export default function TransactionLedger() {
                 <Button
                   disabled={subscribingWithWallet}
                   onClick={handleSubscribeWithWallet}
-                  className="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold text-xs h-8.5 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs h-8.5 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
-                  <Sprout className="w-3.5 h-3.5 text-purple-200" />
+                  <Sprout className="w-3.5 h-3.5 text-emerald-200" />
                   {subscribingWithWallet ? "Activating..." : "Activate Project Subscription (₦10,000)"}
                 </Button>
               )}
@@ -1191,33 +1175,42 @@ export default function TransactionLedger() {
         {/* ── TRANSACTION HISTORY TABLE ── */}
         <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
           {/* Table Header & Search Filter */}
-          <div className="p-5 border-b border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2 flex-wrap">
-              <CreditCard className="w-5 h-5 text-gray-500" />
-              <h2 className="text-base font-bold text-gray-900">Unified Transaction History</h2>
-              {transactions.some((t) => t.status === "PENDING") && (
-                <button
-                  type="button"
-                  onClick={() => setFilterType("PENDING")}
-                  className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition-colors inline-flex items-center gap-1 cursor-pointer"
-                  title="Filter to view pending transactions"
-                >
-                  <Clock className="w-3 h-3 text-amber-700 animate-pulse" />
-                  <span>{transactions.filter((t) => t.status === "PENDING").length} Pending</span>
-                </button>
-              )}
+          <div className="p-5 border-b border-gray-100 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 flex-wrap">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <div>
+                  <h2 className="text-base font-bold text-gray-900 leading-tight">Unified Transaction History</h2>
+                  <p className="text-[11px] text-gray-500">
+                    Comprehensive audit ledger of credits, bonuses, and disbursements
+                  </p>
+                </div>
+                {transactions.some((t) => t.status === "PENDING") && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterType("PENDING")}
+                    className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition-colors inline-flex items-center gap-1 cursor-pointer"
+                    title="Filter to view pending transactions"
+                  >
+                    <Clock className="w-3 h-3 text-amber-700 animate-pulse" />
+                    <span>{transactions.filter((t) => t.status === "PENDING").length} Pending</span>
+                  </button>
+                )}
+              </div>
 
               {isLegacyUser && (
-                <div className="inline-flex items-center gap-1 p-0.5 bg-amber-50/80 border border-amber-200 rounded-xl text-xs ml-0 sm:ml-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 px-1.5 hidden md:inline">
-                    Founding Members' Records:
+                <div className="inline-flex items-center gap-1 p-1 bg-amber-50/80 border border-amber-200/90 rounded-2xl text-xs self-start sm:self-auto shadow-2xs">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 px-2 hidden lg:inline">
+                    Records View:
                   </span>
                   <button
                     type="button"
                     onClick={() => setLegacyFilter("ALL")}
-                    className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
                       legacyFilter === "ALL"
-                        ? "bg-white text-emerald-950 shadow-2xs border border-amber-300"
+                        ? "bg-white text-emerald-950 shadow-xs border border-amber-300 font-extrabold"
                         : "text-amber-800 hover:text-amber-950"
                     }`}
                   >
@@ -1226,9 +1219,9 @@ export default function TransactionLedger() {
                   <button
                     type="button"
                     onClick={() => setLegacyFilter("RECENT")}
-                    className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
                       legacyFilter === "RECENT"
-                        ? "bg-white text-emerald-950 shadow-2xs border border-amber-300"
+                        ? "bg-white text-emerald-950 shadow-xs border border-amber-300 font-extrabold"
                         : "text-amber-800 hover:text-amber-950"
                     }`}
                   >
@@ -1237,60 +1230,63 @@ export default function TransactionLedger() {
                   <button
                     type="button"
                     onClick={() => setLegacyFilter("LEGACY")}
-                    className={`px-2 py-0.5 rounded-lg text-[11px] font-bold transition-all ${
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
                       legacyFilter === "LEGACY"
-                        ? "bg-amber-600 text-white shadow-2xs"
+                        ? "bg-amber-600 text-white shadow-xs font-extrabold"
                         : "text-amber-800 hover:text-amber-950"
                     }`}
                   >
-                    Founding Members ({transactions.filter((t) => t.is_legacy).length})
+                    Founding Records ({transactions.filter((t) => t.is_legacy).length})
                   </button>
                 </div>
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            {/* Filter Bar: Row 2 */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-1">
               {/* Search */}
-              <div className="relative flex-1 sm:w-56">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-3 text-gray-400" />
+              <div className="relative flex-1 min-w-[220px]">
+                <Search className="w-3.5 h-3.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search reference or description..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-9 pl-9 pr-3 rounded-xl border border-gray-200 bg-gray-50 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  className="w-full h-9 pl-9 pr-3 rounded-xl border border-gray-200 bg-gray-50/70 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white transition-all"
                 />
               </div>
 
-              {/* Filter Pills */}
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="h-9 px-3 rounded-xl border border-gray-200 bg-gray-50 text-xs text-gray-700 font-medium focus:outline-none"
-              >
-                <option value="ALL">All Categories</option>
-                <option value="PENDING">
-                  Pending Transactions {transactions.some((t) => t.status === "PENDING") ? `(${transactions.filter((t) => t.status === "PENDING").length})` : ""}
-                </option>
-                <option value="COMBO_PACKAGE">Starter Bundles (Combo)</option>
-                <option value="REFERRAL_BONUS">Referral Bonuses</option>
-                <option value="CORE_DRIVER_BONUS">Core Driver Growth Bonuses</option>
-                <option value="SLOT_PURCHASE">Slot Purchases</option>
-                <option value="FARM_CONTRIBUTION">Farm Contributions</option>
-                <option value="RETAIL_PURCHASE">Retail / Starter Packs</option>
-                <option value="SUBSCRIPTION">Subscriptions</option>
-                <option value="CREDIT">Credits Only</option>
-                <option value="DEBIT">Debits Only</option>
-              </select>
+              <div className="flex items-center gap-2">
+                {/* Filter Pills */}
+                <select
+                  value={filterType}
+                  onChange={(e) => setFilterType(e.target.value)}
+                  className="h-9 px-3 rounded-xl border border-gray-200 bg-gray-50/70 text-xs text-gray-700 font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                >
+                  <option value="ALL">All Categories</option>
+                  <option value="PENDING">
+                    Pending Transactions {transactions.some((t) => t.status === "PENDING") ? `(${transactions.filter((t) => t.status === "PENDING").length})` : ""}
+                  </option>
+                  <option value="COMBO_PACKAGE">Starter Bundles (Combo)</option>
+                  <option value="REFERRAL_BONUS">Referral Bonuses</option>
+                  <option value="CORE_DRIVER_BONUS">Core Driver Growth Bonuses</option>
+                  <option value="SLOT_PURCHASE">Slot Purchases</option>
+                  <option value="FARM_CONTRIBUTION">Farm Contributions</option>
+                  <option value="RETAIL_PURCHASE">Retail / Starter Packs</option>
+                  <option value="SUBSCRIPTION">Subscriptions</option>
+                  <option value="CREDIT">Credits Only</option>
+                  <option value="DEBIT">Debits Only</option>
+                </select>
 
-              <Button
-                onClick={handleExportExcel}
-                variant="outline"
-                size="sm"
-                className="h-9 px-3 rounded-xl border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-semibold shadow-xs"
-              >
-                <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5 text-gray-600" /> Export Excel
-              </Button>
+                <Button
+                  onClick={handleExportExcel}
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-3 rounded-xl border-gray-200 text-gray-700 hover:bg-gray-50 text-xs font-semibold shadow-xs shrink-0 cursor-pointer"
+                >
+                  <FileSpreadsheet className="w-3.5 h-3.5 mr-1.5 text-emerald-700" /> Export Excel
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -1397,7 +1393,7 @@ export default function TransactionLedger() {
                                   : t.category === "CORE_DRIVER_BONUS"
                                   ? "bg-amber-50 text-amber-900 border border-amber-200"
                                   : t.category === "RETAIL_PURCHASE"
-                                  ? "bg-purple-50 text-purple-900 border border-purple-200"
+                                  ? "bg-emerald-50 text-emerald-900 border border-emerald-200"
                                   : t.category === "REFERRAL_BONUS"
                                   ? "bg-emerald-50 text-emerald-900 border border-emerald-200"
                                   : t.category === "SLOT_PURCHASE"

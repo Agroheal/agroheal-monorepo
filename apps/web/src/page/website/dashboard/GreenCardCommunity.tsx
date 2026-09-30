@@ -5,7 +5,6 @@ import {
   IdCard,
   Lock,
   ShieldCheck,
-  Award,
   Users,
   CheckCircle2,
   ExternalLink,
@@ -205,6 +204,9 @@ export const GreenCardCommunity: React.FC = () => {
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-white/10 text-white border border-white/20">
                 Verified Active
               </span>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
+                Enrollment Cohort: {memberSince || "August 2026"}
+              </span>
             </div>
 
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white uppercase">
@@ -223,8 +225,8 @@ export const GreenCardCommunity: React.FC = () => {
             <div className="font-mono text-base sm:text-lg font-black text-white">
               {formattedId}
             </div>
-            <span className="text-[11px] text-emerald-200 block mt-1">
-              Enrolled {memberSince || "Active"}
+            <span className="text-[11px] text-emerald-200 block mt-1 font-medium">
+              Cohort: {memberSince || "Active"} • Lifetime Pass
             </span>
           </div>
         </div>
@@ -240,79 +242,6 @@ export const GreenCardCommunity: React.FC = () => {
           avatarUrl={avatarUrl || undefined}
           isActive={hasGreenCard}
         />
-      </div>
-
-      {/* ── CREDENTIAL REGISTRY DETAILS ── */}
-      <div className="bg-white rounded-3xl p-7 sm:p-8 shadow-sm border border-gray-200/90 space-y-6">
-        <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-800">
-              <Award className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="font-bold text-gray-900 text-base">
-                Verified Credential Registry
-              </h3>
-              <p className="text-xs text-gray-500">
-                Official attributes associated with this membership token
-              </p>
-            </div>
-          </div>
-
-          <Badge className="bg-emerald-50 text-emerald-800 border-emerald-200 text-xs px-3 py-1 font-bold">
-            ✓ In Good Standing
-          </Badge>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-          <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-100 space-y-1">
-            <span className="text-gray-500 font-medium block">Cardholder Name</span>
-            <strong className="text-sm font-bold text-gray-900 block truncate">
-              {fullName || "AgroHeal Member"}
-            </strong>
-            <span className="text-[11px] text-emerald-700">Identity Verified</span>
-          </div>
-
-          <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-100 space-y-1">
-            <span className="text-gray-500 font-medium block">AGC Identifier</span>
-            <strong className="text-sm font-mono font-bold text-emerald-800 block">
-              {formattedId}
-            </strong>
-            <span className="text-[11px] text-gray-500">Permanent Ledger ID</span>
-          </div>
-
-          <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-100 space-y-1">
-            <span className="text-gray-500 font-medium block">Enrollment Cohort</span>
-            <strong className="text-sm font-bold text-gray-900 block">
-              {memberSince || "Active Member"}
-            </strong>
-            <span className="text-[11px] text-gray-500">Lifetime Validity</span>
-          </div>
-
-          <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-100 space-y-1">
-            <span className="text-gray-500 font-medium block">Direct Sponsor Rewards</span>
-            <strong className="text-sm font-bold text-emerald-800 block">
-              ₦1,000 / Direct Partner
-            </strong>
-            <span className="text-[11px] text-gray-500">Credited instantly to referral wallet</span>
-          </div>
-
-          <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-100 space-y-1">
-            <span className="text-gray-500 font-medium block">Educational Curriculum</span>
-            <strong className="text-sm font-bold text-gray-900 block">
-              Learning Academy
-            </strong>
-            <span className="text-[11px] text-emerald-700">Full Video Course Access</span>
-          </div>
-
-          <div className="bg-gray-50/80 p-4 rounded-2xl border border-gray-100 space-y-1">
-            <span className="text-gray-500 font-medium block">Matrix Participation</span>
-            <strong className="text-sm font-bold text-gray-900 block">
-              5×7 Tree Eligible
-            </strong>
-            <span className="text-[11px] text-gray-500">Activates on ₦5k Farm Slot</span>
-          </div>
-        </div>
       </div>
 
       {/* ── QUICK ACTION TILES ── */}

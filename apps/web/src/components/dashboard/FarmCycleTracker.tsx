@@ -37,7 +37,7 @@ const CYCLE_STAGES = [
   { key: "GROWING", label: "Colonization", desc: "Mycelium incubation in darkrooms", percent: 50 },
   { key: "HARVESTING", label: "Fruiting & Harvest", desc: "Daily harvest in humidity tents", percent: 80 },
   { key: "AUDITING", label: "Wholesale & Audit", desc: "Sales reconciliation & quality check", percent: 95 },
-  { key: "DISTRIBUTED", label: "Dividends Paid", desc: "40% net margin credited to wallet", percent: 100 },
+  { key: "DISTRIBUTED", label: "Dividends Paid", desc: "Net harvest margin credited to wallet", percent: 100 },
 ];
 
 export const FarmCycleTracker: React.FC = () => {
@@ -197,16 +197,16 @@ export const FarmCycleTracker: React.FC = () => {
                   <div>
                     <span className="text-[11px] text-muted-foreground block">Input Continuation Reserve</span>
                     <span className="text-sm font-semibold text-amber-600 dark:text-amber-400">
-                      ₦{(slotsCount * 4000).toLocaleString()} <span className="text-[10px] text-muted-foreground">(40% cost)</span>
+                      ₦{(slotsCount * 4000).toLocaleString()} <span className="text-[10px] text-muted-foreground">(Input Fund)</span>
                     </span>
                   </div>
                   <div>
                     <span className="text-[11px] text-muted-foreground block flex items-center gap-1">
                       <Award className="w-3 h-3 text-emerald-500" />
-                      40% Net Member Dividend
+                      Net Member Dividend
                     </span>
                     <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
-                      ₦{netDividendEst.toLocaleString()} <span className="text-[10px] text-muted-foreground">(₦2,400/slot)</span>
+                      ₦{netDividendEst.toLocaleString()} <span className="text-[10px] text-muted-foreground">(Quarterly Offtake)</span>
                     </span>
                   </div>
                 </div>

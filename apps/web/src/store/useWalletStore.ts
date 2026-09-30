@@ -63,7 +63,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         supabase
           .from("profiles")
           .select("id, full_name, created_at")
-          .eq("referred_by", userId),
+          .or(`referred_by.eq.${userId},sponsor_id.eq.${userId}`),
         supabase
           .from("slot_subscriptions")
           .select("id, amount, status, created_at, reference, project_category")

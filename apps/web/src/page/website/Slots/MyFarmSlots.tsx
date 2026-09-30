@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -141,32 +141,32 @@ const ClusterFinancialsLedger: React.FC<ClusterFinancialsLedgerProps> = ({
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-2 text-slate-600 text-xs bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
+        <div className="flex items-center gap-2 text-slate-600 text-xs bg-white p-3 rounded-xl border border-slate-200 shadow-2xs">
           <Eye className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>
-            <strong>Community Transparency Ledger:</strong> All cluster stakeholders have read access to financial statements, produce harvests, and the verified membership roster. Only assigned coordinators can record entries.
+            <strong>Open Farm Records:</strong> Every naira spent and earned from mushroom harvests is recorded here for all farm members to see.
           </span>
         </div>
       )}
 
-      {/* Financial Health Summary Cards */}
+      {/* Financial Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-2xs">
-          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Total Produce Sales</p>
+          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Harvest Sales</p>
           <p className="text-lg font-bold text-emerald-700 mt-0.5">+₦{sub.financials.sales.toLocaleString()}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">{sub.sales.length} harvest sale(s) logged</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">{sub.sales.length} harvest sale(s)</p>
         </div>
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-2xs">
-          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Operating Expenses</p>
+          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Farm Expenses</p>
           <p className="text-lg font-bold text-red-600 mt-0.5">-₦{sub.financials.expenses.toLocaleString()}</p>
-          <p className="text-[10px] text-slate-400 mt-0.5">{sub.expenses.length} operating expense(s)</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">{sub.expenses.length} expense(s)</p>
         </div>
         <div className="p-3.5 bg-white border border-slate-200 rounded-xl shadow-2xs">
-          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Net Cluster Balance</p>
+          <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Farm Net Profit</p>
           <p className={`text-lg font-extrabold mt-0.5 ${sub.financials.net_balance >= 0 ? "text-slate-800" : "text-amber-700"}`}>
             ₦{sub.financials.net_balance.toLocaleString()}
           </p>
-          <p className="text-[10px] text-slate-400 mt-0.5">Surplus for 40% dividend settlement</p>
+          <p className="text-[10px] text-slate-400 mt-0.5">Profit shared after harvest</p>
         </div>
       </div>
 
@@ -180,7 +180,7 @@ const ClusterFinancialsLedger: React.FC<ClusterFinancialsLedgerProps> = ({
               filter === 'all' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            All Ledger Records ({sub.expenses.length + sub.sales.length})
+            All Records ({sub.expenses.length + sub.sales.length})
           </button>
           <button
             type="button"
@@ -189,7 +189,7 @@ const ClusterFinancialsLedger: React.FC<ClusterFinancialsLedgerProps> = ({
               filter === 'expenses' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Operating Expenses ({sub.expenses.length})
+            Expenses ({sub.expenses.length})
           </button>
           <button
             type="button"
@@ -753,35 +753,38 @@ const MyFarmSlots: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Biological Cycle Dividend Statement (40% Proportional Net Yield) */}
-                  <div className="mt-3.5 pt-3 border-t border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white/70 p-3 rounded-xl border">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 shrink-0">
+                  {/* Estimated Harvest Return */}
+                  <div className="mt-3.5 pt-3 border-t border-slate-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white/80 p-3.5 rounded-2xl border border-emerald-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-800 shrink-0">
                         <TrendingUp className="w-4 h-4" />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <p className="text-xs font-bold text-slate-800">
-                            Commercial Yield & 40% Dividend Statement
+                          <p className="text-xs font-bold text-gray-900">
+                            Estimated Harvest Return
                           </p>
-                          <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                            Statutory 40% Payout
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800">
+                            Harvest Share
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-500 mt-0.5">
-                          Net commercial harvest profit is distributed 40% directly to slot holders upon Stage 4 offtake settlement.
+                        <p className="text-[11px] text-gray-500 mt-0.5">
+                          When this crop batch is harvested and sold to commercial off-takers, net harvest proceeds will be credited directly to your wallet.{" "}
+                          <Link to="/how-it-works/presentation" className="text-emerald-700 font-semibold underline hover:text-emerald-800">
+                            How harvest returns work →
+                          </Link>
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-baseline gap-2 shrink-0 self-end sm:self-center bg-emerald-50/80 border border-emerald-200 px-3 py-1.5 rounded-lg text-right">
+                    <div className="flex items-baseline gap-2 shrink-0 self-end sm:self-center bg-emerald-50 px-3.5 py-2 rounded-xl border border-emerald-200 text-right">
                       <div>
-                        <p className="text-[10px] uppercase font-bold text-emerald-700 tracking-wider">
-                          Your Stake ({sub.slots_held} Slot{sub.slots_held > 1 ? "s" : ""})
+                        <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">
+                          Estimated Return ({sub.slots_held} Slot{sub.slots_held > 1 ? "s" : ""})
                         </p>
-                        <p className="text-sm font-extrabold text-emerald-900">
+                        <p className="text-base font-black text-emerald-950 font-mono">
                           ₦{((sub.slots_held || 0) * 2400).toLocaleString()}{" "}
-                          <span className="text-[10px] font-normal text-emerald-700">(@ ₦2,400/slot)</span>
+                          <span className="text-[10px] font-normal text-gray-500">(Quarterly Offtake)</span>
                         </p>
                       </div>
                     </div>
@@ -795,9 +798,9 @@ const MyFarmSlots: React.FC = () => {
                 >
                   <div className="flex items-center text-xs font-semibold text-slate-600 gap-1.5">
                     {expandedCluster === sub.id ? (
-                      <><ChevronUp className="w-4 h-4 text-emerald-600" /> Hide Cluster Ledger & Roster</>
+                      <><ChevronUp className="w-4 h-4 text-emerald-600" /> Hide Farm Details</>
                     ) : (
-                      <><ChevronDown className="w-4 h-4 text-emerald-600" /> View Financial Ledger, Sales & Stakeholder Roster</>
+                      <><ChevronDown className="w-4 h-4 text-emerald-600" /> View Farm Records &amp; Members</>
                     )}
                   </div>
                 </div>
@@ -806,14 +809,14 @@ const MyFarmSlots: React.FC = () => {
                 {expandedCluster === sub.id && (
                   <div className="border-t border-slate-200 bg-slate-50/60 p-6 space-y-6">
                     
-                    {/* Primary Detail Tabs: 1. Stakeholder Roster (First), 2. Financials & Ledger */}
+                    {/* Primary Detail Tabs */}
                     <Tabs defaultValue="roster" className="w-full">
                       <TabsList className="grid w-full grid-cols-2 max-w-[460px] bg-slate-200/80 p-1 rounded-xl">
                         <TabsTrigger value="roster" className="text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-xs">
-                          Stakeholder Roster ({sub.members.length})
+                          Farm Members ({sub.members.length})
                         </TabsTrigger>
                         <TabsTrigger value="financials" className="text-xs font-semibold data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-xs">
-                          Financials &amp; Ledger ({sub.expenses.length + sub.sales.length})
+                          Farm Accounting ({sub.expenses.length + sub.sales.length})
                         </TabsTrigger>
                       </TabsList>
 
@@ -822,17 +825,17 @@ const MyFarmSlots: React.FC = () => {
                         <div className="space-y-3">
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs">
-                              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Total Stakeholders</p>
+                              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Total Members</p>
                               <p className="text-xl font-bold text-slate-800">{sub.members.length}</p>
                             </div>
                             <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs">
-                              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Allocated Cluster Slots</p>
+                              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Allocated Farm Slots</p>
                               <p className="text-xl font-bold text-emerald-700">
                                 {sub.members.reduce((sum, m) => sum + (Number(m.slots) || 0), 0)} Slots
                               </p>
                             </div>
                             <div className="p-3 bg-white border border-slate-200 rounded-xl shadow-2xs">
-                              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Cluster Capacity</p>
+                              <p className="text-[11px] uppercase tracking-wider font-semibold text-slate-500">Total Substrate Bags</p>
                               <p className="text-xl font-bold text-slate-800">
                                 {(sub.members.reduce((sum, m) => sum + (Number(m.slots) || 0), 0) * 2).toLocaleString()} Bags
                               </p>

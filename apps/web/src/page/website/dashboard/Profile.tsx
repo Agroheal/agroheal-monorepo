@@ -466,65 +466,126 @@ export const ProfileComponent: React.FC = () => {
         </div>
 
         {/* Card 3: Next of Kin / POD Record */}
-        <div className="bg-white rounded-3xl p-7 sm:p-8 shadow-sm border border-gray-200/90 space-y-6 md:col-span-2">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-800">
-                <Users className="w-4 h-4" />
+        <div
+          className={`bg-white rounded-3xl p-7 sm:p-8 shadow-sm border ${
+            kin?.kin_name ? "border-gray-200/90" : "border-emerald-200/70 bg-emerald-50/15"
+          } space-y-6 flex flex-col justify-between`}
+        >
+          <div>
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-800">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-sm">Next of Kin / Beneficiary</h3>
+                  <p className="text-[11px] text-gray-500">Payable on Death (POD) asset record</p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-bold text-gray-900 text-sm">Next of Kin / Beneficiary</h3>
-                <p className="text-[11px] text-gray-500">Payable on Death (POD) record</p>
-              </div>
-            </div>
-            <button
-              onClick={() => {
-                setOpenBankSectionDirectly(false);
-                setShowCompletionModal(true);
-              }}
-              className="text-xs font-bold text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200 transition-colors cursor-pointer"
-            >
-              {kin?.kin_name ? "Update Next of Kin" : "Add Next of Kin"}
-            </button>
-          </div>
-
-          {kin?.kin_name ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
-                <span className="text-gray-500 font-medium">Beneficiary Name</span>
-                <span className="font-bold text-gray-900 text-right">{kin.kin_name}</span>
-              </div>
-              <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
-                <span className="text-gray-500 font-medium">Phone Contact</span>
-                <span className="font-mono font-medium text-gray-900 text-right">{kin.kin_number || "None"}</span>
-              </div>
-              <div className="flex flex-col py-1.5 sm:col-span-2">
-                <span className="text-gray-500 font-medium mb-1">Residential Address</span>
-                <span className="text-gray-800 leading-relaxed bg-gray-50 p-3 rounded-xl border border-gray-100">
-                  {kin.kin_address || "None"}
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="text-center py-8 space-y-3 bg-gray-50/70 rounded-2xl border border-dashed border-gray-200">
-              <Users className="w-8 h-8 text-gray-300 mx-auto" />
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-gray-700">No Next of Kin record attached yet</p>
-                <p className="text-[11px] text-gray-400 max-w-xs mx-auto">
-                  Designate your primary beneficiary for community farm assets and dividend disbursements.
-                </p>
-              </div>
-              <Button
+              <button
                 onClick={() => {
                   setOpenBankSectionDirectly(false);
                   setShowCompletionModal(true);
                 }}
-                className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-8 px-4 rounded-xl font-bold cursor-pointer"
+                className={`text-xs font-bold ${
+                  kin?.kin_name
+                    ? "text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
+                    : "text-emerald-900 hover:text-emerald-950 bg-emerald-100 hover:bg-emerald-200 border-emerald-300"
+                } px-3 py-1.5 rounded-xl border transition-colors cursor-pointer`}
               >
-                Configure Next of Kin
-              </Button>
+                {kin?.kin_name ? "Edit Details" : "Add Beneficiary"}
+              </button>
             </div>
-          )}
+
+            {kin?.kin_name ? (
+              <div className="space-y-4 text-xs mt-6">
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                  <span className="text-gray-500 font-medium">Beneficiary Name</span>
+                  <span className="font-bold text-gray-900 text-right">{kin.kin_name}</span>
+                </div>
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                  <span className="text-gray-500 font-medium">Phone Contact</span>
+                  <span className="font-mono font-bold text-emerald-900 bg-emerald-50/80 border border-emerald-200/60 px-2.5 py-0.5 rounded-lg text-right">
+                    {kin.kin_number || "None"}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                  <span className="text-gray-500 font-medium">Residential Address</span>
+                  <span className="font-medium text-gray-800 text-right max-w-[220px] truncate" title={kin.kin_address || undefined}>
+                    {kin.kin_address || "Not specified"}
+                  </span>
+                </div>
+                <div className="pt-2 flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>Designated legal beneficiary for farm shares &amp; harvest dividends</span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 space-y-3 bg-emerald-50/40 rounded-2xl border border-dashed border-emerald-200/80 mt-4 p-4">
+                <Users className="w-8 h-8 text-emerald-600/70 mx-auto" />
+                <div className="space-y-1">
+                  <p className="text-xs font-bold text-gray-900">No Beneficiary Configured</p>
+                  <p className="text-[11px] text-gray-500 max-w-xs mx-auto">
+                    Designate your primary Next of Kin for community agricultural assets and dividend succession.
+                  </p>
+                </div>
+                <Button
+                  onClick={() => {
+                    setOpenBankSectionDirectly(false);
+                    setShowCompletionModal(true);
+                  }}
+                  className="bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-8 px-4 rounded-xl font-bold shadow-xs cursor-pointer"
+                >
+                  Configure Next of Kin
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Card 4: Security & Standing (Perfect 2x2 Grid Consistency) */}
+        <div className="bg-white rounded-3xl p-7 sm:p-8 shadow-sm border border-gray-200/90 space-y-6 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                  <Lock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900 text-sm">Security &amp; Credentials</h3>
+                  <p className="text-[11px] text-gray-500">Authentication &amp; member standing</p>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-xl">
+                Active &amp; Protected
+              </span>
+            </div>
+
+            <div className="space-y-4 text-xs mt-6">
+              <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                <span className="text-gray-500 font-medium">Account Standing</span>
+                <span className="font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-200/60 text-right">
+                  ✓ In Good Standing
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                <span className="text-gray-500 font-medium">Password Protection</span>
+                <span className="font-mono text-gray-600 text-right tracking-widest">
+                  ••••••••••••
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+                <span className="text-gray-500 font-medium">Enrollment Protocol</span>
+                <span className="font-medium text-gray-900 text-right">
+                  Verified Member Ecosystem
+                </span>
+              </div>
+              <div className="pt-2 flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Enterprise encryption &amp; secure session tokens enabled</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

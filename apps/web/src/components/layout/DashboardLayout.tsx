@@ -820,6 +820,16 @@ const DashboardLayout = () => {
                 </p>
               </div>
             </NavLink>
+
+            {/* Top Bar Text Logout Button */}
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-gray-600 hover:text-red-700 hover:bg-red-50 border border-gray-200/80 hover:border-red-200 text-xs font-semibold transition-all cursor-pointer shadow-2xs"
+              title="Sign Out of Member Portal"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Logout</span>
+            </button>
           </div>
         </header>
 

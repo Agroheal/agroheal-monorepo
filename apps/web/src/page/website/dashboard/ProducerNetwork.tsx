@@ -422,144 +422,31 @@ export const ProducerNetwork: React.FC = () => {
         )}
       </div>
 
-      {/* ── SECTION: 7-LEVEL PRODUCTION MATRIX STRUCTURE (FOLDABLE, FOLDED BY DEFAULT) ── */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200/90 space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="bg-emerald-100 text-emerald-900 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                7-Level Production Matrix Engine
-              </span>
-              <span className="text-xs text-gray-500 font-medium">• 5×7 Spillover Capacity</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black text-gray-900 mt-2">
-              Multilevel Producer Matrix Distribution
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-3xl leading-relaxed">
-              Earn direct sponsor bounties and route 7-level community spillovers through your matrix tree. Refer 5 active members to unlock commissions across all 7 matrix levels.
-            </p>
+      {/* ── INTELLIGENT GENEALOGY DISPATCH CARD ── */}
+      <div className="bg-gradient-to-r from-[#0c2415] via-emerald-950 to-[#041d0f] rounded-3xl p-6 sm:p-7 text-white shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-4 border border-emerald-700/40">
+        <div className="space-y-1 max-w-xl">
+          <div className="flex items-center gap-2">
+            <span className="bg-emerald-400/20 text-emerald-300 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-400/30">
+              5×7 Producer Organogram
+            </span>
+            <span className="text-xs text-emerald-200/80 font-medium">• 7-Level Spillover Capacity</span>
           </div>
-
-          <div className="flex items-center gap-2 self-start md:self-center shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCommissionTableOpen(!commissionTableOpen)}
-              className="border-emerald-200 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs rounded-xl gap-1.5 h-9"
-            >
-              <span>{commissionTableOpen ? "Hide Matrix Structure" : "Show Matrix Structure"}</span>
-              <ChevronDown
-                className={`w-4 h-4 text-emerald-700 transition-transform duration-200 ${
-                  commissionTableOpen ? "rotate-180" : ""
-                }`}
-              />
-            </Button>
-
-            <Link
-              to="/dashboard/my-network"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-2 rounded-xl border border-emerald-200 transition-colors h-9"
-            >
-              <Users className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Genealogy Tree</span>
-            </Link>
-          </div>
+          <h3 className="text-base sm:text-lg font-bold text-white">
+            Explore Your Interactive Downline Genealogy
+          </h3>
+          <p className="text-xs text-emerald-100/80 leading-relaxed">
+            Inspect placements, monitor direct sponsor growth, and visualize community spillovers across all 7 matrix levels in real time.
+          </p>
         </div>
 
-        {/* Collapsible Content */}
-        <AnimatePresence initial={false}>
-          {commissionTableOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="overflow-hidden space-y-6 pt-2"
-            >
-              {/* 7-Level Distribution Table */}
-              <div className="overflow-x-auto rounded-2xl border border-gray-100">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-emerald-900 text-white uppercase text-[10px] tracking-wider">
-                    <tr>
-                      <th className="py-3.5 px-4 rounded-tl-xl">Matrix Tier Level</th>
-                      <th className="py-3.5 px-4">Commission %</th>
-                      <th className="py-3.5 px-4">Payout Per ₦5k Product/Slot</th>
-                      <th className="py-3.5 px-4">Max Capacity (5^L)</th>
-                      <th className="py-3.5 px-4">Qualification</th>
-                      <th className="py-3.5 px-4">Your Status</th>
-                      <th className="py-3.5 px-4 rounded-tr-xl">Potential Earnings</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 text-gray-700">
-                    {MATRIX_COMMISSIONS.map((tier) => {
-                      return (
-                        <tr key={tier.level} className="hover:bg-emerald-50/40 transition-colors">
-                          <td className="py-3.5 px-4 font-bold text-gray-900">Level {tier.level}</td>
-                          <td className="py-3.5 px-4 font-semibold text-emerald-800">{tier.percentage.toFixed(1)}%</td>
-                          <td className="py-3.5 px-4 font-bold text-gray-900">₦{tier.amount.toLocaleString()}</td>
-                          <td className="py-3.5 px-4 font-mono">{tier.maxMembers.toLocaleString()} members</td>
-                          <td className="py-3.5 px-4 font-semibold text-emerald-700">
-                            Active Member
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <span className="bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full text-[10px] inline-flex items-center gap-1">
-                              🔓 Unlocked (Level {tier.level})
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 font-black text-emerald-700">
-                            ₦{tier.potential.toLocaleString("en-NG", { minimumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    <tr className="bg-emerald-50/90 font-black text-emerald-950">
-                      <td className="py-4 px-4 font-black">UPLINE TOTALS (7 Levels)</td>
-                      <td className="py-4 px-4">21.5%</td>
-                      <td className="py-4 px-4">₦1,075.00</td>
-                      <td className="py-4 px-4 font-mono">97,655 members</td>
-                      <td className="py-4 px-4">35 Directs</td>
-                      <td className="py-4 px-4">
-                        {unlockedLevel >= 7 ? "✓ All Unlocked" : `Level ${unlockedLevel}/7 Active`}
-                      </td>
-                      <td className="py-4 px-4 text-emerald-900 text-sm">₦12,212,500.00</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Allocation Architecture Cards */}
-              <div className="pt-2">
-                <div className="bg-emerald-50/70 rounded-2xl p-5 border border-emerald-200/80 text-xs text-emerald-950 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-emerald-900 block uppercase text-[11px] tracking-wider">
-                      Farm-Slot Allocation (₦5,000/Slot — Physical Production)
-                    </span>
-                    <Badge className="bg-emerald-200 text-emerald-900 border-emerald-300 text-[10px]">
-                      Biological Asset
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-[11px]">
-                    <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Direct Referrer</span>
-                      <strong className="text-emerald-900 text-xs">10% (₦500)</strong>
-                    </div>
-                    <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Company Admin</span>
-                      <strong className="text-emerald-900 text-xs">20% (₦1,000)</strong>
-                    </div>
-                    <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Two Fruiting Bags</span>
-                      <strong className="text-emerald-900 text-xs">28% (₦1,400)</strong>
-                    </div>
-                    <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Fruiting House & Logistics</span>
-                      <strong className="text-emerald-900 text-xs">42% (₦2,100)</strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <Link
+          to="/dashboard/my-network"
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#d1ef75] hover:bg-[#c3e35d] text-emerald-950 font-bold text-xs transition-all shadow-sm shrink-0 font-mono tracking-tight cursor-pointer"
+        >
+          <Users className="w-4 h-4 text-emerald-950" />
+          <span>Launch Genealogy Tree</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </Link>
       </div>
 
       {/* ── SECTION: INTERACTIVE PRODUCTION HARVEST FORECASTER ── */}

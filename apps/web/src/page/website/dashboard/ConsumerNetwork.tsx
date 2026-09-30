@@ -359,219 +359,40 @@ export const ConsumerNetwork: React.FC = () => {
         </div>
       </div>
 
-      {/* ── SECTION 2: 7-LEVEL COMMISSION ENGINE (FOLDABLE, FOLDED BY DEFAULT) ── */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200/90 space-y-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-2">
-              <span className="bg-emerald-100 text-emerald-900 text-xs font-bold px-2.5 py-0.5 rounded-full">
-                7-Level Product Commission Engine
-              </span>
-              <span className="text-xs text-gray-500 font-medium">• 40% Maximum Payout Ceiling</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-black text-gray-900 mt-2">
-              Multilevel Product Commission Structure
-            </h2>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-3xl leading-relaxed">
-              Applies to the <strong>₦5,000 Mushroom Power welcome product</strong> (included in the ₦10,000 Wealth Creation Activation) and every retail product sold across the platform. Multilevel commissions distribute across 7 upline tiers (<strong>21.5% subtotal, up to ₦1,075 per sale</strong>).
-            </p>
+      {/* ── 7-LEVEL PRODUCT COMMISSION BANNER (LEADS TO HOW IT WORKS) ── */}
+      <div className="bg-gradient-to-r from-emerald-900 via-[#0c2415] to-[#041d0f] rounded-3xl p-6 sm:p-7 text-white shadow-md flex flex-col md:flex-row md:items-center justify-between gap-5 border border-emerald-700/50">
+        <div className="space-y-1.5 max-w-2xl">
+          <div className="flex items-center gap-2">
+            <span className="bg-emerald-400/20 text-emerald-300 text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-400/30">
+              7-Level Product Commission Engine
+            </span>
+            <span className="text-xs text-emerald-200/80 font-medium">• 40% Maximum Payout Ceiling</span>
           </div>
-
-          <div className="flex items-center gap-2 self-start md:self-center shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCommissionTableOpen(!commissionTableOpen)}
-              className="border-emerald-200 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs rounded-xl gap-1.5 h-9"
-            >
-              <span>{commissionTableOpen ? "Hide Commission Structure" : "Show Commission Structure"}</span>
-              <ChevronDown
-                className={`w-4 h-4 text-emerald-700 transition-transform duration-200 ${
-                  commissionTableOpen ? "rotate-180" : ""
-                }`}
-              />
-            </Button>
-
-            <Link
-              to="/dashboard/my-network"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-800 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-3.5 py-2 rounded-xl border border-emerald-200 transition-colors h-9"
-            >
-              <Users className="w-3.5 h-3.5 text-emerald-700" />
-              <span>Producer Matrix</span>
-            </Link>
-          </div>
+          <h2 className="text-lg sm:text-xl font-bold text-white">
+            Multilevel Product Commission Structure
+          </h2>
+          <p className="text-xs text-emerald-100/80 leading-relaxed">
+            Every product sale and starter pack feeds into the 7-level commission engine (21.5% distributed upline). Review the complete compensation architecture and tier progression rules.
+          </p>
         </div>
 
-        {!hasGreenCard && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 border border-amber-200 flex items-center justify-center text-amber-800 shrink-0 mt-0.5">
-                <Lock className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <span>Green Card Membership Required for 5×7 Matrix Placement</span>
-                  <span className="bg-amber-200 text-amber-900 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                    Locked
-                  </span>
-                </h4>
-                <p className="text-xs text-gray-600 mt-1 max-w-2xl leading-relaxed">
-                  Your farm operations are active, but your account currently does not have an active Green Card subscription. Green Card credentials unlock official 5×7 matrix auto-placement, ₦1,000 direct referral rewards, and retail upline commissions across all 7 levels.
-                </p>
-              </div>
-            </div>
-            <Button
-              asChild
-              className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl shrink-0 shadow-md"
-            >
-              <Link to="/dashboard/checkout?product=green_card">
-                <ShieldCheck className="w-4 h-4 mr-1.5" />
-                Activate Green Card (₦2,000)
-              </Link>
-            </Button>
-          </div>
-        )}
-
-        {/* Collapsible Content */}
-        <AnimatePresence initial={false}>
-          {commissionTableOpen && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="overflow-hidden space-y-6 pt-2"
-            >
-              {/* 7-Level Distribution Table */}
-              <div className="overflow-x-auto rounded-2xl border border-gray-100">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-emerald-900 text-white uppercase text-[10px] tracking-wider">
-                    <tr>
-                      <th className="py-3.5 px-4 rounded-tl-xl">Matrix Tier Level</th>
-                      <th className="py-3.5 px-4">Commission %</th>
-                      <th className="py-3.5 px-4">Payout Per ₦5k Product</th>
-                      <th className="py-3.5 px-4">Max Capacity (5^L)</th>
-                      <th className="py-3.5 px-4">Directs to Unlock</th>
-                      <th className="py-3.5 px-4">Your Status</th>
-                      <th className="py-3.5 px-4 rounded-tr-xl">Potential Earnings</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 text-gray-700">
-                    {MATRIX_COMMISSIONS.map((tier) => {
-                      const isTierUnlocked = unlockedLevel >= tier.level;
-                      return (
-                        <tr key={tier.level} className="hover:bg-emerald-50/40 transition-colors">
-                          <td className="py-3.5 px-4 font-bold text-gray-900">Level {tier.level}</td>
-                          <td className="py-3.5 px-4 font-semibold text-emerald-800">{tier.percentage.toFixed(1)}%</td>
-                          <td className="py-3.5 px-4 font-bold text-gray-900">₦{tier.amount.toLocaleString()}</td>
-                          <td className="py-3.5 px-4 font-mono">{tier.maxMembers.toLocaleString()} members</td>
-                          <td className="py-3.5 px-4 font-semibold text-gray-800">
-                            {tier.requiredDirects} Directs
-                          </td>
-                          <td className="py-3.5 px-4">
-                            {isTierUnlocked ? (
-                              <span className="bg-emerald-100 text-emerald-800 font-bold px-2.5 py-0.5 rounded-full text-[10px] inline-flex items-center gap-1">
-                                🔓 Unlocked
-                              </span>
-                            ) : (
-                              <span className="bg-amber-100 text-amber-900 font-medium px-2.5 py-0.5 rounded-full text-[10px] inline-flex items-center gap-1">
-                                🔒 Locked ({Math.max(0, tier.requiredDirects - directReferralsCount)} needed)
-                              </span>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-4 font-black text-emerald-700">
-                            ₦{tier.potential.toLocaleString("en-NG", { minimumFractionDigits: 2 })}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    <tr className="bg-emerald-50/90 font-black text-emerald-950">
-                      <td className="py-4 px-4 font-black">UPLINE TOTALS (7 Levels)</td>
-                      <td className="py-4 px-4">21.5%</td>
-                      <td className="py-4 px-4">₦1,075.00</td>
-                      <td className="py-4 px-4 font-mono">97,655 members</td>
-                      <td className="py-4 px-4">35 Directs</td>
-                      <td className="py-4 px-4">
-                        {unlockedLevel >= 7 ? "✓ All Unlocked" : `Level ${unlockedLevel}/7 Active`}
-                      </td>
-                      <td className="py-4 px-4 text-emerald-900 text-sm">₦12,212,500.00</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Allocation Architecture Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-                {/* Card A: Full 40% Product Commission Allocation */}
-                <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200 text-xs text-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-slate-900 block uppercase text-[11px] tracking-wider">
-                      Full 40% Product Commission Allocation (Per ₦5,000 Sale)
-                    </span>
-                    <Badge className="bg-slate-200 text-slate-800 border-slate-300 text-[10px]">
-                      Retail Engine
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2.5 text-[11px]">
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Direct Retail Seller</span>
-                      <strong className="text-emerald-700 text-xs">12.0% (₦600)</strong>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">7-Level Upline Network</span>
-                      <strong className="text-emerald-700 text-xs">21.5% (₦1,075)</strong>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Leadership Pool</span>
-                      <strong className="text-emerald-700 text-xs">4.0% (₦200)</strong>
-                    </div>
-                    <div className="bg-white p-2.5 rounded-xl border border-slate-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Sustainability Reserve</span>
-                      <strong className="text-emerald-700 text-xs">2.0% (₦100)</strong>
-                    </div>
-                  </div>
-                  <div className="text-[11px] text-gray-600 pt-2 border-t border-slate-200 flex justify-between font-medium">
-                    <span>Allocated Subtotal: <strong>39.5% (₦1,975)</strong></span>
-                    <span>Company Retained Margin: <strong>0.5% (₦25)</strong></span>
-                  </div>
-                </div>
-
-                {/* Card B: Physical Farm-Slot Allocation Distinction */}
-                <div className="bg-emerald-50/70 rounded-2xl p-5 border border-emerald-200/80 text-xs text-emerald-950 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-emerald-900 block uppercase text-[11px] tracking-wider">
-                      Farm-Slot Allocation (₦5,000/Slot — No Multilevel MLM)
-                    </span>
-                    <Badge className="bg-emerald-200 text-emerald-900 border-emerald-300 text-[10px]">
-                      Physical Production Asset
-                    </Badge>
-                  </div>
-                  <p className="text-[11px] text-emerald-800/90 leading-relaxed">
-                    Purchasing a farm slot creates a physical agricultural production asset and does <strong>not</strong> enter the 7-level multilevel commission engine.
-                  </p>
-                  <div className="grid grid-cols-2 gap-2.5 text-[11px]">
-                    <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Direct Referrer</span>
-                      <strong className="text-emerald-900 text-xs">10% (₦500)</strong>
-                    </div>
-                    <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Company Admin</span>
-                      <strong className="text-emerald-900 text-xs">20% (₦1,000)</strong>
-                    </div>
-                    <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Two Fruiting Bags</span>
-                      <strong className="text-emerald-900 text-xs">28% (₦1,400)</strong>
-                    </div>
-                    <div className="bg-white/90 p-2.5 rounded-xl border border-emerald-200/70 shadow-xs">
-                      <span className="text-gray-500 block text-[10px]">Fruiting House & Logistics</span>
-                      <strong className="text-emerald-900 text-xs">42% (₦2,100)</strong>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+          <Link
+            to="/how-it-works/presentation"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#d1ef75] hover:bg-[#c3e35d] text-emerald-950 font-bold text-xs transition-all shadow-sm"
+          >
+            <HelpCircle className="w-4 h-4 text-emerald-900" />
+            <span>Read How It Works</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+          <Link
+            to="/dashboard/my-network"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/20 transition-all"
+          >
+            <Users className="w-3.5 h-3.5 text-emerald-300" />
+            <span>Producer Matrix</span>
+          </Link>
+        </div>
       </div>
 
       {/* ── SECTION 3: INTERACTIVE EARNINGS CALCULATOR ── */}

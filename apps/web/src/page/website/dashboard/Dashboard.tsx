@@ -133,7 +133,7 @@ const Dashboard = () => {
         supabase
           .from("profiles")
           .select("id, full_name, phone, created_at")
-          .eq("referred_by", user.id),
+          .or(`referred_by.eq.${user.id},sponsor_id.eq.${user.id}`),
         supabase
           .from("slot_subscriptions")
           .select("id, slots, amount, last_payment_date, created_at, farm_group_id, project_category")
@@ -183,7 +183,13 @@ const Dashboard = () => {
         );
       }
 
-      profileData.referrals = referrals || [];
+      const directReferralsList = referrals || [];
+      const computedTotalReferrals = Math.max(
+        Number(profileData.total_referrals) || 0,
+        directReferralsList.length
+      );
+      profileData.total_referrals = computedTotalReferrals;
+      profileData.referrals = directReferralsList;
 
       // Calculate total slots combining slot_subscriptions AND physical farm_records
       const subSlotsCount = (subscriptions || []).reduce((total, item) => {

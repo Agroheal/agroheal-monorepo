@@ -148,6 +148,29 @@ const FAQS: FaqItem[] = [
   },
 ];
 
+function highlightMatch(text: string, query: string) {
+  if (!query || !query.trim() || typeof text !== "string") return text;
+  const terms = query.trim().split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return text;
+
+  const escapedTerms = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const regex = new RegExp(`(${escapedTerms.join("|")})`, "gi");
+  const parts = text.split(regex);
+
+  return parts.map((part, index) =>
+    regex.test(part) ? (
+      <mark
+        key={index}
+        className="bg-amber-200/90 text-amber-950 font-bold px-1 py-0.5 rounded-sm"
+      >
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
+}
+
 export default function KnowledgeBase() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<FaqItem["category"]>("all");
@@ -269,7 +292,8 @@ export default function KnowledgeBase() {
             </div>
           ) : (
             filteredFaqs.map((faq) => {
-              const isOpen = Boolean(openItems[faq.id]);
+              const isMatch = Boolean(searchQuery.trim());
+              const isOpen = isMatch || Boolean(openItems[faq.id]);
               return (
                 <div
                   key={faq.id}
@@ -280,7 +304,7 @@ export default function KnowledgeBase() {
                     className="w-full text-left p-4 sm:p-5 flex items-center justify-between gap-4 hover:bg-gray-50/80 transition-colors"
                   >
                     <span className="font-bold text-sm sm:text-base text-gray-900 leading-snug">
-                      {faq.question}
+                      {highlightMatch(faq.question, searchQuery)}
                     </span>
                     <div
                       className={`w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0 transition-transform duration-200 ${
@@ -293,7 +317,7 @@ export default function KnowledgeBase() {
 
                   {isOpen && (
                     <div className="px-4 pb-5 sm:px-5 sm:pb-6 pt-1 border-t border-gray-100 text-xs sm:text-sm text-gray-600 leading-relaxed space-y-3 bg-gray-50/40">
-                      <div>{faq.answer}</div>
+                      <div>{highlightMatch(faq.answer, searchQuery)}</div>
                       <div className="flex items-center gap-1.5 flex-wrap pt-1">
                         {faq.tags.slice(0, 4).map((tag) => (
                           <span
