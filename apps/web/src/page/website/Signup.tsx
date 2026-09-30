@@ -43,12 +43,23 @@ const Signup = () => {
   const effectiveRef = (queryRef || storedRef || DEFAULT_SPONSOR_CODE).trim().toUpperCase();
   const hasQueryRef = Boolean(queryRef || storedRef);
   const [referral, setReferral] = useState<string>(effectiveRef);
+  const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
 
   // console.log("ref param:", searchParams.get("ref"));
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    if (!termsAccepted) {
+      setLoading(false);
+      showToast({
+        variant: "error",
+        title: "Terms & Conditions Required",
+        description: "Please read and accept Agroheal's Terms of Service and Privacy Policy to proceed.",
+      });
+      return;
+    }
 
     const cleanedName = cleanName(name);
     if (!cleanedName) {
@@ -236,18 +247,18 @@ const Signup = () => {
   return (
     <div className="h-screen max-h-screen overflow-hidden flex">
       <Toaster />
-      <div className="flex-1 h-full flex flex-col justify-center items-center px-6 py-4 sm:py-6 bg-[#f8f7f4] relative overflow-y-auto">
+      <div className="flex-1 h-full flex flex-col justify-start sm:justify-center items-center px-4 sm:px-6 py-3 sm:py-4 bg-[#f8f7f4] relative overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <motion.div
           {...fadeUp(0)}
-          className="lg:hidden flex items-center gap-2 mb-4"
+          className="lg:hidden flex items-center gap-2 mb-2 sm:mb-3"
         >
-          <div className="w-8 h-8 rounded-xl bg-green-800 flex items-center justify-center">
-            <Leaf className="w-4 h-4 text-white" />
+          <div className="w-7 h-7 sm:w-8 h-8 rounded-xl bg-green-800 flex items-center justify-center">
+            <Leaf className="w-3.5 h-3.5 text-white" />
           </div>
-          <span className="text-green-900 font-semibold text-base">Agroheal</span>
+          <span className="text-green-900 font-semibold text-sm sm:text-base">Agroheal</span>
         </motion.div>
 
-        <div className="w-full max-w-[440px]">
+        <div className="w-full max-w-[420px] my-auto">
           {isEmailConfirmationPending ? (
             <motion.div {...fadeUp(0.1)} className="text-center py-6 px-5 bg-white border border-gray-100 shadow-sm rounded-2xl">
               <div className="w-14 h-14 bg-green-100 text-green-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -290,53 +301,53 @@ const Signup = () => {
           ) : (
             <>
               {/* Heading */}
-              <motion.div {...fadeUp(0.1)} className="mb-4">
+              <motion.div {...fadeUp(0.1)} className="mb-2 sm:mb-3">
                 <h1
-                  className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1"
+                  className="text-xl sm:text-2xl font-bold text-gray-900 mb-0.5"
                   style={{ fontFamily: "'Georgia', serif" }}
                 >
                   Create your Account
                 </h1>
-                <p className="text-gray-500 text-xs sm:text-sm">
+                <p className="text-gray-500 text-xs">
                   Start your organic farming journey today
                 </p>
               </motion.div>
 
           <motion.form
             {...fadeUp(0.2)}
-            className="space-y-3"
+            className="space-y-2 sm:space-y-2.5"
             onSubmit={handleSignup}
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
               {/* Full Name */}
-              <div className="space-y-1.5">
-                <Label htmlFor="name" className="text-xs font-semibold text-gray-700">Full Name</Label>
+              <div className="space-y-1">
+                <Label htmlFor="name" className="text-[11px] sm:text-xs font-semibold text-gray-700">Full Name</Label>
                 <div className="relative">
-                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                   <Input
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     type="text"
                     placeholder="John Doe"
-                    className="pl-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
+                    className="pl-9 h-9 sm:h-10 bg-white border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
                     required
                   />
                 </div>
               </div>
 
               {/* Phone Number */}
-              <div className="space-y-1.5">
-                <Label htmlFor="phone" className="text-xs font-semibold text-gray-700">Phone Number</Label>
+              <div className="space-y-1">
+                <Label htmlFor="phone" className="text-[11px] sm:text-xs font-semibold text-gray-700">Phone Number</Label>
                 <div className="relative">
-                  <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                   <Input
                     id="phone"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     type="tel"
                     placeholder="08012345678"
-                    className="pl-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
+                    className="pl-9 h-9 sm:h-10 bg-white border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
                     required
                   />
                 </div>
@@ -344,46 +355,46 @@ const Signup = () => {
             </div>
 
             {/* Email */}
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs font-semibold text-gray-700">Email Address</Label>
+            <div className="space-y-1">
+              <Label htmlFor="email" className="text-[11px] sm:text-xs font-semibold text-gray-700">Email Address</Label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <Input
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
                   placeholder="you@example.com"
-                  className="pl-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
+                  className="pl-9 h-9 sm:h-10 bg-white border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
                   required
                 />
               </div>
             </div>
 
             {/* Password */}
-            <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-xs font-semibold text-gray-700">Password</Label>
+            <div className="space-y-1">
+              <Label htmlFor="password" className="text-[11px] sm:text-xs font-semibold text-gray-700">Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <Input
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   type={showPassword ? "text" : "password"}
                   placeholder="Create a strong password"
-                  className="pl-10 pr-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
+                  className="pl-9 pr-9 h-9 sm:h-10 bg-white border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
                   minLength={8}
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
+                    <EyeOff className="w-3.5 h-3.5" />
                   ) : (
-                    <Eye className="w-4 h-4" />
+                    <Eye className="w-3.5 h-3.5" />
                   )}
                 </button>
               </div>
@@ -391,17 +402,17 @@ const Signup = () => {
             </div>
 
             {/* Referral Code */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <div className="flex items-center justify-between">
-                <Label htmlFor="referral" className="text-xs font-semibold text-gray-700 truncate">
+                <Label htmlFor="referral" className="text-[11px] sm:text-xs font-semibold text-gray-700 truncate">
                   Referral Code
                 </Label>
-                <span className="text-[11px] font-medium text-muted-foreground">
+                <span className="text-[10px] sm:text-[11px] font-medium text-muted-foreground">
                   {hasQueryRef ? "(Applied)" : "(Optional)"}
                 </span>
               </div>
               <div className="relative">
-                <Tag className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
                 <Input
                   id="referral"
                   value={referral}
@@ -409,16 +420,17 @@ const Signup = () => {
                   type="text"
                   disabled={hasQueryRef}
                   placeholder="Sponsor code"
-                  className="pl-10 h-11 bg-white border-gray-200 rounded-xl text-sm focus:border-green-700 focus:ring-green-700/20 transition-all uppercase tracking-wider"
+                  className="pl-9 h-9 sm:h-10 bg-white border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all uppercase tracking-wider"
                 />
               </div>
             </div>
 
             {/* Terms checkbox */}
-            <div className="flex items-start gap-2.5 pt-1">
+            <div className="flex items-start gap-2 pt-0.5">
               <Checkbox
                 id="terms"
-                required
+                checked={termsAccepted}
+                onCheckedChange={(checked) => setTermsAccepted(Boolean(checked))}
                 className="mt-0.5 rounded border-gray-300 data-[state=checked]:bg-green-800 data-[state=checked]:border-green-800"
               />
               <label
@@ -443,22 +455,22 @@ const Signup = () => {
             </div>
 
             {/* Submit Button */}
-            <div className="pt-2">
+            <div className="pt-1.5 sm:pt-2">
               <Button
                 type="submit"
                 size="lg"
                 disabled={loading}
-                className="w-full h-12 bg-green-800 hover:bg-green-700 text-white font-bold rounded-xl text-base transition-all duration-200 shadow-md flex items-center justify-center gap-2 group"
+                className="w-full h-10 sm:h-11 bg-green-800 hover:bg-green-700 text-white font-bold rounded-lg sm:rounded-xl text-sm transition-all duration-200 shadow-sm flex items-center justify-center gap-2 group"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
-                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    <div className="w-3.5 h-3.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                     Creating Account...
                   </span>
                 ) : (
                   <span className="flex items-center gap-2">
                     Create Account
-                    <ArrowRight className="w-4.5 h-4.5 group-hover:translate-x-0.5 transition-transform" />
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                   </span>
                 )}
               </Button>
@@ -466,7 +478,7 @@ const Signup = () => {
           </motion.form>
 
           {/* Already have account */}
-          <div className="mt-4 text-center text-xs sm:text-sm text-gray-500">
+          <div className="mt-2.5 sm:mt-3 text-center text-xs text-gray-500">
             Already have an account?{" "}
             <Link
               to={redirectUrl !== "/dashboard" ? `/signin?redirect=${encodeURIComponent(redirectUrl)}` : "/signin"}
@@ -477,7 +489,7 @@ const Signup = () => {
           </div>
 
           {/* Back to home */}
-          <div className="text-center mt-3">
+          <div className="text-center mt-1.5">
             <Link
               to="/"
               className="text-xs text-gray-400 hover:text-gray-600 transition-colors"

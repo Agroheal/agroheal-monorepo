@@ -139,10 +139,15 @@ const Dashboard = () => {
           .from("profiles")
           .select("id, full_name, phone, created_at")
           .or(`referred_by.eq.${user.id},sponsor_id.eq.${user.id}`),
-        supabase
-          .from("slot_subscriptions")
-          .select("id, slots, amount, last_payment_date, created_at, farm_group_id, project_category")
-          .eq("user_id", user.id),
+        user.email
+          ? supabase
+              .from("slot_subscriptions")
+              .select("id, slots, amount, last_payment_date, created_at, farm_group_id, project_category")
+              .or(`user_id.eq.${user.id},member_email.ilike.${user.email.trim()}`)
+          : supabase
+              .from("slot_subscriptions")
+              .select("id, slots, amount, last_payment_date, created_at, farm_group_id, project_category")
+              .eq("user_id", user.id),
         supabase
           .from("transactions")
           .select("id, amount, status, created_at, reference")
@@ -236,6 +241,23 @@ const Dashboard = () => {
           });
         }
       });
+      // Fallback: If user owns slots but has no explicit farm_group_id mapped, attach default pioneers cluster
+      if (userAssignedFarms.length === 0 && effectiveTotalSlots > 0) {
+        const allGroups = Array.from(groupsMap.values()) as any[];
+        const defaultGroup = allGroups.find((g: any) =>
+          g.name?.includes("Pioneers Farm [Mushroom") || g.slug === "pioneers-farm"
+        ) || allGroups[0];
+
+        if (defaultGroup) {
+          userAssignedFarms.push({
+            id: defaultGroup.id,
+            name: defaultGroup.name,
+            project_category: defaultGroup.project_category || "Mushroom Village",
+            slots: effectiveTotalSlots,
+          });
+        }
+      }
+
       setAssignedFarms(userAssignedFarms);
 
       // Track earliest slot date when Milestone 3 began
@@ -558,10 +580,32 @@ const Dashboard = () => {
                     </div>
                   </div>
 
-                  <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500 mt-2">
-                    <span className="line-clamp-1">{tile.subtitle}</span>
-                    <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
-                  </div>
+                  {tile.id === "network" ? (
+                    <div className="pt-2 border-t border-gray-100 flex flex-col gap-1 mt-2">
+                      <div className="flex items-center justify-between text-[11px] text-gray-500">
+                        <span className="line-clamp-1">{tile.subtitle}</span>
+                        <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
+                      </div>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          navigate("/dashboard/compound-referrals");
+                        }}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 hover:text-emerald-700 hover:underline cursor-pointer pt-0.5"
+                      >
+                        <GitBranch className="w-3 h-3 text-emerald-600" />
+                        <span>View Full Tree Organogram →</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500 mt-2">
+                      <span className="line-clamp-1">{tile.subtitle}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
+                    </div>
+                  )}
                 </Link>
               </motion.div>
             ))}

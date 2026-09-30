@@ -263,7 +263,7 @@ export default function Home() {
                 to="/signup"
                 className="inline-flex items-center justify-center gap-2 bg-[#2e7d32] hover:bg-[#1b5e20] text-white font-bold px-8 py-4 rounded-xl transition-all duration-300 group text-sm md:text-base shadow-lg shadow-green-950/20"
               >
-                <span>Sign Up</span>
+                <span>Get Started</span>
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </Link>
 

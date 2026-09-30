@@ -23,11 +23,15 @@ import {
   ArrowRight,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Wifi,
   Copy,
   Check,
   Zap,
   Landmark,
+  Sparkles,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
@@ -40,6 +44,7 @@ import { AgrohealImages } from "@/constant/Image";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import WithdrawalModal from "@/components/wallet/WithdrawalModal";
+import { DataPagination } from "@/components/ui/pagination";
 
 interface LedgerItem {
   id: string;
@@ -100,6 +105,8 @@ export default function TransactionLedger() {
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
   const [copiedDesc, setCopiedDesc] = useState<string | null>(null);
   const [walletMode, setWalletMode] = useState<"live" | "legacy">("live");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [showAuditGuide, setShowAuditGuide] = useState<boolean>(true);
 
   const legacyTransactions = React.useMemo(() => transactions.filter((t) => t.is_legacy), [transactions]);
   const legacyEarnings = React.useMemo(() => {
@@ -531,11 +538,18 @@ export default function TransactionLedger() {
         if (c.payment_reference) accountedCheckoutRefs.add(String(c.payment_reference).toLowerCase());
 
         const amount = Number(c.amount || 0);
-        const catLower = (c.project_category || "").toLowerCase();
+        const rawCategory = c.project_category || "";
+        const cleanCat = rawCategory
+          .replace(/Mushroom Farm,\s*Mushroom Farm/gi, "Mushroom Farm")
+          .replace(/Mushroom Village,\s*Mushroom Village/gi, "Mushroom Village")
+          .replace(/,\s*,/g, ",")
+          .trim();
+        const catLower = cleanCat.toLowerCase();
 
         const isComboTx =
           catLower.includes("combo") ||
           amount === 12000 ||
+          amount === 11000 ||
           (amount === 10000 && !catLower.includes("slot"));
 
         const isGreenCardTx =
@@ -553,24 +567,30 @@ export default function TransactionLedger() {
         }
 
         let category: LedgerItem["category"] = "SLOT_PURCHASE";
-        let description = c.project_category ? `Online Payment — ${c.project_category}` : "Online Platform Payment";
+        let description = cleanCat ? `Online Payment — ${cleanCat}` : "Online Platform Payment";
 
-        if (isComboTx) {
+        if (amount === 12000 || (isComboTx && amount === 12000)) {
           category = "COMBO_PACKAGE";
-          description = "Producer-Consumer Starter Bundle (Farm Slot + Mushroom Power 100g + Green Card)";
+          description = "Starter Combo Bundle (1 Farm Slot ₦5,000 + Mushroom Power 100g ₦5,000 + Green Card Pass ₦2,000)";
+        } else if (amount === 11000 || (isComboTx && amount === 11000)) {
+          category = "COMBO_PACKAGE";
+          description = "Starter Combo Bundle (1 Farm Slot ₦5,000 + Mushroom Power 100g ₦5,000 + Legacy Green Card ₦1,000)";
+        } else if (amount === 10000 && (isComboTx || !catLower.includes("slot"))) {
+          category = "COMBO_PACKAGE";
+          description = "Starter Combo Bundle (1 Farm Slot ₦5,000 + Mushroom Power 100g ₦5,000 [Free Legacy Green Card])";
+        } else if (isComboTx) {
+          category = "COMBO_PACKAGE";
+          description = "Starter Combo Bundle (1 Farm Slot ₦5,000 + Mushroom Power 100g ₦5,000 + Green Card)";
         } else if (isGreenCardTx) {
           category = "SUBSCRIPTION";
           description = "AgroHeal Green Card Activation (Lifetime Certified Digital Pass)";
         } else if (catLower.includes("starter pack") || (amount === 5000 && catLower.includes("product"))) {
           category = "RETAIL_PURCHASE";
           description = "Starter Pack Product: Mushroom Power 100g";
-        } else if (amount === 11000) {
-          category = "SLOT_PURCHASE";
-          description = `Secured 2 Farm Slot(s) (₦10,000) + Legacy Green Card Upgrade (₦1,000) — ${c.project_category || "Pioneers Farm [Mushroom Village]"}`;
         } else if (catLower.includes("slot") || amount >= 5000) {
           const count = Math.max(1, Math.floor(amount / 5000));
           category = "SLOT_PURCHASE";
-          description = `Secured ${count} Farm Slot(s) — ${c.project_category || "Mushroom Village"}`;
+          description = `Secured ${count} Farm Slot(s) — ${cleanCat || "Mushroom Village"}`;
         }
 
         if (!items.some((i) => i.reference === ref || (c.transaction_ref && i.reference === c.transaction_ref))) {
@@ -612,13 +632,19 @@ export default function TransactionLedger() {
         const isSsFailed = ["cancelled", "canceled", "failed", "expired"].includes(ssStatus);
         const ref = `SLOT-${(ss.id || idx).toString().slice(0, 8).toUpperCase()}`;
 
+        const cleanSlotCat = (ss.project_category || "Farm Project")
+          .replace(/Mushroom Farm,\s*Mushroom Farm/gi, "Mushroom Farm")
+          .replace(/Mushroom Village,\s*Mushroom Village/gi, "Mushroom Village")
+          .replace(/,\s*,/g, ",")
+          .trim();
+
         items.push({
           id: `slot-${ss.id || idx}`,
           date: ss.created_at || ss.last_payment_date || new Date().toISOString(),
           type: "DEBIT",
           category: "SLOT_PURCHASE",
           amount: Number(ss.amount) || slotsCount * 5000,
-          description: `Secured ${slotsCount} Slot(s) — ${ss.project_category || "Farm Project"}`,
+          description: `Secured ${slotsCount} Slot(s) — ${cleanSlotCat}`,
           status: isSsCompleted ? "COMPLETED" : isSsFailed ? "FAILED" : "PENDING",
           reference: ref,
           is_legacy: Boolean(ss.is_legacy),
@@ -677,6 +703,12 @@ export default function TransactionLedger() {
 
       // 7. Farm Setup & Support Contributions (from audited farm_records)
       (farmRecords || []).forEach((fr: any) => {
+        const cleanFrCat = (fr.project_category || "Group Farm")
+          .replace(/Mushroom Farm,\s*Mushroom Farm/gi, "Mushroom Farm")
+          .replace(/Mushroom Village,\s*Mushroom Village/gi, "Mushroom Village")
+          .replace(/,\s*,/g, ",")
+          .trim();
+
         if (fr.months_farm_setup && fr.months_farm_setup.toLowerCase() !== "0" && fr.months_farm_setup.toLowerCase() !== "unpaid") {
           const ref = `SETUP-${fr.id.slice(0, 8).toUpperCase()}`;
           if (!items.some((it) => it.reference === ref)) {
@@ -686,7 +718,7 @@ export default function TransactionLedger() {
               type: "DEBIT",
               category: "FARM_CONTRIBUTION",
               amount: 0,
-              description: `Farm Setup Contribution — ${fr.project_category || "Group Farm"} (${fr.months_farm_setup})`,
+              description: `Farm Setup Contribution — ${cleanFrCat} (${fr.months_farm_setup})`,
               status: "COMPLETED",
               reference: ref,
               is_legacy: true,
@@ -702,7 +734,7 @@ export default function TransactionLedger() {
               type: "DEBIT",
               category: "FARM_CONTRIBUTION",
               amount: 0,
-              description: `Farm Support Contribution — ${fr.project_category || "Group Farm"} (${fr.months_farm_support})`,
+              description: `Farm Support Contribution — ${cleanFrCat} (${fr.months_farm_support})`,
               status: "COMPLETED",
               reference: ref,
               is_legacy: true,
@@ -718,7 +750,7 @@ export default function TransactionLedger() {
               type: "DEBIT",
               category: "FARM_CONTRIBUTION",
               amount: Number(fr.absentee_fine),
-              description: `Absentee Fine / Penalty — ${fr.project_category || "Group Farm"}`,
+              description: `Absentee Fine / Penalty — ${cleanFrCat}`,
               status: "COMPLETED",
               reference: ref,
               is_legacy: true,
@@ -936,6 +968,16 @@ export default function TransactionLedger() {
     }
     return true;
   });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, searchQuery, legacyFilter, walletMode]);
+
+  const PAGE_SIZE = 10;
+  const paginatedTransactions = React.useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredTransactions.slice(start, start + PAGE_SIZE);
+  }, [filteredTransactions, currentPage]);
 
   const handleExportExcel = () => {
     const dateStamp = new Date().toISOString().split("T")[0];
@@ -1353,6 +1395,97 @@ export default function TransactionLedger() {
           </div>
         </div>
 
+        {/* ── FOUNDING LEGACY BALANCE JUSTIFICATION & AUDIT GUIDE ── */}
+        <div className="bg-gradient-to-br from-amber-900/10 via-emerald-950/5 to-amber-950/10 border border-amber-500/30 rounded-3xl p-5 sm:p-6 shadow-sm relative overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-900 flex items-center justify-center shrink-0 mt-0.5">
+                <ShieldCheck className="w-5 h-5 text-amber-700" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
+                    Official Ledger & Migration Audit
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    Zero Balance Leakage
+                  </span>
+                </div>
+                <h3 className="text-base sm:text-lg font-black text-gray-900 tracking-tight">
+                  Founding Legacy Balance Justification & Matrix Unlock Guide
+                </h3>
+                <p className="text-xs text-gray-600 mt-1 max-w-3xl leading-relaxed">
+                  Agroheal operates on strict double-entry ledger accounting. Here is how historical earnings, lifetime Green Card credentials, and matrix access are structured for founding members:
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAuditGuide(!showAuditGuide)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-900 bg-amber-100/80 hover:bg-amber-200/80 border border-amber-300 transition-all cursor-pointer self-start shrink-0"
+            >
+              <span>{showAuditGuide ? "Hide Audit Details" : "Read Audit Policy"}</span>
+              {showAuditGuide ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+          </div>
+
+          {showAuditGuide && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 mt-5 pt-4 border-t border-amber-500/20">
+              {/* Card 1 */}
+              <div className="bg-white/80 backdrop-blur-xs p-4 rounded-2xl border border-amber-200/70 shadow-xs space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                  </div>
+                  <h4 className="text-xs font-bold text-gray-900">1. Free Green Card Pass</h4>
+                </div>
+                <p className="text-[11px] text-gray-600 leading-snug">
+                  All 35 founding members who joined prior to the 2026 platform upgrade receive a <span className="font-semibold text-emerald-800">100% free lifetime Green Card</span>. Digital AGC credentials and course access are permanently active with ₦0 fee.
+                </p>
+              </div>
+
+              {/* Card 2 */}
+              <div className="bg-white/80 backdrop-blur-xs p-4 rounded-2xl border border-amber-200/70 shadow-xs space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center shrink-0">
+                    <Landmark className="w-3.5 h-3.5 text-amber-800" />
+                  </div>
+                  <h4 className="text-xs font-bold text-gray-900">2. Preserved Founding Vault</h4>
+                </div>
+                <p className="text-[11px] text-gray-600 leading-snug">
+                  Historical referral bonuses and slot earnings earned prior to migration are permanently preserved under <span className="font-mono font-semibold text-amber-900">FOUNDING-REF-ARCHIVE</span> and <span className="font-mono font-semibold text-amber-900">FOUNDING-SLOT-ARCHIVE</span> as recognized stakeholder equity.
+                </p>
+              </div>
+
+              {/* Card 3 */}
+              <div className="bg-white/80 backdrop-blur-xs p-4 rounded-2xl border border-amber-200/70 shadow-xs space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-900 flex items-center justify-center shrink-0">
+                    <Zap className="w-3.5 h-3.5 text-blue-700" />
+                  </div>
+                  <h4 className="text-xs font-bold text-gray-900">3. Matrix Unlock Rule</h4>
+                </div>
+                <p className="text-[11px] text-gray-600 leading-snug">
+                  To participate in automated 5×7 tree placements, network spillover rewards, and bank payouts, founding members must activate their <span className="font-semibold text-blue-900">Mushroom Power 100g (₦5,000)</span> and hold <span className="font-semibold text-blue-900">1 Farm Slot (₦5,000)</span>.
+                </p>
+              </div>
+
+              {/* Card 4 */}
+              <div className="bg-white/80 backdrop-blur-xs p-4 rounded-2xl border border-amber-200/70 shadow-xs space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-lg bg-purple-100 text-purple-900 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-3.5 h-3.5 text-purple-700" />
+                  </div>
+                  <h4 className="text-xs font-bold text-gray-900">4. Double-Entry Solvency</h4>
+                </div>
+                <p className="text-[11px] text-gray-600 leading-snug">
+                  Every ₦10k/₦11k/₦12k bundle dynamically disburses the ₦1,000 direct GC referral bounty, ₦500 slot bonus, 40% retail commission, and ₦300 pool across all 6 Core Drivers with zero leakage.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* ── TRANSACTION HISTORY TABLE ── */}
         <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
@@ -1519,7 +1652,7 @@ export default function TransactionLedger() {
                     </td>
                   </tr>
                 ) : (
-                  filteredTransactions.map((t) => (
+                  paginatedTransactions.map((t) => (
                     <tr key={t.id} className="hover:bg-gray-50/80 transition-colors">
                       <td className="py-3.5 px-2.5 sm:px-3 whitespace-nowrap font-medium text-gray-900 text-[11px] sm:text-xs">
                         <div className="font-semibold text-gray-900">
@@ -1703,6 +1836,20 @@ export default function TransactionLedger() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {filteredTransactions.length > 0 && (
+            <div className="p-4 border-t border-gray-100 bg-gray-50/50">
+              <DataPagination
+                currentPage={currentPage}
+                totalPages={Math.ceil(filteredTransactions.length / PAGE_SIZE)}
+                onPageChange={setCurrentPage}
+                totalItems={filteredTransactions.length}
+                pageSize={PAGE_SIZE}
+                itemLabel="transactions"
+              />
+            </div>
+          )}
         </div>
 
         {/* ── REQUERY MODAL ── */}

@@ -101,11 +101,25 @@ export default function Header() {
                 </Button>
               </Link>
             ) : (
-              <Link to="/signup">
-                <Button className="bg-emerald-800 text-white hover:bg-emerald-900 font-bold px-6 py-2 rounded-xl shadow-xs cursor-pointer">
-                  Get Started
-                </Button>
-              </Link>
+              <>
+                <Link to="/signin">
+                  <Button
+                    variant="ghost"
+                    className={`font-semibold px-4 py-2 rounded-xl transition-colors cursor-pointer ${
+                      isDarkHeader
+                        ? "text-white hover:text-white hover:bg-white/10"
+                        : "text-gray-700 hover:text-gray-950 hover:bg-gray-100"
+                    }`}
+                  >
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/signup">
+                  <Button className="bg-emerald-800 text-white hover:bg-emerald-900 font-bold px-6 py-2 rounded-xl shadow-xs cursor-pointer">
+                    Get Started
+                  </Button>
+                </Link>
+              </>
             )}
           </div>
 
@@ -156,13 +170,13 @@ export default function Header() {
                   ) : (
                     <>
                       <Link to="/signin" className="w-full" onClick={() => setIsOpen(false)}>
-                        <Button className="w-full bg-green-800 text-white">
+                        <Button variant="outline" className="w-full border-green-800 text-green-800 hover:bg-green-50 font-semibold py-2.5 rounded-xl">
                           Sign In
                         </Button>
                       </Link>
                       <Link to="/signup" className="w-full" onClick={() => setIsOpen(false)}>
-                        <Button className="w-full bg-green-800 text-white">
-                          Sign Up
+                        <Button className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-2.5 rounded-xl shadow-xs">
+                          Get Started
                         </Button>
                       </Link>
                     </>

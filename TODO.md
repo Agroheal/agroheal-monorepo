@@ -97,6 +97,14 @@
 - [x] Unified Calculator / Simulation Shell across Producer Network and Consumer Network.
 - [x] Sidebar Brand Header & integrated profile logout controls.
 - [x] Multi-level 5×7 Producer Network and 3-Tier Consumer Network matrix logic.
+- [x] **Founding Legacy Balances Justification, Reusable Pagination & Unified Checkout Flow (COMPLETED)**:
+  - **Free Founding Green Card Status**: Verified all 35 founding members hold lifetime Green Card status without registration fee.
+  - **Preserved Founding Balances**: Historical referral earnings and slot bonuses preserved in the immutable Founding Vault (`FOUNDING-REF-ARCHIVE` and `FOUNDING-SLOT-ARCHIVE`).
+  - **Matrix & Withdrawal Unlock Rule**: Enforced compulsory Mushroom Power 100g (₦5,000) activation + 1 Farm Slot (₦5,000) subscription for legacy members to access automated matrix tree spillovers and bank withdrawals.
+  - **Reusable Pagination Engine**: Built `DataPagination` component in `apps/web/src/components/ui/pagination.tsx` and paginated `TransactionLedger.tsx` at 10 items per page with responsive page links and item counter.
+  - **Bundle Itemization & Farm Name Deduplication**: Refactored ₦10k (Free GC), ₦11k (Legacy GC), and ₦12k (Standard GC) transactions to display explicit package contents and cleaned duplicated `"Mushroom Farm, Mushroom Farm"` descriptions.
+  - **Production Day 1 Crop Stage**: Reset all 6 farm cycles on production database to `stage = 'PLANNING'` with zero yield and zero false harvest distributions.
+  - **Unified Webhook Financial Engine**: Automated Green Card activation, sequential AGC member ID assignment, ₦1,000 sponsor referral bounty, 6 Core Drivers growth pool (₦50 × 6 = ₦300), ₦500 slot bonus, and 40% product commission distribution in `webhooks.controller.ts`.
 
 ---
 
