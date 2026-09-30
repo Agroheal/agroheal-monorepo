@@ -317,7 +317,9 @@ export default function KnowledgeBase() {
 
                   {isOpen && (
                     <div className="px-4 pb-5 sm:px-5 sm:pb-6 pt-1 border-t border-gray-100 text-xs sm:text-sm text-gray-600 leading-relaxed space-y-3 bg-gray-50/40">
-                      <div>{highlightMatch(faq.answer, searchQuery)}</div>
+                      <div>
+                        {typeof faq.answer === "string" ? highlightMatch(faq.answer, searchQuery) : faq.answer}
+                      </div>
                       <div className="flex items-center gap-1.5 flex-wrap pt-1">
                         {faq.tags.slice(0, 4).map((tag) => (
                           <span

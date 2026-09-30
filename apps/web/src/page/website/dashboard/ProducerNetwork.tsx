@@ -445,7 +445,7 @@ export const ProducerNetwork: React.FC = () => {
         >
           <Users className="w-4 h-4 text-emerald-950" />
           <span>Launch Genealogy Tree</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+          <ArrowUpRight className="w-3.5 h-3.5" />
         </Link>
       </div>
 

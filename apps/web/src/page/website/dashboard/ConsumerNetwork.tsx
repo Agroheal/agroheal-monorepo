@@ -381,9 +381,9 @@ export const ConsumerNetwork: React.FC = () => {
             to="/how-it-works/presentation"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#d1ef75] hover:bg-[#c3e35d] text-emerald-950 font-bold text-xs transition-all shadow-sm"
           >
-            <HelpCircle className="w-4 h-4 text-emerald-900" />
+            <Info className="w-4 h-4 text-emerald-900" />
             <span>Read How It Works</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowUpRight className="w-3.5 h-3.5" />
           </Link>
           <Link
             to="/dashboard/my-network"

@@ -574,9 +574,8 @@ const Dashboard = () => {
               <p
                 className={`${
                   stat.actionTo ||
-                  stat.actionHref ||
-                  stat.label === "Total Referrals" ||
-                  stat.label === "Referral Earnings"
+                  stat.label === "My Direct Team" ||
+                  stat.label === "My Earnings"
                     ? "text-base sm:text-lg leading-snug sm:leading-relaxed"
                     : "text-xl sm:text-3xl"
                 } font-bold ${stat.valueColor} text-center sm:text-left`}
@@ -632,72 +631,6 @@ const Dashboard = () => {
                     </Link>
                   </Button>
                 ))}
-
-              {(stat.actionHref || stat.whatsappHref) && (
-                <div className="mt-2.5 sm:mt-4 flex w-full flex-col gap-1.5">
-                  {stat.actionHref && (
-                    hasGreenCard ? (
-                      <Button
-                        asChild
-                        variant="outline"
-                        className="w-full rounded-xl border border-emerald-800 bg-emerald-800 hover:bg-emerald-700 text-white px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        <a
-                          href={stat.actionHref}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <Send className="w-3.5 h-3.5 shrink-0" />
-                          <span>Join Telegram</span>
-                        </a>
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          toast.error("Active Green Card required to join exclusive LEAP Community channels.");
-                        }}
-                        className="w-full rounded-xl border border-gray-200 bg-gray-100 text-gray-400 hover:bg-gray-100 cursor-not-allowed px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold shadow-xs flex items-center justify-center gap-1.5"
-                      >
-                        <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                        <span>Join Telegram</span>
-                      </Button>
-                    )
-                  )}
-
-                  {stat.whatsappHref && (
-                    hasGreenCard ? (
-                      <Button
-                        asChild
-                        variant="outline"
-                        className="w-full rounded-xl border border-emerald-700 bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        <a
-                          href={stat.whatsappHref}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5 shrink-0" />
-                          <span>Join WhatsApp</span>
-                        </a>
-                      </Button>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          toast.error("Active Green Card required to join exclusive LEAP Community channels.");
-                        }}
-                        className="w-full rounded-xl border border-gray-200 bg-gray-100 text-gray-400 hover:bg-gray-100 cursor-not-allowed px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold shadow-xs flex items-center justify-center gap-1.5"
-                      >
-                        <Lock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                        <span>Join WhatsApp</span>
-                      </Button>
-                    )
-                  )}
-                </div>
-              )}
 
               {stat.label === "Total Referrals" && (
                 <div className="mt-2.5 sm:mt-4 space-y-2">

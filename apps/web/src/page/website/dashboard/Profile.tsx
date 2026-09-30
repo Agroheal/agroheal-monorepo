@@ -20,6 +20,7 @@ import {
   CreditCard,
   AlertCircle,
   CheckCircle2,
+  Lock,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
