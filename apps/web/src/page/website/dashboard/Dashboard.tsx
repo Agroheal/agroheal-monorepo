@@ -368,9 +368,69 @@ const Dashboard = () => {
 
   const availableWalletBalance = Number(profile?.wallet_balance || profile?.referral_earnings || 0);
 
+  // Dynamic Intelligent Quick Checkout Tile based on member standing
+  const isLegacy = Boolean(profile?.is_legacy) || isLegacyMember(profile?.created_at);
+  const hasStarterPack = Boolean(profile?.has_purchased_starter_pack);
+  const isCardHolder = Boolean(hasGreenCard || profile?.is_green_card_holder || profile?.member_id);
+
+  let checkoutTile;
+  if (isLegacy && !hasStarterPack) {
+    checkoutTile = {
+      id: "quick-checkout",
+      title: "Activate Mushroom Power",
+      metricValue: "₦5,000 • 100g Extract",
+      subtitle: "Unlocks 5×7 community matrix commissions & bank withdrawals",
+      badge: "Legacy Required",
+      badgeColor: "bg-amber-100 text-amber-950 border-amber-300",
+      path: "/dashboard/checkout?product=SP-MUSH-100G",
+      icon: Zap,
+      iconBg: "bg-amber-600 text-white",
+      tag: "Upgrade",
+    };
+  } else if (!isCardHolder) {
+    checkoutTile = {
+      id: "quick-checkout",
+      title: "Activate Membership",
+      metricValue: "₦12k Combo or ₦2k Pass",
+      subtitle: "Digital Green Card + 1st Farm Slot + Mushroom Power",
+      badge: "Step 1: Activate",
+      badgeColor: "bg-emerald-100 text-emerald-950 border-emerald-300",
+      path: "/dashboard/checkout?bundle=starter",
+      icon: Zap,
+      iconBg: "bg-emerald-600 text-white",
+      tag: "Membership",
+    };
+  } else if (!hasStarterPack) {
+    checkoutTile = {
+      id: "quick-checkout",
+      title: "Complete Starter Pack",
+      metricValue: "₦10,000 • Slot + Product",
+      subtitle: "Add 1st Farm Slot & Mushroom Power to activate matrix earnings",
+      badge: "Step 2: Complete",
+      badgeColor: "bg-teal-100 text-teal-950 border-teal-300",
+      path: "/dashboard/checkout?bundle=starter_completion",
+      icon: ShoppingBag,
+      iconBg: "bg-teal-700 text-white",
+      tag: "Complete",
+    };
+  } else {
+    checkoutTile = {
+      id: "quick-checkout",
+      title: "Expand Production",
+      metricValue: "₦5,000 / Farm Slot",
+      subtitle: "Secure additional production units in Pacesetters Farm",
+      badge: "Add Slots",
+      badgeColor: "bg-emerald-100 text-emerald-950 border-emerald-300",
+      path: "/dashboard/farm-operations/buy-slots",
+      icon: Sprout,
+      iconBg: "bg-emerald-700 text-white",
+      tag: "Expand",
+    };
+  }
 
   // Merged Dashboard Primary Navigation & Status Tiles (Privacy-First: Cash amounts exclusively on Wallet)
   const menuTiles = [
+    checkoutTile,
     {
       id: "earnings",
       title: "My Earnings",
@@ -540,7 +600,7 @@ const Dashboard = () => {
             <h2 className="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
               <span>Platform Quick Access</span>
               <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                8 Core Modules
+                {menuTiles.length} Modules
               </span>
             </h2>
             <span className="text-xs text-gray-500 hidden sm:inline font-medium">

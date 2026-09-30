@@ -18,6 +18,7 @@ import {
   Users,
   Sprout,
   CreditCard,
+  ShoppingBag,
   Lock,
   FileSpreadsheet,
   ArrowRight,
@@ -104,6 +105,7 @@ export default function TransactionLedger() {
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
   const [copiedDesc, setCopiedDesc] = useState<string | null>(null);
   const [walletMode, setWalletMode] = useState<"live" | "legacy">("live");
+  const [activeLedgerTab, setActiveLedgerTab] = useState<"wallet_ledger" | "purchase_history">("wallet_ledger");
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   const isItemLegacy = (t: LedgerItem) => {
@@ -952,10 +954,30 @@ export default function TransactionLedger() {
 
   const isLegacyUser = Boolean(userProfile?.is_legacy || isLegacyMember(userProfile?.created_at));
 
+  const isPurchaseCategory = (cat: string) => {
+    return ["COMBO_PACKAGE", "SUBSCRIPTION", "SLOT_PURCHASE", "RETAIL_PURCHASE", "FARM_CONTRIBUTION"].includes(cat);
+  };
+
+  const activeBaseTransactions = walletMode === "live" ? liveTransactions : legacyTransactions;
+  const walletLedgerCount = React.useMemo(
+    () => activeBaseTransactions.filter((t) => !isPurchaseCategory(t.category)).length,
+    [activeBaseTransactions]
+  );
+  const purchaseHistoryCount = React.useMemo(
+    () => activeBaseTransactions.filter((t) => isPurchaseCategory(t.category)).length,
+    [activeBaseTransactions]
+  );
+
   const filteredTransactions = transactions.filter((t) => {
     const isLegacy = isItemLegacy(t);
     if (walletMode === "live" && isLegacy) return false;
     if (walletMode === "legacy" && !isLegacy) return false;
+
+    // Filter by Active Ledger Tab:
+    // "wallet_ledger" -> Pure internal earnings & disbursements (referrals, matrix commissions, driver bonuses, slot bonuses, withdrawals)
+    // "purchase_history" -> Clear list of external orders and card receipts (combo bundles, starter packs, farm slots, subscriptions)
+    if (activeLedgerTab === "wallet_ledger" && isPurchaseCategory(t.category)) return false;
+    if (activeLedgerTab === "purchase_history" && !isPurchaseCategory(t.category)) return false;
 
     if (filterType === "PENDING") {
       if (t.status !== "PENDING") return false;
@@ -975,7 +997,7 @@ export default function TransactionLedger() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterType, searchQuery, walletMode]);
+  }, [filterType, searchQuery, walletMode, activeLedgerTab]);
 
   const PAGE_SIZE = 10;
   const paginatedTransactions = React.useMemo(() => {
@@ -1400,12 +1422,22 @@ export default function TransactionLedger() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 flex-wrap">
                 <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0">
-                  <CreditCard className="w-4 h-4" />
+                  {activeLedgerTab === "wallet_ledger" ? (
+                    <Wallet className="w-4 h-4 text-emerald-700" />
+                  ) : (
+                    <ShoppingBag className="w-4 h-4 text-amber-700" />
+                  )}
                 </div>
                 <div>
-                  <h2 className="text-base font-bold text-gray-900 leading-tight">Unified Transaction History</h2>
+                  <h2 className="text-base font-bold text-gray-900 leading-tight">
+                    {activeLedgerTab === "wallet_ledger"
+                      ? "Member Wallet Ledger"
+                      : "Orders & Purchase History"}
+                  </h2>
                   <p className="text-[11px] text-gray-500">
-                    Comprehensive audit ledger of credits, bonuses, and disbursements
+                    {activeLedgerTab === "wallet_ledger"
+                      ? "Pure double-entry statement of referral rewards, matrix commissions, driver pool & withdrawals"
+                      : "Official receipts of farm slots, starter packages, products & card checkout payments"}
                   </p>
                 </div>
                 {transactions.some((t) => t.status === "PENDING") && (
@@ -1419,6 +1451,46 @@ export default function TransactionLedger() {
                     <span>{transactions.filter((t) => t.status === "PENDING").length} Pending</span>
                   </button>
                 )}
+              </div>
+
+              {/* Sub-Tabs: Wallet Ledger vs Purchase History */}
+              <div className="inline-flex p-1 bg-gray-100/90 border border-gray-200/70 rounded-2xl shadow-xs self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveLedgerTab("wallet_ledger");
+                    setFilterType("ALL");
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeLedgerTab === "wallet_ledger"
+                      ? "bg-white text-emerald-950 shadow-xs border border-gray-200/60"
+                      : "text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  <Wallet className="w-3.5 h-3.5 text-emerald-700" />
+                  <span>Wallet Ledger</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+                    {walletLedgerCount}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveLedgerTab("purchase_history");
+                    setFilterType("ALL");
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeLedgerTab === "purchase_history"
+                      ? "bg-white text-emerald-950 shadow-xs border border-gray-200/60"
+                      : "text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  <ShoppingBag className="w-3.5 h-3.5 text-amber-700" />
+                  <span>Orders & Receipts</span>
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-50 text-amber-900 font-bold border border-amber-200">
+                    {purchaseHistoryCount}
+                  </span>
+                </button>
               </div>
             </div>
 
@@ -1437,26 +1509,38 @@ export default function TransactionLedger() {
               </div>
 
               <div className="flex items-center gap-2">
-                {/* Filter Pills */}
-                <select
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                  className="h-9 px-3 rounded-xl border border-gray-200 bg-gray-50/70 text-xs text-gray-700 font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
-                >
-                  <option value="ALL">All Categories</option>
-                  <option value="PENDING">
-                    Pending Transactions {transactions.some((t) => t.status === "PENDING") ? `(${transactions.filter((t) => t.status === "PENDING").length})` : ""}
-                  </option>
-                  <option value="COMBO_PACKAGE">Starter Bundles (Combo)</option>
-                  <option value="REFERRAL_BONUS">Referral Bonuses</option>
-                  <option value="CORE_DRIVER_BONUS">Core Driver Growth Bonuses</option>
-                  <option value="SLOT_PURCHASE">Slot Purchases</option>
-                  <option value="FARM_CONTRIBUTION">Farm Contributions</option>
-                  <option value="RETAIL_PURCHASE">Retail / Starter Packs</option>
-                  <option value="SUBSCRIPTION">Subscriptions</option>
-                  <option value="CREDIT">Credits Only</option>
-                  <option value="DEBIT">Debits Only</option>
-                </select>
+                {/* Contextual Filter Pills */}
+                {activeLedgerTab === "wallet_ledger" ? (
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="h-9 px-3 rounded-xl border border-gray-200 bg-gray-50/70 text-xs text-gray-700 font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                  >
+                    <option value="ALL">All Ledger Entries</option>
+                    <option value="PENDING">Pending Only</option>
+                    <option value="REFERRAL_BONUS">Direct Referral Bonuses</option>
+                    <option value="CORE_DRIVER_BONUS">Growth Driver Pool</option>
+                    <option value="SLOT_BONUS">Slot Bonuses</option>
+                    <option value="MATRIX_COMMISSION">Matrix Commissions</option>
+                    <option value="WITHDRAWAL">Bank Withdrawals</option>
+                    <option value="CREDIT">Credits Only</option>
+                    <option value="DEBIT">Debits Only</option>
+                  </select>
+                ) : (
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="h-9 px-3 rounded-xl border border-gray-200 bg-gray-50/70 text-xs text-gray-700 font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                  >
+                    <option value="ALL">All Purchases & Orders</option>
+                    <option value="PENDING">Pending Payments</option>
+                    <option value="COMBO_PACKAGE">Starter Bundles (Combo)</option>
+                    <option value="RETAIL_PURCHASE">Starter Pack Products (Mushroom Power)</option>
+                    <option value="SLOT_PURCHASE">Farm Slot Purchases</option>
+                    <option value="SUBSCRIPTION">Green Card Passes</option>
+                    <option value="FARM_CONTRIBUTION">Farm Contributions</option>
+                  </select>
+                )}
 
                 <Button
                   onClick={handleExportExcel}
