@@ -101,23 +101,11 @@ export default function Header() {
                 </Button>
               </Link>
             ) : (
-              <>
-                <Link to="/signin">
-                  <Button
-                    variant="ghost"
-                    className={
-                      isDarkHeader
-                        ? "border border-white/40 text-white hover:bg-white/20 hover:text-white bg-transparent font-medium"
-                        : "border border-emerald-800/25 text-emerald-900 hover:bg-emerald-50 hover:text-emerald-950 bg-transparent font-medium"
-                    }
-                  >
-                    Sign In
-                  </Button>
-                </Link>
-                <Link to="/signup">
-                  <Button className="bg-green-800 text-white hover:bg-green-900">Sign Up</Button>
-                </Link>
-              </>
+              <Link to="/signup">
+                <Button className="bg-emerald-800 text-white hover:bg-emerald-900 font-bold px-6 py-2 rounded-xl shadow-xs cursor-pointer">
+                  Get Started
+                </Button>
+              </Link>
             )}
           </div>
 

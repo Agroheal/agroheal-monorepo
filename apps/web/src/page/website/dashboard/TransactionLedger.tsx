@@ -26,6 +26,8 @@ import {
   Wifi,
   Copy,
   Check,
+  Zap,
+  Landmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
@@ -95,6 +97,17 @@ export default function TransactionLedger() {
   const [subscribingWithWallet, setSubscribingWithWallet] = useState<boolean>(false);
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
   const [copiedDesc, setCopiedDesc] = useState<string | null>(null);
+  const [walletMode, setWalletMode] = useState<"live" | "legacy">("live");
+
+  const legacyTransactions = React.useMemo(() => transactions.filter((t) => t.is_legacy), [transactions]);
+  const legacyEarnings = React.useMemo(() => {
+    return legacyTransactions
+      .filter((t) => t.type === "CREDIT" && t.status === "COMPLETED")
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  }, [legacyTransactions]);
+  const legacySlotsCount = React.useMemo(() => {
+    return legacyTransactions.filter((t) => t.category === "SLOT_PURCHASE" || t.category === "FARM_CONTRIBUTION").length;
+  }, [legacyTransactions]);
 
   const getCategoryLabel = (category: string) => {
     switch (category) {
@@ -1003,9 +1016,41 @@ export default function TransactionLedger() {
 
         {/* ── CENTRALIZED EXECUTIVE MEMBER WALLET (CANONICAL CREDIT CARD ASPECT RATIO) ── */}
         <div className="w-full max-w-[470px] mx-auto">
-          <div className="flex flex-col justify-between bg-[#0c2415] border border-emerald-700/50 rounded-3xl p-5 sm:p-5.5 text-white shadow-xl relative overflow-hidden space-y-3">
+          {/* Legacy Member Wallet Mode Toggle */}
+          {isLegacyUser && (
+            <div className="flex justify-center mb-3">
+              <div className="inline-flex p-1 bg-emerald-950/90 border border-emerald-700/60 rounded-2xl shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setWalletMode("live")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    walletMode === "live"
+                      ? "bg-emerald-600 text-white shadow-xs"
+                      : "text-emerald-300 hover:text-white"
+                  }`}
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Live Wallet</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWalletMode("legacy")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    walletMode === "legacy"
+                      ? "bg-amber-600 text-white shadow-xs font-extrabold"
+                      : "text-amber-200/90 hover:text-white"
+                  }`}
+                >
+                  <Landmark className="w-3.5 h-3.5" />
+                  <span>Legacy Vault</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className={`flex flex-col justify-between ${walletMode === "legacy" ? "bg-[#1f1707] border-amber-600/60" : "bg-[#0c2415] border-emerald-700/50"} border rounded-3xl p-5 sm:p-5.5 text-white shadow-xl relative overflow-hidden space-y-3 transition-colors duration-300`}>
             {/* Background Ambient Glows */}
-            <div className="absolute top-0 right-0 -mr-16 -mt-16 w-60 h-60 rounded-full bg-emerald-400/10 blur-3xl pointer-events-none" />
+            <div className={`absolute top-0 right-0 -mr-16 -mt-16 w-60 h-60 rounded-full ${walletMode === "legacy" ? "bg-amber-400/15" : "bg-emerald-400/10"} blur-3xl pointer-events-none`} />
             <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-60 h-60 rounded-full bg-amber-400/5 blur-3xl pointer-events-none" />
 
             {/* Top Row: Logo + Member Wallet Tag + Name & Green Card ID + Contactless Icon */}
@@ -1017,8 +1062,8 @@ export default function TransactionLedger() {
                   className="h-5 sm:h-6 object-contain brightness-0 invert opacity-95 shrink-0"
                 />
                 <div className="h-3.5 w-px bg-white/20 hidden sm:block" />
-                <span className="text-[10px] font-bold tracking-widest text-emerald-300 uppercase font-mono truncate">
-                  MEMBER WALLET
+                <span className={`text-[10px] font-bold tracking-widest ${walletMode === "legacy" ? "text-amber-300" : "text-emerald-300"} uppercase font-mono truncate`}>
+                  {walletMode === "legacy" ? "LEGACY ARCHIVE" : "MEMBER WALLET"}
                 </span>
               </div>
 
@@ -1038,14 +1083,14 @@ export default function TransactionLedger() {
                         </p>
                       ) : null}
                       {hasGreenCard && memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING") ? (
-                        <span className="text-[10px] font-mono font-bold text-emerald-300 block">
+                        <span className={`text-[10px] font-mono font-bold ${walletMode === "legacy" ? "text-amber-300" : "text-emerald-300"} block`}>
                           {memberId}
                         </span>
                       ) : null}
                     </>
                   )}
                 </div>
-                <Wifi className="w-3.5 h-3.5 rotate-90 text-emerald-300/70 hidden sm:block shrink-0" />
+                <Wifi className={`w-3.5 h-3.5 rotate-90 ${walletMode === "legacy" ? "text-amber-300/70" : "text-emerald-300/70"} hidden sm:block shrink-0`} />
               </div>
             </div>
 
@@ -1068,7 +1113,12 @@ export default function TransactionLedger() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {isDirectReferralWithdrawable ? (
+                  {walletMode === "legacy" ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-xs backdrop-blur-md bg-amber-500/25 text-amber-200 border-amber-400/40">
+                      <Landmark className="w-3 h-3 text-amber-300" />
+                      Preserved Record
+                    </span>
+                  ) : isDirectReferralWithdrawable ? (
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border shadow-xs backdrop-blur-md bg-emerald-500/20 text-emerald-200 border-emerald-400/35">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       Withdrawable
@@ -1079,93 +1129,151 @@ export default function TransactionLedger() {
                       ₦10k Ready to Activate
                     </span>
                   ) : null}
-                  <span className="text-[9px] font-mono text-emerald-200/60 uppercase tracking-wider">
-                    DEBIT / DIGITAL LEDGER
+                  <span className={`text-[9px] font-mono ${walletMode === "legacy" ? "text-amber-200/70" : "text-emerald-200/60"} uppercase tracking-wider`}>
+                    {walletMode === "legacy" ? "PRE-MIGRATION RECORD" : "DEBIT / DIGITAL LEDGER"}
                   </span>
                 </div>
               </div>
 
-              {/* Dual Financial Balances */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-white/10 space-y-0.5">
-                  <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">
-                    Available Balance
-                  </span>
-                  {loading ? (
-                    <Skeleton className="h-7 w-28 bg-white/20 my-1" />
-                  ) : (
-                    <p className="text-xl sm:text-2xl font-black font-mono text-white tracking-tight">
-                      ₦{availableBalance.toLocaleString()}
-                    </p>
-                  )}
-                  <span className="text-[9px] text-emerald-200/70 block">
-                    Immediately Withdrawable
-                  </span>
-                </div>
+              {/* Balances Display: Conditional based on walletMode */}
+              {walletMode === "legacy" ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-amber-500/30 space-y-0.5">
+                    <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider block">
+                      Legacy Cumulative
+                    </span>
+                    {loading ? (
+                      <Skeleton className="h-7 w-28 bg-white/20 my-1" />
+                    ) : (
+                      <p className="text-xl sm:text-2xl font-black font-mono text-amber-200 tracking-tight">
+                        ₦{legacyEarnings.toLocaleString()}
+                      </p>
+                    )}
+                    <span className="text-[9px] text-amber-200/70 block">
+                      Historical Platform Earnings
+                    </span>
+                  </div>
 
-                <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-white/10 space-y-0.5">
-                  <span className="text-[10px] text-gray-300 font-bold uppercase tracking-wider block">
-                    Ledger Balance
-                  </span>
-                  {loading ? (
-                    <Skeleton className="h-7 w-28 bg-white/20 my-1" />
-                  ) : (
-                    <p className="text-xl sm:text-2xl font-black font-mono text-gray-200 tracking-tight">
-                      ₦{ledgerBalance.toLocaleString()}
-                    </p>
-                  )}
-                  <span className="text-[9px] text-gray-400 block">
-                    Total Cumulative Posted
-                  </span>
+                  <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-amber-500/30 space-y-0.5">
+                    <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider block">
+                      Founding Slots
+                    </span>
+                    {loading ? (
+                      <Skeleton className="h-7 w-28 bg-white/20 my-1" />
+                    ) : (
+                      <p className="text-xl sm:text-2xl font-black font-mono text-amber-200 tracking-tight">
+                        {legacySlotsCount}
+                      </p>
+                    )}
+                    <span className="text-[9px] text-amber-200/70 block">
+                      Preserved Slot Operations
+                    </span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-white/10 space-y-0.5">
+                    <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">
+                      Available Balance
+                    </span>
+                    {loading ? (
+                      <Skeleton className="h-7 w-28 bg-white/20 my-1" />
+                    ) : (
+                      <p className="text-xl sm:text-2xl font-black font-mono text-white tracking-tight">
+                        ₦{availableBalance.toLocaleString()}
+                      </p>
+                    )}
+                    <span className="text-[9px] text-emerald-200/70 block">
+                      Immediately Withdrawable
+                    </span>
+                  </div>
+
+                  <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-white/10 space-y-0.5">
+                    <span className="text-[10px] text-gray-300 font-bold uppercase tracking-wider block">
+                      Ledger Balance
+                    </span>
+                    {loading ? (
+                      <Skeleton className="h-7 w-28 bg-white/20 my-1" />
+                    ) : (
+                      <p className="text-xl sm:text-2xl font-black font-mono text-gray-200 tracking-tight">
+                        ₦{ledgerBalance.toLocaleString()}
+                      </p>
+                    )}
+                    <span className="text-[9px] text-gray-400 block">
+                      Total Cumulative Posted
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Bottom Actions Directly on Card */}
             <div className="relative z-10 pt-2 border-t border-white/10 space-y-2 mt-auto">
-              {canSubscribeWithWallet && (
-                <Button
-                  disabled={subscribingWithWallet}
-                  onClick={handleSubscribeWithWallet}
-                  className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs h-8.5 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Sprout className="w-3.5 h-3.5 text-emerald-200" />
-                  {subscribingWithWallet ? "Activating..." : "Activate Project Subscription (₦10,000)"}
-                </Button>
-              )}
-
-              <Button
-                disabled={availableBalance < 2000}
-                onClick={() => {
-                  setIsWithdrawModalOpen(true);
-                }}
-                className={`w-full h-9 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
-                  availableBalance >= 2000
-                    ? "bg-emerald-700 hover:bg-emerald-600 text-white shadow-xs cursor-pointer"
-                    : "bg-white/10 text-gray-400 border border-white/10 cursor-not-allowed"
-                }`}
-              >
-                <ArrowUpRight className="w-3.5 h-3.5 mr-1" />
-                {availableBalance >= 2000
-                  ? `Withdraw Available Funds (₦${availableBalance.toLocaleString()})`
-                  : !isProjectSubscribed && walletBalance < 2000
-                  ? "Withdrawal Locked (Project Subscription Required)"
-                  : `Accumulate ₦${(2000 - rawClearedBalance).toLocaleString()} More to Withdraw (Min. ₦2,000)`}
-              </Button>
-
-              {totalLockedAmount > 0 && (
-                <div className="pt-1 flex items-center justify-between text-[11px] text-amber-200/80">
+              {walletMode === "legacy" ? (
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-100 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <Lock className="w-3 h-3 text-amber-400 shrink-0" />
-                    <span>₦{totalLockedAmount.toLocaleString()} held in reserve</span>
+                    <Landmark className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>Preserved founding records prior to 2026 platform migration.</span>
                   </span>
-                  <Link
-                    to="/how-it-works/locked-withdrawals"
-                    className="underline underline-offset-2 hover:text-white transition-colors"
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setLegacyFilter("LEGACY");
+                      const table = document.getElementById("transaction-history-table");
+                      if (table) table.scrollIntoView({ behavior: "smooth" });
+                    }}
+                    className="text-xs font-bold text-amber-300 hover:text-white underline underline-offset-2 shrink-0 ml-2 cursor-pointer"
                   >
-                    Release conditions →
-                  </Link>
+                    View in Table →
+                  </button>
                 </div>
+              ) : (
+                <>
+                  {canSubscribeWithWallet && (
+                    <Button
+                      disabled={subscribingWithWallet}
+                      onClick={handleSubscribeWithWallet}
+                      className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs h-8.5 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Sprout className="w-3.5 h-3.5 text-emerald-200" />
+                      {subscribingWithWallet ? "Activating..." : "Activate Project Subscription (₦10,000)"}
+                    </Button>
+                  )}
+
+                  <Button
+                    disabled={availableBalance < 2000}
+                    onClick={() => {
+                      setIsWithdrawModalOpen(true);
+                    }}
+                    className={`w-full h-9 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
+                      availableBalance >= 2000
+                        ? "bg-emerald-700 hover:bg-emerald-600 text-white shadow-xs cursor-pointer"
+                        : "bg-white/10 text-gray-400 border border-white/10 cursor-not-allowed"
+                    }`}
+                  >
+                    <ArrowUpRight className="w-3.5 h-3.5 mr-1" />
+                    {availableBalance >= 2000
+                      ? `Withdraw Available Funds (₦${availableBalance.toLocaleString()})`
+                      : !isProjectSubscribed && walletBalance < 2000
+                      ? "Withdrawal Locked (Project Subscription Required)"
+                      : `Accumulate ₦${(2000 - rawClearedBalance).toLocaleString()} More to Withdraw (Min. ₦2,000)`}
+                  </Button>
+
+                  {totalLockedAmount > 0 && (
+                    <div className="pt-1 flex items-center justify-between text-[11px] text-amber-200/80">
+                      <span className="flex items-center gap-1.5">
+                        <Lock className="w-3 h-3 text-amber-400 shrink-0" />
+                        <span>₦{totalLockedAmount.toLocaleString()} held in reserve</span>
+                      </span>
+                      <Link
+                        to="/how-it-works/locked-withdrawals"
+                        className="underline underline-offset-2 hover:text-white transition-colors"
+                      >
+                        Release conditions →
+                      </Link>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -1334,11 +1442,27 @@ export default function TransactionLedger() {
                   filteredTransactions.map((t) => (
                     <tr key={t.id} className="hover:bg-gray-50/80 transition-colors">
                       <td className="py-3.5 px-2.5 sm:px-3 whitespace-nowrap font-medium text-gray-900 text-[11px] sm:text-xs">
-                        {new Date(t.date).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
+                        <div className="font-semibold text-gray-900">
+                          {new Intl.DateTimeFormat("en-GB", {
+                            timeZone: "Africa/Lagos",
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          }).format(new Date(t.date))}
+                        </div>
+                        <div className="text-[10px] text-gray-500 font-mono flex items-center gap-1 mt-0.5">
+                          <span>
+                            {new Intl.DateTimeFormat("en-US", {
+                              timeZone: "Africa/Lagos",
+                              hour: "numeric",
+                              minute: "2-digit",
+                              hour12: true,
+                            }).format(new Date(t.date))}
+                          </span>
+                          <span className="text-[8.5px] font-bold text-emerald-800 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200">
+                            WAT
+                          </span>
+                        </div>
                       </td>
                       <td className="py-3.5 px-2.5 sm:px-3 min-w-0">
                         <div className="flex flex-col gap-1 min-w-0">

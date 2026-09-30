@@ -20,6 +20,11 @@ import {
   Send,
   Lock,
   Zap,
+  Wallet,
+  ShoppingBag,
+  User,
+  HelpCircle,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -339,32 +344,22 @@ const Dashboard = () => {
     return <DashboardSkeleton />;
   }
 
+  const availableWalletBalance = Number(profile?.wallet_balance || profile?.referral_earnings || 0);
+
   const stats = [
     {
-      label: "Start Learning",
-      value: "Organic Farming Courses",
-      icon: BookOpen,
+      label: "My Earnings",
+      value: `₦${availableWalletBalance.toLocaleString()}`,
+      icon: Wallet,
       bg: "bg-emerald-50",
       iconColor: "text-emerald-800",
       valueColor: "text-gray-900",
-      actionTo: "/dashboard/courses",
-      actionLabel: "View Modules",
+      actionTo: "/dashboard/transactions",
+      actionLabel: "View Earnings",
     },
     {
-      label: "LEAP Community",
-      value: "Live trainings & updates",
-      icon: SendHorizontal,
-      bg: "bg-emerald-50/70",
-      iconColor: "text-emerald-700",
-      valueColor: "text-gray-900",
-      actionHref: "https://t.me/+8a7pjUluliZjNTg0",
-      whatsappHref:
-        "https://chat.whatsapp.com/JNekCCmjxVq28tnhIz5vyy?s=cl&p=a&ilr=0&amv=3",
-      actionLabel: undefined,
-    },
-    {
-      label: "Total Farm Slots",
-      value: `${totalSlotsPurchased}`,
+      label: "My Farm Slots",
+      value: `${totalSlotsPurchased} Active Slot${totalSlotsPurchased === 1 ? "" : "s"}`,
       icon: Sprout,
       bg: "bg-emerald-50",
       iconColor: "text-emerald-800",
@@ -376,14 +371,116 @@ const Dashboard = () => {
       actionLabel: totalSlotsPurchased > 0 ? "Manage Slots" : "Secure Slot",
     },
     {
-      label: "Total Referrals",
-      value: `${profile?.total_referrals ?? 0}`,
+      label: "My Direct Team",
+      value: `${profile?.total_referrals ?? 0} Enrollees`,
       icon: Users,
       bg: "bg-emerald-50/60",
       iconColor: "text-emerald-800",
       valueColor: "text-gray-900",
       actionTo: "/dashboard/my-network",
       actionLabel: "My Network",
+    },
+    {
+      label: "Learning Academy",
+      value: "Agribusiness Courses",
+      icon: BookOpen,
+      bg: "bg-emerald-50",
+      iconColor: "text-emerald-800",
+      valueColor: "text-gray-900",
+      actionTo: "/dashboard/courses",
+      actionLabel: "Open Courses",
+    },
+  ];
+
+  // Simplified Representation of ALL Dashboard Menus as High-Contrast Interactive Tiles
+  const menuTiles = [
+    {
+      id: "earnings",
+      title: "My Earnings",
+      subtitle: "Wallet balance, payouts & ledger",
+      badge: `₦${availableWalletBalance.toLocaleString()}`,
+      badgeColor: "bg-emerald-100 text-emerald-950 border-emerald-300",
+      path: "/dashboard/transactions",
+      icon: Wallet,
+      iconBg: "bg-emerald-800 text-white",
+      tag: "Wallet",
+    },
+    {
+      id: "my-slots",
+      title: "My Farm Slots",
+      subtitle: "Active crop cycles & substrate bags",
+      badge: `${totalSlotsPurchased} Slot${totalSlotsPurchased === 1 ? "" : "s"}`,
+      badgeColor: "bg-emerald-100 text-emerald-950 border-emerald-300",
+      path: "/dashboard/farm-operations/my-slots",
+      icon: Sprout,
+      iconBg: "bg-emerald-700 text-white",
+      tag: "Farms",
+    },
+    {
+      id: "buy-slots",
+      title: "Buy Farm Slots",
+      subtitle: "Secure ₦5,000 slots in Mushroom Village",
+      badge: "₦5,000 / Slot",
+      badgeColor: "bg-amber-100 text-amber-950 border-amber-300",
+      path: "/dashboard/farm-operations/buy-slots",
+      icon: ShoppingBag,
+      iconBg: "bg-amber-600 text-white",
+      tag: "Store",
+    },
+    {
+      id: "network",
+      title: "My Network",
+      subtitle: "5×7 Community matrix & team referrals",
+      badge: `${profile?.total_referrals ?? 0} Directs`,
+      badgeColor: "bg-emerald-100 text-emerald-950 border-emerald-300",
+      path: "/dashboard/my-network",
+      icon: GitBranch,
+      iconBg: "bg-emerald-800 text-white",
+      tag: "Matrix",
+    },
+    {
+      id: "academy",
+      title: "Learning Academy",
+      subtitle: "Practical agribusiness video training",
+      badge: "LEAP Academy",
+      badgeColor: "bg-teal-100 text-teal-950 border-teal-300",
+      path: "/dashboard/courses",
+      icon: BookOpen,
+      iconBg: "bg-teal-700 text-white",
+      tag: "Courses",
+    },
+    {
+      id: "green-card",
+      title: "My Green Card",
+      subtitle: "Verified digital ID card & credentials",
+      badge: profile?.member_id ? formatAgcId(profile?.member_id as string) : "NO CARD YET",
+      badgeColor: profile?.member_id ? "bg-emerald-100 text-emerald-950 border-emerald-300" : "bg-amber-100 text-amber-950 border-amber-300",
+      path: profile?.member_id ? "/dashboard/profile/green-card" : "/dashboard/checkout?product=green_card",
+      icon: IdCard,
+      iconBg: "bg-[#0c2415] text-emerald-300",
+      tag: "ID Card",
+    },
+    {
+      id: "profile",
+      title: "My Profile",
+      subtitle: "Personal info & payout bank account",
+      badge: "Settings",
+      badgeColor: "bg-slate-100 text-slate-900 border-slate-300",
+      path: "/dashboard/profile",
+      icon: User,
+      iconBg: "bg-slate-700 text-white",
+      tag: "Account",
+    },
+    {
+      id: "support",
+      title: "Help & Support",
+      subtitle: "FAQs, how-it-works & assistance",
+      badge: "24/7 Desk",
+      badgeColor: "bg-blue-100 text-blue-950 border-blue-300",
+      path: "/dashboard/help/knowledge-base",
+      icon: HelpCircle,
+      iconBg: "bg-blue-700 text-white",
+      tag: "Support",
     },
   ];
 
@@ -668,6 +765,50 @@ const Dashboard = () => {
               )}
             </motion.div>
           ))}
+        </div>
+
+        {/* ── INTERACTIVE QUICK MENU TILES HUB ── */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h2 className="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
+              <span>Platform Quick Access</span>
+              <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                8 Core Modules
+              </span>
+            </h2>
+            <span className="text-xs text-gray-500 hidden sm:inline font-medium">
+              Tap any tile to navigate directly
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-3.5">
+            {menuTiles.map((tile) => (
+              <Link
+                key={tile.id}
+                to={tile.path}
+                className="group relative bg-white rounded-2xl p-3.5 sm:p-4 border border-gray-200 hover:border-emerald-600 hover:shadow-md transition-all duration-200 flex flex-col justify-between overflow-hidden"
+              >
+                <div className="flex items-start justify-between gap-2 mb-2.5">
+                  <div className={`w-9 h-9 rounded-xl ${tile.iconBg} flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform`}>
+                    <tile.icon className="w-4.5 h-4.5" />
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border truncate max-w-[110px] ${tile.badgeColor}`}>
+                    {tile.badge}
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="font-bold text-xs sm:text-sm text-gray-900 group-hover:text-emerald-800 transition-colors flex items-center justify-between">
+                    <span>{tile.title}</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition-all" />
+                  </h3>
+                  <p className="text-[11px] text-gray-500 line-clamp-1 mt-0.5">
+                    {tile.subtitle}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
 
         {/* ── OFFICIAL GREEN CARD (AGC) QUICK BANNER ── */}

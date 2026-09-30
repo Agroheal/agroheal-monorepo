@@ -217,11 +217,11 @@ async function recordSubscriptionWithFarmGroupSplit({
     // 1. Fetch sponsor/referrer to link to their Mushroom Village cluster
     const { data: userProfile } = await supabase
       .from("profiles")
-      .select("referred_by")
+      .select("referred_by, sponsor_id")
       .eq("id", userId)
       .maybeSingle();
 
-    const sponsorId = userProfile?.referred_by;
+    const sponsorId = userProfile?.sponsor_id || userProfile?.referred_by;
     if (sponsorId) {
       // 1a. Check if sponsor coordinates a Mushroom Village farm group
       const { data: coordGroup } = await supabase
