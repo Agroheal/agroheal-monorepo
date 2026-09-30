@@ -612,53 +612,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* ── ASSIGNED GROUP FARM BANNER ── */}
-        {totalSlotsPurchased > 0 && assignedFarms.length > 0 && (
-          <div className="bg-white rounded-2xl p-4 sm:p-5 text-gray-900 shadow-sm border border-emerald-200/70 mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-emerald-100 border border-emerald-300 flex items-center justify-center text-emerald-800 shrink-0 shadow-inner">
-                <Sprout className="w-6 h-6" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-bold text-sm sm:text-base text-gray-900">
-                    {assignedFarms.length === 1
-                      ? `Your Farm Group is: ${assignedFarms[0]?.name}`
-                      : `Your Farm Groups are: ${Array.from(new Set(assignedFarms.map((f) => f.name))).join(", ")}`}
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                    Active Production Cluster
-                  </span>
-                </div>
-                <p className="text-xs text-gray-600 mt-0.5">
-                  Category: <span className="font-semibold text-emerald-800">{Array.from(new Set(assignedFarms.map((f) => f.project_category))).join(", ")}</span> · Your agricultural production slots are physically hosted in this community farm.
-                </p>
-              </div>
-            </div>
 
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <Button
-                asChild
-                className="flex-1 md:flex-initial h-9 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white font-semibold text-xs px-4 shadow-xs cursor-pointer"
-              >
-                <Link to="/dashboard/farm-operations/farm-records">View Cluster Records</Link>
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="flex-1 md:flex-initial h-9 rounded-xl border-emerald-300 text-emerald-800 hover:bg-emerald-50 font-semibold text-xs px-4 shadow-xs cursor-pointer"
-              >
-                <Link to="/dashboard/farm-operations/my-slots">My Farm Slots</Link>
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* ── REAL-TIME FARM PRODUCTION CYCLE TRACKER (MILESTONE 3) ── */}
-        <div className="mb-6">
-          <FarmCycleTracker />
-        </div>
 
         {showSecureSlotModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6">

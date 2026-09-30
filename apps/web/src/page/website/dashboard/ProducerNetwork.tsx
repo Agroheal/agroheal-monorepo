@@ -182,10 +182,10 @@ export const ProducerNetwork: React.FC = () => {
 
               <div>
                 <span className="text-[10px] uppercase font-bold text-emerald-200/80 tracking-wider block">
-                  Fruiting Bags
+                  Production Units
                 </span>
                 <div className="text-2xl sm:text-3xl font-mono font-black text-amber-300 tracking-tight mt-0.5">
-                  {slotsHeld * BAGS_PER_SLOT_CYCLE_1}
+                  {slotsHeld} {slotsHeld === 1 ? "Slot" : "Slots"}
                 </div>
                 <p className="text-[11px] text-emerald-200/90 mt-0.5">
                   Under cluster care
@@ -202,11 +202,7 @@ export const ProducerNetwork: React.FC = () => {
               </p>
             </div>
 
-            <div className="pt-2.5 border-t border-white/15 flex flex-wrap items-center justify-between gap-2 text-xs">
-              <div className="text-[11px] text-emerald-100/90">
-                <span>Slots scale at <strong>{formatNaira(SUBSEQUENT_SLOT_PRICE)}</strong> each.</span>
-              </div>
-
+            <div className="pt-2.5 border-t border-white/15 flex flex-wrap items-center justify-end gap-2 text-xs">
               <Link
                 to="/dashboard/farm-operations/my-slots"
                 className="inline-flex items-center gap-1 text-xs font-bold text-amber-300 hover:text-white underline underline-offset-2 transition-colors shrink-0"
@@ -237,11 +233,11 @@ export const ProducerNetwork: React.FC = () => {
             <p className="text-xs sm:text-sm text-gray-600 mt-1 max-w-2xl leading-relaxed">
               {slotsHeld === 0 ? (
                 <>
-                  Your starter package is <strong>{formatNaira(STARTER_SLOT_TOTAL)} ({formatNaira(BASE_SLOT_PRICE)} biological farm slot + {formatNaira(CLUSTER_SETUP_FEE)} cluster setup &amp; onboarding)</strong>. This establishes your first {BAGS_PER_SLOT_CYCLE_1} verified biological oyster mushroom fruiting bags managed within our community cluster farms. Subsequent slots scale at <strong>{formatNaira(SUBSEQUENT_SLOT_PRICE)} each</strong> with zero recurring monthly fees.
+                  Your starter package is <strong>{formatNaira(STARTER_SLOT_TOTAL)} ({formatNaira(BASE_SLOT_PRICE)} biological farm slot + {formatNaira(CLUSTER_SETUP_FEE)} cluster setup &amp; onboarding)</strong>. This establishes your first verified biological production slot managed within our community cluster farms with zero recurring monthly fees.
                 </>
               ) : (
                 <>
-                  Live biological production records and audited harvest batches tied to your <strong>{slotsHeld} active commercial farm slot(s)</strong> ({slotsHeld * BAGS_PER_SLOT_CYCLE_1} fruiting bags under managed cluster care).
+                  Live biological production records and audited harvest batches tied to your <strong>{slotsHeld} active commercial farm slot(s)</strong> under managed cluster care.
                 </>
               )}
             </p>
@@ -268,7 +264,7 @@ export const ProducerNetwork: React.FC = () => {
                 Production Not Started · No Commercial Farm Slots Secured
               </h4>
               <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-                You do not hold any active commercial farm slots yet. Secure your starter package to allocate your first {BAGS_PER_SLOT_CYCLE_1} biological fruiting bags. Once active, your bags are managed on-site by resident cluster agronomists, and audited harvest weights and approved yields will be recorded and credited right here.
+                You do not hold any active commercial farm slots yet. Secure your starter package to allocate your first commercial farm slot. Once active, your slot is managed on-site by resident cluster agronomists, and audited harvest weights and approved yields will be recorded and credited right here.
               </p>
             </div>
 
@@ -305,12 +301,12 @@ export const ProducerNetwork: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <Badge className="bg-emerald-100 text-emerald-800 border-emerald-300 text-xs font-semibold">
-                      {slotsHeld} Active Slot{slotsHeld > 1 ? "s" : ""} ({slotsHeld * BAGS_PER_SLOT_CYCLE_1} Fruiting Bags)
+                      {slotsHeld} Active Production Slot{slotsHeld > 1 ? "s" : ""}
                     </Badge>
                     <span className="text-xs text-amber-800 font-semibold">• Biological Cycle in Progress</span>
                   </div>
                   <p className="text-xs text-slate-600">
-                    Your {slotsHeld * BAGS_PER_SLOT_CYCLE_1} fruiting bags are actively being cared for by cluster coordinators. Cycle 1 doubles capacity from 2 to 4 bags per slot.
+                    Your {slotsHeld === 1 ? "commercial farm slot is" : `${slotsHeld} commercial farm slots are`} actively being cared for by cluster coordinators with scheduled quarterly harvest distributions.
                   </p>
                 </div>
               </div>
@@ -347,7 +343,7 @@ export const ProducerNetwork: React.FC = () => {
               <div>
                 <span className="text-xs font-bold text-emerald-900 block">Active Farm Allocations</span>
                 <span className="text-xs text-emerald-700">
-                  {slotsHeld} Slot{slotsHeld > 1 ? "s" : ""} ({slotsHeld * BAGS_PER_SLOT_CYCLE_1} Fruiting Bags) • {approvedProductions.length} Approved Harvest Batch{approvedProductions.length > 1 ? "es" : ""}
+                  {slotsHeld} Production Slot{slotsHeld > 1 ? "s" : ""} • {approvedProductions.length} Approved Harvest Batch{approvedProductions.length > 1 ? "es" : ""}
                 </span>
               </div>
               <div className="flex items-center gap-2 w-full sm:w-auto">
