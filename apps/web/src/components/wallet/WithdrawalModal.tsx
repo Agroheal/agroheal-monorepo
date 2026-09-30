@@ -139,7 +139,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
 
     if (isLegacy && !hasPurchasedStarterPack) {
       setErrorMsg(
-        "Mushroom Starter Pack Required: As a Founding Member, please complete your one-time ₦5,000 Mushroom Starter Pack (100g) purchase to unlock external bank withdrawals."
+        "Mushroom Power Required: As a Founding Member, please complete your one-time ₦5,000 Mushroom Power 100g purchase to unlock external bank withdrawals."
       );
       return;
     }

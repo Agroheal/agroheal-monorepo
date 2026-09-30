@@ -91,6 +91,7 @@ export const ConsumerNetwork: React.FC = () => {
   const [unlockedLevel, setUnlockedLevel] = useState<number>(0);
   const [hasGreenCard, setHasGreenCard] = useState<boolean>(true);
   const [hasStarterPack, setHasStarterPack] = useState<boolean>(true);
+  const [isLegacyNeedsMushroomPower, setIsLegacyNeedsMushroomPower] = useState<boolean>(false);
   const [calcOrdersPerMember, setCalcOrdersPerMember] = useState<number>(1);
   const [commissionTableOpen, setCommissionTableOpen] = useState(false);
 
@@ -114,7 +115,7 @@ export const ConsumerNetwork: React.FC = () => {
       const [{ data: prof }, { data: greenCardSub }, { count: slotCount }] = await Promise.all([
         supabase
           .from("profiles")
-          .select("member_id")
+          .select("member_id, is_legacy, has_purchased_starter_pack, created_at")
           .eq("id", user.id)
           .maybeSingle(),
         supabase
@@ -138,7 +139,18 @@ export const ConsumerNetwork: React.FC = () => {
               new Date(greenCardSub.expires_at).getTime() > Date.now())),
       );
       setHasGreenCard(isCardActive);
-      setHasStarterPack((slotCount || 0) > 0);
+
+      const isLegacy = Boolean(prof?.is_legacy || (prof?.created_at && new Date(prof.created_at).getTime() < new Date("2026-09-06T00:00:00.000Z").getTime()));
+      const hasPurchasedStarter = Boolean(prof?.has_purchased_starter_pack);
+      const slotsHeld = slotCount || 0;
+
+      if (isLegacy && slotsHeld > 0 && !hasPurchasedStarter) {
+        setIsLegacyNeedsMushroomPower(true);
+        setHasStarterPack(false);
+      } else {
+        setIsLegacyNeedsMushroomPower(false);
+        setHasStarterPack(slotsHeld > 0 || hasPurchasedStarter);
+      }
 
       // 1. Check API qualifications if available (fast-fail)
       try {
@@ -207,18 +219,18 @@ export const ConsumerNetwork: React.FC = () => {
               <div className="flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5 text-amber-300" />
                 <span className="text-[11px] uppercase tracking-wider text-emerald-300 font-bold">
-                  Your Matrix Tier Qualification
+                  Your Commission Tier Access
                 </span>
               </div>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/25 text-amber-200 border border-amber-400/40">
-                Level {unlockedLevel}/7 Active
+                {directReferralsCount >= 5 ? "All 7 Tiers Active" : `Tier ${unlockedLevel}/7 Active`}
               </span>
             </div>
 
             <div className="flex items-baseline justify-between gap-4 border-b border-white/15 pb-2.5">
               <div>
                 <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Level {unlockedLevel} <span className="text-sm font-semibold text-emerald-200">of 7</span>
+                  {directReferralsCount >= 5 ? "Tier 7" : `Tier ${unlockedLevel}`} <span className="text-sm font-semibold text-emerald-200">Access</span>
                 </div>
                 <p className="text-xs text-emerald-200/90 mt-0.5">
                   {directReferralsCount} Direct Partners Sponsored
@@ -232,23 +244,29 @@ export const ConsumerNetwork: React.FC = () => {
                 <span className="text-base sm:text-lg font-mono font-black text-amber-300">
                   {!hasGreenCard
                     ? "Green Card Required"
+                    : isLegacyNeedsMushroomPower
+                    ? "Mushroom Power Pending"
                     : !hasStarterPack
                     ? "Starter Combo Pending"
                     : directReferralsCount >= 5
                     ? "₦12,212,500 (Max Capacity)"
-                    : `Level ${unlockedLevel} Pool`}
+                    : `Tier ${unlockedLevel} Pool`}
                 </span>
               </div>
             </div>
 
             <div className="space-y-1">
               <p className="text-xs font-bold text-amber-200">
-                Potential Matrix Dividends Notice
+                Matrix Commission Qualification Notice
               </p>
               <p className="text-[11px] sm:text-xs text-emerald-100/90 leading-relaxed">
                 {!hasGreenCard ? (
                   <span>
                     An active <strong>AgroHeal Green Card (₦2,000)</strong> is required to lock your placement and participate in community matrix dividends.
+                  </span>
+                ) : isLegacyNeedsMushroomPower ? (
+                  <span>
+                    Activate your <strong>Mushroom Power 100g (₦5,000)</strong> welcome product to lock your matrix node and unlock 5×7 community commissions and withdrawals.
                   </span>
                 ) : !hasStarterPack ? (
                   <span>
@@ -256,7 +274,7 @@ export const ConsumerNetwork: React.FC = () => {
                   </span>
                 ) : directReferralsCount < 5 ? (
                   <span>
-                    You have unlocked Level {unlockedLevel} of 7. Sponsor <strong>{5 - directReferralsCount} more active partner(s)</strong> and maintain your monthly ₦10,000 PQV to unlock all 7 matrix tiers (up to <strong className="text-white font-semibold">₦12,212,500</strong> total community capacity).
+                    You have unlocked commission access up to Tier {unlockedLevel} of 7. Sponsor <strong>{5 - directReferralsCount} more active partner(s)</strong> and maintain your monthly ₦10,000 PQV to unlock all 7 matrix tiers (up to <strong className="text-white font-semibold">₦12,212,500</strong> total community capacity).
                   </span>
                 ) : (
                   <span>
@@ -272,13 +290,17 @@ export const ConsumerNetwork: React.FC = () => {
                   <Link to="/dashboard/checkout?product=green_card" className="text-amber-300 font-bold hover:underline">
                     Activate Green Card (₦2,000) →
                   </Link>
+                ) : isLegacyNeedsMushroomPower ? (
+                  <Link to="/dashboard/store" className="text-amber-300 font-bold hover:underline">
+                    Activate Mushroom Power (₦5,000) →
+                  </Link>
                 ) : !hasStarterPack ? (
                   <Link to="/dashboard/farm-operations/buy-slots" className="text-amber-300 font-bold hover:underline">
                     Secure Starter Combo (₦10,000) →
                   </Link>
                 ) : directReferralsCount < 5 ? (
                   <span>
-                    Sponsor <strong className="text-amber-300">{5 - directReferralsCount} more direct partner(s)</strong> to reach Level 7.
+                    Sponsor <strong className="text-amber-300">{5 - directReferralsCount} more direct partner(s)</strong> to unlock Tier 7.
                   </span>
                 ) : (
                   <span className="text-amber-300 font-bold">✓ All 7 Matrix Levels Unlocked!</span>

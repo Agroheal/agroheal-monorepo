@@ -168,13 +168,13 @@ const CompoundReferrals: React.FC = () => {
   const [isPlacingEnrollee, setIsPlacingEnrollee] = useState<boolean>(false);
 
   // Qualification Gates & Matrix Access Locks
-  const isLegacyNeedsStarterPack = Boolean(
+  const isLegacyNeedsMushroomPower = Boolean(
     currentUserProfile?.is_legacy && !currentUserProfile?.has_purchased_starter_pack
   );
-  const isNonLegacyNeedsSlots = Boolean(
-    !currentUserProfile?.is_legacy && userSlotsHeld === 0
+  const isNonLegacyNeedsStarter = Boolean(
+    !currentUserProfile?.is_legacy && (userSlotsHeld === 0 || !currentUserProfile?.has_purchased_starter_pack)
   );
-  const isMatrixLocked = isLegacyNeedsStarterPack || isNonLegacyNeedsSlots;
+  const isMatrixLocked = isLegacyNeedsMushroomPower || isNonLegacyNeedsStarter;
 
   const handlePlaceHoldingEnrollee = async () => {
     if (!selectedHoldingEnrollee) return;
@@ -602,6 +602,61 @@ const CompoundReferrals: React.FC = () => {
       }
     }
 
+    // 4. Multi-level downline exploration up to Level 7 (supports From Level / To Level range filtering)
+    try {
+      let currentParentIds = childrenProfiles.map((cp) => cp.id);
+      let currentDepth = 2;
+
+      while (currentDepth <= 7 && currentParentIds.length > 0) {
+        const { data: nextLevelProfiles } = await supabase
+          .from("profiles")
+          .select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals, placement_parent_id, matrix_position, placement_status")
+          .in("placement_parent_id", currentParentIds)
+          .order("created_at", { ascending: true })
+          .limit(200);
+
+        if (!nextLevelProfiles || nextLevelProfiles.length === 0) break;
+
+        const nextIds = nextLevelProfiles.map((p) => p.id);
+        const { data: nSlotsData } = await supabase
+          .from("slot_subscriptions")
+          .select("user_id, slots")
+          .in("user_id", nextIds);
+
+        const nSlotsMap = new Map<string, number>();
+        for (const row of nSlotsData || []) {
+          const cur = nSlotsMap.get(row.user_id) || 0;
+          nSlotsMap.set(row.user_id, cur + (Number(row.slots) || 0));
+        }
+
+        for (const np of nextLevelProfiles) {
+          if (!allRoster.some((r) => r.id === np.id)) {
+            allRoster.push({
+              id: np.id,
+              fullName: np.full_name || "Downline Partner",
+              email: np.email || "",
+              phone: np.phone || null,
+              memberId: formatAgcId(np.member_id),
+              parentId: np.placement_parent_id || targetId,
+              position: np.matrix_position || 0,
+              level: currentDepth,
+              slotsHeld: nSlotsMap.get(np.id) || 0,
+              directReferralsCount: Number(np.total_referrals) || 0,
+              createdAt: np.created_at,
+              hasGreenCard: Boolean(np.member_id),
+              isSpillover: np.referred_by !== targetId,
+              children: [],
+            });
+          }
+        }
+
+        currentParentIds = nextIds;
+        currentDepth++;
+      }
+    } catch (downlineErr) {
+      console.warn("Downline multi-level traversal notice:", downlineErr);
+    }
+
     const builtRoot: OrganogramNode = {
       id: rootProfile.id,
       fullName: rootProfile.full_name || (isSelf ? "You (Root Node)" : "AgroHeal Member"),
@@ -730,8 +785,19 @@ const CompoundReferrals: React.FC = () => {
     }
   };
 
-  // Selected Matrix Depth for landscape mode
-  const [selectedMatrixDepth, setSelectedMatrixDepth] = useState<number>(1);
+  // Matrix Depth Range Controls (From Level to To Level)
+  const [fromLevel, setFromLevel] = useState<number>(1);
+  const [toLevel, setToLevel] = useState<number>(7);
+
+  const handleFromLevelChange = (newFrom: number) => {
+    setFromLevel(newFrom);
+    if (toLevel < newFrom) setToLevel(newFrom);
+  };
+
+  const handleToLevelChange = (newTo: number) => {
+    setToLevel(newTo);
+    if (fromLevel > newTo) setFromLevel(newTo);
+  };
 
   // Reset to Self
   const handleResetToSelf = async () => {
@@ -795,7 +861,7 @@ const CompoundReferrals: React.FC = () => {
   const hasEnoughReferrals = unlockedLevel >= 1;
   const hasEnoughPqv = activePqv30d >= MIN_PQV_FOR_MATRIX_WITHDRAWAL;
 
-  // Filtered Downline Directory
+  // Filtered Downline Directory (Supports From Level to To Level Range Filtering)
   const filteredDirectory = useMemo(() => {
     return (downlineList || []).filter((item) => {
       if (!item) return false;
@@ -806,11 +872,15 @@ const CompoundReferrals: React.FC = () => {
         (item.memberId || "").toLowerCase().includes(q);
 
       if (!matchSearch && q) return false;
+
+      const itemLevel = Number(item.level) || 1;
+      if (itemLevel < fromLevel || itemLevel > toLevel) return false;
+
       if (directoryFilter === "DIRECT") return !item.isSpillover;
       if (directoryFilter === "SPILLOVER") return Boolean(item.isSpillover);
       return true;
     });
-  }, [downlineList, searchQuery, directoryFilter]);
+  }, [downlineList, searchQuery, directoryFilter, fromLevel, toLevel]);
 
   if (loading) {
     return <OrganogramSkeleton />;
@@ -859,25 +929,33 @@ const CompoundReferrals: React.FC = () => {
               Landscape Format Mode
             </span>
 
-            {/* Landscape Matrix Level / Depth Selector */}
-            <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-xs">
-              <span className="text-[11px] text-slate-400 font-medium hidden md:inline">Load Depth:</span>
+            {/* Landscape Matrix Level Range Selectors */}
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-xs">
+              <span className="text-[11px] text-slate-400 font-medium hidden md:inline">From:</span>
               <select
-                value={selectedMatrixDepth}
-                onChange={(e) => {
-                  const depth = Number(e.target.value);
-                  setSelectedMatrixDepth(depth);
-                  toast.success(`Matrix depth set to Level ${depth}`);
-                }}
+                value={fromLevel}
+                onChange={(e) => handleFromLevelChange(Number(e.target.value))}
                 className="bg-transparent text-emerald-300 font-semibold text-xs border-0 outline-none cursor-pointer"
+                title="From Level"
               >
-                <option value={1} className="bg-slate-900 text-white">Level 1 (Default)</option>
-                <option value={2} className="bg-slate-900 text-white">Level 2</option>
-                <option value={3} className="bg-slate-900 text-white">Level 3</option>
-                <option value={4} className="bg-slate-900 text-white">Level 4</option>
-                <option value={5} className="bg-slate-900 text-white">Level 5</option>
-                <option value={6} className="bg-slate-900 text-white">Level 6</option>
-                <option value={7} className="bg-slate-900 text-white">Level 7</option>
+                {[1, 2, 3, 4, 5, 6, 7].map((lvl) => (
+                  <option key={lvl} value={lvl} className="bg-slate-900 text-white">
+                    Level {lvl}
+                  </option>
+                ))}
+              </select>
+              <span className="text-[11px] text-slate-400 font-medium">To:</span>
+              <select
+                value={toLevel}
+                onChange={(e) => handleToLevelChange(Number(e.target.value))}
+                className="bg-transparent text-emerald-300 font-semibold text-xs border-0 outline-none cursor-pointer"
+                title="To Level"
+              >
+                {[1, 2, 3, 4, 5, 6, 7].map((lvl) => (
+                  <option key={lvl} value={lvl} className="bg-slate-900 text-white">
+                    Level {lvl}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -1134,8 +1212,12 @@ const CompoundReferrals: React.FC = () => {
 
         {/* ── CONDITIONAL MATRIX COMMISSION STATUS BANNER ── */}
         {(() => {
+          const isLegacy = Boolean(currentUserProfile?.is_legacy);
+          const hasPurchasedStarterPack = Boolean(
+            currentUserProfile?.has_purchased_starter_pack || currentUserProfile?.is_wealth_creation_active
+          );
+          const hasSlots = userSlotsHeld > 0;
           const hasCard = Boolean(currentUserProfile?.member_id);
-          const hasStarter = userSlotsHeld > 0;
           const hasActivePqv = activePqv30d > 0;
           
           if (!hasCard) {
@@ -1170,7 +1252,41 @@ const CompoundReferrals: React.FC = () => {
             );
           }
 
-          if (!hasStarter) {
+          // Legacy member who holds slots but hasn't activated Mushroom Power 100g
+          if (isLegacy && !hasPurchasedStarterPack) {
+            return (
+              <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
+                    <Lock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-sm sm:text-base text-white">
+                        Mushroom Power 100g Required to Access Organogram
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                        Mushroom Power Pending
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-300 mt-0.5 max-w-3xl leading-relaxed">
+                      As a valued Founding member, your Green Card pass is 100% free for life. Activate your Mushroom Power 100g (₦5,000) welcome product to access your 5×7 community matrix organogram and unlock bank withdrawals.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  asChild
+                  size="sm"
+                  className="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs"
+                >
+                  <Link to="/dashboard/slots/buy?product=SP-MUSH-100G&category=STARTER_PACK">Activate Mushroom Power 100g (₦5,000)</Link>
+                </Button>
+              </div>
+            );
+          }
+
+          // Non-legacy member who needs starter combo (slot + mushroom power)
+          if (!isLegacy && (!hasSlots || !hasPurchasedStarterPack)) {
             return (
               <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-start sm:items-center gap-3">
@@ -1245,17 +1361,17 @@ const CompoundReferrals: React.FC = () => {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-sm sm:text-base text-white">
                       {directReferralsCount >= 5
-                        ? "Full 7-Tier Matrix Commissions Unlocked! (₦12,212,500 Capacity)"
-                        : `Potential ₦12,212,500 Community Pool (Level ${unlockedLvl} of 7 Active)`}
+                        ? "Tier 7 Commission Access Active (5+ Active Direct Partners Sponsored)"
+                        : `Tier ${unlockedLvl} Commission Access (${directReferralsCount} of 5 Directs)`}
                     </span>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                      {directReferralsCount >= 5 ? "All 7 Tiers Active" : `Level ${unlockedLvl} Active`}
+                      {directReferralsCount >= 5 ? "Tier 7 Access Active" : `Tier ${unlockedLvl} Active`}
                     </span>
                   </div>
                   <p className="text-xs text-gray-300 mt-0.5 max-w-3xl leading-relaxed">
                     {directReferralsCount >= 5
-                      ? "Congratulations! You have unlocked all 7 matrix tiers. Maintain your monthly PQV to continuously earn from all 97,655 possible community positions."
-                      : `You have unlocked Level ${unlockedLvl} of 7. Sponsor ${5 - directReferralsCount} more active partner(s) to unlock all 7 matrix tiers and the full ₦12,212,500 potential community commissions.`}
+                      ? `Sponsoring ${directReferralsCount} direct partners entitles you to Tier 7 Commission Access across all 7 downline levels. Tree nodes fill geometrically: Level 1 (5 nodes), Level 2 (25 nodes), Level 3 (125 nodes), Level 4 (625 nodes)...`
+                      : `You have unlocked Tier ${unlockedLvl} Commission Access. Sponsor ${5 - directReferralsCount} more active partner(s) to unlock all 7 matrix commission tiers and full downline dividend potential.`}
                   </p>
                 </div>
               </div>
@@ -1402,7 +1518,7 @@ const CompoundReferrals: React.FC = () => {
 
         {/* ── 5×7 VISUAL ORGANOGRAM ── */}
         {activeRootNode ? (
-          activeRootNode.id === currentUserId && userSlotsHeld === 0 ? (
+          activeRootNode.id === currentUserId && isMatrixLocked ? (
             <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-emerald-800/15 text-center space-y-6 max-w-2xl mx-auto my-4">
               <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto shadow-inner">
                 <Lock className="w-8 h-8 text-amber-700" />
@@ -1410,27 +1526,50 @@ const CompoundReferrals: React.FC = () => {
 
               <div className="space-y-2">
                 <span className="text-xs font-bold text-amber-700 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-                  Starter Package Required
+                  {isLegacyNeedsMushroomPower ? "Mushroom Power Pending" : "Starter Package Required"}
                 </span>
                 <h3 className="text-2xl font-black text-gray-900">
                   5×7 Farm Matrix is Locked
                 </h3>
-                <p className="text-sm text-gray-600 leading-relaxed max-w-lg mx-auto">
-                  Your <strong>₦2,000 Green Card</strong> entitles you to lifetime educational curriculum access and <strong>₦1,000 direct referral rewards</strong>.
-                </p>
-                <p className="text-xs text-gray-500 leading-relaxed max-w-lg mx-auto">
-                  The <strong>5×7 Matrix</strong> is reserved for members who have subscribed to the <strong>₦10,000 starter package (₦5,000 Starter Mushroom farm slot and ₦5,000 Mushroom Power)</strong>. Remember that a farm slot alone won't qualify without a mushroom 100g product—we only sell it together as a combo. Once secured, you will be assigned an active node in the tree with automated spillover and 7-level commissions.
-                </p>
+                {isLegacyNeedsMushroomPower ? (
+                  <>
+                    <p className="text-sm text-gray-600 leading-relaxed max-w-lg mx-auto">
+                      As a valued Founding member, your Green Card pass is <strong>100% free for life</strong>.
+                    </p>
+                    <p className="text-xs text-gray-500 leading-relaxed max-w-lg mx-auto">
+                      To access your <strong>5×7 community matrix organogram</strong>, receive automated downline spillover, and unlock commercial bank withdrawals, please activate your <strong>Mushroom Power 100g (₦5,000)</strong> welcome product.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-600 leading-relaxed max-w-lg mx-auto">
+                      Your <strong>₦2,000 Green Card</strong> entitles you to lifetime educational curriculum access and <strong>₦1,000 direct referral rewards</strong>.
+                    </p>
+                    <p className="text-xs text-gray-500 leading-relaxed max-w-lg mx-auto">
+                      The <strong>5×7 Matrix</strong> is reserved for members who have subscribed to the <strong>₦10,000 starter package (₦5,000 Starter Mushroom farm slot and ₦5,000 Mushroom Power)</strong>. Once secured, you will be assigned an active node in the tree with automated spillover and 7-level commissions.
+                    </p>
+                  </>
+                )}
               </div>
 
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Link
-                  to="/dashboard/farm-operations/buy-slots"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow-md transition-all"
-                >
-                  <Sprout className="w-4 h-4" />
-                  Secure your Starter Package (₦10,000)
-                </Link>
+                {isLegacyNeedsMushroomPower ? (
+                  <Link
+                    to="/dashboard/slots/buy?product=SP-MUSH-100G&category=STARTER_PACK"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow-md transition-all"
+                  >
+                    <Sprout className="w-4 h-4" />
+                    Activate Mushroom Power 100g (₦5,000)
+                  </Link>
+                ) : (
+                  <Link
+                    to="/dashboard/farm-operations/buy-slots"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow-md transition-all"
+                  >
+                    <Sprout className="w-4 h-4" />
+                    Secure your Starter Package (₦10,000)
+                  </Link>
+                )}
                 <button
                   type="button"
                   onClick={() => document.getElementById("downline-directory")?.scrollIntoView({ behavior: "smooth" })}
@@ -1443,19 +1582,41 @@ const CompoundReferrals: React.FC = () => {
             </div>
           ) : (
             <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200/90 space-y-8">
-              {/* Header with Title and Quick Tree Inspector Form */}
+              {/* Header with Title, Level Range Selectors, and Quick Tree Inspector Form */}
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-gray-100">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">
                       <GitBranch className="w-4 h-4" />
                     </span>
                     <h2 className="text-base font-bold text-gray-900">
                       Visual 5×7 Organogram Tree
                     </h2>
-                    <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]">
-                      5 Legs · Level 1 Active
-                    </Badge>
+                    {/* From Level / To Level Dropdowns */}
+                    <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-2.5 py-1 text-xs">
+                      <span className="text-[11px] text-gray-500 font-medium">From:</span>
+                      <select
+                        value={fromLevel}
+                        onChange={(e) => handleFromLevelChange(Number(e.target.value))}
+                        className="bg-transparent text-emerald-800 font-bold text-xs border-0 outline-none cursor-pointer"
+                        title="From Level"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7].map((lvl) => (
+                          <option key={lvl} value={lvl}>Level {lvl}</option>
+                        ))}
+                      </select>
+                      <span className="text-[11px] text-gray-500 font-medium">To:</span>
+                      <select
+                        value={toLevel}
+                        onChange={(e) => handleToLevelChange(Number(e.target.value))}
+                        className="bg-transparent text-emerald-800 font-bold text-xs border-0 outline-none cursor-pointer"
+                        title="To Level"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 7].map((lvl) => (
+                          <option key={lvl} value={lvl}>Level {lvl}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   <p className="text-xs text-gray-500">
                     Interactive geometric tree with automated spillover placement. Click any child to drill down.
@@ -1605,61 +1766,20 @@ const CompoundReferrals: React.FC = () => {
                 </div>
               )}
 
-              {/* Matrix Locked Warning Overlay */}
-              {isMatrixLocked && (
-                <div className="bg-white/95 border-2 border-dashed border-amber-300 rounded-3xl p-6 sm:p-8 text-center max-w-2xl mx-auto my-6 shadow-md">
-                  <div className="w-14 h-14 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-3">
-                    <Lock className="w-7 h-7" />
-                  </div>
-                  <h3 className="text-lg sm:text-xl font-black text-gray-900">
-                    5×7 Compound Referral Matrix Locked
-                  </h3>
-                  <p className="text-xs sm:text-sm text-gray-600 mt-2 leading-relaxed">
-                    {isLegacyNeedsStarterPack ? (
-                      <>
-                        As a valued Founding member, please activate your account with the{" "}
-                        <strong className="text-emerald-700 font-bold">Mushroom Starter Pack (₦5,000)</strong> to unlock your 5×7 organogram matrix, downline spillover placements, and commercial wallet withdrawals.
-                      </>
-                    ) : (
-                      <>
-                        You must own at least <strong className="text-emerald-700 font-bold">1 Farm Slot (₦5,000)</strong> to activate your position inside the 5×7 matrix and receive spillover from your upline team.
-                      </>
-                    )}
-                  </p>
-                  <div className="mt-5 flex flex-col sm:flex-row items-center justify-center gap-3">
-                    {isLegacyNeedsStarterPack ? (
-                      <Button
-                        onClick={() => navigate("/dashboard/slots/buy?type=starter_pack")}
-                        className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-6 py-2.5 rounded-xl shadow-md w-full sm:w-auto text-xs"
-                      >
-                        Acquire Starter Pack (₦5,000)
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={() => navigate("/dashboard/slots/buy")}
-                        className="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-6 py-2.5 rounded-xl shadow-md w-full sm:w-auto text-xs"
-                      >
-                        Buy Farm Slot (₦5,000)
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              )}
-
               <div className="bg-emerald-50 border border-emerald-200/80 rounded-2xl p-4 flex items-start gap-3 text-xs text-emerald-900 shadow-sm">
                 <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-emerald-950 text-sm">
-                      5×7 Matrix Qualified: 7-Level Commissions
+                      5×7 Matrix Qualified: Tier 7 Commission Access
                     </span>
                     <Badge className="bg-emerald-200 text-emerald-900 border-emerald-300 text-[10px]">
-                      {directReferralsCount >= 5 ? "✓ All 7 Tiers Unlocked" : `${directReferralsCount} of 5 Direct Partners Sponsored`}
+                      {directReferralsCount >= 5 ? "✓ Tier 7 Commission Access Active" : `${directReferralsCount} of 5 Direct Partners Sponsored`}
                     </Badge>
                   </div>
                   <p className="text-emerald-800/90 leading-relaxed">
                     {directReferralsCount >= 5
-                      ? "Congratulations! Sponsoring 5 active direct partners has unlocked all 7 tiers of community matrix commissions."
+                      ? `Sponsoring ${directReferralsCount} direct partners unlocks statutory commission earnings down all 7 matrix tiers. Tree nodes fill geometrically: Level 1 (5 nodes), Level 2 (25 nodes), Level 3 (125 nodes), Level 4 (625 nodes)...`
                       : `Refer 5 active members to unlock all 7 tiers of community matrix commissions simultaneously (${5 - Math.min(5, directReferralsCount)} more needed). Direct referral bounties of ₦1,000 credit immediately.`}
                   </p>
                 </div>

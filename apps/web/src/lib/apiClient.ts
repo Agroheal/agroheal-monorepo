@@ -444,6 +444,39 @@ export const apiClient = {
         method: "POST",
       }),
   },
+
+  /**
+   * Unified Checkout Settlement Engine
+   * POST /api/v1/checkout/settle
+   */
+  checkout: {
+    settle: (data: {
+      userId?: string;
+      transactionId?: string;
+      paymentReference: string;
+      paymentMethod: "flutterwave" | "wallet";
+      amount: number;
+      category?: string;
+      slots?: number;
+      isCombo?: boolean;
+      isGreenCardOnly?: boolean;
+      isStarterPack?: boolean;
+      isFirstSlotPurchase?: boolean;
+    }) =>
+      apiRequest<{
+        success: boolean;
+        transactionId: string;
+        memberId?: string;
+        greenCardActivated: boolean;
+        slotsAllocated: number;
+        orderId?: string;
+        starterPackActivated: boolean;
+        matrixPlaced: boolean;
+      }>("checkout/settle", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  },
 };
 
 export default apiClient;

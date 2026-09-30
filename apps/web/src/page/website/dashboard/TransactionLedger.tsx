@@ -84,7 +84,6 @@ export default function TransactionLedger() {
     referral_earnings?: number;
     slot_bonus?: number;
   } | null>(null);
-  const [legacyFilter, setLegacyFilter] = useState<"ALL" | "RECENT" | "LEGACY">("ALL");
   const [directReferralEarnings, setDirectReferralEarnings] = useState<number>(0);
   const [matrixEarnings, setMatrixEarnings] = useState<number>(0);
   const [walletBalance, setWalletBalance] = useState<number>(0);
@@ -106,9 +105,14 @@ export default function TransactionLedger() {
   const [copiedDesc, setCopiedDesc] = useState<string | null>(null);
   const [walletMode, setWalletMode] = useState<"live" | "legacy">("live");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [showAuditGuide, setShowAuditGuide] = useState<boolean>(true);
 
-  const legacyTransactions = React.useMemo(() => transactions.filter((t) => t.is_legacy), [transactions]);
+  const isItemLegacy = (t: LedgerItem) => {
+    return Boolean(t.is_legacy) || isLegacyMember(t.date) || new Date(t.date).getTime() < new Date("2026-09-06T00:00:00.000Z").getTime();
+  };
+
+  const legacyTransactions = React.useMemo(() => transactions.filter(isItemLegacy), [transactions]);
+  const liveTransactions = React.useMemo(() => transactions.filter((t) => !isItemLegacy(t)), [transactions]);
+
   const legacyEarnings = React.useMemo(() => {
     const historicalTxSum = legacyTransactions
       .filter((t) => t.type === "CREDIT" && t.status === "COMPLETED")
@@ -949,10 +953,10 @@ export default function TransactionLedger() {
   const isLegacyUser = Boolean(userProfile?.is_legacy || isLegacyMember(userProfile?.created_at));
 
   const filteredTransactions = transactions.filter((t) => {
-    if (isLegacyUser) {
-      if (legacyFilter === "LEGACY" && !t.is_legacy) return false;
-      if (legacyFilter === "RECENT" && t.is_legacy) return false;
-    }
+    const isLegacy = isItemLegacy(t);
+    if (walletMode === "live" && isLegacy) return false;
+    if (walletMode === "legacy" && !isLegacy) return false;
+
     if (filterType === "PENDING") {
       if (t.status !== "PENDING") return false;
     } else if (filterType !== "ALL" && t.category !== filterType && t.type !== filterType) {
@@ -971,7 +975,7 @@ export default function TransactionLedger() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterType, searchQuery, legacyFilter, walletMode]);
+  }, [filterType, searchQuery, walletMode]);
 
   const PAGE_SIZE = 10;
   const paginatedTransactions = React.useMemo(() => {
@@ -1126,10 +1130,7 @@ export default function TransactionLedger() {
               <div className="inline-flex p-1 bg-emerald-950/90 border border-emerald-700/60 rounded-2xl shadow-sm">
                 <button
                   type="button"
-                  onClick={() => {
-                    setWalletMode("live");
-                    setLegacyFilter("RECENT");
-                  }}
+                  onClick={() => setWalletMode("live")}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     walletMode === "live"
                       ? "bg-emerald-600 text-white shadow-xs"
@@ -1139,15 +1140,12 @@ export default function TransactionLedger() {
                   <Zap className="w-3.5 h-3.5" />
                   <span>Live Wallet</span>
                   <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-900/90 border border-emerald-500/40 text-emerald-200 font-bold">
-                    {transactions.filter((t) => !t.is_legacy).length}
+                    {liveTransactions.length}
                   </span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setWalletMode("legacy");
-                    setLegacyFilter("LEGACY");
-                  }}
+                  onClick={() => setWalletMode("legacy")}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     walletMode === "legacy"
                       ? "bg-amber-600 text-white shadow-xs font-extrabold"
@@ -1157,7 +1155,7 @@ export default function TransactionLedger() {
                   <Landmark className="w-3.5 h-3.5" />
                   <span>Founding Vault</span>
                   <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-950/90 border border-amber-500/40 text-amber-200 font-bold">
-                    {transactions.filter((t) => t.is_legacy).length}
+                    {legacyTransactions.length}
                   </span>
                 </button>
               </div>
@@ -1334,7 +1332,7 @@ export default function TransactionLedger() {
                   <button
                     type="button"
                     onClick={() => {
-                      setLegacyFilter("LEGACY");
+                      setWalletMode("legacy");
                       const table = document.getElementById("transaction-history-table");
                       if (table) table.scrollIntoView({ behavior: "smooth" });
                     }}
@@ -1395,98 +1393,6 @@ export default function TransactionLedger() {
           </div>
         </div>
 
-        {/* ── FOUNDING LEGACY BALANCE JUSTIFICATION & AUDIT GUIDE ── */}
-        <div className="bg-gradient-to-br from-amber-900/10 via-emerald-950/5 to-amber-950/10 border border-amber-500/30 rounded-3xl p-5 sm:p-6 shadow-sm relative overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-            <div className="flex items-start gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 text-amber-900 flex items-center justify-center shrink-0 mt-0.5">
-                <ShieldCheck className="w-5 h-5 text-amber-700" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300">
-                    Official Ledger & Migration Audit
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                    Zero Balance Leakage
-                  </span>
-                </div>
-                <h3 className="text-base sm:text-lg font-black text-gray-900 tracking-tight">
-                  Founding Legacy Balance Justification & Matrix Unlock Guide
-                </h3>
-                <p className="text-xs text-gray-600 mt-1 max-w-3xl leading-relaxed">
-                  Agroheal operates on strict double-entry ledger accounting. Here is how historical earnings, lifetime Green Card credentials, and matrix access are structured for founding members:
-                </p>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowAuditGuide(!showAuditGuide)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-900 bg-amber-100/80 hover:bg-amber-200/80 border border-amber-300 transition-all cursor-pointer self-start shrink-0"
-            >
-              <span>{showAuditGuide ? "Hide Audit Details" : "Read Audit Policy"}</span>
-              {showAuditGuide ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-
-          {showAuditGuide && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3.5 mt-5 pt-4 border-t border-amber-500/20">
-              {/* Card 1 */}
-              <div className="bg-white/80 backdrop-blur-xs p-4 rounded-2xl border border-amber-200/70 shadow-xs space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
-                  </div>
-                  <h4 className="text-xs font-bold text-gray-900">1. Free Green Card Pass</h4>
-                </div>
-                <p className="text-[11px] text-gray-600 leading-snug">
-                  All 35 founding members who joined prior to the 2026 platform upgrade receive a <span className="font-semibold text-emerald-800">100% free lifetime Green Card</span>. Digital AGC credentials and course access are permanently active with ₦0 fee.
-                </p>
-              </div>
-
-              {/* Card 2 */}
-              <div className="bg-white/80 backdrop-blur-xs p-4 rounded-2xl border border-amber-200/70 shadow-xs space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center shrink-0">
-                    <Landmark className="w-3.5 h-3.5 text-amber-800" />
-                  </div>
-                  <h4 className="text-xs font-bold text-gray-900">2. Preserved Founding Vault</h4>
-                </div>
-                <p className="text-[11px] text-gray-600 leading-snug">
-                  Historical referral bonuses and slot earnings earned prior to migration are permanently preserved under <span className="font-mono font-semibold text-amber-900">FOUNDING-REF-ARCHIVE</span> and <span className="font-mono font-semibold text-amber-900">FOUNDING-SLOT-ARCHIVE</span> as recognized stakeholder equity.
-                </p>
-              </div>
-
-              {/* Card 3 */}
-              <div className="bg-white/80 backdrop-blur-xs p-4 rounded-2xl border border-amber-200/70 shadow-xs space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-900 flex items-center justify-center shrink-0">
-                    <Zap className="w-3.5 h-3.5 text-blue-700" />
-                  </div>
-                  <h4 className="text-xs font-bold text-gray-900">3. Matrix Unlock Rule</h4>
-                </div>
-                <p className="text-[11px] text-gray-600 leading-snug">
-                  To participate in automated 5×7 tree placements, network spillover rewards, and bank payouts, founding members must activate their <span className="font-semibold text-blue-900">Mushroom Power 100g (₦5,000)</span> and hold <span className="font-semibold text-blue-900">1 Farm Slot (₦5,000)</span>.
-                </p>
-              </div>
-
-              {/* Card 4 */}
-              <div className="bg-white/80 backdrop-blur-xs p-4 rounded-2xl border border-amber-200/70 shadow-xs space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-lg bg-purple-100 text-purple-900 flex items-center justify-center shrink-0">
-                    <Sparkles className="w-3.5 h-3.5 text-purple-700" />
-                  </div>
-                  <h4 className="text-xs font-bold text-gray-900">4. Double-Entry Solvency</h4>
-                </div>
-                <p className="text-[11px] text-gray-600 leading-snug">
-                  Every ₦10k/₦11k/₦12k bundle dynamically disburses the ₦1,000 direct GC referral bounty, ₦500 slot bonus, 40% retail commission, and ₦300 pool across all 6 Core Drivers with zero leakage.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* ── TRANSACTION HISTORY TABLE ── */}
         <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
           {/* Table Header & Search Filter */}
@@ -1514,53 +1420,6 @@ export default function TransactionLedger() {
                   </button>
                 )}
               </div>
-
-              {isLegacyUser && (
-                <div className="inline-flex items-center gap-1 p-1 bg-amber-50/80 border border-amber-200/90 rounded-2xl text-xs self-start sm:self-auto shadow-2xs">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 px-2 hidden lg:inline">
-                    Records View:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setLegacyFilter("ALL")}
-                    className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
-                      legacyFilter === "ALL"
-                        ? "bg-white text-emerald-950 shadow-xs border border-amber-300 font-extrabold"
-                        : "text-amber-800 hover:text-amber-950"
-                    }`}
-                  >
-                    All ({transactions.length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLegacyFilter("RECENT");
-                      setWalletMode("live");
-                    }}
-                    className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
-                      legacyFilter === "RECENT"
-                        ? "bg-white text-emerald-950 shadow-xs border border-amber-300 font-extrabold"
-                        : "text-amber-800 hover:text-amber-950"
-                    }`}
-                  >
-                    New Platform ({transactions.filter((t) => !t.is_legacy).length})
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLegacyFilter("LEGACY");
-                      setWalletMode("legacy");
-                    }}
-                    className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
-                      legacyFilter === "LEGACY"
-                        ? "bg-amber-600 text-white shadow-xs font-extrabold"
-                        : "text-amber-800 hover:text-amber-950"
-                    }`}
-                  >
-                    Founding Records ({transactions.filter((t) => t.is_legacy).length})
-                  </button>
-                </div>
-              )}
             </div>
 
             {/* Filter Bar: Row 2 */}

@@ -153,65 +153,65 @@ export const ProducerNetwork: React.FC = () => {
             </p>
           </div>
 
-          {/* Qualification & Potential Matrix Dividends Card (Integrated) */}
+          {/* Direct Sponsor & Commercial Farm Allocation Card */}
           <div className="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 w-full lg:max-w-md shrink-0 shadow-lg text-white space-y-3.5">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-amber-300" />
+                <Sprout className="w-3.5 h-3.5 text-emerald-300" />
                 <span className="text-[11px] uppercase tracking-wider text-emerald-300 font-bold">
-                  Your Matrix Tier Qualification
+                  Producer Status Overview
                 </span>
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-400/25 text-amber-200 border border-amber-400/40">
-                Level {unlockedLevel}/7 Active
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-400/25 text-emerald-200 border border-emerald-400/40">
+                {slotsHeld > 0 ? `${slotsHeld} Active Slot(s)` : "Commercial Onboarding"}
               </span>
             </div>
 
-            <div className="flex items-baseline justify-between gap-4 border-b border-white/15 pb-2.5">
+            <div className="grid grid-cols-2 gap-3 border-b border-white/15 pb-3">
               <div>
-                <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  Level {unlockedLevel} <span className="text-sm font-semibold text-emerald-200">of 7</span>
+                <span className="text-[10px] uppercase font-bold text-emerald-200/80 tracking-wider block">
+                  Direct Partners
+                </span>
+                <div className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-0.5">
+                  {directReferralsCount}
                 </div>
-                <p className="text-xs text-emerald-200/90 mt-0.5">
-                  {directReferralsCount} Direct Partners Sponsored
+                <p className="text-[11px] text-emerald-200/90 mt-0.5">
+                  Sponsored in network
                 </p>
               </div>
 
-              <div className="text-right">
-                <span className="text-[10px] uppercase font-bold text-emerald-300 tracking-wider block">
-                  Potential Matrix Pool
+              <div>
+                <span className="text-[10px] uppercase font-bold text-emerald-200/80 tracking-wider block">
+                  Fruiting Bags
                 </span>
-                <span className="text-base sm:text-lg font-mono font-black text-amber-300">
-                  {formatNaira(TOTAL_POTENTIAL_MATRIX_COMMISSIONS)}
-                </span>
+                <div className="text-2xl sm:text-3xl font-mono font-black text-amber-300 tracking-tight mt-0.5">
+                  {slotsHeld * BAGS_PER_SLOT_CYCLE_1}
+                </div>
+                <p className="text-[11px] text-emerald-200/90 mt-0.5">
+                  Under cluster care
+                </p>
               </div>
             </div>
 
             <div className="space-y-1">
               <p className="text-xs font-bold text-amber-200">
-                Potential Matrix Dividends Notice
+                Direct Sponsorship Bounties
               </p>
               <p className="text-[11px] sm:text-xs text-emerald-100/90 leading-relaxed">
-                Up to <strong className="text-white font-semibold">{formatNaira(TOTAL_POTENTIAL_MATRIX_COMMISSIONS)}</strong> in potential community commissions are accessible across your 7 matrix tiers. Sponsoring 5 active direct partners unlocks all 7 tiers simultaneously. Commissions credit directly into your Member Wallet.
+                Earn <strong className="text-white font-semibold">10% (₦500)</strong> direct sponsor bonus on every commercial farm slot purchased by your downline, plus <strong className="text-white font-semibold">₦1,000</strong> on every direct Green Card activation.
               </p>
             </div>
 
             <div className="pt-2.5 border-t border-white/15 flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="text-[11px] text-emerald-100/90">
-                {directReferralsCount < 5 ? (
-                  <span>
-                    Sponsor <strong className="text-amber-300">{5 - directReferralsCount} more direct partner(s)</strong> (total 5) to unlock all 7 matrix tiers.
-                  </span>
-                ) : (
-                  <span className="text-amber-300 font-bold">✓ All 7 Matrix Levels Unlocked!</span>
-                )}
+                <span>Slots scale at <strong>{formatNaira(SUBSEQUENT_SLOT_PRICE)}</strong> each.</span>
               </div>
 
               <Link
-                to="/dashboard/transactions"
+                to="/dashboard/farm-operations/my-slots"
                 className="inline-flex items-center gap-1 text-xs font-bold text-amber-300 hover:text-white underline underline-offset-2 transition-colors shrink-0"
               >
-                <span>View Wallet Details</span>
+                <span>Manage My Slots</span>
                 <ArrowUpRight className="w-3 h-3" />
               </Link>
             </div>

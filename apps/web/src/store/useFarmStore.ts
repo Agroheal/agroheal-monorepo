@@ -284,9 +284,13 @@ export const useFarmStore = create<FarmState>((set, get) => ({
       // 1. Process slot_subscriptions
       (slotSubs || []).forEach((s: any) => {
         const farm = s.farm_group_id ? groupsMap.get(s.farm_group_id) : null;
-        const farmName = farm ? farm.name : (s.project_category || "Mushroom Village Cluster");
-        const farmId = s.farm_group_id || farm?.id || s.id;
         const category = farm?.project_category || s.project_category || "Mushroom Village";
+        const rawName = farm ? farm.name : (s.project_category || "Mushroom Village Cluster");
+        const cleanRawName = rawName.replace(/\[.*?\]/g, "").trim();
+        const farmName = cleanRawName && cleanRawName.toLowerCase() !== category.toLowerCase()
+          ? `${cleanRawName} [${category}]`
+          : rawName.includes("[") ? rawName : `${category} Cluster`;
+        const farmId = s.farm_group_id || farm?.id || s.id;
         const slotsCount = Number(s.slots) || 1;
         const bagsCount = slotsCount * 2;
 
@@ -351,9 +355,13 @@ export const useFarmStore = create<FarmState>((set, get) => ({
       // 2. Process physical farm_records (if not already represented)
       combinedFarmRecords.forEach((fr: any) => {
         const farm = fr.farm_id ? groupsMap.get(fr.farm_id) : null;
-        const farmName = farm ? farm.name : "Assigned Farm Cluster";
-        const farmId = fr.farm_id || farm?.id || fr.id;
         const category = farm?.project_category || "Mushroom Village";
+        const rawName = farm ? farm.name : "Assigned Farm Cluster";
+        const cleanRawName = rawName.replace(/\[.*?\]/g, "").trim();
+        const farmName = cleanRawName && cleanRawName.toLowerCase() !== category.toLowerCase()
+          ? `${cleanRawName} [${category}]`
+          : rawName.includes("[") ? rawName : `${category} Cluster`;
+        const farmId = fr.farm_id || farm?.id || fr.id;
         const slotsCount = Number(fr.farm_slots ?? fr.number_of_slots ?? 0);
         const bagsCount = slotsCount * 2;
 

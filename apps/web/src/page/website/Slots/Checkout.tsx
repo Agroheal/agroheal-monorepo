@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabaseClient";
+import { apiClient } from "@/lib/apiClient";
 import * as Sentry from "@sentry/react";
 import { DEFAULT_CATEGORY } from "@/constant/projectCategories";
 import { cleanName, cleanEmail, normalizePhoneNumber } from "@shared/dataSanitizers";
@@ -744,18 +745,37 @@ const Checkout = () => {
         throw new Error(rpcRes?.message || "Wallet deduction failed.");
       }
 
-      if (!isStarterPack && (slotQuantity > 0 || isGreenCardOnly || isCombo)) {
-        await recordSubscriptionWithFarmGroupSplit({
+      // Authoritative Unified Settlement Engine: Activates Green Card, Allocates Slots,
+      // Creates Mushroom Power 100g Order, Credits Bonuses, and Auto-Places in Matrix
+      try {
+        await apiClient.checkout.settle({
           userId: user.id,
-          checkoutId: order.id,
-          amount: isCombo ? 5000 : totalPrice,
-          slotPrice: SLOT_UNIT_PRICE,
-          slots: isStarterPack ? 0 : Math.max(1, slotQuantity),
+          transactionId: String(order.id),
+          paymentReference: `WALLET_${order.id}_${Date.now()}`,
+          paymentMethod: "wallet",
+          amount: totalPrice,
           category: isCombo ? "Mushroom Village" : category,
-          isStarterPack,
+          slots: isStarterPack ? 0 : Math.max(1, slotQuantity),
           isCombo,
+          isGreenCardOnly,
+          isStarterPack,
           isFirstSlotPurchase,
         });
+      } catch (settleErr: any) {
+        console.warn("[Checkout] Centralized settlement fallback notice:", settleErr?.message);
+        if (!isStarterPack && (slotQuantity > 0 || isGreenCardOnly || isCombo)) {
+          await recordSubscriptionWithFarmGroupSplit({
+            userId: user.id,
+            checkoutId: order.id,
+            amount: isCombo ? 5000 : totalPrice,
+            slotPrice: SLOT_UNIT_PRICE,
+            slots: isStarterPack ? 0 : Math.max(1, slotQuantity),
+            category: isCombo ? "Mushroom Village" : category,
+            isStarterPack,
+            isCombo,
+            isFirstSlotPurchase,
+          });
+        }
       }
 
       if (!hasGreenCard && !isStarterPack) {
@@ -926,25 +946,44 @@ const Checkout = () => {
 
             const activateSlot = async () => {
               try {
-                await supabase
-                  .from("transactions")
-                  .update({
-                    status: "paid",
-                    transaction_ref: String(flwTransactionId),
-                  })
-                  .eq("id", order.id);
+                // Authoritative Unified Settlement Engine: Activates Green Card, Allocates Slots,
+                // Creates Mushroom Power 100g Order, Credits Bonuses, and Auto-Places in Matrix
+                try {
+                  await apiClient.checkout.settle({
+                    userId: order.user_id,
+                    transactionId: order.id,
+                    paymentReference: String(flwTransactionId),
+                    paymentMethod: "flutterwave",
+                    amount: totalPrice,
+                    category: isCombo ? "Mushroom Village" : category,
+                    slots: isStarterPack ? 0 : Math.max(1, slotQuantity),
+                    isCombo,
+                    isGreenCardOnly,
+                    isStarterPack,
+                    isFirstSlotPurchase,
+                  });
+                } catch (settleErr: any) {
+                  console.warn("[Checkout] Flutterwave centralized settlement fallback notice:", settleErr?.message);
+                  await supabase
+                    .from("transactions")
+                    .update({
+                      status: "paid",
+                      transaction_ref: String(flwTransactionId),
+                    })
+                    .eq("id", order.id);
 
-                await recordSubscriptionWithFarmGroupSplit({
-                  userId: order.user_id,
-                  checkoutId: order.id,
-                  amount: isCombo ? 5000 : totalPrice,
-                  slotPrice: SLOT_UNIT_PRICE,
-                  slots: isStarterPack ? 0 : Math.max(1, slotQuantity),
-                  category: isCombo ? "Mushroom Village" : category,
-                  isStarterPack,
-                  isCombo,
-                  isFirstSlotPurchase,
-                });
+                  await recordSubscriptionWithFarmGroupSplit({
+                    userId: order.user_id,
+                    checkoutId: order.id,
+                    amount: isCombo ? 5000 : totalPrice,
+                    slotPrice: SLOT_UNIT_PRICE,
+                    slots: isStarterPack ? 0 : Math.max(1, slotQuantity),
+                    category: isCombo ? "Mushroom Village" : category,
+                    isStarterPack,
+                    isCombo,
+                    isFirstSlotPurchase,
+                  });
+                }
 
                 if (!hasGreenCard && !isStarterPack) {
                   const expiresAt = new Date();
