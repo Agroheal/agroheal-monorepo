@@ -1295,14 +1295,14 @@ export default function TransactionLedger() {
           </div>
 
           {/* Table Content */}
-          <div className="overflow-x-auto">
-            <table className="w-full table-fixed text-left text-xs text-gray-600">
+          <div className="overflow-x-auto -mx-3 sm:mx-0 px-3 sm:px-0">
+            <table className="w-full min-w-[640px] table-fixed text-left text-xs text-gray-600">
               <thead className="bg-gray-50 text-[11px] font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100">
                 <tr>
-                  <th className="py-3 px-2.5 sm:px-3 w-[95px] sm:w-[105px] whitespace-nowrap">Date</th>
-                  <th className="py-3 px-2.5 sm:px-3">Description</th>
-                  <th className="py-3 px-2 w-[110px] sm:w-[130px] whitespace-nowrap">Reference</th>
-                  <th className="py-3 px-2.5 sm:px-3 w-[95px] sm:w-[110px] text-right whitespace-nowrap">Amount</th>
+                  <th className="py-3 px-2.5 sm:px-3 w-[100px] sm:w-[105px] whitespace-nowrap">Date</th>
+                  <th className="py-3 px-2.5 sm:px-3 min-w-[190px]">Description</th>
+                  <th className="py-3 px-2 w-[115px] sm:w-[130px] whitespace-nowrap">Reference</th>
+                  <th className="py-3 px-2.5 sm:px-3 w-[100px] sm:w-[110px] text-right whitespace-nowrap">Amount</th>
                   <th className="py-3 px-2 w-[100px] sm:w-[110px] text-center whitespace-nowrap">Status</th>
                 </tr>
               </thead>

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Leaf, Mail, Phone, MapPin } from "lucide-react";
+import { Leaf, Mail, Phone, MapPin, Twitter, Instagram, Linkedin } from "lucide-react";
 
 const footerLinks = {
   platform: [
@@ -141,24 +141,33 @@ export default function Footer() {
             incorporated with Nigeria’s Corporate Affairs Commission (RC
             8231879).
           </p>
-          <div className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-4">
             <a
-              href="#"
-              className="text-gray-400 hover:text-[#d1ef75] transition-colors"
+              href="https://twitter.com/agroheal"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="AgroHeal on Twitter"
+              className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-[#d1ef75] hover:border-[#d1ef75]/40 hover:bg-[#d1ef75]/10 transition-all duration-200"
             >
-              Twitter
+              <Twitter className="w-4 h-4" />
             </a>
             <a
-              href="#"
-              className="text-gray-400 hover:text-[#d1ef75] transition-colors"
+              href="https://instagram.com/agroheal"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="AgroHeal on Instagram"
+              className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-[#d1ef75] hover:border-[#d1ef75]/40 hover:bg-[#d1ef75]/10 transition-all duration-200"
             >
-              Instagram
+              <Instagram className="w-4 h-4" />
             </a>
             <a
-              href="#"
-              className="text-gray-400 hover:text-[#d1ef75] transition-colors"
+              href="https://linkedin.com/company/agroheal"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="AgroHeal on LinkedIn"
+              className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-400 hover:text-[#d1ef75] hover:border-[#d1ef75]/40 hover:bg-[#d1ef75]/10 transition-all duration-200"
             >
-              LinkedIn
+              <Linkedin className="w-4 h-4" />
             </a>
           </div>
         </div>
