@@ -1203,7 +1203,8 @@ const Checkout = () => {
                     />
                   </div>
 
-                  {/* Wallet Option */}
+                  {/* Pay from Wallet Balance (Temporarily disabled/commented out as requested) */}
+                  {/*
                   {walletBalance > 0 && (
                     <div
                       onClick={() => {
@@ -1261,6 +1262,7 @@ const Checkout = () => {
                       />
                     </div>
                   )}
+                  */}
 
                   {lockedLedgerBalance > 0 && (
                     <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900">

@@ -33,4 +33,10 @@
     1. **Direct Sponsor Referral & Slot Commission**: Credit the direct sponsor with their statutory bonus (`REFERRAL_BONUS`, `SLOT_BONUS`, `MATRIX_COMMISSION`).
     2. **Core Driver Growth Pool**: Credit all 6 Core Drivers (Elijah, Esther, Taiwo, David, Fortune, Tony) with their ₦50 bonus (`CORE_DRIVER_BONUS`).
     3. **Atomic Balance Updates**: Compute each recipient's `balance_after` dynamically (`current_available_balance + amount`) to maintain zero ledger leakage and strict solvency parity.
+## 5. Strict Content & Copy Fidelity Protocol
+- **Zero Unsolicited Text/Copy**:
+  - NEVER introduce unrequested text, marketing copy, speculative claims, promotional blurbs, or unauthorized headings, rules, or tier requirements that the user did not explicitly ask for.
+  - NEVER write marketing copy or invent explanatory text on your own.
+  - Implement only the exact labels, headings, and business logic instructed by the user without editorial embellishment.
+  - If a label or message is needed, use minimal functional wording or ask the user for preferred copy.
 

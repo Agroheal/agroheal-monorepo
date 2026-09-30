@@ -160,14 +160,15 @@ export default function TransactionLedger() {
 
   // Direct Referral Withdrawal Qualification: Active Project Subscribed AND >= ₦2,000
   const isDirectReferralWithdrawable = isProjectSubscribed && directReferralEarnings >= 2000;
-  const canSubscribeWithWallet = !isProjectSubscribed && directReferralEarnings >= 10000;
+  // Pay from wallet temporarily disabled/commented out as requested
+  const canSubscribeWithWallet = false;
   const hasGreenCard = Boolean(memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING"));
 
-  // Authoritative financial balances (incorporating direct referral earnings, matrix earnings, and platform wallet balance)
-  const ledgerBalance = Math.max(
-    walletBalance,
-    directReferralEarnings + matrixEarnings
-  );
+  // Authoritative financial balances: In live mode, balance is strictly the live liquid walletBalance
+  // In legacy mode, it is the legacy pre-migration total
+  const ledgerBalance = walletMode === "live"
+    ? walletBalance
+    : legacyEarnings;
 
   // Gatekeeper locked capital:
   // If user is not qualified for 5x7 matrix (5 directs + ₦10k 30d PQV), all matrix earnings are locked.
@@ -389,9 +390,6 @@ export default function TransactionLedger() {
         refEarnings = liveLedgerList
           .filter((e: any) => e.category === "REFERRAL_BONUS" && e.entry_type === "CREDIT" && !e.is_legacy)
           .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
-        if (!isLegacy && refEarnings === 0 && profile?.referral_earnings) {
-          refEarnings = Number(profile.referral_earnings || 0);
-        }
       }
       setDirectReferralEarnings(refEarnings);
 
@@ -403,11 +401,8 @@ export default function TransactionLedger() {
         matEarnings = Number(apiSummary.matrixSpilloverWallet.balance) || 0;
       } else {
         matEarnings = liveLedgerList
-          .filter((e: any) => (e.category === "MATRIX_COMMISSION" || e.category === "SLOT_BONUS") && e.entry_type === "CREDIT" && !e.is_legacy)
+          .filter((e: any) => (e.category === "MATRIX_COMMISSION" || e.category === "SLOT_BONUS" || e.category === "CORE_DRIVER_BONUS") && e.entry_type === "CREDIT" && !e.is_legacy)
           .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
-        if (!isLegacy && matEarnings === 0 && profile?.slot_bonus) {
-          matEarnings = Number(profile.slot_bonus || 0);
-        }
       }
       setMatrixEarnings(matEarnings);
 
@@ -973,11 +968,13 @@ export default function TransactionLedger() {
     if (walletMode === "live" && isLegacy) return false;
     if (walletMode === "legacy" && !isLegacy) return false;
 
-    // Filter by Active Ledger Tab:
+    // Filter by Active Ledger Tab (Applies exclusively to Live Wallet):
     // "wallet_ledger" -> Pure internal earnings & disbursements (referrals, matrix commissions, driver bonuses, slot bonuses, withdrawals)
     // "purchase_history" -> Clear list of external orders and card receipts (combo bundles, starter packs, farm slots, subscriptions)
-    if (activeLedgerTab === "wallet_ledger" && isPurchaseCategory(t.category)) return false;
-    if (activeLedgerTab === "purchase_history" && !isPurchaseCategory(t.category)) return false;
+    if (walletMode === "live") {
+      if (activeLedgerTab === "wallet_ledger" && isPurchaseCategory(t.category)) return false;
+      if (activeLedgerTab === "purchase_history" && !isPurchaseCategory(t.category)) return false;
+    }
 
     if (filterType === "PENDING") {
       if (t.status !== "PENDING") return false;
@@ -1422,7 +1419,9 @@ export default function TransactionLedger() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 flex-wrap">
                 <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0">
-                  {activeLedgerTab === "wallet_ledger" ? (
+                  {walletMode === "legacy" ? (
+                    <Clock className="w-4 h-4 text-emerald-700" />
+                  ) : activeLedgerTab === "wallet_ledger" ? (
                     <Wallet className="w-4 h-4 text-emerald-700" />
                   ) : (
                     <ShoppingBag className="w-4 h-4 text-amber-700" />
@@ -1430,12 +1429,16 @@ export default function TransactionLedger() {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-gray-900 leading-tight">
-                    {activeLedgerTab === "wallet_ledger"
+                    {walletMode === "legacy"
+                      ? "Preserved Founding Records (Pre-Migration)"
+                      : activeLedgerTab === "wallet_ledger"
                       ? "Member Wallet Ledger"
                       : "Orders & Purchase History"}
                   </h2>
                   <p className="text-[11px] text-gray-500">
-                    {activeLedgerTab === "wallet_ledger"
+                    {walletMode === "legacy"
+                      ? "Archival record of legacy commissions, founding slots, and historical referral credits"
+                      : activeLedgerTab === "wallet_ledger"
                       ? "Pure double-entry statement of referral rewards, matrix commissions, driver pool & withdrawals"
                       : "Official receipts of farm slots, starter packages, products & card checkout payments"}
                   </p>
@@ -1453,45 +1456,47 @@ export default function TransactionLedger() {
                 )}
               </div>
 
-              {/* Sub-Tabs: Wallet Ledger vs Purchase History */}
-              <div className="inline-flex p-1 bg-gray-100/90 border border-gray-200/70 rounded-2xl shadow-xs self-start sm:self-auto">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveLedgerTab("wallet_ledger");
-                    setFilterType("ALL");
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    activeLedgerTab === "wallet_ledger"
-                      ? "bg-white text-emerald-950 shadow-xs border border-gray-200/60"
-                      : "text-gray-500 hover:text-gray-900"
-                  }`}
-                >
-                  <Wallet className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Wallet Ledger</span>
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
-                    {walletLedgerCount}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveLedgerTab("purchase_history");
-                    setFilterType("ALL");
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    activeLedgerTab === "purchase_history"
-                      ? "bg-white text-emerald-950 shadow-xs border border-gray-200/60"
-                      : "text-gray-500 hover:text-gray-900"
-                  }`}
-                >
-                  <ShoppingBag className="w-3.5 h-3.5 text-amber-700" />
-                  <span>Orders & Receipts</span>
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-50 text-amber-900 font-bold border border-amber-200">
-                    {purchaseHistoryCount}
-                  </span>
-                </button>
-              </div>
+              {/* Sub-Tabs: Wallet Ledger vs Purchase History (ONLY for Live Wallet) */}
+              {walletMode === "live" && (
+                <div className="inline-flex p-1 bg-gray-100/90 border border-gray-200/70 rounded-2xl shadow-xs self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveLedgerTab("wallet_ledger");
+                      setFilterType("ALL");
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeLedgerTab === "wallet_ledger"
+                        ? "bg-white text-emerald-950 shadow-xs border border-gray-200/60"
+                        : "text-gray-500 hover:text-gray-900"
+                    }`}
+                  >
+                    <Wallet className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Wallet Ledger</span>
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+                      {walletLedgerCount}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveLedgerTab("purchase_history");
+                      setFilterType("ALL");
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeLedgerTab === "purchase_history"
+                        ? "bg-white text-emerald-950 shadow-xs border border-gray-200/60"
+                        : "text-gray-500 hover:text-gray-900"
+                    }`}
+                  >
+                    <ShoppingBag className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Orders & Receipts</span>
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-50 text-amber-900 font-bold border border-amber-200">
+                      {purchaseHistoryCount}
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Filter Bar: Row 2 */}
@@ -1510,7 +1515,18 @@ export default function TransactionLedger() {
 
               <div className="flex items-center gap-2">
                 {/* Contextual Filter Pills */}
-                {activeLedgerTab === "wallet_ledger" ? (
+                {walletMode === "legacy" ? (
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="h-9 px-3 rounded-xl border border-gray-200 bg-gray-50/70 text-xs text-gray-700 font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                  >
+                    <option value="ALL">All Founding Records</option>
+                    <option value="REFERRAL_BONUS">Founding Referral Earnings</option>
+                    <option value="SLOT_BONUS">Founding Slot Bonuses</option>
+                    <option value="SLOT_PURCHASE">Historical Farm Slots</option>
+                  </select>
+                ) : activeLedgerTab === "wallet_ledger" ? (
                   <select
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}

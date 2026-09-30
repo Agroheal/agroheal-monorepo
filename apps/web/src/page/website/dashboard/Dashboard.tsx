@@ -381,10 +381,11 @@ const Dashboard = () => {
       metricValue: "₦5,000 • 100g Extract",
       subtitle: "Unlocks 5×7 community matrix commissions & bank withdrawals",
       badge: "Legacy Required",
-      badgeColor: "bg-amber-100 text-amber-950 border-amber-300",
+      badgeColor: "bg-amber-400 text-emerald-950 border-amber-300",
       path: "/dashboard/checkout?product=SP-MUSH-100G",
       icon: Zap,
-      iconBg: "bg-amber-600 text-white",
+      iconBg: "bg-amber-400 text-emerald-950",
+      actionLabel: "Unlock Matrix",
       tag: "Upgrade",
     };
   } else if (!isCardHolder) {
@@ -394,10 +395,11 @@ const Dashboard = () => {
       metricValue: "₦12k Combo or ₦2k Pass",
       subtitle: "Digital Green Card + 1st Farm Slot + Mushroom Power",
       badge: "Step 1: Activate",
-      badgeColor: "bg-emerald-100 text-emerald-950 border-emerald-300",
+      badgeColor: "bg-amber-400 text-emerald-950 border-amber-300",
       path: "/dashboard/checkout?bundle=starter",
       icon: Zap,
-      iconBg: "bg-emerald-600 text-white",
+      iconBg: "bg-amber-400 text-emerald-950",
+      actionLabel: "Activate Now",
       tag: "Membership",
     };
   } else if (!hasStarterPack) {
@@ -407,10 +409,11 @@ const Dashboard = () => {
       metricValue: "₦10,000 • Slot + Product",
       subtitle: "Add 1st Farm Slot & Mushroom Power to activate matrix earnings",
       badge: "Step 2: Complete",
-      badgeColor: "bg-teal-100 text-teal-950 border-teal-300",
+      badgeColor: "bg-amber-400 text-emerald-950 border-amber-300",
       path: "/dashboard/checkout?bundle=starter_completion",
       icon: ShoppingBag,
-      iconBg: "bg-teal-700 text-white",
+      iconBg: "bg-amber-400 text-emerald-950",
+      actionLabel: "Complete Pack",
       tag: "Complete",
     };
   } else {
@@ -420,10 +423,11 @@ const Dashboard = () => {
       metricValue: "₦5,000 / Farm Slot",
       subtitle: "Secure additional production units in Pacesetters Farm",
       badge: "Add Slots",
-      badgeColor: "bg-emerald-100 text-emerald-950 border-emerald-300",
+      badgeColor: "bg-amber-400 text-emerald-950 border-amber-300",
       path: "/dashboard/farm-operations/buy-slots",
       icon: Sprout,
-      iconBg: "bg-emerald-700 text-white",
+      iconBg: "bg-amber-400 text-emerald-950",
+      actionLabel: "Add Slots",
       tag: "Expand",
     };
   }
@@ -616,57 +620,94 @@ const Dashboard = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.35, delay: index * 0.04 }}
               >
-                <Link
-                  to={tile.path}
-                  className="group relative bg-white rounded-2xl p-4 sm:p-5 border border-gray-200/80 hover:border-emerald-600 hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full overflow-hidden"
-                >
-                  <div>
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className={`w-10 h-10 rounded-xl ${tile.iconBg} flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform`}>
-                        <tile.icon className="w-5 h-5" />
+                {tile.id === "quick-checkout" ? (
+                  <Link
+                    to={tile.path}
+                    className="group relative bg-gradient-to-br from-[#062c14] via-[#093d1c] to-[#041a0c] text-white rounded-2xl p-4 sm:p-5 border-2 border-emerald-400 shadow-xl shadow-emerald-950/30 hover:border-amber-400 hover:shadow-2xl hover:scale-[1.02] transition-all duration-200 flex flex-col justify-between h-full overflow-hidden"
+                  >
+                    {/* Ambient corner glow */}
+                    <div className="absolute -top-12 -right-12 w-32 h-32 bg-emerald-400/20 rounded-full blur-2xl pointer-events-none group-hover:bg-amber-400/20 transition-all duration-300" />
+
+                    <div className="relative z-10">
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-400 text-emerald-950 flex items-center justify-center shrink-0 shadow-md group-hover:scale-105 transition-transform font-bold">
+                          <tile.icon className="w-5 h-5 text-emerald-950 stroke-[2.5]" />
+                        </div>
+                        <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full border truncate max-w-[130px] bg-amber-400 text-emerald-950 border-amber-300 shadow-xs uppercase tracking-wider">
+                          {tile.badge}
+                        </span>
                       </div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border truncate max-w-[120px] ${tile.badgeColor}`}>
-                        {tile.badge}
+
+                      <div className="mb-2">
+                        <p className="text-xs text-amber-300 font-extrabold mb-0.5 tracking-wider uppercase">
+                          {tile.title}
+                        </p>
+                        <p className="text-base sm:text-lg lg:text-xl font-black text-white group-hover:text-amber-200 transition-colors tracking-tight">
+                          {tile.metricValue}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="relative z-10 pt-2.5 border-t border-emerald-700/60 flex items-center justify-between text-[11px] text-emerald-100 mt-2">
+                      <span className="line-clamp-1 font-medium">{tile.subtitle}</span>
+                      <span className="inline-flex items-center gap-1 font-bold text-amber-300 group-hover:text-white shrink-0 ml-1.5 transition-colors">
+                        {(tile as any).actionLabel || "Action"} <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
                       </span>
                     </div>
+                  </Link>
+                ) : (
+                  <Link
+                    to={tile.path}
+                    className="group relative bg-white rounded-2xl p-4 sm:p-5 border border-gray-200/80 hover:border-emerald-600 hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full overflow-hidden"
+                  >
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className={`w-10 h-10 rounded-xl ${tile.iconBg} flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform`}>
+                          <tile.icon className="w-5 h-5" />
+                        </div>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border truncate max-w-[120px] ${tile.badgeColor}`}>
+                          {tile.badge}
+                        </span>
+                      </div>
 
-                    <div className="mb-2">
-                      <p className="text-xs text-gray-500 font-semibold mb-0.5">
-                        {tile.title}
-                      </p>
-                      <p className="text-base sm:text-lg lg:text-xl font-extrabold text-gray-900 group-hover:text-emerald-800 transition-colors tracking-tight">
-                        {tile.metricValue}
-                      </p>
+                      <div className="mb-2">
+                        <p className="text-xs text-gray-500 font-semibold mb-0.5">
+                          {tile.title}
+                        </p>
+                        <p className="text-base sm:text-lg lg:text-xl font-extrabold text-gray-900 group-hover:text-emerald-800 transition-colors tracking-tight">
+                          {tile.metricValue}
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  {tile.id === "network" ? (
-                    <div className="pt-2 border-t border-gray-100 flex flex-col gap-1 mt-2">
-                      <div className="flex items-center justify-between text-[11px] text-gray-500">
+                    {tile.id === "network" ? (
+                      <div className="pt-2 border-t border-gray-100 flex flex-col gap-1 mt-2">
+                        <div className="flex items-center justify-between text-[11px] text-gray-500">
+                          <span className="line-clamp-1">{tile.subtitle}</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
+                        </div>
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            navigate("/dashboard/compound-referrals");
+                          }}
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 hover:text-emerald-700 hover:underline cursor-pointer pt-0.5"
+                        >
+                          <GitBranch className="w-3 h-3 text-emerald-600" />
+                          <span>View Full Tree Organogram →</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500 mt-2">
                         <span className="line-clamp-1">{tile.subtitle}</span>
                         <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
                       </div>
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          navigate("/dashboard/compound-referrals");
-                        }}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 hover:text-emerald-700 hover:underline cursor-pointer pt-0.5"
-                      >
-                        <GitBranch className="w-3 h-3 text-emerald-600" />
-                        <span>View Full Tree Organogram →</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500 mt-2">
-                      <span className="line-clamp-1">{tile.subtitle}</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-emerald-700 group-hover:translate-x-0.5 transition-all shrink-0 ml-1" />
-                    </div>
-                  )}
-                </Link>
+                    )}
+                  </Link>
+                )}
               </motion.div>
             ))}
           </div>

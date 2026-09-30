@@ -30,6 +30,9 @@ import {
   Info,
   Zap,
   CheckCircle2,
+  ZoomIn,
+  ZoomOut,
+  Maximize2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -785,9 +788,12 @@ const CompoundReferrals: React.FC = () => {
     }
   };
 
-  // Matrix Depth Range Controls (From Level to To Level)
+  // Matrix Depth Range Controls (From Level to To Level) - Default Level 1 to Level 1 in fullscreen as requested
+  const isFullscreen = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("view") === "fullscreen";
   const [fromLevel, setFromLevel] = useState<number>(1);
-  const [toLevel, setToLevel] = useState<number>(7);
+  const [toLevel, setToLevel] = useState<number>(1);
+  const [aerialView, setAerialView] = useState<boolean>(false);
+  const [aerialZoom, setAerialZoom] = useState<number>(1);
 
   const handleFromLevelChange = (newFrom: number) => {
     setFromLevel(newFrom);
@@ -882,11 +888,33 @@ const CompoundReferrals: React.FC = () => {
     });
   }, [downlineList, searchQuery, directoryFilter, fromLevel, toLevel]);
 
+  // Aerial View: Group downline members strictly within [fromLevel, toLevel]
+  const aerialMembersByLevel = useMemo(() => {
+    const map: { [lvl: number]: OrganogramNode[] } = {};
+    for (let l = fromLevel; l <= toLevel; l++) {
+      map[l] = [];
+    }
+    for (const m of downlineList || []) {
+      const lvl = Number(m.level);
+      if (lvl >= fromLevel && lvl <= toLevel) {
+        if (!map[lvl]) map[lvl] = [];
+        map[lvl].push(m);
+      }
+    }
+    return map;
+  }, [downlineList, fromLevel, toLevel]);
+
+  const totalAerialMembers = useMemo(() => {
+    let sum = 0;
+    for (let l = fromLevel; l <= toLevel; l++) {
+      sum += (aerialMembersByLevel[l] || []).length;
+    }
+    return sum;
+  }, [aerialMembersByLevel, fromLevel, toLevel]);
+
   if (loading) {
     return <OrganogramSkeleton />;
   }
-
-  const isFullscreen = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("view") === "fullscreen";
 
   if (isFullscreen) {
     return (
@@ -959,6 +987,53 @@ const CompoundReferrals: React.FC = () => {
               </select>
             </div>
 
+            {/* Aerial View Checkbox Toggle */}
+            <label className="flex items-center gap-1.5 bg-slate-900 border border-slate-700 hover:border-emerald-500 rounded-xl px-2.5 py-1 text-xs cursor-pointer select-none transition-colors">
+              <input
+                type="checkbox"
+                checked={aerialView}
+                onChange={(e) => setAerialView(e.target.checked)}
+                className="w-3.5 h-3.5 rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-500 cursor-pointer"
+              />
+              <span className={`text-[11px] font-bold flex items-center gap-1 ${aerialView ? "text-emerald-300" : "text-slate-300"}`}>
+                <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                Aerial View
+              </span>
+            </label>
+
+            {/* Zoom Controls when Aerial View is active */}
+            {aerialView && (
+              <div className="hidden lg:flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-xl px-2 py-0.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setAerialZoom((z) => Math.max(0.4, Number((z - 0.15).toFixed(2))))}
+                  className="p-1 text-slate-300 hover:text-white cursor-pointer"
+                  title="Zoom Out"
+                >
+                  <ZoomOut className="w-3.5 h-3.5" />
+                </button>
+                <span className="font-mono text-[10px] text-emerald-400 font-bold px-1 select-none">
+                  {Math.round(aerialZoom * 100)}%
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setAerialZoom((z) => Math.min(1.8, Number((z + 0.15).toFixed(2))))}
+                  className="p-1 text-slate-300 hover:text-white cursor-pointer"
+                  title="Zoom In"
+                >
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAerialZoom(1)}
+                  className="text-[10px] text-slate-400 hover:text-emerald-300 ml-1 underline cursor-pointer"
+                  title="Reset Zoom"
+                >
+                  Reset
+                </button>
+              </div>
+            )}
+
             {activeRootNode && activeRootNode.id !== currentUserId && (
               <Button
                 type="button"
@@ -1015,7 +1090,168 @@ const CompoundReferrals: React.FC = () => {
         {/* Wide Landscape Canvas with generous room for 5 legs */}
         <div className="flex-1 overflow-auto p-4 sm:p-8 flex justify-center">
           {activeRootNode ? (
-            <div className="min-w-[1050px] flex flex-col items-center py-4">
+            aerialView ? (
+              /* ── AERIAL VIEW TOPOLOGY CANVAS (ALL MEMBERS IN BOUNDARY [fromLevel, toLevel]) ── */
+              <div
+                className="w-full max-w-[98%] flex flex-col items-center py-4 space-y-8 transition-transform duration-200"
+                style={{ transform: `scale(${aerialZoom})`, transformOrigin: "top center" }}
+              >
+                {/* Aerial View Banner */}
+                <div className="w-full bg-slate-950/80 border border-emerald-500/40 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                      <Layers className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                        <span>Aerial Network Topology Canvas</span>
+                        <span className="text-[11px] font-semibold text-emerald-300 bg-emerald-950/80 border border-emerald-700 px-2 py-0.5 rounded-full">
+                          Level {fromLevel} to Level {toLevel}
+                        </span>
+                      </h3>
+                      <p className="text-xs text-slate-400">
+                        Panoramic matrix visualization across {toLevel - fromLevel + 1} tier(s) • Total {totalAerialMembers} downline partner{totalAerialMembers === 1 ? "" : "s"} in boundary
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs">
+                    <span className="text-slate-400 hidden md:inline">
+                      Tip: Scroll horizontally or zoom to pan wide matrices
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setAerialView(false)}
+                      className="border-slate-700 bg-slate-800 text-slate-300 hover:text-white text-xs h-7 rounded-lg cursor-pointer"
+                    >
+                      Exit Aerial View
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Optional Root Node if fromLevel === 1 */}
+                {fromLevel === 1 && activeRootNode && (
+                  <div className="flex flex-col items-center">
+                    <div className="bg-slate-800 rounded-2xl p-4 border-2 border-emerald-500 shadow-xl text-center w-72 relative">
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-0.5 rounded-full shadow-sm whitespace-nowrap">
+                        {activeRootNode.id === currentUserId ? "Your Root Position" : "Active Tree Pivot"}
+                      </div>
+                      <div className="w-10 h-10 rounded-full bg-emerald-700 text-white font-bold mx-auto flex items-center justify-center text-sm shadow-inner mt-1">
+                        {(activeRootNode.fullName || "M").charAt(0).toUpperCase()}
+                      </div>
+                      <h4 className="font-extrabold text-white text-sm mt-1.5 line-clamp-1">
+                        {activeRootNode.fullName || "AgroHeal Member"}
+                      </h4>
+                      <p className="font-mono text-xs text-emerald-300 font-bold mt-0.5">{activeRootNode.memberId}</p>
+                      <div className="grid grid-cols-2 gap-2 text-[10px] text-slate-300 mt-2.5 pt-2 border-t border-slate-700">
+                        <div className="bg-slate-900/60 p-1 rounded-md">
+                          <span className="text-slate-400 block">Slots:</span>
+                          <span className="font-bold text-white">{activeRootNode.slotsHeld}</span>
+                        </div>
+                        <div className="bg-slate-900/60 p-1 rounded-md">
+                          <span className="text-slate-400 block">Directs:</span>
+                          <span className="font-bold text-emerald-400">{activeRootNode.directReferralsCount}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="w-0.5 h-6 bg-emerald-500" />
+                  </div>
+                )}
+
+                {/* Tiers in Boundary */}
+                {Array.from({ length: toLevel - fromLevel + 1 }, (_, i) => fromLevel + i).map((lvl) => {
+                  const membersAtLevel = aerialMembersByLevel[lvl] || [];
+                  const tierInfo = MATRIX_COMMISSIONS_TIERS.find((t) => t.level === lvl);
+
+                  return (
+                    <div key={lvl} className="w-full space-y-3">
+                      {/* Tier Header */}
+                      <div className="flex items-center justify-between border-b border-slate-800 pb-2 px-1">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                          <h4 className="font-bold text-sm text-white">
+                            Level {lvl} Tier
+                          </h4>
+                          <span className="text-xs text-slate-400 font-mono">
+                            ({membersAtLevel.length} / {Math.pow(5, lvl)} Max Slots)
+                          </span>
+                        </div>
+                        <div className="text-xs text-emerald-400 font-semibold">
+                          {tierInfo ? `₦${tierInfo.amount.toLocaleString()} Matrix Comm / Slot (${tierInfo.percentage}%)` : ""}
+                        </div>
+                      </div>
+
+                      {/* Members Grid / Horizontal Scroll */}
+                      {membersAtLevel.length > 0 ? (
+                        <div className="flex flex-wrap gap-3 items-stretch justify-start overflow-x-auto pb-2">
+                          {membersAtLevel.map((m) => {
+                            const isLvl1 = lvl === 1;
+                            const isLvl2 = lvl === 2;
+
+                            return (
+                              <div
+                                key={m.id}
+                                className={`rounded-xl border p-2.5 flex flex-col justify-between text-center transition-all shadow-sm ${
+                                  isLvl1
+                                    ? "w-48 bg-slate-800/90 border-slate-700 hover:border-emerald-500"
+                                    : isLvl2
+                                    ? "w-40 bg-slate-850/90 border-slate-700 hover:border-emerald-500"
+                                    : "w-36 bg-slate-900 border-slate-800 hover:border-emerald-500"
+                                }`}
+                              >
+                                <div>
+                                  <div className="flex items-center justify-between text-[9px] font-bold mb-1">
+                                    <span className={m.isSpillover ? "text-blue-400" : "text-emerald-400"}>
+                                      {m.isSpillover ? "Spillover" : `Leg #${m.position || 1}`}
+                                    </span>
+                                    <span className="text-slate-500 font-mono">Tier {lvl}</span>
+                                  </div>
+
+                                  <div className="w-7 h-7 rounded-full bg-emerald-900 text-emerald-200 font-bold mx-auto flex items-center justify-center text-xs shadow-xs mb-1">
+                                    {(m.fullName || "M").charAt(0).toUpperCase()}
+                                  </div>
+
+                                  <h5 className="font-bold text-white text-xs line-clamp-1" title={m.fullName}>
+                                    {m.fullName}
+                                  </h5>
+                                  <p className="font-mono text-[10px] text-emerald-400 font-semibold mt-0.5">
+                                    {m.memberId}
+                                  </p>
+                                </div>
+
+                                <div className="mt-2 pt-2 border-t border-slate-700/60 text-[10px] text-slate-300 space-y-1">
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-400">Slots:</span>
+                                    <span className="font-bold text-white">{m.slotsHeld}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-400">Directs:</span>
+                                    <span className="font-bold text-emerald-400">{m.directReferralsCount}</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => buildSubtree(m.id, false)}
+                                    className="w-full mt-1.5 py-1 text-[10px] font-bold text-emerald-400 hover:text-white bg-slate-800 hover:bg-emerald-800 rounded-md border border-slate-700 hover:border-emerald-600 transition-colors cursor-pointer"
+                                  >
+                                    Pivot Tree →
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="w-full bg-slate-900/40 border border-dashed border-slate-800 rounded-xl p-4 text-center text-xs text-slate-500">
+                          No downline members currently positioned at Level {lvl}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              /* ── INTERACTIVE DRILL-DOWN APPROACH (ROOT + 5 LEGS) ── */
+              <div className="min-w-[1050px] flex flex-col items-center py-4">
               {/* Qualification banner */}
               <div className="w-full max-w-2xl mb-8 bg-slate-800/80 border border-slate-700 rounded-2xl p-4 flex items-start gap-3 text-xs text-slate-200">
                 <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
@@ -1142,12 +1378,57 @@ const CompoundReferrals: React.FC = () => {
                 })}
               </div>
             </div>
-          ) : (
-            <div className="p-12 text-center text-slate-400">No tree node found.</div>
-          )}
+          )
+        ) : (
+          <div className="p-12 text-center text-slate-400">No tree node found.</div>
+        )}
         </div>
       </div>
     );
+  }
+
+  // Dynamic Intelligent Tree Banner based on Member Standing
+  const isMemberLegacy = Boolean(
+    currentUserProfile?.is_legacy ||
+      (currentUserProfile?.created_at &&
+        new Date(currentUserProfile.created_at).getTime() < new Date("2026-09-06T00:00:00.000Z").getTime())
+  );
+  const hasPurchasedStarter = Boolean(currentUserProfile?.has_purchased_starter_pack);
+  const hasActiveGreenCard = Boolean(
+    currentUserProfile?.is_green_card_holder ||
+      currentUserProfile?.has_greencard ||
+      currentUserProfile?.member_id
+  );
+
+  let treeBannerTitle = "5×7 Forced Community Matrix & Organogram";
+  let treeBannerSubtitle =
+    "Maintain a monthly PQV of ₦10,000 worth of food products to unlock matrix commissions across 7 levels.";
+  let treeBannerCta: { label: string; path: string } | null = null;
+
+  if (isMemberLegacy && !hasPurchasedStarter) {
+    treeBannerTitle = "Activate Mushroom Power (₦5,000) to unlock your matrix position";
+    treeBannerSubtitle =
+      "As a founding legacy member, purchase your 100g Mushroom Power extract to activate your 5×7 community matrix commissions & payouts.";
+    treeBannerCta = {
+      label: "Activate Mushroom Power (₦5,000)",
+      path: "/dashboard/checkout?product=SP-MUSH-100G",
+    };
+  } else if (!hasActiveGreenCard) {
+    treeBannerTitle = "Activate Green Card & Starter Package to enter the tree";
+    treeBannerSubtitle =
+      "Register your official digital Green Card and activate your 1st Farm Slot to enter the 5×7 community matrix and receive spillovers.";
+    treeBannerCta = {
+      label: "Activate Membership (₦12,000 Combo)",
+      path: "/dashboard/checkout?bundle=starter",
+    };
+  } else if (!hasPurchasedStarter && userSlotsHeld === 0) {
+    treeBannerTitle = "Complete Starter Package (₦10,000) to enter the tree";
+    treeBannerSubtitle =
+      "Add your 1st Farm Slot and Mushroom Power superfood to complete your starter package and unlock your matrix position.";
+    treeBannerCta = {
+      label: "Complete Starter Pack (₦10,000)",
+      path: "/dashboard/checkout?bundle=starter_completion",
+    };
   }
 
   return (
@@ -1171,11 +1452,23 @@ const CompoundReferrals: React.FC = () => {
                 </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
-                Buy your Starter package (₦10,000) to enter the tree.
+                {treeBannerTitle}
               </h1>
               <p className="text-sm text-emerald-100/80 max-w-2xl leading-relaxed">
-                Maintain a monthly PQV of ₦10,000 worth of food products to unlock matrix commissions across 7 levels.
+                {treeBannerSubtitle}
               </p>
+              {treeBannerCta && (
+                <div className="pt-2">
+                  <Link
+                    to={treeBannerCta.path}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-emerald-950 font-bold text-xs shadow-md transition-all group"
+                  >
+                    <Zap className="w-4 h-4 text-emerald-950 group-hover:scale-110 transition-transform" />
+                    <span>{treeBannerCta.label}</span>
+                    <ArrowUpRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2.5">
@@ -1617,6 +1910,20 @@ const CompoundReferrals: React.FC = () => {
                         ))}
                       </select>
                     </div>
+
+                    {/* Aerial View Checkbox */}
+                    <label className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 hover:border-emerald-600 rounded-xl px-2.5 py-1 text-xs cursor-pointer select-none transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={aerialView}
+                        onChange={(e) => setAerialView(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded text-emerald-800 focus:ring-emerald-700 accent-emerald-800 cursor-pointer"
+                      />
+                      <span className={`text-[11px] font-bold flex items-center gap-1 ${aerialView ? "text-emerald-800" : "text-gray-600"}`}>
+                        <Layers className="w-3.5 h-3.5 text-emerald-700" />
+                        Aerial View
+                      </span>
+                    </label>
                   </div>
                   <p className="text-xs text-gray-500">
                     Interactive geometric tree with automated spillover placement. Click any child to drill down.
@@ -1786,7 +2093,157 @@ const CompoundReferrals: React.FC = () => {
               </div>
 
               {/* Tree Canvas */}
-              <div className="flex flex-col items-center">
+              {aerialView ? (
+                /* ── AERIAL VIEW TOPOLOGY (ALL MEMBERS IN BOUNDARY [fromLevel, toLevel]) ── */
+                <div className="w-full flex flex-col items-center py-2 space-y-6">
+                  <div className="w-full bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                        <Layers className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-emerald-950 flex items-center gap-2">
+                          <span>Aerial Network Topology View</span>
+                          <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">
+                            Level {fromLevel} to Level {toLevel}
+                          </span>
+                        </h3>
+                        <p className="text-xs text-emerald-700">
+                          Displaying {totalAerialMembers} member{totalAerialMembers === 1 ? "" : "s"} across selected tier boundary without manual drill down
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setAerialView(false)}
+                      className="border-gray-300 text-gray-700 hover:bg-gray-100 text-xs h-7 rounded-lg cursor-pointer"
+                    >
+                      Switch to Drill-Down
+                    </Button>
+                  </div>
+
+                  {/* Root Node if fromLevel === 1 */}
+                  {fromLevel === 1 && activeRootNode && (
+                    <div className="flex flex-col items-center">
+                      <div className="bg-white rounded-2xl p-4 border-2 border-emerald-600 shadow-md text-center w-72 relative">
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-700 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-0.5 rounded-full shadow-sm whitespace-nowrap">
+                          {activeRootNode.id === currentUserId ? "Your Root Position" : "Active Tree Pivot"}
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-emerald-800 text-white font-bold mx-auto flex items-center justify-center text-sm shadow-inner mt-1">
+                          {(activeRootNode.fullName || "M").charAt(0).toUpperCase()}
+                        </div>
+                        <h4 className="font-extrabold text-gray-900 text-sm mt-1.5 line-clamp-1">
+                          {activeRootNode.fullName || "AgroHeal Member"}
+                        </h4>
+                        <p className="font-mono text-xs text-emerald-800 font-bold mt-0.5">{activeRootNode.memberId}</p>
+                        <div className="grid grid-cols-2 gap-2 text-[10px] text-gray-600 mt-2.5 pt-2 border-t border-gray-100">
+                          <div className="bg-gray-50 p-1 rounded-md">
+                            <span className="text-gray-400 block">Slots:</span>
+                            <span className="font-bold text-gray-800">{activeRootNode.slotsHeld}</span>
+                          </div>
+                          <div className="bg-gray-50 p-1 rounded-md">
+                            <span className="text-gray-400 block">Directs:</span>
+                            <span className="font-bold text-emerald-800">{activeRootNode.directReferralsCount}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="w-0.5 h-6 bg-emerald-600" />
+                    </div>
+                  )}
+
+                  {/* Tiers in Boundary */}
+                  {Array.from({ length: toLevel - fromLevel + 1 }, (_, i) => fromLevel + i).map((lvl) => {
+                    const membersAtLevel = aerialMembersByLevel[lvl] || [];
+                    const tierInfo = MATRIX_COMMISSIONS_TIERS.find((t) => t.level === lvl);
+
+                    return (
+                      <div key={lvl} className="w-full space-y-3">
+                        <div className="flex items-center justify-between border-b border-gray-200 pb-2 px-1">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-600" />
+                            <h4 className="font-bold text-sm text-gray-900">
+                              Level {lvl} Tier
+                            </h4>
+                            <span className="text-xs text-gray-500 font-mono">
+                              ({membersAtLevel.length} / {Math.pow(5, lvl)} Max Slots)
+                            </span>
+                          </div>
+                          <div className="text-xs text-emerald-700 font-semibold">
+                            {tierInfo ? `₦${tierInfo.amount.toLocaleString()} Matrix Comm / Slot (${tierInfo.percentage}%)` : ""}
+                          </div>
+                        </div>
+
+                        {membersAtLevel.length > 0 ? (
+                          <div className="flex flex-wrap gap-3 items-stretch justify-start overflow-x-auto pb-2">
+                            {membersAtLevel.map((m) => {
+                              const isLvl1 = lvl === 1;
+                              const isLvl2 = lvl === 2;
+
+                              return (
+                                <div
+                                  key={m.id}
+                                  className={`rounded-xl border p-2.5 flex flex-col justify-between text-center transition-all shadow-xs ${
+                                    isLvl1
+                                      ? "w-48 bg-white border-emerald-200 hover:border-emerald-500"
+                                      : isLvl2
+                                      ? "w-40 bg-gray-50/80 border-gray-200 hover:border-emerald-500"
+                                      : "w-36 bg-gray-50 border-gray-200 hover:border-emerald-500"
+                                  }`}
+                                >
+                                  <div>
+                                    <div className="flex items-center justify-between text-[9px] font-bold mb-1">
+                                      <span className={m.isSpillover ? "text-blue-600" : "text-emerald-700"}>
+                                        {m.isSpillover ? "Spillover" : `Leg #${m.position || 1}`}
+                                      </span>
+                                      <span className="text-gray-400 font-mono">Tier {lvl}</span>
+                                    </div>
+
+                                    <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-bold mx-auto flex items-center justify-center text-xs shadow-xs mb-1">
+                                      {(m.fullName || "M").charAt(0).toUpperCase()}
+                                    </div>
+
+                                    <h5 className="font-bold text-gray-900 text-xs line-clamp-1" title={m.fullName}>
+                                      {m.fullName}
+                                    </h5>
+                                    <p className="font-mono text-[10px] text-emerald-700 font-semibold mt-0.5">
+                                      {m.memberId}
+                                    </p>
+                                  </div>
+
+                                  <div className="mt-2 pt-2 border-t border-gray-100 text-[10px] text-gray-600 space-y-1">
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-400">Slots:</span>
+                                      <span className="font-bold text-gray-900">{m.slotsHeld}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-400">Directs:</span>
+                                      <span className="font-bold text-emerald-700">{m.directReferralsCount}</span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => buildSubtree(m.id, false)}
+                                      className="w-full mt-1.5 py-1 text-[10px] font-bold text-emerald-800 hover:text-white bg-emerald-50 hover:bg-emerald-700 rounded-md border border-emerald-200 hover:border-emerald-700 transition-colors cursor-pointer"
+                                    >
+                                      Pivot Tree →
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="w-full bg-gray-50 border border-dashed border-gray-200 rounded-xl p-4 text-center text-xs text-gray-500">
+                            No downline members currently positioned at Level {lvl}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* ── STANDARD VIEW DRILL DOWN (ROOT + 5 LEGS) ── */
+                <div className="flex flex-col items-center">
                 {/* 1. ROOT NODE CARD */}
                 <div className="relative group flex flex-col items-center">
                   <div className="w-72 sm:w-80 bg-gradient-to-b from-white to-emerald-50/40 rounded-2xl p-4 sm:p-5 border-2 border-emerald-600 shadow-md flex flex-col items-center text-center relative z-20">
@@ -1949,6 +2406,7 @@ const CompoundReferrals: React.FC = () => {
                   })}
               </div>
             </div>
+          )}
 
             {/* Spillover Explanation Footer */}
             <div className="bg-emerald-50/50 rounded-2xl p-4 border border-emerald-100 text-xs text-gray-600 flex items-start gap-3">
