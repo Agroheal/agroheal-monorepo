@@ -595,6 +595,8 @@ const Dashboard = () => {
           walletBalance={Number(profile?.wallet_balance || profile?.referral_earnings || 0)}
           createdAt={profile?.created_at}
           milestone3ActiveDate={milestone3ActiveDate}
+          hasPurchasedStarterPack={Boolean(profile?.has_purchased_starter_pack)}
+          isLegacy={isLegacy}
           onOpenShareModal={() => setShowShareModal(true)}
         />
 
@@ -980,7 +982,7 @@ const Dashboard = () => {
         onClose={() => setShowShareModal(false)}
         referralCode={profile?.referral_code ?? ""}
       />
-      {profile && totalSlotsPurchased === 0 && (
+      {profile && (!profile.has_purchased_starter_pack || totalSlotsPurchased === 0) && (
         <NextStepModal
           hasGreenCard={Boolean(profile.member_id || hasGreenCard)}
           totalSlots={totalSlotsPurchased}
@@ -988,6 +990,8 @@ const Dashboard = () => {
           referralCode={profile.referral_code ?? ""}
           forceOpen={forceOpenNextStep}
           createdAt={profile.created_at}
+          hasPurchasedStarterPack={Boolean(profile.has_purchased_starter_pack)}
+          isLegacy={isLegacy}
           onCloseExternal={() => setForceOpenNextStep(false)}
         />
       )}

@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import {
   getGreenCardFee,
   formatNaira,
+  isLegacyMember,
 } from "@shared/businessRules";
 
 export interface JourneyProgressionHeaderProps {
@@ -25,6 +26,8 @@ export interface JourneyProgressionHeaderProps {
   walletBalance?: number;
   createdAt?: string | null;
   milestone3ActiveDate?: string | null;
+  hasPurchasedStarterPack?: boolean;
+  isLegacy?: boolean;
   onOpenShareModal?: () => void;
 }
 
@@ -37,17 +40,22 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   walletBalance = 0,
   createdAt,
   milestone3ActiveDate,
+  hasPurchasedStarterPack = false,
+  isLegacy = false,
   onOpenShareModal,
 }) => {
   const navigate = useNavigate();
   const [isManuallyToggled, setIsManuallyToggled] = useState<boolean | null>(null);
 
   const activeFee = getGreenCardFee(createdAt);
+  const isMemberLegacy = Boolean(isLegacy) || isLegacyMember(createdAt);
 
   // Determine current active milestone
   const isStep1Done = Boolean(hasGreenCard);
-  const isStep2Done = Boolean(hasGreenCard && totalSlots > 0);
-  const isStep3Done = Boolean(hasGreenCard && totalSlots > 0 && directReferralsCount >= 5);
+  const isStep2Done = isMemberLegacy
+    ? Boolean(hasPurchasedStarterPack)
+    : Boolean(hasGreenCard && totalSlots > 0 && hasPurchasedStarterPack);
+  const isStep3Done = Boolean(hasGreenCard && isStep2Done && directReferralsCount >= 5);
 
   let currentStep = 1;
   if (isStep1Done && !isStep2Done) currentStep = 2;
@@ -357,10 +365,18 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
             ) : currentStep === 2 ? (
               <Button
                 size="sm"
-                onClick={() => navigate("/dashboard/farm-operations/buy-slots")}
+                onClick={() =>
+                  navigate(
+                    isMemberLegacy && !hasPurchasedStarterPack
+                      ? "/dashboard/checkout?product=SP-MUSH-100G"
+                      : "/dashboard/checkout?bundle=starter_completion"
+                  )
+                }
                 className="w-full text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white shadow-xs"
               >
-                Secure Starter Package (₦10,000)
+                {isMemberLegacy && !hasPurchasedStarterPack
+                  ? "Activate Mushroom Power (₦5,000)"
+                  : "Secure Starter Package (₦10,000)"}
               </Button>
             ) : (
               <div className="text-center py-1 text-[11px] text-muted-foreground font-medium flex items-center justify-center gap-1">

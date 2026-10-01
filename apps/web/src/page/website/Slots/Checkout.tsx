@@ -354,10 +354,17 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const productParam = searchParams.get("product") || "";
+  const itemParam = searchParams.get("item") || "";
+  const bundleParam = searchParams.get("bundle") || "";
+  const codeParam = searchParams.get("code") || "";
+
   const isStarterPack =
-    searchParams.get("item") === "starter_pack" ||
-    searchParams.get("product") === "starter_pack";
-  const requestedProductCode = searchParams.get("code") || "SP-MUSH-100G";
+    itemParam === "starter_pack" ||
+    productParam === "starter_pack" ||
+    productParam === "SP-MUSH-100G" ||
+    codeParam === "SP-MUSH-100G";
+  const requestedProductCode = codeParam || (productParam === "SP-MUSH-100G" ? "SP-MUSH-100G" : "SP-MUSH-100G");
 
   const [starterProduct, setStarterProduct] = useState<{
     id?: string;
@@ -400,15 +407,19 @@ const Checkout = () => {
     }
   }, [isStarterPack, requestedProductCode]);
 
+  const isStarterCompletion = bundleParam === "starter_completion";
+
   const isComboRequested =
-    searchParams.get("item") === "combo" ||
-    searchParams.get("product") === "combo" ||
-    searchParams.get("product") === "green_card_combo";
+    itemParam === "combo" ||
+    productParam === "combo" ||
+    productParam === "green_card_combo" ||
+    bundleParam === "starter" ||
+    bundleParam === "starter_completion";
 
   const isGreenCardOnly =
     !isStarterPack &&
     !isComboRequested &&
-    searchParams.get("product") === "green_card";
+    productParam === "green_card";
 
   const rawUrlSlots = searchParams.get("slots");
   const parsedSlots = rawUrlSlots !== null ? parseInt(rawUrlSlots, 10) : 1;
@@ -441,11 +452,12 @@ const Checkout = () => {
             : slotQuantity * SLOT_UNIT_PRICE)
         : 0);
 
-  // Green Card fee is strictly fixed at ₦2,000 for everyone
+  // Green Card fee is ₦2,000 for non-cardholders on Green Card or Full Starter Combo
   const activeGreenCardRate = 2000;
-  const greenCardFee = isStarterPack
+  const needsGreenCard = !hasGreenCard && (isGreenCardOnly || (isCombo && !isStarterCompletion) || bundleParam === "starter");
+  const greenCardFee = isStarterPack || isStarterCompletion || hasGreenCard
     ? 0
-    : (isGreenCardOnly || isCombo || !hasGreenCard ? activeGreenCardRate : 0);
+    : (needsGreenCard ? activeGreenCardRate : 0);
   const totalPrice = slotsSubtotal + greenCardFee;
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -912,19 +924,23 @@ const Checkout = () => {
           isCombo: isCombo,
         },
         customizations: {
-          title: isCombo
+          title: isStarterPack
+            ? "AgroHeal Starter Pack (100g)"
+            : isStarterCompletion
+            ? "AgroHeal Starter Package (₦10,000 Combo)"
+            : isCombo
             ? "AgroHeal Green Card + Starter Combo"
             : isGreenCardOnly
             ? "AgroHeal Green Card Pass"
-            : isStarterPack
-            ? "AgroHeal Starter Pack"
             : "Agroheal Farm Slot",
-          description: isCombo
+          description: isStarterPack
+            ? "Mushroom Power 100g Starter Pack"
+            : isStarterCompletion
+            ? "1 Group Farm Slot + Mushroom Power 100g Pack"
+            : isCombo
             ? "Lifetime Green Card + 1 Mushroom Village Slot + Mushroom Power 100g"
             : isGreenCardOnly
             ? "Lifetime Certified Digital Membership (₦2,000)"
-            : isStarterPack
-            ? "Mushroom Power 100g Starter Pack"
             : `${slotQuantity} slot${slotQuantity > 1 ? "s" : ""} — ₦${totalPrice.toLocaleString()}`,
           logo: "https://ptowfacejneezksyhntk.supabase.co/storage/v1/object/sign/agroheal-%20buckets/logo.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iZGE2NjM1ZS00NTAzLTRkZDktOTdmOS0zYWExY2Y5NzNiOGQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhZ3JvaGVhbC0gYnVja2V0cy9sb2dvLnBuZyIsImlhdCI6MTc3NDAwODY3OCwiZXhwIjo0OTI3NjA4Njc4fQ.fuwva3-hMj5KmMRqElcclgJqzA5d4aigxCIlHVHgMak",
         },
@@ -1124,6 +1140,8 @@ const Checkout = () => {
             <h1 className="font-display text-2xl sm:text-3xl font-black text-foreground tracking-tight">
               {isStarterPack
                 ? "Activate Your Mushroom Starter Pack (100g)"
+                : isStarterCompletion
+                ? "Secure Your Starter Package (₦10,000 Combo)"
                 : isGreenCardOnly || isCombo
                 ? "Complete Your AgroHeal Membership Activation"
                 : "Secure Commercial Farm Slots"}
@@ -1308,7 +1326,7 @@ const Checkout = () => {
 
                 <div className="p-5 sm:p-6 space-y-5">
                   {/* SCENARIO 1: Green Card / Onboarding Bump Selector */}
-                  {(isGreenCardOnly || !hasGreenCard) && !isStarterPack && (
+                  {(isGreenCardOnly || !hasGreenCard) && !isStarterPack && !isStarterCompletion && (
                     <div className="space-y-3">
                       <span className="text-xs font-bold text-foreground block">
                         Select Membership Option:

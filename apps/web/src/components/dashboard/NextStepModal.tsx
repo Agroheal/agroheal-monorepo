@@ -120,6 +120,8 @@ export interface NextStepModalProps {
   referralCode?: string;
   forceOpen?: boolean;
   createdAt?: string | null;
+  hasPurchasedStarterPack?: boolean;
+  isLegacy?: boolean;
   onCloseExternal?: () => void;
 }
 
@@ -130,6 +132,8 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
   referralCode = "",
   forceOpen = false,
   createdAt,
+  hasPurchasedStarterPack = false,
+  isLegacy = false,
   onCloseExternal,
 }) => {
   const navigate = useNavigate();
@@ -138,7 +142,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
   const [copied, setCopied] = useState(false);
   const [bundleSlot, setBundleSlot] = useState(false);
 
-  const isLegacy = isLegacyMember(createdAt);
+  const isMemberLegacy = isLegacy || isLegacyMember(createdAt);
   const activeFee = getGreenCardFee(createdAt);
 
   // Fetch admin-programmed configuration from system_configs
@@ -174,12 +178,56 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
 
   // Determine current active milestone (1, 2, 3, or 4 for completed)
   const currentStep = useMemo(() => {
+    if (isMemberLegacy && !hasPurchasedStarterPack) return 2;
     if (!hasGreenCard) return 1;
-    if (totalSlots === 0) return 2;
+    if (!hasPurchasedStarterPack || totalSlots === 0) return 2;
     const targetDirects = config.steps.step3.targetCount || 5;
     if (directReferralsCount < targetDirects) return 3;
     return 4; // All key milestones achieved!
-  }, [hasGreenCard, totalSlots, directReferralsCount, config.steps.step3.targetCount]);
+  }, [isMemberLegacy, hasPurchasedStarterPack, hasGreenCard, totalSlots, directReferralsCount, config.steps.step3.targetCount]);
+
+  const step1Data = useMemo(() => {
+    return {
+      ...config.steps.step1,
+      targetRoute: bundleSlot ? "/dashboard/checkout?bundle=starter" : "/dashboard/checkout?product=green_card",
+    };
+  }, [config.steps.step1, bundleSlot]);
+
+  const step2Data = useMemo(() => {
+    if (isMemberLegacy && !hasPurchasedStarterPack) {
+      return {
+        title: "Activate Mushroom Power (₦5,000)",
+        subtitle:
+          "As a founding legacy member, purchase your 100g Mushroom Power extract to activate your 5×7 community matrix commissions & payouts.",
+        priceText: "₦5,000 One-Time Product Purchase",
+        badgeText: "Milestone 2 of 3 · Activation",
+        benefits: [
+          "100g Mushroom Power organic extract delivered to your address",
+          "Unlocks 5×7 community matrix commission waterfall and spillover payouts",
+          "Activates full commercial bank withdrawal rights on cleared balance",
+          "Satisfies rolling PQV requirement without recurring maintenance fees",
+        ],
+        buttonText: "Activate Mushroom Power (₦5,000)",
+        targetRoute: "/dashboard/checkout?product=SP-MUSH-100G",
+      };
+    }
+
+    if (hasGreenCard && (!hasPurchasedStarterPack || totalSlots === 0)) {
+      return {
+        ...config.steps.step2,
+        title: "Secure Your Starter Package (₦10,000)",
+        subtitle:
+          "Your ₦10,000 starter combo includes a ₦5,000 Mushroom Farm Slot (2 Bags · Cycle Doubling) and a ₦5,000 Mushroom Power 100g pack.",
+        priceText: "₦10,000 Complete Starter Package",
+        buttonText: "Secure Starter Package (₦10,000)",
+        targetRoute: "/dashboard/checkout?bundle=starter_completion",
+      };
+    }
+
+    return config.steps.step2;
+  }, [isMemberLegacy, hasPurchasedStarterPack, hasGreenCard, totalSlots, config.steps.step2]);
+
+  const step3Data = config.steps.step3;
 
   // Handle persistent stubborn display logic
   useEffect(() => {
@@ -193,8 +241,9 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
       return;
     }
 
-    // If user has already purchased farm slots or completed milestones, don't auto-popup
-    if (totalSlots > 0 || currentStep >= 4) {
+    // If user has already purchased farm slots & starter pack or completed milestones, don't auto-popup
+    const isCompleted = hasGreenCard && hasPurchasedStarterPack && totalSlots > 0;
+    if (isCompleted || currentStep >= 4) {
       setIsOpen(false);
       return;
     }
@@ -206,7 +255,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
       const timer = setTimeout(() => setIsOpen(true), 1200);
       return () => clearTimeout(timer);
     }
-  }, [forceOpen, config.enabled, currentStep]);
+  }, [forceOpen, config.enabled, currentStep, hasGreenCard, hasPurchasedStarterPack, totalSlots]);
 
   const handleDismiss = () => {
     sessionStorage.setItem(SESSION_DISMISS_KEY, "true");
@@ -217,13 +266,13 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
   const handlePrimaryAction = async () => {
     if (currentStep === 1) {
       if (bundleSlot) {
-        navigate("/dashboard/checkout?product=green_card_combo");
+        navigate("/dashboard/checkout?bundle=starter");
       } else {
-        navigate(config.steps.step1.targetRoute || "/dashboard/checkout?product=green_card");
+        navigate(step1Data.targetRoute || "/dashboard/checkout?product=green_card");
       }
       handleDismiss();
     } else if (currentStep === 2) {
-      navigate(config.steps.step2.targetRoute || "/dashboard/checkout?category=Mushroom%20Village&slots=1");
+      navigate(step2Data.targetRoute || "/dashboard/checkout?bundle=starter_completion");
       handleDismiss();
     } else if (currentStep === 3) {
       // Step 3: Copy referral link
@@ -240,10 +289,6 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
   };
 
   if (!isOpen) return null;
-
-  const step1Data = config.steps.step1;
-  const step2Data = config.steps.step2;
-  const step3Data = config.steps.step3;
 
   const currentData =
     currentStep === 1
@@ -334,7 +379,9 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                 >
                   {currentStep > 2 ? <Check className="w-4 h-4" /> : <Sprout className="w-3.5 h-3.5" />}
                 </div>
-                <span className="text-[10px] font-semibold line-clamp-1">2. Farm Slot</span>
+                <span className="text-[10px] font-semibold line-clamp-1">
+                  {isMemberLegacy ? "2. Mushroom Power" : "2. Farm Slot"}
+                </span>
               </div>
 
               {/* Step 3 Node */}
