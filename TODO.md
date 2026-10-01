@@ -114,6 +114,9 @@
   - **Kabiru Samaila (Tx #337) Production Settlement**: Reconciled payment reference `090405260930115509805004909080` (Transaction ID `SLOT_337_1790765447617`). Transaction 337 marked paid for ₦12,000 Combo, Member ID `GC-2026-02546` assigned, active Green Card provisioned, Pacesetters Mushroom Village slot and Mushroom Power 100g order created. Complete double-entry ledger distributions credited to sponsor Taiwo (₦1,000 referral + ₦500 slot) and all 6 Core Drivers (₦50 each).
   - **Live vs. Legacy Wallet Ledger Isolation**: Isolated `/api/v1/wallet/summary` to strictly tally live double-entry `wallet_ledger` credits, ensuring Esther Bola's live wallet reads exactly ₦2,700 while preserving historical ₦12,000 referral earnings in the legacy Founding Vault. Restricted "Wallet Ledger" vs. "Orders & Receipts" sub-tabs to Live mode.
   - **Strict Content & Copy Fidelity Enshrined**: Added Rule 5 to `AGENTS.md` strictly prohibiting unsolicited marketing copy, invented text, or unauthorized business rules.
+- [x] **Continuous Connected Matrix Branches & Farm Slot Deduplication (COMPLETED)**:
+  - **Seamless Touching Matrix Tree Branches**: Built recursive `MatrixTreeNode` rendering continuous, connected CSS crossbars (50% left-arm / 50% right-arm) and vertical drop stems that seamlessly join parent and child nodes across all downline levels without pixel gaps at any zoom level or resolution. Available across both the Fullscreen Panoramic Canvas and Dashboard Organogram embed.
+  - **Farm Cluster Rollup & Deduplication**: Grouped slot subscriptions by `farm_id` in `useFarmStore.ts` with aggregated `slots_held` and `fruiting_bags`. Reconciled Esther Adetayo's allocations across Gingertown (2 slots) and Mushroom Village (1 slot), eliminating duplicate farm cards and double-counted metrics.
 
 
 ---
