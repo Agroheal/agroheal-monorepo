@@ -1494,7 +1494,7 @@ const CompoundReferrals: React.FC = () => {
       currentUserProfile?.member_id
   );
 
-  let treeBannerTitle = "5×7 Forced Community Matrix & Organogram";
+  let treeBannerTitle = "5×7 Community Matrix & Organogram";
   let treeBannerSubtitle =
     "Maintain a monthly PQV of ₦10,000 worth of food products to unlock matrix commissions across 7 levels.";
   let treeBannerCta: { label: string; path: string } | null = null;
@@ -1539,7 +1539,7 @@ const CompoundReferrals: React.FC = () => {
             <div className="space-y-2">
               <div className="flex items-center gap-2.5">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                  <GitBranch className="w-3.5 h-3.5" /> 5×7 Forced Matrix Engine
+                  <GitBranch className="w-3.5 h-3.5" /> 5×7 Community Matrix Engine
                 </span>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-400/30">
                   <Award className="w-3.5 h-3.5" /> 40% Commission Waterfall

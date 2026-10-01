@@ -83,7 +83,7 @@ const FAQS: FaqItem[] = [
     category: "matrix",
     question: "How does the 5×7 Community Matrix Pipeline function?",
     answer:
-      "The AgroHeal Community Matrix is a forced 5-wide, 7-level deep network pipeline designed to reward active community development. As members in your upline and downline introduce new producers, spillover placements automatically populate available slots across the 7 tiers below you.",
+      "The AgroHeal Community Matrix is a 5-wide, 7-level deep network pipeline designed to reward active community development. As members in your upline and downline introduce new producers, spillover placements automatically populate available slots across the 7 tiers below you.",
     tags: ["matrix", "5x7", "spillover", "levels", "tiers"],
   },
   {

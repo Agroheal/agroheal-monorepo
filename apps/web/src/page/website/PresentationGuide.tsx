@@ -74,7 +74,7 @@ export default function PresentationGuide() {
           <p className="text-sm sm:text-base text-emerald-100/90 leading-relaxed max-w-3xl">
             This document delivers the full visual and operational text version of our official community
             presentation deck. It covers our Learn-Practice-Earn model, agricultural production clusters,
-            the 5×7 forced matrix commission schedules, and our strict non-investment guardrails.
+            the 5×7 matrix commission schedules, and our strict non-investment guardrails.
           </p>
 
           <div className="pt-2 flex flex-wrap items-center gap-3">
@@ -206,14 +206,14 @@ export default function PresentationGuide() {
           </div>
         </div>
 
-        {/* ── CHAPTER 3: THE 5×7 FORCED MATRIX & INTERACTIVE CALCULATOR ── */}
+        {/* ── CHAPTER 3: THE 5×7 COMMUNITY MATRIX & INTERACTIVE CALCULATOR ── */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-200 shadow-sm space-y-6">
           <div className="border-b border-gray-100 pb-4">
             <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
               Module 03
             </span>
             <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900 mt-2">
-              The 5×7 Forced Matrix Compensation Structure
+              The 5×7 Community Matrix Compensation Structure
             </h2>
             <p className="text-xs sm:text-sm text-gray-500 mt-1">
               A mathematically stable 7-tier pipeline distributing 40% statutory commission on every secured farm slot.
