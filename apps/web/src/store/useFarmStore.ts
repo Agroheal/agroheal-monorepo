@@ -327,6 +327,15 @@ export const useFarmStore = create<FarmState>((set, get) => ({
           },
         ];
 
+        const existingCluster = clusterItems.find((c) => c.farm_id === farmId);
+        if (existingCluster) {
+          existingCluster.slots_held += slotsCount;
+          existingCluster.fruiting_bags += bagsCount;
+          existingCluster.financials.contributions += Number(s.amount) || slotsCount * 5000;
+          existingCluster.is_legacy = existingCluster.is_legacy || Boolean(s.is_legacy);
+          return;
+        }
+
         clusterItems.push({
           id: s.id,
           farm_id: farmId,
@@ -355,7 +364,7 @@ export const useFarmStore = create<FarmState>((set, get) => ({
       // 2. Process physical farm_records (if not already represented)
       combinedFarmRecords.forEach((fr: any) => {
         const farm = fr.farm_id ? groupsMap.get(fr.farm_id) : null;
-        const category = farm?.project_category || "Mushroom Village";
+        const category = farm?.project_category || fr.project_category || "Mushroom Village";
         const rawName = farm ? farm.name : "Assigned Farm Cluster";
         const cleanRawName = rawName.replace(/\[.*?\]/g, "").trim();
         const farmName = cleanRawName && cleanRawName.toLowerCase() !== category.toLowerCase()
@@ -367,7 +376,7 @@ export const useFarmStore = create<FarmState>((set, get) => ({
 
         // Check if this record is already accounted for in slot_subscriptions
         const alreadyInSubs = clusterItems.some(
-          (c) => c.source === "subscription" && c.farm_id === farmId && c.slots_held === slotsCount
+          (c) => c.farm_id === farmId
         );
 
         if (!alreadyInSubs) {
