@@ -64,7 +64,7 @@ async function apiRequest<T = any>(
     },
   };
 
-  const timeoutMs = options.timeout ?? 5000;
+  const timeoutMs = options.timeout ?? 30000;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -475,6 +475,7 @@ export const apiClient = {
       }>("checkout/settle", {
         method: "POST",
         body: JSON.stringify(data),
+        timeout: 60000,
       }),
   },
 };

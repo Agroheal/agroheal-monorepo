@@ -88,6 +88,7 @@ async function recordSubscriptionWithFarmGroupSplit({
   category,
   isStarterPack,
   isCombo,
+  isGreenCardOnly,
   isFirstSlotPurchase,
 }: {
   userId: string;
@@ -98,6 +99,7 @@ async function recordSubscriptionWithFarmGroupSplit({
   category: string;
   isStarterPack: boolean;
   isCombo?: boolean;
+  isGreenCardOnly?: boolean;
   isFirstSlotPurchase?: boolean;
 }) {
   const nextPaymentDate = new Date();
@@ -105,7 +107,7 @@ async function recordSubscriptionWithFarmGroupSplit({
   const DEFAULT_GROUP_ID = "230ab237-0770-4dce-84fe-221f224276bc"; // Pioneers Farm [Mushroom Village]
 
   // If user only bought green card without combo or slots, return early
-  if (!isStarterPack && !isCombo && slots === 0) {
+  if (isGreenCardOnly || (!isStarterPack && !isCombo && slots === 0)) {
     return;
   }
 
@@ -767,7 +769,7 @@ const Checkout = () => {
           paymentMethod: "wallet",
           amount: totalPrice,
           category: isCombo ? "Mushroom Village" : category,
-          slots: isStarterPack ? 0 : Math.max(1, slotQuantity),
+          slots: (isGreenCardOnly || isStarterPack) ? 0 : Math.max(1, slotQuantity),
           isCombo,
           isGreenCardOnly,
           isStarterPack,
@@ -775,16 +777,17 @@ const Checkout = () => {
         });
       } catch (settleErr: any) {
         console.warn("[Checkout] Centralized settlement fallback notice:", settleErr?.message);
-        if (!isStarterPack && (slotQuantity > 0 || isGreenCardOnly || isCombo)) {
+        if (!isGreenCardOnly && !isStarterPack && (slotQuantity > 0 || isCombo)) {
           await recordSubscriptionWithFarmGroupSplit({
             userId: user.id,
             checkoutId: order.id,
             amount: isCombo ? 5000 : totalPrice,
             slotPrice: SLOT_UNIT_PRICE,
-            slots: isStarterPack ? 0 : Math.max(1, slotQuantity),
+            slots: (isGreenCardOnly || isStarterPack) ? 0 : Math.max(1, slotQuantity),
             category: isCombo ? "Mushroom Village" : category,
             isStarterPack,
             isCombo,
+            isGreenCardOnly,
             isFirstSlotPurchase,
           });
         }
@@ -972,7 +975,7 @@ const Checkout = () => {
                     paymentMethod: "flutterwave",
                     amount: totalPrice,
                     category: isCombo ? "Mushroom Village" : category,
-                    slots: isStarterPack ? 0 : Math.max(1, slotQuantity),
+                    slots: (isGreenCardOnly || isStarterPack) ? 0 : Math.max(1, slotQuantity),
                     isCombo,
                     isGreenCardOnly,
                     isStarterPack,
@@ -988,17 +991,20 @@ const Checkout = () => {
                     })
                     .eq("id", order.id);
 
-                  await recordSubscriptionWithFarmGroupSplit({
-                    userId: order.user_id,
-                    checkoutId: order.id,
-                    amount: isCombo ? 5000 : totalPrice,
-                    slotPrice: SLOT_UNIT_PRICE,
-                    slots: isStarterPack ? 0 : Math.max(1, slotQuantity),
-                    category: isCombo ? "Mushroom Village" : category,
-                    isStarterPack,
-                    isCombo,
-                    isFirstSlotPurchase,
-                  });
+                  if (!isGreenCardOnly && !isStarterPack && (slotQuantity > 0 || isCombo)) {
+                    await recordSubscriptionWithFarmGroupSplit({
+                      userId: order.user_id,
+                      checkoutId: order.id,
+                      amount: isCombo ? 5000 : totalPrice,
+                      slotPrice: SLOT_UNIT_PRICE,
+                      slots: (isGreenCardOnly || isStarterPack) ? 0 : Math.max(1, slotQuantity),
+                      category: isCombo ? "Mushroom Village" : category,
+                      isStarterPack,
+                      isCombo,
+                      isGreenCardOnly,
+                      isFirstSlotPurchase,
+                    });
+                  }
                 }
 
                 if (!hasGreenCard && !isStarterPack) {
