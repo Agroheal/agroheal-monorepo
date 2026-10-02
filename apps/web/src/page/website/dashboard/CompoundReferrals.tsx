@@ -62,6 +62,7 @@ export interface OrganogramNode {
   level: number;
   slotsHeld: number;
   directReferralsCount: number;
+  networkCount?: number;
   createdAt?: string;
   hasGreenCard: boolean;
   isSpillover?: boolean;
@@ -124,6 +125,19 @@ interface GenealogyCacheEntry {
 
 const genealogyMemoryCache = new Map<string, GenealogyCacheEntry>();
 const CACHE_TTL_MS = 60_000; // 1-minute TTL for instant navigation
+
+const computeSubtreeNetworkCount = (node: OrganogramNode): number => {
+  if (!node.children || node.children.length === 0) {
+    node.networkCount = 0;
+    return 0;
+  }
+  let count = 0;
+  for (const child of node.children) {
+    count += 1 + computeSubtreeNetworkCount(child);
+  }
+  node.networkCount = count;
+  return count;
+};
 
 interface MatrixTreeNodeProps {
   node: OrganogramNode;
@@ -215,9 +229,9 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
               <span className={`font-bold ${isDark ? "text-slate-200" : "text-gray-800"}`}>{node.slotsHeld} Slots</span>
             </div>
             <div className={`p-1.5 rounded-lg border ${isDark ? "bg-slate-900/60 border-slate-700" : "bg-white/80 border-emerald-100"}`}>
-              <span className={`text-[10px] block ${isDark ? "text-slate-400" : "text-gray-500"}`}>Direct Recruits</span>
+              <span className={`text-[10px] block ${isDark ? "text-slate-400" : "text-gray-500"}`}>Network Team</span>
               <span className={`font-bold ${isDark ? "text-emerald-400" : "text-emerald-800"}`}>
-                {node.directReferralsCount} Partners
+                {node.networkCount !== undefined ? `${node.networkCount} ${node.networkCount === 1 ? "Member" : "Members"}` : `${node.children?.length || 0} Members`}
               </span>
             </div>
           </div>
@@ -288,9 +302,9 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
               <span className="font-bold">{node.slotsHeld}</span>
             </div>
             <div className="flex justify-between">
-              <span className={isDark ? "text-slate-400" : "text-gray-400"}>Direct:</span>
+              <span className={isDark ? "text-slate-400" : "text-gray-400"}>Network:</span>
               <span className={`font-bold ${isDark ? "text-emerald-400" : "text-emerald-700"}`}>
-                {node.directReferralsCount}
+                {node.networkCount !== undefined ? `${node.networkCount} Members` : `${node.children?.length || 0} Members`}
               </span>
             </div>
           </div>
@@ -972,6 +986,9 @@ const CompoundReferrals: React.FC = () => {
         }
       }
     }
+
+    // Compute recursive matrix downline network count for all nodes in the tree
+    computeSubtreeNetworkCount(builtRoot);
 
     setActiveRootNode(builtRoot);
     setDownlineList(allRoster);
