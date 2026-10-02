@@ -33,6 +33,10 @@ import {
   ZoomIn,
   ZoomOut,
   Maximize2,
+  ArrowUpDown,
+  ChevronDown,
+  ChevronUp,
+  Compass,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -409,7 +413,10 @@ const CompoundReferrals: React.FC = () => {
   // Search & Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [searchStatus, setSearchStatus] = useState<string>("");
-  const [directoryFilter, setDirectoryFilter] = useState<"ALL" | "DIRECT" | "SPILLOVER">("ALL");
+  const [directoryFilter, setDirectoryFilter] = useState<"ALL" | "DIRECT" | "TREE" | "UNPAID" | "SPILLOVER">("ALL");
+  const [sortBy, setSortBy] = useState<"SLOTS_DESC" | "SLOTS_ASC" | "DATE_DESC" | "DATE_ASC" | "NAME_ASC" | "LEG_ASC">("SLOTS_DESC");
+  const [visibleCount, setVisibleCount] = useState<number>(10);
+  const [isMilestoneFolded, setIsMilestoneFolded] = useState<boolean>(true);
 
   const [copiedLink, setCopiedLink] = useState(false);
   const [isProjectSubscribed, setIsProjectSubscribed] = useState<boolean>(false);
@@ -714,17 +721,7 @@ const CompoundReferrals: React.FC = () => {
         }
       }
 
-      // For unplaced direct children, allocate any open legs 1..5 in order
-      let nextAvailableLeg = 1;
-      for (const cp of unplacedChildren) {
-        while (nextAvailableLeg <= 5 && occupiedLegs.has(nextAvailableLeg)) {
-          nextAvailableLeg++;
-        }
-        if (nextAvailableLeg <= 5) {
-          occupiedLegs.set(nextAvailableLeg, cp);
-          nextAvailableLeg++;
-        }
-      }
+      // Unplaced direct referrals remain in unplacedChildren and are listed in the Directory roster below.
 
       for (let leg = 1; leg <= 5; leg++) {
         const cp = occupiedLegs.get(leg);
@@ -949,7 +946,7 @@ const CompoundReferrals: React.FC = () => {
     }
 
     for (const item of allRoster) {
-      if (item.parentId && nodeMap.has(item.parentId)) {
+      if (item.parentId && nodeMap.has(item.parentId) && item.position >= 1 && item.position <= 5) {
         const parent = nodeMap.get(item.parentId)!;
         if (!parent.children.some((c) => c.id === item.id)) {
           parent.children.push(item);
@@ -1148,10 +1145,36 @@ const CompoundReferrals: React.FC = () => {
       if (!matchSearch && q) return false;
 
       if (directoryFilter === "DIRECT") return !item.isSpillover;
+      if (directoryFilter === "TREE") return item.position > 0 && item.slotsHeld > 0;
+      if (directoryFilter === "UNPAID") return item.slotsHeld === 0;
       if (directoryFilter === "SPILLOVER") return Boolean(item.isSpillover);
       return true;
     });
   }, [downlineList, searchQuery, directoryFilter]);
+
+  // Sorted Downline Directory
+  const sortedDirectory = useMemo(() => {
+    const list = [...filteredDirectory];
+    list.sort((a, b) => {
+      if (sortBy === "SLOTS_DESC") return (b.slotsHeld || 0) - (a.slotsHeld || 0);
+      if (sortBy === "SLOTS_ASC") return (a.slotsHeld || 0) - (b.slotsHeld || 0);
+      if (sortBy === "DATE_DESC") return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+      if (sortBy === "DATE_ASC") return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+      if (sortBy === "NAME_ASC") return (a.fullName || "").localeCompare(b.fullName || "");
+      if (sortBy === "LEG_ASC") return (a.position || 0) - (b.position || 0);
+      return 0;
+    });
+    return list;
+  }, [filteredDirectory, sortBy]);
+
+  // Paginated/Sliced for "Load More"
+  const visibleDirectory = useMemo(() => {
+    return sortedDirectory.slice(0, visibleCount);
+  }, [sortedDirectory, visibleCount]);
+
+  useEffect(() => {
+    setVisibleCount(10);
+  }, [directoryFilter, searchQuery, sortBy]);
 
   // Aerial View: Group downline members strictly within [fromLevel, toLevel]
   const aerialMembersByLevel = useMemo(() => {
@@ -1581,178 +1604,192 @@ const CompoundReferrals: React.FC = () => {
           </div>
         </div>
 
-        {/* ── CONDITIONAL MATRIX COMMISSION STATUS BANNER ── */}
+        {/* ── "WHAT TO DO NOW?" MILESTONE ACTION BANNER (FOLDED BY DEFAULT) ── */}
         {(() => {
-          const isLegacy = Boolean(currentUserProfile?.is_legacy);
+          const isLegacy = Boolean(
+            currentUserProfile?.is_legacy ||
+            (currentUserProfile?.created_at && new Date(currentUserProfile.created_at) < new Date("2026-10-01T00:00:00Z"))
+          );
           const hasPurchasedStarterPack = Boolean(
             currentUserProfile?.has_purchased_starter_pack || currentUserProfile?.is_wealth_creation_active
           );
           const hasSlots = userSlotsHeld > 0;
           const hasCard = Boolean(currentUserProfile?.member_id);
           const hasActivePqv = activePqv30d > 0;
-          
-          if (!hasCard) {
-            return (
-              <div className="bg-amber-950/90 text-white p-4 sm:p-5 rounded-2xl border border-amber-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-start sm:items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
-                    <Lock className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-sm sm:text-base text-white">
-                        AgroHeal Digital Green Card Required
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
-                        Tier Qualification
-                      </span>
-                    </div>
-                    <p className="text-xs text-amber-100/90 mt-0.5 max-w-3xl leading-relaxed">
-                      Activate your Green Card (₦2,000) to register your credentials and participate in the 5×7 community matrix.
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  asChild
-                  size="sm"
-                  className="shrink-0 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow-xs"
-                >
-                  <Link to="/dashboard/checkout?bundle=starter">Activate Starter Package (₦12,000)</Link>
-                </Button>
-              </div>
-            );
-          }
-
-          // Legacy member who holds slots but hasn't activated Mushroom Power 100g
-          if (isLegacy && !hasPurchasedStarterPack) {
-            return (
-              <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-start sm:items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
-                    <Lock className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-sm sm:text-base text-white">
-                        Mushroom Power 100g Required to Access Organogram
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
-                        Mushroom Power Pending
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-300 mt-0.5 max-w-3xl leading-relaxed">
-                      As a valued Founding member, your Green Card pass is 100% free for life. Activate your Mushroom Power 100g (₦5,000) welcome product to access your 5×7 community matrix organogram and unlock bank withdrawals.
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  asChild
-                  size="sm"
-                  className="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs"
-                >
-                  <Link to="/dashboard/slots/buy?product=SP-MUSH-100G&category=STARTER_PACK">Activate Mushroom Power 100g (₦5,000)</Link>
-                </Button>
-              </div>
-            );
-          }
-
-          // Non-legacy member who needs starter combo (slot + mushroom power)
-          if (!isLegacy && (!hasSlots || !hasPurchasedStarterPack)) {
-            return (
-              <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-start sm:items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
-                    <Lock className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-sm sm:text-base text-white">
-                        Starter Combo Required to Lock Matrix Node
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
-                        Placement Pending
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-300 mt-0.5 max-w-3xl leading-relaxed">
-                      Activate the ₦10,000 Starter Combo (1 Farm Slot + 100g Mushroom Power) to lock your permanent node in the 5×7 community matrix and unlock Level 1 & 2 commissions.
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  asChild
-                  size="sm"
-                  className="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs"
-                >
-                  <Link to="/dashboard/farm-operations/buy-slots">Secure Starter Combo</Link>
-                </Button>
-              </div>
-            );
-          }
-
-          if (!hasActivePqv) {
-            return (
-              <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-start sm:items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
-                    <Clock className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-sm sm:text-base text-white">
-                        Maintain Monthly PQV to Receive Matrix Dividends
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/30">
-                        Monthly Activity
-                      </span>
-                    </div>
-                    <p className="text-xs text-gray-300 mt-0.5 max-w-3xl leading-relaxed">
-                      Your matrix node is locked! Maintain your 30-day Personal Qualifying Volume (₦10,000 product order or active slot subscription) to qualify for real-time downline commissions.
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  asChild
-                  size="sm"
-                  className="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs"
-                >
-                  <Link to="/dashboard/farm-operations/buy-slots">Maintain Monthly PQV</Link>
-                </Button>
-              </div>
-            );
-          }
-
           const unlockedLvl = getUnlockedMatrixLevel(directReferralsCount);
+
+          let statusBadge = "Next Step";
+          let headline = "Activate ₦12,000 Starter Package";
+          let shortSummary = "Includes Green Card (₦2,000), Mushroom Power 100g (₦5,000), and 1st Farm Slot (₦5,000) to lock your permanent node.";
+          let ctaText = "Activate ₦12,000 Package";
+          let ctaLink = "/dashboard/checkout?bundle=starter";
+          let isWarning = true;
+          let detailsList = [
+            "Digital Green Card credentials (₦2,000 lifetime activation).",
+            "Mushroom Power 100g welcome product (₦5,000 retail value).",
+            "1 Farm Slot in Mushroom Village (₦5,000) securing your permanent node in the 5×7 community tree.",
+            "Immediate eligibility to sponsor direct partners and earn ₦1,000 referral bounty + ₦500 slot commission per signup.",
+          ];
+
+          if (isLegacy && !hasPurchasedStarterPack) {
+            statusBadge = "Founding Member";
+            headline = "Activate Mushroom Power 100g (₦5,000)";
+            shortSummary = "Your lifetime Green Card is free. Activate welcome product to unlock full organogram view and withdrawals.";
+            ctaText = "Activate Mushroom Power (₦5,000)";
+            ctaLink = "/dashboard/slots/buy?product=SP-MUSH-100G&category=STARTER_PACK";
+            isWarning = true;
+            detailsList = [
+              "Green Card pass is 100% free for life as an early founding member.",
+              "Activate Mushroom Power 100g (₦5,000) to activate your account node and bank payout permissions.",
+              "Access complete downline visual organogram and track your 5 legs.",
+            ];
+          } else if (!isLegacy && (!hasCard || !hasSlots || !hasPurchasedStarterPack)) {
+            statusBadge = "Starter Package Pending";
+            headline = "Activate ₦12,000 Starter Package";
+            shortSummary = "Complete all 3 constituents to lock your permanent node in the 5×7 community matrix.";
+            ctaText = "Activate ₦12,000 Package";
+            ctaLink = "/dashboard/checkout?bundle=starter";
+            isWarning = true;
+            detailsList = [
+              "Digital Green Card credentials (₦2,000).",
+              "100g Mushroom Power Welcome Product (₦5,000).",
+              "1st Farm Slot in Mushroom Village (₦5,000) to lock your permanent matrix node.",
+              "Unlocks direct sponsor bonuses (₦1,000) and Level 1 & 2 commission earnings.",
+            ];
+          } else if (directReferralsCount < 5) {
+            statusBadge = `Tier Progress • ${directReferralsCount}/5 Directs`;
+            headline = `Sponsor ${5 - directReferralsCount} More Direct Partner(s)`;
+            shortSummary = "Sponsor 5 active members with the ₦12,000 package to unlock all 7 matrix commission tiers.";
+            ctaText = "Copy Affiliate Link";
+            ctaLink = "";
+            isWarning = false;
+            detailsList = [
+              `Currently unlocked: Tier ${unlockedLvl} matrix commission access.`,
+              "Earn ₦1,000 direct referral bounty + ₦500 farm slot commission immediately on each ₦12,000 partner activation.",
+              `Sponsor ${5 - directReferralsCount} more direct partner(s) to unlock all 7 downline commission tiers.`,
+            ];
+          } else if (!hasActivePqv) {
+            statusBadge = "Monthly PQV Pending";
+            headline = "Maintain 30-Day Activity (₦10,000 PQV)";
+            shortSummary = "Maintain your monthly Personal Qualifying Volume to keep matrix commission withdrawals active.";
+            ctaText = "Maintain Monthly PQV";
+            ctaLink = "/dashboard/farm-operations/buy-slots";
+            isWarning = true;
+            detailsList = [
+              "Your 5×7 matrix node is locked and Tier 7 Commission Access is active.",
+              "Maintain ₦10,000 monthly PQV (farm slot or product order) to qualify for real-time downline dividends.",
+            ];
+          } else {
+            statusBadge = "✓ Tier 7 Commission Access Active";
+            headline = "All 7 Matrix Commission Tiers Active";
+            shortSummary = `You have sponsored ${directReferralsCount} direct partners. Full 7-level downline commissions and ledger distributions are enabled.`;
+            ctaText = "View Wallet & Ledger";
+            ctaLink = "/dashboard/transactions";
+            isWarning = false;
+            detailsList = [
+              "Tier 7 Commission Access unlocked down all 7 matrix levels.",
+              "30-day PQV is active. Commission dividends credit to your wallet in real time.",
+              "Share your link to place additional partners into downline spillover.",
+            ];
+          }
+
           return (
-            <div className="bg-slate-900 text-white p-4 sm:p-5 rounded-2xl border border-slate-800 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="flex items-start sm:items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 shrink-0">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-sm sm:text-base text-white">
-                      {directReferralsCount >= 5
-                        ? "Tier 7 Commission Access Active (5+ Active Direct Partners Sponsored)"
-                        : `Tier ${unlockedLvl} Commission Access (${directReferralsCount} of 5 Directs)`}
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                      {directReferralsCount >= 5 ? "Tier 7 Access Active" : `Tier ${unlockedLvl} Active`}
-                    </span>
+            <div
+              className={`rounded-2xl border transition-all duration-200 shadow-xs ${
+                isWarning
+                  ? "bg-slate-900 border-amber-500/40 text-white"
+                  : "bg-slate-900 border-emerald-500/40 text-white"
+              }`}
+            >
+              {/* Header Bar: Compact, folded by default */}
+              <div className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div
+                  onClick={() => setIsMilestoneFolded((prev) => !prev)}
+                  className="flex items-center gap-3 cursor-pointer select-none flex-1 min-w-0"
+                >
+                  <div
+                    className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                      isWarning
+                        ? "bg-amber-500/20 text-amber-300 border border-amber-400/30"
+                        : "bg-emerald-500/20 text-emerald-300 border border-emerald-400/30"
+                    }`}
+                  >
+                    <Compass className="w-4 h-4" />
                   </div>
-                  <p className="text-xs text-gray-300 mt-0.5 max-w-3xl leading-relaxed">
-                    {directReferralsCount >= 5
-                      ? `Sponsoring ${directReferralsCount} direct partners entitles you to Tier 7 Commission Access across all 7 downline levels. Tree nodes fill geometrically: Level 1 (5 nodes), Level 2 (25 nodes), Level 3 (125 nodes), Level 4 (625 nodes)...`
-                      : `You have unlocked Tier ${unlockedLvl} Commission Access. Sponsor ${5 - directReferralsCount} more active partner(s) to unlock all 7 matrix commission tiers and full downline dividend potential.`}
-                  </p>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-extrabold text-xs sm:text-sm text-white flex items-center gap-1.5">
+                        What to do now?
+                      </span>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                          isWarning
+                            ? "bg-amber-500/20 text-amber-300 border-amber-400/30"
+                            : "bg-emerald-500/20 text-emerald-300 border-emerald-400/30"
+                        }`}
+                      >
+                        {statusBadge}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 truncate mt-0.5">
+                      <strong className="text-white">{headline}</strong> • {shortSummary}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                  {ctaLink ? (
+                    <Button
+                      asChild
+                      size="sm"
+                      className={`text-xs h-7 sm:h-8 px-3 rounded-xl font-bold shadow-xs cursor-pointer ${
+                        isWarning
+                          ? "bg-amber-500 hover:bg-amber-400 text-slate-950"
+                          : "bg-emerald-600 hover:bg-emerald-500 text-white"
+                      }`}
+                    >
+                      <Link to={ctaLink}>{ctaText}</Link>
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={handleCopyReferralLink}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs h-7 sm:h-8 px-3 rounded-xl font-bold shadow-xs cursor-pointer flex items-center gap-1.5"
+                    >
+                      {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      <span>{copiedLink ? "Copied!" : ctaText}</span>
+                    </Button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setIsMilestoneFolded((prev) => !prev)}
+                    className="p-1 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                    title={isMilestoneFolded ? "Expand details" : "Fold banner"}
+                  >
+                    {isMilestoneFolded ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
-              <Button
-                asChild
-                size="sm"
-                className="shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-xs"
-              >
-                <Link to="/dashboard/transactions">View Wallet &amp; Ledger</Link>
-              </Button>
+
+              {/* Unfolded Details Panel */}
+              {!isMilestoneFolded && (
+                <div className="px-3.5 sm:px-4 pb-3.5 pt-1 border-t border-slate-800/80 animate-in fade-in duration-200">
+                  <div className="bg-slate-950/60 rounded-xl p-3 sm:p-3.5 mt-2 border border-slate-800 space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Action Checklist &amp; Compensation Guide
+                    </p>
+                    <ul className="space-y-1.5 text-xs text-slate-200">
+                      {detailsList.map((item, i) => (
+                        <li key={i} className="flex items-start gap-2">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })()}
@@ -2247,32 +2284,124 @@ const CompoundReferrals: React.FC = () => {
               </p>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap">
-              <Button
-                variant={directoryFilter === "ALL" ? "default" : "outline"}
-                onClick={() => setDirectoryFilter("ALL")}
-                className={`text-xs h-8 rounded-lg ${directoryFilter === "ALL" ? "bg-emerald-800 text-white" : ""}`}
-              >
-                All ({downlineList.length})
-              </Button>
-              <Button
-                variant={directoryFilter === "DIRECT" ? "default" : "outline"}
-                onClick={() => setDirectoryFilter("DIRECT")}
-                className={`text-xs h-8 rounded-lg ${directoryFilter === "DIRECT" ? "bg-emerald-800 text-white" : ""}`}
-              >
-                Direct Personal ({downlineList.filter((d) => !d.isSpillover).length})
-              </Button>
-              <Button
-                variant={directoryFilter === "SPILLOVER" ? "default" : "outline"}
-                onClick={() => setDirectoryFilter("SPILLOVER")}
-                className={`text-xs h-8 rounded-lg ${directoryFilter === "SPILLOVER" ? "bg-emerald-800 text-white" : ""}`}
-              >
-                Spillover ({downlineList.filter((d) => d.isSpillover).length})
-              </Button>
+            {/* Intelligent Filter Tabs + Sort Controls */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              {/* Filter Tabs */}
+              <div className="flex items-center gap-1.5 flex-wrap overflow-x-auto pb-1 max-w-full">
+                <Button
+                  variant={directoryFilter === "ALL" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setDirectoryFilter("ALL")}
+                  className={`text-xs h-8 px-3 rounded-xl transition-all cursor-pointer ${
+                    directoryFilter === "ALL"
+                      ? "bg-emerald-800 hover:bg-emerald-700 text-white font-semibold shadow-xs"
+                      : "border-gray-200 text-gray-700 hover:bg-emerald-50 hover:text-emerald-900"
+                  }`}
+                >
+                  <span>All Referrals</span>
+                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] ${
+                    directoryFilter === "ALL" ? "bg-emerald-950/70 text-emerald-200" : "bg-gray-100 text-gray-600"
+                  }`}>
+                    {downlineList.length}
+                  </span>
+                </Button>
+
+                <Button
+                  variant={directoryFilter === "TREE" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setDirectoryFilter("TREE")}
+                  className={`text-xs h-8 px-3 rounded-xl transition-all cursor-pointer ${
+                    directoryFilter === "TREE"
+                      ? "bg-emerald-800 hover:bg-emerald-700 text-white font-semibold shadow-xs"
+                      : "border-gray-200 text-gray-700 hover:bg-emerald-50 hover:text-emerald-900"
+                  }`}
+                >
+                  <span>My Network in Tree</span>
+                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] ${
+                    directoryFilter === "TREE" ? "bg-emerald-950/70 text-emerald-200" : "bg-gray-100 text-gray-600"
+                  }`}>
+                    {downlineList.filter((d) => d.position > 0 && d.slotsHeld > 0).length}
+                  </span>
+                </Button>
+
+                <Button
+                  variant={directoryFilter === "DIRECT" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setDirectoryFilter("DIRECT")}
+                  className={`text-xs h-8 px-3 rounded-xl transition-all cursor-pointer ${
+                    directoryFilter === "DIRECT"
+                      ? "bg-emerald-800 hover:bg-emerald-700 text-white font-semibold shadow-xs"
+                      : "border-gray-200 text-gray-700 hover:bg-emerald-50 hover:text-emerald-900"
+                  }`}
+                >
+                  <span>Direct Personal</span>
+                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] ${
+                    directoryFilter === "DIRECT" ? "bg-emerald-950/70 text-emerald-200" : "bg-gray-100 text-gray-600"
+                  }`}>
+                    {downlineList.filter((d) => !d.isSpillover).length}
+                  </span>
+                </Button>
+
+                <Button
+                  variant={directoryFilter === "UNPAID" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setDirectoryFilter("UNPAID")}
+                  className={`text-xs h-8 px-3 rounded-xl transition-all cursor-pointer ${
+                    directoryFilter === "UNPAID"
+                      ? "bg-amber-600 hover:bg-amber-500 text-white font-semibold shadow-xs"
+                      : "border-gray-200 text-gray-700 hover:bg-amber-50 hover:text-amber-900"
+                  }`}
+                >
+                  <span>Unpaid / 0 Slots</span>
+                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] ${
+                    directoryFilter === "UNPAID" ? "bg-amber-950/70 text-amber-200" : "bg-gray-100 text-gray-600"
+                  }`}>
+                    {downlineList.filter((d) => d.slotsHeld === 0).length}
+                  </span>
+                </Button>
+
+                <Button
+                  variant={directoryFilter === "SPILLOVER" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setDirectoryFilter("SPILLOVER")}
+                  className={`text-xs h-8 px-3 rounded-xl transition-all cursor-pointer ${
+                    directoryFilter === "SPILLOVER"
+                      ? "bg-emerald-800 hover:bg-emerald-700 text-white font-semibold shadow-xs"
+                      : "border-gray-200 text-gray-700 hover:bg-emerald-50 hover:text-emerald-900"
+                  }`}
+                >
+                  <span>Spillover</span>
+                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] ${
+                    directoryFilter === "SPILLOVER" ? "bg-emerald-950/70 text-emerald-200" : "bg-gray-100 text-gray-600"
+                  }`}>
+                    {downlineList.filter((d) => d.isSpillover).length}
+                  </span>
+                </Button>
+              </div>
+
+              {/* Sorting Selector */}
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs text-gray-500 font-medium flex items-center gap-1">
+                  <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
+                  <span>Sort by:</span>
+                </span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-800 text-xs font-semibold rounded-xl px-3 py-1.5 outline-none cursor-pointer transition-colors shadow-2xs"
+                >
+                  <option value="SLOTS_DESC">Most Farm Slots</option>
+                  <option value="SLOTS_ASC">Least Farm Slots</option>
+                  <option value="DATE_DESC">Joined: Newest First</option>
+                  <option value="DATE_ASC">Joined: Oldest First</option>
+                  <option value="NAME_ASC">Name (A – Z)</option>
+                  <option value="LEG_ASC">Tree Leg (1 – 5)</option>
+                </select>
+              </div>
             </div>
           </div>
 
-          {filteredDirectory.length === 0 ? (
+          {sortedDirectory.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-100">
               <Users className="w-10 h-10 text-gray-300 mx-auto mb-2" />
               <p className="text-sm font-semibold text-gray-700">No downline members found.</p>
@@ -2282,96 +2411,147 @@ const CompoundReferrals: React.FC = () => {
               </Button>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase font-semibold text-[10px] tracking-wider">
-                  <tr>
-                    <th className="py-3 px-4">#</th>
-                    <th className="py-3 px-4">Member Name</th>
-                    <th className="py-3 px-4">AGC Member ID</th>
-                    <th className="py-3 px-4">Contact Info</th>
-                    <th className="py-3 px-4">Source / Sponsor</th>
-                    <th className="py-3 px-4">Slots Held</th>
-                    <th className="py-3 px-4">Tree Position</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {filteredDirectory.map((m, idx) => (
-                    <tr key={m.id} className="hover:bg-emerald-50/30 transition-colors">
-                      <td className="py-3 px-4 text-gray-400 font-mono">{idx + 1}</td>
-                      <td className="py-3 px-4 font-bold text-gray-900">{m.fullName}</td>
-                      <td className="py-3 px-4 font-mono font-semibold text-emerald-800">
-                        {m.memberId}
-                      </td>
-                      <td className="py-3 px-4 text-gray-600">
-                        <div>{m.email}</div>
-                        {m.phone && <div className="text-[11px] text-gray-400">{m.phone}</div>}
-                      </td>
-                      <td className="py-3 px-4">
-                        {m.isSpillover ? (
-                          <span className="bg-blue-50 text-blue-800 px-2.5 py-0.5 rounded-full border border-blue-200/60 font-medium inline-flex items-center gap-1 text-[11px]">
-                            🌊 Spillover ({m.sponsorName || "Upline"})
-                          </span>
-                        ) : (
-                          <span className="bg-emerald-50 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-200/60 font-medium inline-flex items-center gap-1 text-[11px]">
-                            ⭐ Direct Personal
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 font-bold text-gray-800">
-                        {m.slotsHeld > 0 ? (
-                          <span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200/60 font-medium inline-flex items-center gap-1">
-                            🟢 Active Farm Slot ({m.slotsHeld})
-                          </span>
-                        ) : (
-                          <span className="bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full border border-amber-200/60 font-medium inline-flex items-center gap-1">
-                            🟡 ₦2k Member (No Farm Slot)
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        {m.position > 0 ? (
-                          <span className="font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md text-[11px] border border-emerald-100">
-                            Leg #{m.position}
-                          </span>
-                        ) : (
-                          <span className="font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-md text-[11px]">
-                            Direct Enrollee
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-right space-x-1.5">
-                        {(!m.position || m.position === 0) && (
-                          <button
-                            onClick={() => setSelectedHoldingEnrollee(m)}
-                            className="text-emerald-800 hover:text-emerald-950 font-bold bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 px-2.5 py-1 rounded-md text-[11px] transition-colors"
-                          >
-                            Place in Matrix
-                          </button>
-                        )}
-                        {m.phone && (
-                          <button
-                            onClick={() => window.open(`https://wa.me/${m.phone?.replace(/[^0-9]/g, "")}`, "_blank")}
-                            className="text-emerald-700 hover:text-emerald-900 font-bold bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md text-[11px]"
-                          >
-                            WhatsApp
-                          </button>
-                        )}
-                        <button
-                          onClick={() => {
-                            buildSubtree(m.id, false);
-                            window.scrollTo({ top: 400, behavior: "smooth" });
-                          }}
-                          className="text-blue-700 hover:text-blue-900 font-bold bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md text-[11px]"
-                        >
-                          Inspect Tree
-                        </button>
-                      </td>
+            <div className="space-y-4">
+              <div className="overflow-x-auto rounded-2xl border border-gray-100">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-gray-50/80 border-b border-gray-100 text-gray-500 uppercase font-semibold text-[10px] tracking-wider select-none">
+                    <tr>
+                      <th className="py-3 px-4">#</th>
+                      <th
+                        className="py-3 px-4 cursor-pointer hover:text-emerald-800 transition-colors"
+                        onClick={() => setSortBy((prev) => (prev === "NAME_ASC" ? "DATE_DESC" : "NAME_ASC"))}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          Member Name
+                          <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                        </span>
+                      </th>
+                      <th className="py-3 px-4">AGC Member ID</th>
+                      <th className="py-3 px-4">Contact Info</th>
+                      <th className="py-3 px-4">Source / Sponsor</th>
+                      <th
+                        className="py-3 px-4 cursor-pointer hover:text-emerald-800 transition-colors"
+                        onClick={() => setSortBy((prev) => (prev === "SLOTS_DESC" ? "SLOTS_ASC" : "SLOTS_DESC"))}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          Slots Held
+                          <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                        </span>
+                      </th>
+                      <th
+                        className="py-3 px-4 cursor-pointer hover:text-emerald-800 transition-colors"
+                        onClick={() => setSortBy((prev) => (prev === "LEG_ASC" ? "SLOTS_DESC" : "LEG_ASC"))}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          Tree Position
+                          <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                        </span>
+                      </th>
+                      <th className="py-3 px-4 text-right">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {visibleDirectory.map((m, idx) => (
+                      <tr key={m.id} className="hover:bg-emerald-50/30 transition-colors">
+                        <td className="py-3 px-4 text-gray-400 font-mono">{idx + 1}</td>
+                        <td className="py-3 px-4 font-bold text-gray-900">{m.fullName}</td>
+                        <td className="py-3 px-4 font-mono font-semibold text-emerald-800">
+                          {m.memberId}
+                        </td>
+                        <td className="py-3 px-4 text-gray-600">
+                          <div>{m.email}</div>
+                          {m.phone && <div className="text-[11px] text-gray-400">{m.phone}</div>}
+                        </td>
+                        <td className="py-3 px-4">
+                          {m.isSpillover ? (
+                            <span className="bg-blue-50 text-blue-800 px-2.5 py-0.5 rounded-full border border-blue-200/60 font-medium inline-flex items-center gap-1 text-[11px]">
+                              🌊 Spillover ({m.sponsorName || "Upline"})
+                            </span>
+                          ) : (
+                            <span className="bg-emerald-50 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-200/60 font-medium inline-flex items-center gap-1 text-[11px]">
+                              ⭐ Direct Personal
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 font-bold text-gray-800">
+                          {m.slotsHeld > 0 ? (
+                            <span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200/60 font-medium inline-flex items-center gap-1">
+                              🟢 Active Farm Slot ({m.slotsHeld})
+                            </span>
+                          ) : (
+                            <span className="bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full border border-amber-200/60 font-medium inline-flex items-center gap-1">
+                              🟡 ₦2k Member (No Farm Slot)
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4">
+                          {m.position > 0 ? (
+                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md text-[11px] border border-emerald-100">
+                              Leg #{m.position}
+                            </span>
+                          ) : (
+                            <span className="font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-md text-[11px]">
+                              Direct Enrollee
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right space-x-1.5">
+                          {(!m.position || m.position === 0) && (
+                            <button
+                              onClick={() => setSelectedHoldingEnrollee(m)}
+                              className="text-emerald-800 hover:text-emerald-950 font-bold bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 px-2.5 py-1 rounded-md text-[11px] transition-colors"
+                            >
+                              Place in Matrix
+                            </button>
+                          )}
+                          {m.phone && (
+                            <button
+                              onClick={() => window.open(`https://wa.me/${m.phone?.replace(/[^0-9]/g, "")}`, "_blank")}
+                              className="text-emerald-700 hover:text-emerald-900 font-bold bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md text-[11px]"
+                            >
+                              WhatsApp
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              buildSubtree(m.id, false);
+                              window.scrollTo({ top: 400, behavior: "smooth" });
+                            }}
+                            className="text-blue-700 hover:text-blue-900 font-bold bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md text-[11px]"
+                          >
+                            Inspect Tree
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Load More Button instead of Pagination */}
+              {sortedDirectory.length > visibleCount ? (
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <p className="text-xs text-gray-500">
+                    Showing <span className="font-bold text-gray-900">{visibleDirectory.length}</span> of{" "}
+                    <span className="font-bold text-gray-900">{sortedDirectory.length}</span> members
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setVisibleCount((prev) => prev + 10)}
+                    className="border-emerald-600/40 text-emerald-800 hover:bg-emerald-50 text-xs font-semibold px-5 py-2 rounded-xl flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                  >
+                    <span>Load More Members</span>
+                    <span className="text-[11px] font-normal text-emerald-600 bg-emerald-100/70 px-2 py-0.5 rounded-full">
+                      +{Math.min(10, sortedDirectory.length - visibleCount)} remaining
+                    </span>
+                  </Button>
+                </div>
+              ) : sortedDirectory.length > 0 ? (
+                <div className="pt-2 text-center text-[11px] text-gray-400">
+                  Showing all {sortedDirectory.length} member{sortedDirectory.length === 1 ? "" : "s"}
+                </div>
+              ) : null}
             </div>
           )}
         </div>

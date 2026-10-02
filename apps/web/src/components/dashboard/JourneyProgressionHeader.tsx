@@ -9,13 +9,11 @@ import {
   ArrowRight,
   ChevronDown,
   ChevronUp,
+  Compass,
+  Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  getGreenCardFee,
-  formatNaira,
-  isLegacyMember,
-} from "@shared/businessRules";
+import { isLegacyMember } from "@shared/businessRules";
 
 export interface JourneyProgressionHeaderProps {
   hasGreenCard: boolean;
@@ -45,9 +43,9 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   onOpenShareModal,
 }) => {
   const navigate = useNavigate();
-  const [isManuallyToggled, setIsManuallyToggled] = useState<boolean | null>(null);
+  // Folded by default per user specification
+  const [isFolded, setIsFolded] = useState<boolean>(true);
 
-  const activeFee = getGreenCardFee(createdAt);
   const isMemberLegacy = Boolean(isLegacy) || isLegacyMember(createdAt);
 
   // Determine current active milestone
@@ -72,9 +70,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
     return null;
   }
 
-  // Management Rule: Once Milestone 3 is COMPLETED, allow the milestone stuff to be there for 3 days open,
-  // after which it folds on its own, but user can re-open/draw it down for another 18 days (21 days total),
-  // after which it disappears completely on its own.
+  // Management Rule: Once Milestone 3 is COMPLETED, allow the milestone stuff to be there for 21 days total
   const m3CompletedKey = memberId ? `agroheal_m3_completed_${memberId}` : "agroheal_m3_completed_default";
   let completionTimestamp = 0;
   if (isStep3Done) {
@@ -94,392 +90,319 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
     ? Math.floor((Date.now() - completionTimestamp) / (1000 * 60 * 60 * 24))
     : 0;
 
-  // Disappears after 21 days total (3 days open + 18 days folded)
+  // Disappears after 21 days total
   if (isStep3Done && daysSinceCompleted >= 21) {
     return null;
   }
 
-  // Auto-fold after 3 days
-  const isAutoFolded = isStep3Done && daysSinceCompleted >= 3;
-  const isFolded = isManuallyToggled !== null ? isManuallyToggled : isAutoFolded;
+  // Determine concise folded status summary
+  let statusBadge = "Starter Package Pending";
+  let headline = "Activate ₦12,000 Starter Package";
+  let shortSummary = "Includes Green Card (₦2,000), Mushroom Power 100g (₦5,000), and 1st Farm Slot (₦5,000) to lock your matrix node.";
+  let ctaText = "Activate ₦12,000 Package";
+  let onCtaClick = () => navigate("/dashboard/checkout?bundle=starter");
+  let isWarning = true;
 
-  // If folded, render the compact drawer
-  if (isStep3Done && isFolded) {
-    return (
-      <div className="w-full bg-emerald-950/15 dark:bg-emerald-950/30 border border-emerald-500/30 rounded-2xl p-4 shadow-xs mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              All 3 Milestones Completed! 🎉
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                Day {Math.min(21, daysSinceCompleted + 1)} of 21
-              </span>
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Milestone pathway folded automatically. Tap to review your completed badges and earning progress.
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setIsManuallyToggled(false)}
-          className="rounded-xl text-xs h-8 px-3 shrink-0 flex items-center gap-1.5 border-emerald-500/40 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/10 cursor-pointer self-start sm:self-auto"
-        >
-          <span>View Pathway</span>
-          <ChevronDown className="w-3.5 h-3.5" />
-        </Button>
-      </div>
-    );
+  if (isMemberLegacy && !hasPurchasedStarterPack) {
+    statusBadge = "Founding Member";
+    headline = "Activate Mushroom Power 100g (₦5,000)";
+    shortSummary = "Green Card is free. Activate welcome product to unlock full withdrawals & 5×7 community tree.";
+    ctaText = "Activate (₦5,000)";
+    onCtaClick = () => navigate("/dashboard/checkout?product=SP-MUSH-100G");
+    isWarning = true;
+  } else if (!isMemberLegacy && (!isStep1Done || !isStep2Done)) {
+    statusBadge = "Starter Package Pending";
+    headline = "Activate ₦12,000 Starter Package";
+    shortSummary = "Green Card (₦2k), Mushroom Power 100g (₦5k) & 1st Farm Slot (₦5k) to lock your permanent node.";
+    ctaText = "Activate (₦12,000)";
+    onCtaClick = () => navigate("/dashboard/checkout?bundle=starter");
+    isWarning = true;
+  } else if (directReferralsCount < 5) {
+    statusBadge = `${directReferralsCount}/5 Directs`;
+    headline = `Sponsor ${5 - directReferralsCount} More Direct Partner(s)`;
+    shortSummary = `Refer 5 friends with the ₦12,000 package to unlock all 7 matrix commission tiers (${directReferralsCount}/5 reached).`;
+    ctaText = "Share Link";
+    onCtaClick = onOpenShareModal ? onOpenShareModal : () => navigate("/dashboard/my-network");
+    isWarning = false;
+  } else {
+    statusBadge = "✓ All 3 Milestones Done";
+    headline = "All 7 Matrix Commission Tiers Active";
+    shortSummary = "Your 5×7 matrix placement node is fully qualified down 7 tiers. Share your link for community spillovers.";
+    ctaText = "View Network";
+    onCtaClick = () => navigate("/dashboard/my-network");
+    isWarning = false;
   }
 
   return (
-    <div className="w-full bg-card rounded-2xl border border-border/60 shadow-xs mb-8 overflow-hidden">
-      {/* Header Banner Strip */}
-      <div className="px-5 py-4 bg-muted/30 border-b border-border/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
-            <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+    <div
+      className={`w-full rounded-2xl border transition-all duration-200 shadow-xs mb-8 overflow-hidden ${
+        isWarning
+          ? "bg-amber-950/10 dark:bg-amber-950/20 border-amber-500/40"
+          : "bg-emerald-950/10 dark:bg-emerald-950/20 border-emerald-500/40"
+      }`}
+    >
+      {/* ── COMPACT FOLDED HEADER BAR ── */}
+      <div className="p-3 sm:p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div
+          onClick={() => setIsFolded((prev) => !prev)}
+          className="flex items-center gap-3 cursor-pointer select-none flex-1 min-w-0"
+        >
+          <div
+            className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+              isStep3Done
+                ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                : isWarning
+                ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+            }`}
+          >
+            {isStep3Done ? (
+              <CheckCircle2 className="w-4 h-4" />
+            ) : (
+              <Compass className="w-4 h-4" />
+            )}
           </div>
-          <div>
-            <h2 className="text-sm md:text-base font-bold text-foreground flex items-center gap-2">
-              Member Milestones &amp; Earning Pathway
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
-                {isStep3Done
-                  ? `All 3 Milestones Completed 🎉 (Day ${Math.min(21, daysSinceCompleted + 1)}/21)`
-                  : currentStep === 3
-                  ? `Milestone 3 of 3 Active (Day ${Math.min(21, Math.max(1, daysSinceMilestone3 + 1))}/21)`
-                  : `Milestone ${currentStep} of 3 Active`}
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-extrabold text-xs sm:text-sm text-foreground flex items-center gap-1.5">
+                What to do now?
               </span>
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Follow this 3-milestone pathway to unlock full commercial withdrawal rights, producer harvests, and 5×7 compound earnings.
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  isWarning
+                    ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
+                    : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                }`}
+              >
+                {statusBadge}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground truncate mt-0.5">
+              <strong className="text-foreground">{headline}</strong> • {shortSummary}
             </p>
           </div>
         </div>
 
-        {isStep3Done && (
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+          <Button
+            size="sm"
+            onClick={onCtaClick}
+            className={`text-xs h-7 sm:h-8 px-3 rounded-xl font-bold shadow-xs cursor-pointer ${
+              isWarning
+                ? "bg-amber-600 hover:bg-amber-700 text-white"
+                : "bg-emerald-600 hover:bg-emerald-700 text-white"
+            }`}
+          >
+            {ctaText}
+          </Button>
+
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsManuallyToggled(true)}
-            className="text-xs h-7 px-2.5 text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer shrink-0"
+            onClick={() => setIsFolded((prev) => !prev)}
+            className="h-7 sm:h-8 px-2 rounded-xl text-muted-foreground hover:text-foreground text-xs flex items-center gap-1 cursor-pointer"
+            title={isFolded ? "Expand pathway" : "Fold banner"}
           >
-            <span>Fold Ribbon</span>
-            <ChevronUp className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline text-[11px] font-medium">
+              {isFolded ? "Details" : "Fold"}
+            </span>
+            {isFolded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
           </Button>
-        )}
+        </div>
       </div>
 
-      {/* 3-Milestone Infographic Ribbon */}
-      <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* ── MILESTONE 1: GREEN CARD ────────────────────────────────────────── */}
-        <div
-          className={`relative rounded-xl p-4 transition-all border flex flex-col justify-between ${
-            isStep1Done
-              ? "bg-muted/10 border-border/40 text-muted-foreground opacity-85"
-              : currentStep === 1
-              ? "bg-emerald-500/10 border-emerald-500/40 ring-1 ring-emerald-500/30 text-foreground shadow-xs"
-              : "bg-muted/10 border-border/40 text-muted-foreground opacity-70"
-          }`}
-        >
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-muted-foreground">
-                Milestone 01
+      {/* ── EXPANDABLE 3-MILESTONE PATHWAY DETAILS ── */}
+      {!isFolded && (
+        <div className="p-4 md:p-5 border-t border-border/40 grid grid-cols-1 md:grid-cols-3 gap-3.5 animate-in fade-in duration-200">
+          {/* MILESTONE 1: GREEN CARD */}
+          <div
+            className={`rounded-xl p-3.5 border flex flex-col justify-between ${
+              isStep1Done
+                ? "bg-card/60 border-border/40 text-muted-foreground"
+                : "bg-emerald-500/10 border-emerald-500/40 text-foreground"
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-mono font-bold uppercase text-muted-foreground">
+                  Milestone 01
+                </span>
+                {isStep1Done ? (
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Done
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-primary">Pending</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 mb-2">
+                <IdCard className="w-4 h-4 text-emerald-500 shrink-0" />
+                <h4 className="text-xs font-bold text-foreground">
+                  Agroheal Green Card
+                </h4>
+              </div>
+
+              <p className="text-[11px] text-muted-foreground leading-relaxed mb-2.5">
+                {isMemberLegacy
+                  ? "Free lifetime pass for founding members. Enables personal AGC affiliate ID."
+                  : "₦2,000 digital lifetime credentials included in ₦12,000 package. Unlocks personal AGC ID & ₦1,000 direct referral bounty."}
+              </p>
+            </div>
+
+            <div className="pt-2 border-t border-border/30 flex items-center justify-between text-xs">
+              <span className="font-mono text-[11px] text-muted-foreground">
+                {memberId ? `ID: ${memberId}` : "₦2,000 Value"}
               </span>
               {isStep1Done ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  <CheckCircle2 className="w-3 h-3" /> Completed
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20 animate-pulse">
-                  Active Milestone
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-start gap-3 mb-3">
-              <div
-                className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                  isStep1Done
-                    ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                    : "bg-primary text-primary-foreground font-bold shadow-xs"
-                }`}
-              >
-                <IdCard className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold leading-tight">
-                  Agroheal Green Card
-                </h3>
-                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                  {isMemberLegacy ? "Free Lifetime Pass" : "Part of ₦12,000 Package"}
-                </span>
-              </div>
-            </div>
-
-            <ul className="space-y-1.5 text-xs mb-4">
-              <li className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>Verified AGC Member ID &amp; digital credentials</span>
-              </li>
-              <li className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>Personal Affiliate Link enabled immediately</span>
-              </li>
-              <li className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span><strong>₦1,000 instant referral bounty</strong> into wallet</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="pt-2 border-t border-border/30">
-            {isStep1Done ? (
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-mono text-[11px] font-semibold text-foreground">
-                  ID: {memberId || "Active Member"}
-                </span>
                 <Link
                   to="/dashboard/profile/green-card"
-                  className="font-medium text-primary hover:underline inline-flex items-center gap-1"
+                  className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5 text-[11px]"
                 >
                   View Pass <ArrowRight className="w-3 h-3" />
                 </Link>
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                <Button
-                  size="sm"
+              ) : (
+                <button
+                  type="button"
                   onClick={() => navigate("/dashboard/checkout?bundle=starter")}
-                  className="w-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                  className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5 text-[11px] cursor-pointer"
                 >
-                  Activate Starter Package (₦12,000)
-                </Button>
-              </div>
-            )}
+                  Activate <ArrowRight className="w-3 h-3" />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* ── MILESTONE 2: MUSHROOM VILLAGE STARTER PACKAGE ───────────────────── */}
-        <div
-          className={`relative rounded-xl p-4 transition-all border flex flex-col justify-between ${
-            isStep2Done
-              ? "bg-muted/10 border-border/40 text-muted-foreground opacity-85"
-              : currentStep === 2
-              ? "bg-emerald-500/10 border-emerald-500/40 ring-1 ring-emerald-500/30 text-foreground shadow-xs"
-              : "bg-muted/10 border-border/40 text-muted-foreground opacity-60"
-          }`}
-        >
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-muted-foreground">
-                Milestone 02
+          {/* MILESTONE 2: STARTER PACKAGE & MUSHROOM VILLAGE */}
+          <div
+            className={`rounded-xl p-3.5 border flex flex-col justify-between ${
+              isStep2Done
+                ? "bg-card/60 border-border/40 text-muted-foreground"
+                : isStep1Done
+                ? "bg-amber-500/10 border-amber-500/40 text-foreground"
+                : "bg-card/40 border-border/30 text-muted-foreground opacity-70"
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-mono font-bold uppercase text-muted-foreground">
+                  Milestone 02
+                </span>
+                {isStep2Done ? (
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Active
+                  </span>
+                ) : isStep1Done ? (
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                    Next Step
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
+                    <Lock className="w-2.5 h-2.5" /> Locked
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 mb-2">
+                <Sprout className="w-4 h-4 text-emerald-500 shrink-0" />
+                <h4 className="text-xs font-bold text-foreground">
+                  Mushroom Village &amp; Welcome Product
+                </h4>
+              </div>
+
+              <p className="text-[11px] text-muted-foreground leading-relaxed mb-2.5">
+                {isMemberLegacy
+                  ? "Activate Mushroom Power 100g (₦5,000) to unlock full withdrawals & 5×7 matrix organogram."
+                  : "Included in ₦12,000 package: Mushroom Power 100g (₦5,000) + 1st Farm Slot (₦5,000) locking your permanent matrix placement & bank withdrawals."}
+              </p>
+            </div>
+
+            <div className="pt-2 border-t border-border/30 flex items-center justify-between text-xs">
+              <span className="text-[11px] text-muted-foreground font-semibold">
+                {totalSlots > 0 ? `${totalSlots} Farm Slot${totalSlots > 1 ? "s" : ""}` : "₦10,000 Value"}
               </span>
               {isStep2Done ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  <CheckCircle2 className="w-3 h-3" /> Completed
-                </span>
-              ) : currentStep === 2 ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 animate-pulse">
-                  Unlock Withdrawals
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                  <Lock className="w-3 h-3" /> Locked
-                </span>
-              )}
-            </div>
-
-            <div className="flex items-start gap-3 mb-3">
-              <div
-                className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                  isStep2Done
-                    ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                    : currentStep === 2
-                    ? "bg-amber-600 text-white font-bold shadow-xs"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                <Sprout className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold leading-tight">
-                  {isMemberLegacy ? "Mushroom Power Activation" : "Farm Slot & Mushroom Power"}
-                </h3>
-                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                  {isMemberLegacy ? "₦5,000 Product Activation" : "Included in ₦12,000 Package"}
-                </span>
-              </div>
-            </div>
-
-            <p className="text-[11px] text-muted-foreground mb-2.5 leading-relaxed">
-              {isMemberLegacy
-                ? "Activate your Mushroom Power 100g (SP-MUSH-100G) product to unlock your 5×7 community matrix organogram, downline commissions, and commercial bank withdrawals."
-                : "Your ₦12,000 starter package includes your Green Card, 1 Mushroom Village Farm Slot (2 Bags · Cycle Doubling), and Mushroom Power 100g (SP-MUSH-100G)."}
-            </p>
-
-            <ul className="space-y-1.5 text-xs mb-4">
-              <li className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>1 Farm Slot in Mushroom Village (2 Bags)</span>
-              </li>
-              <li className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>Mushroom Power (100g) SP-MUSH-100G product</span>
-              </li>
-              <li className="flex items-center gap-1.5 font-semibold text-foreground">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
-                <span>🔓 <strong>Unlocks Full Bank Withdrawals</strong></span>
-              </li>
-              <li className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
-                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground shrink-0" />
-                <span>Unlocks 5×7 community matrix spillovers</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="pt-2 border-t border-border/30">
-            {isStep2Done ? (
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-foreground">
-                  {totalSlots} Farm Slot{totalSlots > 1 ? "s" : ""} Active
-                </span>
                 <Link
                   to="/dashboard/farm-operations/my-slots"
-                  className="font-medium text-primary hover:underline inline-flex items-center gap-1"
+                  className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5 text-[11px]"
                 >
-                  Farm Account <ArrowRight className="w-3 h-3" />
+                  My Slots <ArrowRight className="w-3 h-3" />
                 </Link>
-              </div>
-            ) : currentStep === 2 ? (
-              <Button
-                size="sm"
-                onClick={() =>
-                  navigate(
-                    isMemberLegacy && !hasPurchasedStarterPack
-                      ? "/dashboard/checkout?product=SP-MUSH-100G"
-                      : "/dashboard/checkout?bundle=starter"
-                  )
-                }
-                className="w-full text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white shadow-xs"
-              >
-                {isMemberLegacy && !hasPurchasedStarterPack
-                  ? "Activate Mushroom Power (₦5,000)"
-                  : "Activate Starter Package (₦12,000)"}
-              </Button>
-            ) : (
-              <div className="text-center py-1 text-[11px] text-muted-foreground font-medium flex items-center justify-center gap-1">
-                <Lock className="w-3 h-3" /> Complete Milestone 1 First
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── MILESTONE 3: 5 DIRECTS & MATRIX ─────────────────────────────────── */}
-        <div
-          className={`relative rounded-xl p-4 transition-all border flex flex-col justify-between ${
-            isStep3Done
-              ? "bg-muted/10 border-border/40 text-muted-foreground opacity-85"
-              : currentStep === 3
-              ? "bg-emerald-500/10 border-emerald-500/40 ring-1 ring-emerald-500/30 text-foreground shadow-xs"
-              : "bg-muted/10 border-border/40 text-muted-foreground opacity-60"
-          }`}
-        >
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] font-mono font-bold tracking-wider uppercase text-muted-foreground">
-                Milestone 03
-              </span>
-              {isStep3Done ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  <CheckCircle2 className="w-3 h-3" /> 5+ Directs Reached
-                </span>
-              ) : currentStep === 3 ? (
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
-                  {directReferralsCount}/5 Directs
-                </span>
               ) : (
-                <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
-                  <Lock className="w-3 h-3" /> Milestone 2 Required
-                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    navigate(
+                      isMemberLegacy
+                        ? "/dashboard/checkout?product=SP-MUSH-100G"
+                        : "/dashboard/checkout?bundle=starter"
+                    )
+                  }
+                  className="text-amber-600 dark:text-amber-400 hover:underline font-semibold inline-flex items-center gap-0.5 text-[11px] cursor-pointer"
+                >
+                  {isMemberLegacy ? "Activate ₦5k" : "Activate ₦12k"} <ArrowRight className="w-3 h-3" />
+                </button>
               )}
             </div>
+          </div>
 
-            <div className="flex items-start gap-3 mb-3">
-              <div
-                className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                  isStep3Done
-                    ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400"
-                    : currentStep === 3
-                    ? "bg-primary text-primary-foreground font-bold shadow-xs"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                <Users className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold leading-tight">
-                  Build &amp; Compound
-                </h3>
-                <span className="text-xs font-semibold text-muted-foreground">
-                  Invite 5 Friends Goal
+          {/* MILESTONE 3: 5 DIRECTS & 7-TIER MATRIX */}
+          <div
+            className={`rounded-xl p-3.5 border flex flex-col justify-between ${
+              isStep3Done
+                ? "bg-card/60 border-border/40 text-muted-foreground"
+                : isStep2Done
+                ? "bg-emerald-500/10 border-emerald-500/40 text-foreground"
+                : "bg-card/40 border-border/30 text-muted-foreground opacity-70"
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-mono font-bold uppercase text-muted-foreground">
+                  Milestone 03
                 </span>
+                {isStep3Done ? (
+                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> All 7 Tiers Unlocked
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold text-primary">
+                    {directReferralsCount}/5 Directs
+                  </span>
+                )}
               </div>
+
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="w-4 h-4 text-emerald-500 shrink-0" />
+                <h4 className="text-xs font-bold text-foreground">
+                  Sponsor 5 Direct Partners
+                </h4>
+              </div>
+
+              <p className="text-[11px] text-muted-foreground leading-relaxed mb-2.5">
+                Sponsor 5 active members with the ₦12,000 package to unlock all 7 tiers of community matrix commissions. Earn ₦1,000 bounty + ₦500 slot commission per partner.
+              </p>
             </div>
 
-            <ul className="space-y-1.5 text-xs mb-4">
-              <li className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span><strong>Instant ₦1,000 Cash:</strong> You get ₦1,000 every time a friend signs up</span>
-              </li>
-              <li className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span><strong>₦500 per slot:</strong> Earn ₦500 whenever your direct referrals secure a slot.</span>
-              </li>
-              <li className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span><strong>5 x 7 Commissions:</strong> Earn cash bonuses whenever anyone in your network makes food purchases.</span>
-              </li>
-              <li className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span><strong>5 Friends Goal:</strong> Reach 5 friends to qualify for bank withdrawals</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="pt-2 border-t border-border/30">
-            {currentStep >= 3 ? (
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={onOpenShareModal ? onOpenShareModal : () => navigate("/dashboard/my-network")}
-                  className="flex-1 text-xs h-8"
-                >
-                  Share Link
-                </Button>
-                <Link
-                  to="/dashboard/my-network"
-                  className="text-xs font-medium text-primary hover:underline px-2 py-1"
-                >
-                  View Matrix →
-                </Link>
-              </div>
-            ) : (
-              <div className="text-center py-1 text-[11px] text-muted-foreground font-medium flex items-center justify-center gap-1">
-                <Lock className="w-3 h-3" /> Complete Milestones 1 &amp; 2
-              </div>
-            )}
+            <div className="pt-2 border-t border-border/30 flex items-center justify-between text-xs">
+              <span className="text-[11px] text-muted-foreground font-semibold">
+                Tier {Math.min(7, Math.max(1, directReferralsCount + 2))} Active
+              </span>
+              <button
+                type="button"
+                onClick={onOpenShareModal ? onOpenShareModal : () => navigate("/dashboard/my-network")}
+                className="text-primary hover:underline font-semibold inline-flex items-center gap-1 text-[11px] cursor-pointer"
+              >
+                <Share2 className="w-3 h-3" /> Share Link
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
 
 export default JourneyProgressionHeader;
+
