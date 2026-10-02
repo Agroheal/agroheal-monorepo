@@ -436,6 +436,18 @@ const Dashboard = () => {
   const menuTiles = [
     checkoutTile,
     {
+      id: "community-channels",
+      title: "LEAP Communities",
+      metricValue: "Telegram & WhatsApp",
+      subtitle: "Official groups for announcements & support",
+      badge: "Official Groups",
+      badgeColor: "bg-emerald-100 text-emerald-950 border-emerald-300",
+      path: "/dashboard/help/customer-service",
+      icon: Users,
+      iconBg: "bg-emerald-800 text-white",
+      tag: "Community",
+    },
+    {
       id: "earnings",
       title: "My Earnings",
       metricValue: "View Ledger",
@@ -657,6 +669,62 @@ const Dashboard = () => {
                       </span>
                     </div>
                   </Link>
+                ) : tile.id === "community-channels" ? (
+                  <div className="group relative bg-white rounded-2xl p-4 sm:p-5 border border-emerald-500/30 hover:border-emerald-600 hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full overflow-hidden bg-gradient-to-br from-white via-emerald-50/15 to-teal-50/20">
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-800 text-white flex items-center justify-center shrink-0 shadow-xs">
+                          <Users className="w-5 h-5 text-white" />
+                        </div>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border truncate max-w-[120px] bg-emerald-100 text-emerald-950 border-emerald-300">
+                          {tile.badge}
+                        </span>
+                      </div>
+
+                      <div className="mb-2.5">
+                        <p className="text-xs text-gray-500 font-semibold mb-0.5">
+                          {tile.title}
+                        </p>
+                        <p className="text-sm sm:text-base font-extrabold text-gray-900 tracking-tight">
+                          Join Official Channels
+                        </p>
+                      </div>
+
+                      {/* 2 Interactive Buttons: Telegram & WhatsApp */}
+                      <div className="grid grid-cols-2 gap-2 mb-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            window.open("https://t.me/+8a7pjUluliZjNTg0", "_blank", "noreferrer");
+                          }}
+                          className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold bg-[#229ED9] hover:bg-[#1e8ec3] text-white shadow-xs hover:shadow-sm transition-all cursor-pointer"
+                        >
+                          <Send className="w-3.5 h-3.5 fill-current" />
+                          <span>Telegram</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            window.open("https://wa.link/5ff5ww", "_blank", "noreferrer");
+                          }}
+                          className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20b858] text-white shadow-xs hover:shadow-sm transition-all cursor-pointer"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" />
+                          <span>WhatsApp</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500 mt-1">
+                      <span className="line-clamp-1">{tile.subtitle}</span>
+                      <ArrowUpRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-emerald-700 shrink-0 ml-1" />
+                    </div>
+                  </div>
                 ) : (
                   <Link
                     to={tile.path}

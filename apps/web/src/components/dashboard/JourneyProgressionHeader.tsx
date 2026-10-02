@@ -217,7 +217,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                   Agroheal Green Card
                 </h3>
                 <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                  ₦2,000 One-Time
+                  {isMemberLegacy ? "Free Lifetime Pass" : "Part of ₦12,000 Package"}
                 </span>
               </div>
             </div>
@@ -225,7 +225,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
             <ul className="space-y-1.5 text-xs mb-4">
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>Full platform &amp; verified digital access</span>
+                <span>Verified AGC Member ID &amp; digital credentials</span>
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
@@ -233,7 +233,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span><strong>₦1,000 instant referral commission</strong> into wallet</span>
+                <span><strong>₦1,000 instant referral bounty</strong> into wallet</span>
               </li>
             </ul>
           </div>
@@ -309,26 +309,28 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               </div>
               <div>
                 <h3 className="text-sm font-bold leading-tight">
-                  Starter Package
+                  {isMemberLegacy ? "Mushroom Power Activation" : "Farm Slot & Mushroom Power"}
                 </h3>
                 <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                  ₦10,000 Combo Package
+                  {isMemberLegacy ? "₦5,000 Product Activation" : "Included in ₦12,000 Package"}
                 </span>
               </div>
             </div>
 
             <p className="text-[11px] text-muted-foreground mb-2.5 leading-relaxed">
-              Your starter package is ₦10,000 (₦5,000 Mushroom Group farm setup + ₦5,000 Mushroom Power 100g). Remember that a farm slot alone won't qualify without the Mushroom 100g product—we only sell it together as a combo.
+              {isMemberLegacy
+                ? "Activate your Mushroom Power 100g (SP-MUSH-100G) product to unlock your 5×7 community matrix organogram, downline commissions, and commercial bank withdrawals."
+                : "Your ₦12,000 starter package includes your Green Card, 1 Mushroom Village Farm Slot (2 Bags · Cycle Doubling), and Mushroom Power 100g (SP-MUSH-100G)."}
             </p>
 
             <ul className="space-y-1.5 text-xs mb-4">
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>₦5,000 Mushroom Group farm setup</span>
+                <span>1 Farm Slot in Mushroom Village (2 Bags)</span>
               </li>
               <li className="flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                <span>₦5,000 Mushroom Power (100g) combo</span>
+                <span>Mushroom Power (100g) SP-MUSH-100G product</span>
               </li>
               <li className="flex items-center gap-1.5 font-semibold text-foreground">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
@@ -336,7 +338,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               </li>
               <li className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
                 <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground shrink-0" />
-                <span>Group Farm dividends &amp; 5×7 commissions</span>
+                <span>Unlocks 5×7 community matrix spillovers</span>
               </li>
             </ul>
           </div>
@@ -361,14 +363,14 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                   navigate(
                     isMemberLegacy && !hasPurchasedStarterPack
                       ? "/dashboard/checkout?product=SP-MUSH-100G"
-                      : "/dashboard/checkout?bundle=starter_completion"
+                      : "/dashboard/checkout?bundle=starter"
                   )
                 }
                 className="w-full text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white shadow-xs"
               >
                 {isMemberLegacy && !hasPurchasedStarterPack
                   ? "Activate Mushroom Power (₦5,000)"
-                  : "Secure Starter Package (₦10,000)"}
+                  : "Activate Starter Package (₦12,000)"}
               </Button>
             ) : (
               <div className="text-center py-1 text-[11px] text-muted-foreground font-medium flex items-center justify-center gap-1">
