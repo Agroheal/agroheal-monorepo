@@ -915,41 +915,23 @@ const Dashboard = () => {
               </div>
 
               <div className="space-y-2 pt-2 border-t border-gray-200/60">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Fast-Track Share Links</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(`${SITE_URL}/signup?ref=${profile?.referral_code ?? ""}`);
-                        toast.success("Standard signup link copied!");
-                      } catch {
-                        toast.error("Failed to copy link");
-                      }
-                    }}
-                    className="rounded-xl border-emerald-700 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1 py-1.5 h-auto cursor-pointer"
-                  >
-                    <Copy className="w-3 h-3" />
-                    <span>Signup Link</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={async () => {
-                      try {
-                        await navigator.clipboard.writeText(`${SITE_URL}/subscribe?ref=${profile?.referral_code ?? ""}`);
-                        toast.success("Direct Green Card Pass link copied! Important: Follow up with guest to set account password after checkout.", { duration: 6500 });
-                      } catch {
-                        toast.error("Failed to copy link");
-                      }
-                    }}
-                    className="rounded-xl border-amber-500 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold flex items-center justify-center gap-1 py-1.5 h-auto cursor-pointer"
-                  >
-                    <Zap className="w-3 h-3 fill-current" />
-                    <span>Direct Pass</span>
-                  </Button>
-                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Share Invite Link</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(`${SITE_URL}/signup?ref=${profile?.referral_code ?? ""}`);
+                      toast.success("Affiliate signup link copied!");
+                    } catch {
+                      toast.error("Failed to copy link");
+                    }
+                  }}
+                  className="w-full rounded-xl border-emerald-700 bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 py-2 h-auto cursor-pointer"
+                >
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copy Referral Signup Link</span>
+                </Button>
               </div>
             </div>
 

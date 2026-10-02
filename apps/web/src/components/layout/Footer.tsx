@@ -7,7 +7,6 @@ const footerLinks = {
     { name: "Farm Slots", href: "/farm-slots" },
     { name: "Courses", href: "/courses" },
     { name: "Affiliate Program", href: "/affiliate" },
-    { name: "Green Card Pass", href: "/subscribe" },
   ],
   company: [
     { name: "About Us", href: "/about" },

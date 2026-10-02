@@ -21,7 +21,6 @@ import RequireSubscription from "./RequireSubscription";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import Checkout from "@/page/website/Slots/Checkout";
 import DashboardError from "@/page/error/DashboardError";
-import Subscribe from "@/page/website/dashboard/Subscribe";
 import ForgotPasswordForm from "@/page/ForgotPassword";
 import UpdatePasswordForm from "@/page/UpdatePassword";
 import ProfileComponent from "@/page/website/dashboard/Profile";
@@ -74,7 +73,7 @@ export const appRouter = createBrowserRouter([
       { path: "forgot-password", element: <ForgotPasswordForm /> },
       { path: "reset-password", element: <UpdatePasswordForm /> },
       { path: "verify-card/:memberId", element: <VerifyCard /> },
-      { path: "subscribe", element: <Subscribe /> },
+      { path: "subscribe", element: <Navigate to="/signup" replace /> },
     ],
   },
 
