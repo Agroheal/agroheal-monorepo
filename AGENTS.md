@@ -1,8 +1,8 @@
 # Agent Workflow & Execution Rules
 
 ## 1. Git Workflow & Verification Protocol
-1. **Strategic Local Commits**:
-   - Always commit at strategic progress and completion points (e.g., after fixing component errors, adding client APIs, or completing UI features).
+1. **Intelligent Local Commits**:
+   - Only commit at intelligent intervals (after completing a coherent logical unit of work, discreet feature, or bug fix). Avoid noisy micro-commits.
    - Write clear, descriptive commit messages documenting what was added or resolved.
 
 2. **Push Only on Explicit User Instruction**:
@@ -10,7 +10,7 @@
    - Only execute `git push` when the user explicitly instructs: "push", "final push", or provides approval.
 
 3. **Mandatory Build & Typecheck Gate (Push Only)**:
-   - Typecheck and build are to be executed ONLY when preparing to push to remote.
+   - Typecheck, linting, tests, and build checks are to be executed ONLY together with pushing when the user explicitly says "push". Never waste time running heavy typechecks on minor iterative steps.
    - Before executing any `git push`, ALWAYS run and verify:
      - `npm run web:typecheck` (must exit with code 0, 0 errors).
      - `npm run admin:typecheck` (must exit with code 0, 0 errors).
