@@ -433,6 +433,7 @@ const CompoundReferrals: React.FC = () => {
   const [selectedHoldingEnrollee, setSelectedHoldingEnrollee] = useState<any | null>(null);
   const [targetPlacementLeg, setTargetPlacementLeg] = useState<number>(1);
   const [isPlacingEnrollee, setIsPlacingEnrollee] = useState<boolean>(false);
+  const [showMatrixPreview, setShowMatrixPreview] = useState<boolean>(false);
 
   // Qualification Gates & Matrix Access Locks
   const isLegacyNeedsMushroomPower = Boolean(
@@ -1902,26 +1903,26 @@ const CompoundReferrals: React.FC = () => {
 
         {/* ── 5×7 VISUAL ORGANOGRAM ── */}
         {activeRootNode ? (
-          activeRootNode.id === currentUserId && isMatrixLocked ? (
+          activeRootNode.id === currentUserId && isMatrixLocked && !showMatrixPreview ? (
             <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-emerald-800/15 text-center space-y-6 max-w-2xl mx-auto my-4">
               <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-800 flex items-center justify-center mx-auto shadow-inner">
                 <Lock className="w-8 h-8 text-amber-700" />
               </div>
 
               <div className="space-y-2">
-                <span className="text-xs font-bold text-amber-700 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
-                  {isLegacyNeedsMushroomPower ? "Mushroom Power Pending" : "Starter Package Required"}
+                <span className="text-xs font-bold text-amber-800 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                  {isLegacyNeedsMushroomPower ? "5×7 Matrix Locked • Mushroom Power 100g Required" : "Registration & Starter Package Required"}
                 </span>
                 <h3 className="text-2xl font-black text-gray-900">
-                  5×7 Farm Matrix is Locked
+                  5×7 Community Matrix is Locked
                 </h3>
                 {isLegacyNeedsMushroomPower ? (
                   <>
-                    <p className="text-sm text-gray-600 leading-relaxed max-w-lg mx-auto">
-                      As a valued Founding member, your Green Card pass is <strong>100% free for life</strong>.
+                    <p className="text-sm font-semibold text-emerald-900 bg-emerald-50 border border-emerald-200 px-4 py-2.5 rounded-xl max-w-lg mx-auto">
+                      ✓ Your position in the 5×7 community matrix is active &amp; preserved based on your {userSlotsHeld} farm slot{userSlotsHeld === 1 ? "" : "s"}.
                     </p>
-                    <p className="text-xs text-gray-500 leading-relaxed max-w-lg mx-auto">
-                      To access your <strong>5×7 community matrix organogram</strong>, receive automated downline spillover, and unlock commercial bank withdrawals, please activate your <strong>Mushroom Power 100g (₦5,000)</strong> welcome product.
+                    <p className="text-xs text-gray-600 leading-relaxed max-w-lg mx-auto">
+                      However, <strong>7-tier matrix spillover commissions, tree exploration, and commercial bank withdrawals</strong> remain locked until you activate your <strong>Mushroom Power 100g (₦5,000)</strong> product (Product ID: SP-MUSH-100G).
                     </p>
                   </>
                 ) : (
@@ -1930,7 +1931,7 @@ const CompoundReferrals: React.FC = () => {
                       Your <strong>₦2,000 Green Card</strong> entitles you to lifetime educational curriculum access and <strong>₦1,000 direct referral rewards</strong>.
                     </p>
                     <p className="text-xs text-gray-500 leading-relaxed max-w-lg mx-auto">
-                      The <strong>5×7 Matrix</strong> is reserved for members who have subscribed to the <strong>₦10,000 starter package (₦5,000 Starter Mushroom farm slot and ₦5,000 Mushroom Power)</strong>. Once secured, you will be assigned an active node in the tree with automated spillover and 7-level commissions.
+                      The <strong>5×7 Matrix</strong> is reserved for members who have subscribed to the <strong>₦12,000 Starter Package (Green Card + 1 Farm Slot + Mushroom Power 100g)</strong>. Once secured, you will be assigned an active node in the tree with automated spillover and 7-level commissions.
                     </p>
                   </>
                 )}
@@ -1938,20 +1939,30 @@ const CompoundReferrals: React.FC = () => {
 
               <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
                 {isLegacyNeedsMushroomPower ? (
-                  <Link
-                    to="/dashboard/slots/buy?product=SP-MUSH-100G&category=STARTER_PACK"
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow-md transition-all"
-                  >
-                    <Sprout className="w-4 h-4" />
-                    Activate Mushroom Power 100g (₦5,000)
-                  </Link>
+                  <>
+                    <Link
+                      to="/dashboard/checkout?product=starter_pack&code=SP-MUSH-100G"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow-md transition-all"
+                    >
+                      <Sprout className="w-4 h-4" />
+                      Activate Mushroom Power 100g (₦5,000)
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => setShowMatrixPreview(true)}
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold text-sm transition-all cursor-pointer"
+                    >
+                      <Layers className="w-4 h-4 text-emerald-700" />
+                      Preview Matrix Placement
+                    </button>
+                  </>
                 ) : (
                   <Link
-                    to="/dashboard/farm-operations/buy-slots"
+                    to="/dashboard/checkout?bundle=starter"
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow-md transition-all"
                   >
                     <Sprout className="w-4 h-4" />
-                    Secure your Starter Package (₦10,000)
+                    Secure Starter Package (₦12,000)
                   </Link>
                 )}
                 <button
@@ -1966,6 +1977,35 @@ const CompoundReferrals: React.FC = () => {
             </div>
           ) : (
             <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200/90 space-y-8">
+              {isLegacyNeedsMushroomPower && (
+                <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+                  <div className="flex items-center gap-2.5">
+                    <Lock className="w-5 h-5 text-amber-700 shrink-0" />
+                    <p className="text-xs text-amber-950 font-semibold">
+                      5×7 Matrix is Locked. Your position is secured with your farm slots, but 7-tier spillover commissions and bank withdrawals require <strong>Mushroom Power 100g (₦5,000)</strong> activation.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      asChild
+                      className="bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs h-8 px-3 rounded-lg shadow-sm"
+                    >
+                      <Link to="/dashboard/checkout?product=starter_pack&code=SP-MUSH-100G">
+                        Activate Mushroom Power
+                      </Link>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setShowMatrixPreview(false)}
+                      className="text-xs h-8 px-2.5 rounded-lg border-amber-300 text-amber-900 hover:bg-amber-100"
+                    >
+                      Hide Preview
+                    </Button>
+                  </div>
+                </div>
+              )}
               {/* Header with Title, Level Range Selectors, and Quick Tree Inspector Form */}
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-gray-100">
                 <div className="space-y-1">

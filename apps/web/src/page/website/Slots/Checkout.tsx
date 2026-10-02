@@ -670,10 +670,10 @@ const Checkout = () => {
           payment_method: method,
           status: "pending",
           project_category: isCombo
-            ? "Green Card + Starter Combo"
+            ? "Green Card + Farm Slot + Mushroom Power 100g"
             : isGreenCardOnly
             ? "Green Card"
-            : (isStarterPack ? "Starter Pack" : category),
+            : (isStarterPack ? "Mushroom Power 100g" : category),
         },
       ])
       .select()
@@ -826,7 +826,7 @@ const Checkout = () => {
         if (slotQuantity > 0) {
           toast({
             title: "Milestone 3 Unlocked! 🚀",
-            description: `₦${totalPrice.toLocaleString()} paid from wallet. Your Green Card + Starter Combo are active!`,
+            description: `₦${totalPrice.toLocaleString()} paid from wallet. Your Green Card, Farm Slot, and Mushroom Power (100g) are active!`,
           });
           navigate("/dashboard");
         } else {
@@ -838,8 +838,8 @@ const Checkout = () => {
         }
       } else if (isStarterPack) {
         toast({
-          title: "Starter Pack Activated!",
-          description: "Your ₦5,000 Mushroom Starter Pack has been activated via wallet.",
+          title: "Mushroom Power 100g Activated!",
+          description: "Your ₦5,000 Mushroom Power 100g (SP-MUSH-100G) has been activated via wallet. 5×7 Matrix & withdrawals unlocked!",
         });
         navigate("/dashboard/my-network");
       } else {
@@ -933,18 +933,18 @@ const Checkout = () => {
         },
         customizations: {
           title: isStarterPack
-            ? "AgroHeal Starter Pack (100g)"
+            ? "Mushroom Power 100g (SP-MUSH-100G)"
             : isStarterCompletion
-            ? "AgroHeal Starter Package (₦10,000 Combo)"
+            ? "AgroHeal Package (₦10,000 Combo)"
             : isCombo
-            ? "AgroHeal Starter Package (₦12,000)"
+            ? "AgroHeal Package (₦12,000)"
             : "Agroheal Farm Slot",
           description: isStarterPack
-            ? "Mushroom Power 100g Starter Pack"
+            ? "Mushroom Power 100g (Product ID: SP-MUSH-100G)"
             : isStarterCompletion
-            ? "1 Group Farm Slot + Mushroom Power 100g Pack"
+            ? "1 Farm Slot + Mushroom Power 100g (SP-MUSH-100G)"
             : isCombo
-            ? "Lifetime Green Card + 1 Mushroom Village Slot + Mushroom Power 100g (₦12,000)"
+            ? "Green Card Pass + 1 Farm Slot + Mushroom Power 100g (SP-MUSH-100G)"
             : `${slotQuantity} slot${slotQuantity > 1 ? "s" : ""} — ₦${totalPrice.toLocaleString()}`,
           logo: "https://ptowfacejneezksyhntk.supabase.co/storage/v1/object/sign/agroheal-%20buckets/logo.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iZGE2NjM1ZS00NTAzLTRkZDktOTdmOS0zYWExY2Y5NzNiOGQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhZ3JvaGVhbC0gYnVja2V0cy9sb2dvLnBuZyIsImlhdCI6MTc3NDAwODY3OCwiZXhwIjo0OTI3NjA4Njc4fQ.fuwva3-hMj5KmMRqElcclgJqzA5d4aigxCIlHVHgMak",
         },
@@ -1359,7 +1359,7 @@ const Checkout = () => {
 
                         <div className="space-y-1.5">
                           <p className="text-sm font-bold text-emerald-950">
-                            AgroHeal Starter Package
+                            AgroHeal Membership &amp; Starter Package
                           </p>
                           <div className="text-xs text-emerald-900 font-medium space-y-1">
                             <p className="flex items-center gap-1.5">
@@ -1372,7 +1372,7 @@ const Checkout = () => {
                             </p>
                             <p className="flex items-center gap-1.5">
                               <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                              <span>₦5,000 Mushroom Power Pack (100g)</span>
+                              <span>₦5,000 Mushroom Power 100g (Product ID: SP-MUSH-100G)</span>
                             </p>
                           </div>
                           <p className="text-[11px] text-muted-foreground pt-1 leading-snug">
@@ -1383,7 +1383,7 @@ const Checkout = () => {
                     </div>
                   )}
 
-                  {/* SCENARIO 2: Pure Starter Pack for Founding Members with Slots */}
+                  {/* SCENARIO 2: Mushroom Power (100g) for Legacy Slot Holders */}
                   {isStarterPack && (
                     <div className="bg-amber-50/80 border border-amber-200/90 rounded-xl p-4 space-y-2">
                       <div className="flex items-center justify-between">
@@ -1394,7 +1394,7 @@ const Checkout = () => {
                               {starterProduct.name}
                             </h4>
                             <p className="text-xs text-amber-900 font-mono">
-                              Codename: {starterProduct.code}
+                              Product ID: {starterProduct.code}
                             </p>
                           </div>
                         </div>
@@ -1463,7 +1463,7 @@ const Checkout = () => {
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-muted-foreground">
-                          <span>Mushroom Power Pack (100g)</span>
+                          <span>Mushroom Power 100g (SP-MUSH-100G)</span>
                           <span className="font-mono font-semibold text-foreground">
                             ₦5,000
                           </span>
