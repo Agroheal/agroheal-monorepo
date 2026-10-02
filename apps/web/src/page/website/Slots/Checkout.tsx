@@ -670,10 +670,10 @@ const Checkout = () => {
           payment_method: method,
           status: "pending",
           project_category: isCombo
-            ? "Green Card + Farm Slot + Mushroom Power 100g"
+            ? "Green Card + Starter Combo"
             : isGreenCardOnly
             ? "Green Card"
-            : (isStarterPack ? "Mushroom Power 100g" : category),
+            : (isStarterPack ? "Starter Pack" : category),
         },
       ])
       .select()

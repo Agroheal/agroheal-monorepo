@@ -37,6 +37,7 @@ import {
   ChevronDown,
   ChevronUp,
   Compass,
+  Loader2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -131,6 +132,7 @@ interface MatrixTreeNodeProps {
   onDrillDown: (id: string) => void;
   isRoot?: boolean;
   isDark?: boolean;
+  drillingDownId?: string | null;
 }
 
 const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
@@ -140,6 +142,7 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
   onDrillDown,
   isRoot = false,
   isDark = true,
+  drillingDownId = null,
 }) => {
   const isLeaf = node.level >= toLevel;
   const isRootNode = isRoot || node.level === 0;
@@ -295,14 +298,27 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
           <Button
             variant="outline"
             size="sm"
+            disabled={Boolean(drillingDownId)}
             onClick={() => onDrillDown(node.id)}
             className={`mt-2 w-full text-[10px] h-6 rounded-md flex items-center justify-center gap-1 font-semibold cursor-pointer py-0 ${
+              drillingDownId === node.id ? "opacity-80" : ""
+            } ${
               isDark
                 ? "border-slate-600 bg-slate-700/50 text-slate-200 hover:bg-slate-700 hover:text-white"
                 : "border-emerald-600 text-emerald-800 hover:bg-emerald-50"
             }`}
           >
-            Drill Down <CornerDownRight className="w-2.5 h-2.5" />
+            {drillingDownId === node.id ? (
+              <>
+                <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                <span>Drilling...</span>
+              </>
+            ) : (
+              <>
+                <span>Drill Down</span>
+                <CornerDownRight className="w-2.5 h-2.5" />
+              </>
+            )}
           </Button>
         </div>
       )}
@@ -345,6 +361,7 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
                       currentUserId={currentUserId}
                       onDrillDown={onDrillDown}
                       isDark={isDark}
+                      drillingDownId={drillingDownId}
                     />
                   ) : (
                     <div
@@ -422,6 +439,7 @@ const CompoundReferrals: React.FC = () => {
   const [isProjectSubscribed, setIsProjectSubscribed] = useState<boolean>(false);
   const [userFarms, setUserFarms] = useState<Array<{ id: string; name: string; project_category?: string }>>([]);
   const [selectedFarmId, setSelectedFarmId] = useState<string>("all");
+  const [drillingDownId, setDrillingDownId] = useState<string | null>(null);
 
   // 30-Hour Grace Period & Holding Tank State
   const [holdingTankMembers, setHoldingTankMembers] = useState<Array<{
@@ -972,6 +990,18 @@ const CompoundReferrals: React.FC = () => {
     return { builtRoot, allRoster };
   };
 
+  const handleDrillDownNode = async (id: string) => {
+    if (drillingDownId) return;
+    setDrillingDownId(id);
+    try {
+      await buildSubtree(id, false);
+    } catch (err: any) {
+      console.error("Error during drill down:", err);
+    } finally {
+      setDrillingDownId(null);
+    }
+  };
+
   // Search by Email or Member ID
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1444,9 +1474,10 @@ const CompoundReferrals: React.FC = () => {
                   node={activeRootNode}
                   toLevel={toLevel}
                   currentUserId={currentUserId}
-                  onDrillDown={(id) => buildSubtree(id, false)}
+                  onDrillDown={handleDrillDownNode}
                   isRoot={true}
                   isDark={true}
+                  drillingDownId={drillingDownId}
                 />
               ) : (
                 /* When fromLevel > 1, render subtrees at fromLevel side-by-side with branches */
@@ -1466,9 +1497,10 @@ const CompoundReferrals: React.FC = () => {
                             node={startNode}
                             toLevel={toLevel}
                             currentUserId={currentUserId}
-                            onDrillDown={(id) => buildSubtree(id, false)}
+                            onDrillDown={handleDrillDownNode}
                             isRoot={false}
                             isDark={true}
+                            drillingDownId={drillingDownId}
                           />
                         ))}
                     </div>
@@ -2205,9 +2237,10 @@ const CompoundReferrals: React.FC = () => {
                       node={activeRootNode}
                       toLevel={toLevel}
                       currentUserId={currentUserId}
-                      onDrillDown={(id) => buildSubtree(id, false)}
+                      onDrillDown={handleDrillDownNode}
                       isRoot={true}
                       isDark={false}
+                      drillingDownId={drillingDownId}
                     />
                   ) : (
                     /* When fromLevel > 1, render subtrees at fromLevel side-by-side with branches */
@@ -2227,9 +2260,10 @@ const CompoundReferrals: React.FC = () => {
                                 node={startNode}
                                 toLevel={toLevel}
                                 currentUserId={currentUserId}
-                                onDrillDown={(id) => buildSubtree(id, false)}
+                                onDrillDown={handleDrillDownNode}
                                 isRoot={false}
                                 isDark={false}
+                                drillingDownId={drillingDownId}
                               />
                             ))}
                         </div>

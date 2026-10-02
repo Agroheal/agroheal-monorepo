@@ -52,6 +52,51 @@ const SALES_CHANNELS = [
   "Community Retail Stakeholder"
 ];
 
+const getFarmCategoryTheme = (category: string = "", farmName: string = "") => {
+  const text = `${category} ${farmName}`.toLowerCase();
+
+  if (text.includes("ginger")) {
+    return {
+      cardClass: "border-slate-200/90 hover:border-amber-300 ring-1 ring-amber-500/10 shadow-sm",
+      topBarClass: "bg-amber-500",
+      iconBg: "bg-amber-50 border-amber-200 text-amber-700",
+      badgeClass: "bg-amber-50 text-amber-900 border-amber-300",
+      progressGradient: "bg-gradient-to-r from-amber-500 to-yellow-600",
+      cropTypeBadge: "text-amber-800 bg-amber-100/70",
+      accentIcon: "text-amber-600",
+    };
+  }
+
+  if (
+    text.includes("organic") ||
+    text.includes("foodnation") ||
+    text.includes("hectare") ||
+    text.includes("cassava") ||
+    text.includes("grain")
+  ) {
+    return {
+      cardClass: "border-slate-200/90 hover:border-cyan-300 ring-1 ring-cyan-500/10 shadow-sm",
+      topBarClass: "bg-cyan-500",
+      iconBg: "bg-cyan-50 border-cyan-200 text-cyan-700",
+      badgeClass: "bg-cyan-50 text-cyan-900 border-cyan-300",
+      progressGradient: "bg-gradient-to-r from-cyan-500 to-teal-600",
+      cropTypeBadge: "text-cyan-800 bg-cyan-100/70",
+      accentIcon: "text-cyan-600",
+    };
+  }
+
+  // Default: Mushroom Village / Oyster Mushroom theme
+  return {
+    cardClass: "border-slate-200/90 hover:border-emerald-300 ring-1 ring-emerald-500/10 shadow-sm",
+    topBarClass: "bg-emerald-500",
+    iconBg: "bg-emerald-50 border-emerald-200 text-emerald-700",
+    badgeClass: "bg-emerald-50 text-emerald-900 border-emerald-300",
+    progressGradient: "bg-gradient-to-r from-emerald-500 to-teal-600",
+    cropTypeBadge: "text-emerald-800 bg-emerald-100/70",
+    accentIcon: "text-emerald-600",
+  };
+};
+
 interface ClusterFinancialsLedgerProps {
   sub: FarmClusterItem;
   isUserCoordinator: boolean;
@@ -648,19 +693,23 @@ const MyFarmSlots: React.FC = () => {
             const match = sub.farm_name.match(/^(.+?)\s*\[(.+?)\]$/);
             const displayName = match ? match[1] : sub.farm_name;
             const displayCategory = match ? match[2] : sub.category;
+            const theme = getFarmCategoryTheme(sub.category, sub.farm_name);
 
             return (
-              <Card key={sub.id} className="overflow-hidden shadow-sm border-slate-200 transition-all hover:border-slate-300">
+              <Card key={sub.id} className={`overflow-hidden transition-all relative ${theme.cardClass}`}>
+                {/* Neat Outer Branded Category Top Strip */}
+                <div className={`h-1.5 w-full ${theme.topBarClass}`} />
+
                 {/* Cluster Card Header & Stats */}
                 <div className="p-6 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5 bg-white">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-center shrink-0 shadow-2xs">
-                      <Sprout className="w-6 h-6 text-emerald-600" />
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-2xs border ${theme.iconBg}`}>
+                      <Sprout className="w-6 h-6" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <h3 className="text-lg font-bold text-slate-900">{displayName}</h3>
-                        <Badge variant="outline" className="bg-emerald-50 text-emerald-800 border-emerald-300 font-bold text-xs">
+                        <Badge variant="outline" className={`${theme.badgeClass} font-bold text-xs`}>
                           [{displayCategory}]
                         </Badge>
                         {sub.is_legacy && (
@@ -717,13 +766,13 @@ const MyFarmSlots: React.FC = () => {
                 <div className="px-6 py-3.5 bg-slate-50/80 border-t border-slate-100">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2 text-xs">
                     <div className="flex items-center gap-2">
-                      <Activity className="w-4 h-4 text-emerald-600" />
+                      <Activity className={`w-4 h-4 ${theme.accentIcon}`} />
                       <span className="font-bold text-slate-700">Crop Cycle #{cycle.cycle_number}: {cycle.crop_type}</span>
                       <span className="text-slate-400">•</span>
                       <span className="text-slate-500">Target: {cycle.total_bags.toLocaleString()} Bags</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-emerald-800 bg-emerald-100/70 px-2 py-0.5 rounded text-[11px]">
+                      <span className={`font-semibold px-2 py-0.5 rounded text-[11px] ${theme.cropTypeBadge}`}>
                         Stage: {cycle.stage} ({cycle.progress_percent}%)
                       </span>
                     </div>
@@ -732,7 +781,7 @@ const MyFarmSlots: React.FC = () => {
                   {/* Stage Progress Track */}
                   <div className="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
                     <div
-                      className="bg-gradient-to-r from-emerald-500 to-teal-600 h-full rounded-full transition-all duration-500 ease-out"
+                      className={`${theme.progressGradient} h-full rounded-full transition-all duration-500 ease-out`}
                       style={{ width: `${Math.min(Math.max(cycle.progress_percent, 5), 100)}%` }}
                     />
                   </div>
