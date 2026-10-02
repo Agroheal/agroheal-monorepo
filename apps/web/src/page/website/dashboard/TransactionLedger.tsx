@@ -249,7 +249,7 @@ export default function TransactionLedger() {
       try {
         const { data: pData, error: pErr } = await supabase
           .from("profiles")
-          .select("member_id, full_name, email, referral_earnings, slot_bonus, wallet_balance, total_referrals, created_at, bank_name, bank_account_number, bank_account_name, bank_code, is_legacy, is_green_card_holder, has_greencard, greencard_status")
+          .select("member_id, full_name, email, referral_earnings, slot_bonus, wallet_balance, total_referrals, created_at, bank_name, bank_account_number, bank_account_name, bank_code, is_legacy, is_green_card_holder, has_greencard, greencard_status, has_purchased_starter_pack")
           .eq("id", user.id)
           .maybeSingle();
 
@@ -346,6 +346,7 @@ export default function TransactionLedger() {
           bank_account_name: profile.bank_account_name,
           bank_code: profile.bank_code,
           is_legacy: isLegacy,
+          has_purchased_starter_pack: Boolean(profile?.has_purchased_starter_pack),
           created_at: profile.created_at,
           referral_earnings: Number(profile.referral_earnings || 0),
           slot_bonus: Number(profile.slot_bonus || 0),
@@ -406,12 +407,20 @@ export default function TransactionLedger() {
       }
       setMatrixEarnings(matEarnings);
 
-      const hasActiveSub = Boolean(
-        isCardHolder ||
-        (subscriptions && subscriptions.some((s: any) => s.status === 'active' && (!s.expires_at || new Date(s.expires_at) > new Date()))) ||
-        (slotSubscriptions && slotSubscriptions.some((s: any) => (s.status || '').toLowerCase() === 'active')) ||
-        (checkouts && checkouts.some((c: any) => ['paid', 'success', 'completed'].includes((c.status || '').toLowerCase())))
+      const hasBoughtStarter = Boolean(
+        profile?.has_purchased_starter_pack ||
+        (orders && orders.some((o: any) => o.product_code === "SP-MUSH-100G" && (o.status || "").toUpperCase() === "PAID"))
       );
+
+      // Management Rule: Legacy members MUST purchase the ₦5,000 Mushroom Power 100g to unlock withdrawals & matrix.
+      // Non-legacy members must hold active farm slots / starter package.
+      const hasActiveSub = isLegacy
+        ? hasBoughtStarter
+        : Boolean(
+            hasBoughtStarter ||
+            (slotSubscriptions && slotSubscriptions.some((s: any) => (s.status || '').toLowerCase() === 'active')) ||
+            (checkouts && checkouts.some((c: any) => (Number(c.amount) >= 10000 || Number(c.amount) === 12000) && ['paid', 'success', 'completed'].includes((c.status || '').toLowerCase())))
+          );
       setIsProjectSubscribed(hasActiveSub);
 
       const refCount = apiSummary?.matrixSpilloverWallet?.directReferralsCount !== undefined
@@ -1387,8 +1396,10 @@ export default function TransactionLedger() {
                     <ArrowUpRight className="w-3.5 h-3.5 mr-1" />
                     {availableBalance >= 2000
                       ? `Withdraw Available Funds (₦${availableBalance.toLocaleString()})`
-                      : !isProjectSubscribed && walletBalance < 2000
-                      ? "Withdrawal Locked (Project Subscription Required)"
+                      : userProfile?.is_legacy && !userProfile?.has_purchased_starter_pack
+                      ? "Withdrawal Locked (₦5,000 Mushroom Power Required)"
+                      : !isProjectSubscribed
+                      ? "Withdrawal Locked (Starter Package Required)"
                       : `Accumulate ₦${(2000 - rawClearedBalance).toLocaleString()} More to Withdraw (Min. ₦2,000)`}
                   </Button>
 

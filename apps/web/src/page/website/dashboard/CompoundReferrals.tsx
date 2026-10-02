@@ -1630,7 +1630,7 @@ const CompoundReferrals: React.FC = () => {
                   size="sm"
                   className="shrink-0 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs px-4 py-2 rounded-xl shadow-xs"
                 >
-                  <Link to="/dashboard/checkout?product=green_card">Get Green Card</Link>
+                  <Link to="/dashboard/checkout?bundle=starter">Activate Starter Package (₦12,000)</Link>
                 </Button>
               </div>
             );
@@ -2406,6 +2406,14 @@ const CompoundReferrals: React.FC = () => {
                         )}
                       </td>
                       <td className="py-3 px-4 text-right space-x-1.5">
+                        {(!m.position || m.position === 0) && (
+                          <button
+                            onClick={() => setSelectedHoldingEnrollee(m)}
+                            className="text-emerald-800 hover:text-emerald-950 font-bold bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 px-2.5 py-1 rounded-md text-[11px] transition-colors"
+                          >
+                            Place in Matrix
+                          </button>
+                        )}
                         {m.phone && (
                           <button
                             onClick={() => window.open(`https://wa.me/${m.phone?.replace(/[^0-9]/g, "")}`, "_blank")}

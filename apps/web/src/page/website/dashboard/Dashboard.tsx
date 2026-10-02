@@ -502,7 +502,7 @@ const Dashboard = () => {
       subtitle: "Verified digital ID card & credentials",
       badge: profile?.member_id ? "Verified Pass" : "Activate Pass",
       badgeColor: profile?.member_id ? "bg-emerald-100 text-emerald-950 border-emerald-300" : "bg-amber-100 text-amber-950 border-amber-300",
-      path: profile?.member_id ? "/dashboard/profile/green-card" : "/dashboard/checkout?product=green_card",
+      path: profile?.member_id ? "/dashboard/profile/green-card" : "/dashboard/checkout?bundle=starter",
       icon: IdCard,
       iconBg: "bg-[#0c2415] text-emerald-300",
       tag: "ID Card",
@@ -571,7 +571,7 @@ const Dashboard = () => {
               </Link>
             ) : (
               <Link
-                to="/dashboard/checkout?product=green_card"
+                to="/dashboard/checkout?bundle=starter"
                 className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-amber-500/25 hover:bg-amber-500/35 text-amber-200 text-xs sm:text-sm font-bold backdrop-blur-sm border border-amber-400/40 transition-colors shadow-xs"
                 title="Get your AgroHeal Green Card"
               >

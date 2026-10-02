@@ -418,18 +418,15 @@ const Checkout = () => {
     bundleParam === "starter" ||
     bundleParam === "starter_completion";
 
-  const isGreenCardOnly =
-    !isStarterPack &&
-    !isComboRequested &&
-    productParam === "green_card";
+  // Per Management Decision: No more standalone ₦2,000 Green Card payment.
+  // Starting requires the full ₦12,000 Starter Combo (Green Card + 1 Slot + Mushroom Power 100g).
+  const isGreenCardOnly = false;
 
   const rawUrlSlots = searchParams.get("slots");
   const parsedSlots = rawUrlSlots !== null ? parseInt(rawUrlSlots, 10) : 1;
-  const initialSlots = isGreenCardOnly || isStarterPack
+  const initialSlots = isStarterPack
     ? 0
-    : isComboRequested
-    ? 1
-    : (!isNaN(parsedSlots) && parsedSlots >= 0 ? parsedSlots : 1);
+    : (!isNaN(parsedSlots) && parsedSlots >= 1 ? parsedSlots : 1);
 
   const [slotQuantity, setSlotQuantity] = useState(initialSlots);
   const [category, setCategory] = useState(DEFAULT_CATEGORY);
@@ -440,7 +437,9 @@ const Checkout = () => {
   const [memberCreatedAt, setMemberCreatedAt] = useState<string | null>(null);
 
   // The Combo is the initial slot (₦5,000) + starter mushroom product (Mushroom Power 100g, ₦5,000) = ₦10,000
-  const isCombo = isComboRequested || (isGreenCardOnly && slotQuantity > 0);
+  // Non-cardholders starting out or users without starter packs are required to get the combo
+  const isNewStarter = !hasGreenCard && !isStarterPack && !isStarterCompletion;
+  const isCombo = isComboRequested || isNewStarter || (!hasPriorSlots && !hasPurchasedStarterPack);
   const isFirstSlotPurchase = isCombo || !hasPriorSlots || !hasPurchasedStarterPack;
 
   const COMBO_PRICE = 10000; // ₦5,000 Initial Slot + ₦5,000 Mushroom Power 100g
@@ -448,18 +447,12 @@ const Checkout = () => {
     ? starterProduct.price
     : isCombo
     ? COMBO_PRICE + Math.max(0, slotQuantity - 1) * SLOT_UNIT_PRICE
-    : (slotQuantity > 0
-        ? (isFirstSlotPurchase
-            ? COMBO_PRICE + Math.max(0, slotQuantity - 1) * SLOT_UNIT_PRICE
-            : slotQuantity * SLOT_UNIT_PRICE)
-        : 0);
+    : slotQuantity * SLOT_UNIT_PRICE;
 
-  // Green Card fee is ₦2,000 for non-cardholders on Green Card or Full Starter Combo
+  // Green Card fee is ₦2,000 for non-cardholders starting out (part of ₦12,000 package)
   const activeGreenCardRate = 2000;
-  const needsGreenCard = !hasGreenCard && (isGreenCardOnly || (isCombo && !isStarterCompletion) || bundleParam === "starter");
-  const greenCardFee = isStarterPack || isStarterCompletion || hasGreenCard
-    ? 0
-    : (needsGreenCard ? activeGreenCardRate : 0);
+  const needsGreenCard = !hasGreenCard && !isStarterPack && !isStarterCompletion;
+  const greenCardFee = needsGreenCard ? activeGreenCardRate : 0;
   const totalPrice = slotsSubtotal + greenCardFee;
 
   const [isProcessing, setIsProcessing] = useState(false);
@@ -944,18 +937,14 @@ const Checkout = () => {
             : isStarterCompletion
             ? "AgroHeal Starter Package (₦10,000 Combo)"
             : isCombo
-            ? "AgroHeal Green Card + Starter Combo"
-            : isGreenCardOnly
-            ? "AgroHeal Green Card Pass"
+            ? "AgroHeal Starter Package (₦12,000)"
             : "Agroheal Farm Slot",
           description: isStarterPack
             ? "Mushroom Power 100g Starter Pack"
             : isStarterCompletion
             ? "1 Group Farm Slot + Mushroom Power 100g Pack"
             : isCombo
-            ? "Lifetime Green Card + 1 Mushroom Village Slot + Mushroom Power 100g"
-            : isGreenCardOnly
-            ? "Lifetime Certified Digital Membership (₦2,000)"
+            ? "Lifetime Green Card + 1 Mushroom Village Slot + Mushroom Power 100g (₦12,000)"
             : `${slotQuantity} slot${slotQuantity > 1 ? "s" : ""} — ₦${totalPrice.toLocaleString()}`,
           logo: "https://ptowfacejneezksyhntk.supabase.co/storage/v1/object/sign/agroheal-%20buckets/logo.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9iZGE2NjM1ZS00NTAzLTRkZDktOTdmOS0zYWExY2Y5NzNiOGQiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJhZ3JvaGVhbC0gYnVja2V0cy9sb2dvLnBuZyIsImlhdCI6MTc3NDAwODY3OCwiZXhwIjo0OTI3NjA4Njc4fQ.fuwva3-hMj5KmMRqElcclgJqzA5d4aigxCIlHVHgMak",
         },
@@ -1355,94 +1344,40 @@ const Checkout = () => {
                 </div>
 
                 <div className="p-5 sm:p-6 space-y-5">
-                  {/* SCENARIO 1: Green Card / Onboarding Bump Selector */}
-                  {(isGreenCardOnly || !hasGreenCard) && !isStarterPack && !isStarterCompletion && (
+                  {/* SCENARIO 1: Full Starter Package for New Members (₦12,000) */}
+                  {!hasGreenCard && !isStarterPack && !isStarterCompletion && (
                     <div className="space-y-3">
-                      <span className="text-xs font-bold text-foreground block">
-                        Select Membership Option:
-                      </span>
-
-                      {/* Option 1: Green Card Alone */}
-                      <div
-                        onClick={() => setSlotQuantity(0)}
-                        className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer select-none ${
-                          slotQuantity === 0
-                            ? "border-emerald-700 bg-emerald-50/70 shadow-xs ring-1 ring-emerald-600/30"
-                            : "border-border bg-card hover:border-gray-300"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-2.5">
-                            <input
-                              type="radio"
-                              name="orderBumpOption"
-                              checked={slotQuantity === 0}
-                              onChange={() => setSlotQuantity(0)}
-                              className="mt-0.5 h-4 w-4 text-emerald-800 accent-emerald-800 cursor-pointer"
-                            />
-                            <div>
-                              <p className="text-xs sm:text-sm font-bold text-foreground">
-                                Activate Your Agroheal Green Card
-                              </p>
-                              <p className="text-[11px] text-muted-foreground mt-0.5 leading-snug">
-                                Gain access to the Learning platform, digital Green Card ID, and affiliate referral earning.
-                              </p>
-                            </div>
-                          </div>
-                          <span className="font-mono text-xs sm:text-sm font-bold text-foreground shrink-0 bg-muted px-2 py-0.5 rounded-lg">
-                            ₦2,000
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Option 2: Green Card + Starter Combo (RECOMMENDED BUMP) */}
-                      <div
-                        onClick={() => setSlotQuantity(1)}
-                        className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer select-none relative overflow-hidden ${
-                          slotQuantity > 0
-                            ? "border-emerald-700 bg-emerald-50/90 shadow-sm ring-2 ring-emerald-600/40"
-                            : "border-border bg-card hover:border-emerald-300"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
+                      <div className="p-4 rounded-xl border-2 border-emerald-700 bg-emerald-50/90 shadow-sm ring-2 ring-emerald-600/30 space-y-3">
+                        <div className="flex items-center justify-between">
                           <span className="inline-flex items-center gap-1 bg-emerald-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
-                            <Sparkles className="w-3 h-3" /> Recommended
+                            <Sparkles className="w-3 h-3" /> Required Starting Package
                           </span>
-                          <span className="font-mono text-sm font-black text-emerald-950 bg-emerald-200/70 px-2 py-0.5 rounded-lg border border-emerald-300">
+                          <span className="font-mono text-sm font-black text-emerald-950 bg-emerald-200/70 px-2.5 py-0.5 rounded-lg border border-emerald-300">
                             ₦12,000
                           </span>
                         </div>
 
-                        <div className="flex items-start gap-2.5">
-                          <input
-                            type="radio"
-                            name="orderBumpOption"
-                            checked={slotQuantity > 0}
-                            onChange={() => setSlotQuantity(1)}
-                            className="mt-0.5 h-4 w-4 text-emerald-800 accent-emerald-800 cursor-pointer"
-                          />
-                          <div className="space-y-1.5">
-                            <p className="text-xs sm:text-sm font-bold text-emerald-950">
-                              Activate Green Card PLUS Starter Combo
+                        <div className="space-y-1.5">
+                          <p className="text-sm font-bold text-emerald-950">
+                            AgroHeal Starter Package
+                          </p>
+                          <div className="text-xs text-emerald-900 font-medium space-y-1">
+                            <p className="flex items-center gap-1.5">
+                              <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                              <span>₦2,000 Digital Green Card Lifetime Pass</span>
                             </p>
-                            <div className="text-[11px] text-emerald-900/90 font-medium space-y-0.5">
-                              <p className="flex items-center gap-1.5">
-                                <Check className="w-3 h-3 text-emerald-700 shrink-0" />
-                                <span>₦2,000 Green Card</span>
-                              </p>
-                              <p className="flex items-center gap-1.5">
-                                <Check className="w-3 h-3 text-emerald-700 shrink-0" />
-                                <span>₦5,000 Group farm slot (2 Bags · Cycle Doubling)</span>
-                              </p>
-                              <p className="flex items-center gap-1.5">
-                                <Check className="w-3 h-3 text-emerald-700 shrink-0" />
-                                <span>₦5,000 Mushroom Power pack (100g)</span>
-                              </p>
-                            </div>
-                            <p className="text-[10px] text-muted-foreground pt-1 leading-snug">
-                              Unlocks full commercial farming, 5×7 community matrix placement, and bank withdrawals.
+                            <p className="flex items-center gap-1.5">
+                              <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                              <span>₦5,000 Initial Farm Slot (2 Bags · Cycle Doubling)</span>
+                            </p>
+                            <p className="flex items-center gap-1.5">
+                              <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                              <span>₦5,000 Mushroom Power Pack (100g)</span>
                             </p>
                           </div>
+                          <p className="text-[11px] text-muted-foreground pt-1 leading-snug">
+                            Includes membership activation, 5×7 community matrix placement, and unlocked bank withdrawals.
+                          </p>
                         </div>
                       </div>
                     </div>

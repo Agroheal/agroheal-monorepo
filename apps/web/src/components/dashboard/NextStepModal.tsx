@@ -64,19 +64,19 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
   broadcastNotice: "",
   steps: {
     step1: {
-      title: "Activate Your AgroHeal Green Card",
+      title: "Activate Your Starter Package",
       subtitle:
-        "Your official key to organic farming education, verified digital membership, and community dividends.",
-      priceText: "₦2,000 One-Time Lifetime Membership",
+        "Your official key to organic farming education, verified digital membership, farm slots, and community dividends.",
+      priceText: "₦12,000 Complete Starter Package",
       badgeText: "Milestone 1 of 3 · Foundation",
       benefits: [
         "Lifetime access to Organic Farming Academy & practical masterclasses",
         "Official AgroHeal Digital Green Card ID with instant QR verification",
-        "Earn ₦1,000 instant direct sponsor commission on every referred member",
-        "Unlocks eligibility to purchase commercial mushroom farm slots",
+        "Group farm slot (2 Bags · Cycle Doubling) in Mushroom Village",
+        "100g Mushroom Power organic extract pack",
       ],
-      buttonText: "Activate Green Card Now (₦2,000)",
-      targetRoute: "/dashboard/checkout?product=green_card",
+      buttonText: "Activate Starter Package (₦12,000)",
+      targetRoute: "/dashboard/checkout?bundle=starter",
     },
     step2: {
       title: "Secure Your Starter Commercial Farm Slot",
@@ -189,7 +189,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
   const step1Data = useMemo(() => {
     return {
       ...config.steps.step1,
-      targetRoute: bundleSlot ? "/dashboard/checkout?bundle=starter" : "/dashboard/checkout?product=green_card",
+      targetRoute: "/dashboard/checkout?bundle=starter",
     };
   }, [config.steps.step1, bundleSlot]);
 
