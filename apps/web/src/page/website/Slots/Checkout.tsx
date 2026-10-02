@@ -761,22 +761,34 @@ const Checkout = () => {
 
       // Authoritative Unified Settlement Engine: Activates Green Card, Allocates Slots,
       // Creates Mushroom Power 100g Order, Credits Bonuses, and Auto-Places in Matrix
-      try {
-        await apiClient.checkout.settle({
-          userId: user.id,
-          transactionId: String(order.id),
-          paymentReference: `WALLET_${order.id}_${Date.now()}`,
-          paymentMethod: "wallet",
-          amount: totalPrice,
-          category: isCombo ? "Mushroom Village" : category,
-          slots: (isGreenCardOnly || isStarterPack) ? 0 : Math.max(1, slotQuantity),
-          isCombo,
-          isGreenCardOnly,
-          isStarterPack,
-          isFirstSlotPurchase,
-        });
-      } catch (settleErr: any) {
-        console.warn("[Checkout] Centralized settlement fallback notice:", settleErr?.message);
+      let settled = false;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await apiClient.checkout.settle({
+            userId: user.id,
+            transactionId: String(order.id),
+            paymentReference: `WALLET_${order.id}_${Date.now()}`,
+            paymentMethod: "wallet",
+            amount: totalPrice,
+            category: isCombo ? "Mushroom Village" : category,
+            slots: (isGreenCardOnly || isStarterPack) ? 0 : Math.max(1, slotQuantity),
+            isCombo,
+            isGreenCardOnly,
+            isStarterPack,
+            isFirstSlotPurchase,
+          });
+          settled = true;
+          break;
+        } catch (settleErr: any) {
+          console.warn(`[Checkout] Wallet settlement attempt ${attempt} notice:`, settleErr?.message);
+          if (attempt < 3) {
+            await new Promise((r) => setTimeout(r, attempt * 1000));
+          }
+        }
+      }
+
+      if (!settled) {
+        console.warn("[Checkout] Centralized wallet settlement unavailable after 3 attempts; falling back to direct database state update.");
         if (!isGreenCardOnly && !isStarterPack && (slotQuantity > 0 || isCombo)) {
           await recordSubscriptionWithFarmGroupSplit({
             userId: user.id,
@@ -883,9 +895,9 @@ const Checkout = () => {
     }
 
     const flwKey =
-      FLUTTERWAVE_KEYS.publicKey ||
+      (typeof FLUTTERWAVE_KEYS === "string" ? FLUTTERWAVE_KEYS : (FLUTTERWAVE_KEYS as any)?.publicKey) ||
       import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY ||
-      "FLWPUBK-e0ee54e207921a92e105e466380a9cfc-X";
+      "FLWPUBK-21808627a82aaa069c67aaedb5f7b37f-X";
 
     setIsProcessing(true);
 
@@ -967,22 +979,34 @@ const Checkout = () => {
               try {
                 // Authoritative Unified Settlement Engine: Activates Green Card, Allocates Slots,
                 // Creates Mushroom Power 100g Order, Credits Bonuses, and Auto-Places in Matrix
-                try {
-                  await apiClient.checkout.settle({
-                    userId: order.user_id,
-                    transactionId: order.id,
-                    paymentReference: String(flwTransactionId),
-                    paymentMethod: "flutterwave",
-                    amount: totalPrice,
-                    category: isCombo ? "Mushroom Village" : category,
-                    slots: (isGreenCardOnly || isStarterPack) ? 0 : Math.max(1, slotQuantity),
-                    isCombo,
-                    isGreenCardOnly,
-                    isStarterPack,
-                    isFirstSlotPurchase,
-                  });
-                } catch (settleErr: any) {
-                  console.warn("[Checkout] Flutterwave centralized settlement fallback notice:", settleErr?.message);
+                let settled = false;
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                  try {
+                    await apiClient.checkout.settle({
+                      userId: order.user_id,
+                      transactionId: order.id,
+                      paymentReference: String(flwTransactionId),
+                      paymentMethod: "flutterwave",
+                      amount: totalPrice,
+                      category: isCombo ? "Mushroom Village" : category,
+                      slots: (isGreenCardOnly || isStarterPack) ? 0 : Math.max(1, slotQuantity),
+                      isCombo,
+                      isGreenCardOnly,
+                      isStarterPack,
+                      isFirstSlotPurchase,
+                    });
+                    settled = true;
+                    break;
+                  } catch (settleErr: any) {
+                    console.warn(`[Checkout] Settlement attempt ${attempt} notice:`, settleErr?.message);
+                    if (attempt < 3) {
+                      await new Promise((r) => setTimeout(r, attempt * 1200));
+                    }
+                  }
+                }
+
+                if (!settled) {
+                  console.warn("[Checkout] Centralized settlement unavailable after 3 attempts; falling back to direct database state update.");
                   await supabase
                     .from("transactions")
                     .update({

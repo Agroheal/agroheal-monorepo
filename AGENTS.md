@@ -33,6 +33,14 @@
     1. **Direct Sponsor Referral & Slot Commission**: Credit the direct sponsor with their statutory bonus (`REFERRAL_BONUS`, `SLOT_BONUS`, `MATRIX_COMMISSION`).
     2. **Core Driver Growth Pool**: Credit all 6 Core Drivers (Elijah, Esther, Taiwo, David, Fortune, Tony) with their ₦50 bonus (`CORE_DRIVER_BONUS`).
     3. **Atomic Balance Updates**: Compute each recipient's `balance_after` dynamically (`current_available_balance + amount`) to maintain zero ledger leakage and strict solvency parity.
+    4. **Historical Timestamp Invariant**: When catching or reconciling past transactions, ALWAYS stamp records with `created_at = tx.created_at` (never `NOW()`) so timestamps and receipts match when the member actually paid.
+    5. **Deterministic Reference Standard & Idempotency Pre-Check**:
+       - Every credit entry MUST use an immutable, deterministic composite reference:
+         - Core Driver: `GC-<cardNo>-CD-<driverUserId>`
+         - Sponsor Referral: `TX<txId>-REF-<sponsorUserId>`
+         - Sponsor Slot Commission: `TX<txId>-SLOT-<sponsorUserId>`
+         - Product Commission: `ORD<orderId>-COMM-L<lvl>-<recipientUserId>`
+       - ALWAYS check for existing entries using `SELECT 1 FROM wallet_ledger WHERE user_id = $1 AND category = $2 AND (reference_id = $3 OR reference_id = $4)` before inserting to guarantee zero duplicate credits.
 ## 5. Strict Content & Copy Fidelity Protocol
 - **Zero Unsolicited Text/Copy**:
   - NEVER introduce unrequested text, marketing copy, speculative claims, promotional blurbs, or unauthorized headings, rules, or tier requirements that the user did not explicitly ask for.

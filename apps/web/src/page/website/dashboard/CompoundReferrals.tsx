@@ -1148,7 +1148,7 @@ const CompoundReferrals: React.FC = () => {
   const hasEnoughReferrals = unlockedLevel >= 1;
   const hasEnoughPqv = activePqv30d >= MIN_PQV_FOR_MATRIX_WITHDRAWAL;
 
-  // Filtered Downline Directory (Supports From Level to To Level Range Filtering)
+  // Filtered Downline Directory (Direct referrals and full team roster)
   const filteredDirectory = useMemo(() => {
     return (downlineList || []).filter((item) => {
       if (!item) return false;
@@ -1160,14 +1160,11 @@ const CompoundReferrals: React.FC = () => {
 
       if (!matchSearch && q) return false;
 
-      const itemLevel = Number(item.level) || 1;
-      if (itemLevel < fromLevel || itemLevel > toLevel) return false;
-
       if (directoryFilter === "DIRECT") return !item.isSpillover;
       if (directoryFilter === "SPILLOVER") return Boolean(item.isSpillover);
       return true;
     });
-  }, [downlineList, searchQuery, directoryFilter, fromLevel, toLevel]);
+  }, [downlineList, searchQuery, directoryFilter]);
 
   // Aerial View: Group downline members strictly within [fromLevel, toLevel]
   const aerialMembersByLevel = useMemo(() => {
