@@ -88,6 +88,12 @@ export default function TransactionLedger() {
   const [directReferralEarnings, setDirectReferralEarnings] = useState<number>(0);
   const [matrixEarnings, setMatrixEarnings] = useState<number>(0);
   const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [advanceDebt, setAdvanceDebt] = useState<{
+    balance: number;
+    total: number;
+    repaid: number;
+    isIndebted: boolean;
+  } | null>(null);
   const [directReferralsCount, setDirectReferralsCount] = useState<number>(0);
   const [activePqv30d, setActivePqv30d] = useState<number>(0);
   const [pqvDaysRemaining, setPqvDaysRemaining] = useState<number>(30);
@@ -150,6 +156,10 @@ export default function TransactionLedger() {
         return "Harvest Dividend";
       case "WITHDRAWAL":
         return "Bank Withdrawal";
+      case "ADVANCE_RECOVERY":
+        return "Advance Auto-Recovery";
+      case "CORP_PROMO_GRANT":
+        return "Corporate Promo Grant";
       default:
         return category.replace(/_/g, " ");
     }
@@ -235,6 +245,9 @@ export default function TransactionLedger() {
               setDirectReferralsCount(Number(apiSummary.matrixSpilloverWallet.directReferralsCount) || 0);
             }
           }
+          if (apiSummary.advanceDebt) {
+            setAdvanceDebt(apiSummary.advanceDebt);
+          }
         }
 
         if (ledgerRes.status === "fulfilled" && Array.isArray(ledgerRes.value)) {
@@ -249,9 +262,18 @@ export default function TransactionLedger() {
       try {
         const { data: pData, error: pErr } = await supabase
           .from("profiles")
-          .select("member_id, full_name, email, referral_earnings, slot_bonus, wallet_balance, total_referrals, created_at, bank_name, bank_account_number, bank_account_name, bank_code, is_legacy, is_green_card_holder, has_greencard, greencard_status, has_purchased_starter_pack")
+          .select("member_id, full_name, email, referral_earnings, slot_bonus, wallet_balance, total_referrals, created_at, bank_name, bank_account_number, bank_account_name, bank_code, is_legacy, is_green_card_holder, has_greencard, greencard_status, has_purchased_starter_pack, advance_debt_balance, advance_debt_total")
           .eq("id", user.id)
           .maybeSingle();
+
+        if (pData?.advance_debt_balance && Number(pData.advance_debt_balance) > 0) {
+          setAdvanceDebt((prev) => prev || {
+            balance: Number(pData.advance_debt_balance) || 0,
+            total: Number(pData.advance_debt_total) || Number(pData.advance_debt_balance) || 0,
+            repaid: Math.max(0, (Number(pData.advance_debt_total) || 0) - (Number(pData.advance_debt_balance) || 0)),
+            isIndebted: true,
+          });
+        }
 
         if (pErr || !pData) {
           // Fallback to core columns if newly added columns are not yet in PostgREST schema cache
@@ -1415,6 +1437,25 @@ export default function TransactionLedger() {
                       >
                         Release conditions →
                       </Link>
+                    </div>
+                  )}
+
+                  {advanceDebt && advanceDebt.isIndebted && advanceDebt.balance > 0 && (
+                    <div className="pt-2">
+                      <div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-200">
+                        <div className="flex items-center justify-between font-semibold mb-1">
+                          <span className="flex items-center gap-1.5 text-amber-300">
+                            <Clock className="w-3.5 h-3.5" />
+                            Corporate Advance Active
+                          </span>
+                          <span className="text-white font-mono">
+                            ₦{advanceDebt.balance.toLocaleString()} remaining
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-amber-200/70">
+                          100% of future earnings will automatically settle this advance (Repaid: ₦{advanceDebt.repaid.toLocaleString()} of ₦{advanceDebt.total.toLocaleString()}).
+                        </p>
+                      </div>
                     </div>
                   )}
                 </>

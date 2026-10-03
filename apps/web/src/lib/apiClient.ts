@@ -268,6 +268,12 @@ export const apiClient = {
           status: string;
         };
         totalEarnings: number;
+        advanceDebt?: {
+          balance: number;
+          total: number;
+          repaid: number;
+          isIndebted: boolean;
+        };
       }>("wallet/summary", options),
     getLedger: (options?: ApiRequestOptions) => apiRequest<any[]>("wallet/ledger", options),
   },
