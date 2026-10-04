@@ -15,6 +15,10 @@ interface RawProfileRow {
   created_at?: string;
   is_green_card_holder?: boolean;
   has_greencard?: boolean;
+  country?: string;
+  state?: string;
+  lga?: string;
+  advance_debt_balance?: number;
 }
 
 interface RawSlotRow {
@@ -146,6 +150,10 @@ export function useAdminMembers() {
           green_card_expires_at: userGreenCard?.expires_at,
           total_slots: totalSlots,
           slots_by_program: Object.values(programMap),
+          country: p.country || "Nigeria",
+          state: p.state || "",
+          lga: p.lga || "",
+          advance_debt_balance: Number(p.advance_debt_balance) || 0,
         };
       });
 

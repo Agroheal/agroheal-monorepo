@@ -51,7 +51,7 @@ interface LedgerItem {
   id: string;
   date: string;
   type: "CREDIT" | "DEBIT";
-  category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION" | "CORE_DRIVER_BONUS" | "RETAIL_PURCHASE" | "FARM_CONTRIBUTION" | "COMBO_PACKAGE" | "SLOT_BONUS";
+  category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION" | "CORE_DRIVER_BONUS" | "RETAIL_PURCHASE" | "FARM_CONTRIBUTION" | "COMBO_PACKAGE" | "SLOT_BONUS" | "ADVANCE_RECOVERY";
   amount: number;
   description: string;
   status: "COMPLETED" | "PENDING" | "FAILED";
@@ -616,7 +616,26 @@ export default function TransactionLedger() {
         let category: LedgerItem["category"] = "SLOT_PURCHASE";
         let description = cleanCat ? `Online Payment — ${cleanCat}` : "Online Platform Payment";
 
-        if (amount === 12000 || (isComboTx && amount === 12000)) {
+        const linkedOrders = (orders || []).filter((o: any) => String(o.transaction_id) === String(c.id));
+        const linkedSlots = (slotSubscriptions || []).filter((s: any) => String(s.checkout_id) === String(c.id));
+
+        if (c.notes && c.notes.toLowerCase().includes("corporate advance")) {
+          category = "ADVANCE_RECOVERY";
+          description = c.notes;
+        } else if (linkedOrders.length > 0 && linkedSlots.length > 0) {
+          category = "COMBO_PACKAGE";
+          const slotCount = linkedSlots.reduce((sum: number, s: any) => sum + (Number(s.slots) || 0), 0);
+          const prodNames = linkedOrders.map((o: any) => `${o.quantity > 1 ? `${o.quantity}x ` : ""}${o.product_code === "SP-MUSH-100G" ? "Mushroom Power 100g" : (o.product_code || "Product")}`).join(", ");
+          description = `Secured ${slotCount} Farm Slot(s) + ${prodNames} — ${cleanCat || "Mushroom Village"}`;
+        } else if (linkedOrders.length > 0 && linkedSlots.length === 0) {
+          category = "RETAIL_PURCHASE";
+          const prodNames = linkedOrders.map((o: any) => `${o.quantity > 1 ? `${o.quantity}x ` : ""}${o.product_code === "SP-MUSH-100G" ? "Mushroom Power 100g" : (o.product_code || "Product")}`).join(", ");
+          description = `Product Purchase: ${prodNames}`;
+        } else if (linkedSlots.length > 0) {
+          category = "SLOT_PURCHASE";
+          const slotCount = linkedSlots.reduce((sum: number, s: any) => sum + (Number(s.slots) || 0), 0);
+          description = `Secured ${slotCount} Farm Slot(s) — ${cleanCat || "Mushroom Village"}`;
+        } else if (amount === 12000 || (isComboTx && amount === 12000)) {
           category = "COMBO_PACKAGE";
           description = "Starter Combo Bundle (1 Farm Slot ₦5,000 + Mushroom Power 100g ₦5,000 + Green Card Pass ₦2,000)";
         } else if (amount === 11000 || (isComboTx && amount === 11000)) {

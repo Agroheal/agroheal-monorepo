@@ -873,6 +873,9 @@ const DashboardLayout = () => {
         <ProfileCompletionModal
           userId={profile.id}
           initialPhone={profile.phone}
+          initialCountry={profile.country || "Nigeria"}
+          initialState={profile.state || ""}
+          initialLga={profile.lga || ""}
           initialKin={kinDetails}
           onComplete={() => {
             setProfileIncomplete(false);

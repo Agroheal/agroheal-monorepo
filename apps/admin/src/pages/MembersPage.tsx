@@ -3,8 +3,13 @@ import { Copy, MessageCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAdminMembers } from "@/hooks/useAdminMembers";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { filterMemberPredicate, type GreenCardFilter } from "@/lib/memberFilters";
-import { activateGreenCard, resetPassword, updateMember } from "@/lib/adminActions";
+import {
+  filterMemberPredicate,
+  type GreenCardFilter,
+  type DebtorFilter,
+  type LocationStatusFilter,
+} from "@/lib/memberFilters";
+import { activateGreenCard, resetPassword, updateMember, recordAuditEvent } from "@/lib/adminActions";
 import { MembersKpiCards } from "@/components/admin/MembersKpiCards";
 import { MembersToolbar, type MemberViewMode } from "@/components/admin/MembersToolbar";
 import { MemberTable } from "@/components/admin/MemberTable";
@@ -12,10 +17,15 @@ import { MemberCard } from "@/components/admin/MemberCard";
 import { EditMemberDialog, type EditMemberValues } from "@/components/admin/EditMemberDialog";
 import { IssueGreenCardDialog } from "@/components/admin/IssueGreenCardDialog";
 import { IssuedGreenCardSuccessDialog } from "@/components/admin/IssuedGreenCardSuccessDialog";
+import { MassActionsBar } from "@/components/admin/MassActionsBar";
+import { MassAssignLocationDialog } from "@/components/admin/MassAssignLocationDialog";
+import { MassAssignRoleDialog } from "@/components/admin/MassAssignRoleDialog";
+import { MassIssueGreenCardDialog } from "@/components/admin/MassIssueGreenCardDialog";
 import { StatusBanner } from "@/components/admin/StatusBanner";
 import type { Member } from "@/types/admin";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { exportToExcel } from "@shared/excelExport";
+import { supabase } from "@/lib/supabaseClient";
 
 function openWhatsApp(text: string) {
   window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
@@ -26,10 +36,25 @@ export default function MembersPage() {
   const { members, loading, refetch } = useAdminMembers();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
+  // Filter States
   const [searchQuery, setSearchQuery] = useState("");
   const [programFilter, setProgramFilter] = useState("all");
   const [greenCardFilter, setGreenCardFilter] = useState<GreenCardFilter>("all");
+  const [stateFilter, setStateFilter] = useState("all");
+  const [lgaFilter, setLgaFilter] = useState("all");
+  const [debtorFilter, setDebtorFilter] = useState<DebtorFilter>("all");
+  const [locationStatusFilter, setLocationStatusFilter] = useState<LocationStatusFilter>("all");
   const [viewMode, setViewMode] = useState<MemberViewMode>("auto");
+
+  // Selection State
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Mass Actions Modals & Progress
+  const [isAssignLocationOpen, setIsAssignLocationOpen] = useState(false);
+  const [isAssignRoleOpen, setIsAssignRoleOpen] = useState(false);
+  const [isMassGreenCardOpen, setIsMassGreenCardOpen] = useState(false);
+  const [massLoading, setMassLoading] = useState(false);
+  const [massProgress, setMassProgress] = useState<{ current: number; total: number; currentName?: string } | null>(null);
 
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -46,9 +71,50 @@ export default function MembersPage() {
     null,
   );
 
+  const hasActiveFilters =
+    Boolean(searchQuery.trim()) ||
+    programFilter !== "all" ||
+    greenCardFilter !== "all" ||
+    stateFilter !== "all" ||
+    lgaFilter !== "all" ||
+    debtorFilter !== "all" ||
+    locationStatusFilter !== "all";
+
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setProgramFilter("all");
+    setGreenCardFilter("all");
+    setStateFilter("all");
+    setLgaFilter("all");
+    setDebtorFilter("all");
+    setLocationStatusFilter("all");
+  };
+
   const filteredMembers = useMemo(
-    () => members.filter((m) => filterMemberPredicate(m, searchQuery, greenCardFilter, programFilter)),
-    [members, searchQuery, greenCardFilter, programFilter],
+    () =>
+      members.filter((m) =>
+        filterMemberPredicate(m, searchQuery, greenCardFilter, programFilter, {
+          stateFilter,
+          lgaFilter,
+          debtorFilter,
+          locationStatusFilter,
+        }),
+      ),
+    [
+      members,
+      searchQuery,
+      greenCardFilter,
+      programFilter,
+      stateFilter,
+      lgaFilter,
+      debtorFilter,
+      locationStatusFilter,
+    ],
+  );
+
+  const selectedMembers = useMemo(
+    () => members.filter((m) => selectedIds.has(m.id)),
+    [members, selectedIds],
   );
 
   const showTable = viewMode === "table" || (viewMode === "auto" && isDesktop);
@@ -57,6 +123,181 @@ export default function MembersPage() {
   const flash = (fn: (v: string) => void, text: string, ms = 4000) => {
     fn(text);
     setTimeout(() => fn(""), ms);
+  };
+
+  // Selection handlers
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleToggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      const allFilteredSelected = filteredMembers.length > 0 && filteredMembers.every((m) => prev.has(m.id));
+      const next = new Set(prev);
+      if (allFilteredSelected) {
+        filteredMembers.forEach((m) => next.delete(m.id));
+      } else {
+        filteredMembers.forEach((m) => next.add(m.id));
+      }
+      return next;
+    });
+  };
+
+  const handleSelectAllFiltered = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      filteredMembers.forEach((m) => next.add(m.id));
+      return next;
+    });
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedIds(new Set());
+  };
+
+  // Mass action handlers
+  const handleMassAssignLocation = async (state: string, lga: string) => {
+    if (isReadOnly) {
+      flash(setErrorMessage, "Support role is Read-Only. Mass actions require Administrator privileges.");
+      return;
+    }
+    if (selectedMembers.length === 0) return;
+
+    setMassLoading(true);
+    setErrorMessage("");
+    try {
+      const ids = selectedMembers.map((m) => m.id);
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          country: "Nigeria",
+          state,
+          lga,
+          updated_at: new Date().toISOString(),
+        })
+        .in("id", ids);
+
+      if (error) throw error;
+
+      await recordAuditEvent({
+        action: "MASS_ASSIGN_LOCATION",
+        entity_type: "profiles",
+        entity_id: null,
+        payload: {
+          member_count: ids.length,
+          state,
+          lga,
+          member_ids: ids,
+        },
+      });
+
+      flash(setSuccessMessage, `Assigned ${state} / ${lga} to ${ids.length} members successfully!`);
+      await refetch();
+      setSelectedIds(new Set());
+      setIsAssignLocationOpen(false);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Failed to mass assign location.");
+    } finally {
+      setMassLoading(false);
+    }
+  };
+
+  const handleMassAssignRole = async (role: string) => {
+    if (isReadOnly) {
+      flash(setErrorMessage, "Support role is Read-Only. Mass actions require Administrator privileges.");
+      return;
+    }
+    if (selectedMembers.length === 0) return;
+
+    setMassLoading(true);
+    setErrorMessage("");
+    try {
+      const ids = selectedMembers.map((m) => m.id);
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          role,
+          updated_at: new Date().toISOString(),
+        })
+        .in("id", ids);
+
+      if (error) throw error;
+
+      await recordAuditEvent({
+        action: "MASS_ASSIGN_ROLE",
+        entity_type: "profiles",
+        entity_id: null,
+        payload: {
+          member_count: ids.length,
+          role,
+          member_ids: ids,
+        },
+      });
+
+      flash(setSuccessMessage, `Updated role to ${role} for ${ids.length} members successfully!`);
+      await refetch();
+      setSelectedIds(new Set());
+      setIsAssignRoleOpen(false);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Failed to mass assign role.");
+    } finally {
+      setMassLoading(false);
+    }
+  };
+
+  const handleMassIssueGreenCards = async (unpaidMembers: Member[]) => {
+    if (isReadOnly) {
+      flash(setErrorMessage, "Support role is Read-Only. Mass actions require Administrator privileges.");
+      return;
+    }
+    if (unpaidMembers.length === 0) return;
+
+    setMassLoading(true);
+    setErrorMessage("");
+    let successCount = 0;
+    const failures: string[] = [];
+
+    for (let i = 0; i < unpaidMembers.length; i++) {
+      const m = unpaidMembers[i];
+      setMassProgress({ current: i + 1, total: unpaidMembers.length, currentName: m.full_name });
+      try {
+        await activateGreenCard({
+          user_id: m.id,
+          existing_member_id: m.member_id !== "No ID Assigned" ? m.member_id : undefined,
+        });
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to activate Green Card for ${m.full_name}:`, err);
+        failures.push(`${m.full_name} (${err instanceof Error ? err.message : "error"})`);
+      }
+    }
+
+    setMassProgress(null);
+    setMassLoading(false);
+    setIsMassGreenCardOpen(false);
+
+    if (successCount > 0) {
+      flash(
+        setSuccessMessage,
+        `Activated Green Cards for ${successCount} member${successCount !== 1 ? "s" : ""}.${
+          failures.length > 0 ? ` ${failures.length} failed.` : ""
+        }`,
+      );
+    }
+    if (failures.length > 0 && successCount === 0) {
+      setErrorMessage(`Failed to activate Green Cards: ${failures.slice(0, 3).join(", ")}`);
+    }
+
+    await refetch();
+    setSelectedIds(new Set());
   };
 
   const handleExportExcel = () => {
@@ -75,12 +316,16 @@ export default function MembersPage() {
         "Email": m.email || "",
         "Phone Number": m.phone || "",
         "Role": m.role || "Member",
+        "Country": m.country || "Nigeria",
+        "State": m.state || "-",
+        "LGA": m.lga || "-",
         "Green Card Status": m.has_green_card ? "ACTIVE" : "INACTIVE",
         "Green Card Expiry": m.green_card_expires_at ? new Date(m.green_card_expires_at).toLocaleDateString() : "-",
         "Total Slots": m.total_slots || 0,
         "Mushroom Village Slots": mushroomSlots,
         "Gingertown Slots": gingerSlots,
         "Organic FoodNation Slots": foodNationSlots,
+        "Advance Debt Balance (NGN)": Number(m.advance_debt_balance || 0),
         "Referral Code": m.referral_code || "-",
         "Referred By": m.referred_by || "-",
         "Joined Date": m.created_at ? new Date(m.created_at).toLocaleDateString() : "",
@@ -106,6 +351,57 @@ export default function MembersPage() {
     });
 
     flash(setSuccessMessage, `Exported ${filteredMembers.length} member records to ${filename}`);
+  };
+
+  const handleExportSelectedExcel = () => {
+    const targetMembers = selectedMembers.length > 0 ? selectedMembers : filteredMembers;
+    const dateStamp = new Date().toISOString().split("T")[0];
+    const filename = `Agroheal_Selected_Members_${dateStamp}.xlsx`;
+
+    const memberRows = targetMembers.map((m, idx) => {
+      const mushroomSlots = m.slots_by_program?.find((p) => p.category?.toLowerCase().includes("mushroom"))?.slots || 0;
+      const gingerSlots = m.slots_by_program?.find((p) => p.category?.toLowerCase().includes("ginger"))?.slots || 0;
+      const foodNationSlots = m.slots_by_program?.find((p) => p.category?.toLowerCase().includes("foodnation"))?.slots || 0;
+
+      return {
+        "S/N": idx + 1,
+        "AGC Member ID": m.member_id || "-",
+        "Full Name": m.full_name || "",
+        "Email": m.email || "",
+        "Phone Number": m.phone || "",
+        "Role": m.role || "Member",
+        "Country": m.country || "Nigeria",
+        "State": m.state || "-",
+        "LGA": m.lga || "-",
+        "Green Card Status": m.has_green_card ? "ACTIVE" : "INACTIVE",
+        "Green Card Expiry": m.green_card_expires_at ? new Date(m.green_card_expires_at).toLocaleDateString() : "-",
+        "Total Slots": m.total_slots || 0,
+        "Mushroom Village Slots": mushroomSlots,
+        "Gingertown Slots": gingerSlots,
+        "Organic FoodNation Slots": foodNationSlots,
+        "Advance Debt Balance (NGN)": Number(m.advance_debt_balance || 0),
+        "Referral Code": m.referral_code || "-",
+        "Referred By": m.referred_by || "-",
+        "Joined Date": m.created_at ? new Date(m.created_at).toLocaleDateString() : "",
+      };
+    });
+
+    const summaryRows = [
+      { "Metric": "Exported Count", "Value": targetMembers.length },
+      { "Metric": "Total System Members", "Value": members.length },
+      { "Metric": "Total Slots Held (Exported)", "Value": targetMembers.reduce((sum, m) => sum + m.total_slots, 0) },
+      { "Metric": "Active Green Card Holders (Exported)", "Value": targetMembers.filter((m) => m.has_green_card).length },
+    ];
+
+    exportToExcel({
+      filename,
+      sheets: [
+        { sheetName: "Selected Members", data: memberRows },
+        { sheetName: "Export Summary", data: summaryRows },
+      ],
+    });
+
+    flash(setSuccessMessage, `Exported ${targetMembers.length} selected member records to ${filename}`);
   };
 
   const handleActivateGreenCard = async (
@@ -211,12 +507,33 @@ export default function MembersPage() {
 
       <MembersKpiCards members={members} value={greenCardFilter} onChange={setGreenCardFilter} />
 
+      <MassActionsBar
+        selectedCount={selectedIds.size}
+        totalFiltered={filteredMembers.length}
+        onSelectAllFiltered={handleSelectAllFiltered}
+        onDeselectAll={handleDeselectAll}
+        onOpenAssignLocation={() => setIsAssignLocationOpen(true)}
+        onOpenIssueGreenCards={() => setIsMassGreenCardOpen(true)}
+        onOpenAssignRole={() => setIsAssignRoleOpen(true)}
+        onExportSelected={handleExportSelectedExcel}
+      />
+
       <MembersToolbar
         members={members}
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
         programFilter={programFilter}
         onProgramFilterChange={setProgramFilter}
+        stateFilter={stateFilter}
+        onStateFilterChange={setStateFilter}
+        lgaFilter={lgaFilter}
+        onLgaFilterChange={setLgaFilter}
+        debtorFilter={debtorFilter}
+        onDebtorFilterChange={setDebtorFilter}
+        locationStatusFilter={locationStatusFilter}
+        onLocationStatusFilterChange={setLocationStatusFilter}
+        onResetFilters={handleResetFilters}
+        hasActiveFilters={hasActiveFilters}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         onIssueGreenCard={() => setIsIssueModalOpen(true)}
@@ -240,6 +557,9 @@ export default function MembersPage() {
             <MemberTable
               members={filteredMembers}
               recoveryLoading={recoveryLoading}
+              selectedIds={selectedIds}
+              onToggleSelect={handleToggleSelect}
+              onToggleSelectAll={handleToggleSelectAll}
               onEdit={setEditingMember}
               onResetPassword={handlePasswordReset}
             />
@@ -252,6 +572,8 @@ export default function MembersPage() {
                   key={m.id}
                   member={m}
                   recoveryLoading={recoveryLoading}
+                  selected={selectedIds.has(m.id)}
+                  onToggleSelect={() => handleToggleSelect(m.id)}
                   onEdit={setEditingMember}
                   onResetPassword={handlePasswordReset}
                 />
@@ -333,6 +655,31 @@ export default function MembersPage() {
         details={issuedGreenCardDetails}
         onOpenChange={(open) => !open && setIssuedGreenCardDetails(null)}
         onCopied={() => flash(setSuccessMessage, "Confirmation message copied to clipboard!", 3000)}
+      />
+
+      <MassAssignLocationDialog
+        open={isAssignLocationOpen}
+        onOpenChange={setIsAssignLocationOpen}
+        selectedCount={selectedIds.size}
+        onConfirm={handleMassAssignLocation}
+        loading={massLoading}
+      />
+
+      <MassAssignRoleDialog
+        open={isAssignRoleOpen}
+        onOpenChange={setIsAssignRoleOpen}
+        selectedCount={selectedIds.size}
+        onConfirm={handleMassAssignRole}
+        loading={massLoading}
+      />
+
+      <MassIssueGreenCardDialog
+        open={isMassGreenCardOpen}
+        onOpenChange={setIsMassGreenCardOpen}
+        selectedMembers={selectedMembers}
+        onConfirm={handleMassIssueGreenCards}
+        loading={massLoading}
+        progress={massProgress}
       />
     </div>
   );

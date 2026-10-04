@@ -18,17 +18,28 @@ export function memberMatchesQuery(m: Member, queryStr: string) {
     (cleanQuery.length >= 3 && cleanPhone.includes(cleanQuery)) ||
     m.phone.toLowerCase().includes(query) ||
     m.member_id.toLowerCase().includes(query) ||
-    m.referral_code.toLowerCase().includes(query)
+    m.referral_code.toLowerCase().includes(query) ||
+    Boolean(m.state && m.state.toLowerCase().includes(query)) ||
+    Boolean(m.lga && m.lga.toLowerCase().includes(query))
   );
 }
 
 export type GreenCardFilter = "all" | "active" | "unpaid";
+export type DebtorFilter = "all" | "debtors" | "debt_free";
+export type LocationStatusFilter = "all" | "configured" | "pending";
 
 export function filterMemberPredicate(
   m: Member,
   queryStr: string,
-  greenCardFilter: GreenCardFilter,
-  programFilter: string,
+  greenCardFilter: GreenCardFilter = "all",
+  programFilter: string = "all",
+  options?: {
+    stateFilter?: string;
+    lgaFilter?: string;
+    debtorFilter?: DebtorFilter;
+    roleFilter?: string;
+    locationStatusFilter?: LocationStatusFilter;
+  },
 ) {
   if (!memberMatchesQuery(m, queryStr)) return false;
 
@@ -36,13 +47,42 @@ export function filterMemberPredicate(
   if (greenCardFilter === "unpaid" && m.has_green_card) return false;
 
   if (programFilter === "has_slots") {
-    return m.total_slots > 0;
+    if (m.total_slots <= 0) return false;
+  } else if (programFilter === "no_slots") {
+    if (m.total_slots !== 0) return false;
+  } else if (programFilter !== "all") {
+    if (!m.slots_by_program.some((prog) => prog.category.toLowerCase().includes(programFilter.toLowerCase()))) {
+      return false;
+    }
   }
-  if (programFilter === "no_slots") {
-    return m.total_slots === 0;
+
+  // State filter
+  if (options?.stateFilter && options.stateFilter !== "all") {
+    if ((m.state || "").toLowerCase() !== options.stateFilter.toLowerCase()) return false;
   }
-  if (programFilter !== "all") {
-    return m.slots_by_program.some((prog) => prog.category.toLowerCase().includes(programFilter.toLowerCase()));
+
+  // LGA filter
+  if (options?.lgaFilter && options.lgaFilter !== "all") {
+    if ((m.lga || "").toLowerCase() !== options.lgaFilter.toLowerCase()) return false;
+  }
+
+  // Debtor filter
+  if (options?.debtorFilter === "debtors") {
+    if (Number(m.advance_debt_balance || 0) <= 0) return false;
+  } else if (options?.debtorFilter === "debt_free") {
+    if (Number(m.advance_debt_balance || 0) > 0) return false;
+  }
+
+  // Role filter
+  if (options?.roleFilter && options.roleFilter !== "all") {
+    if ((m.role || "user").toLowerCase() !== options.roleFilter.toLowerCase()) return false;
+  }
+
+  // Location status filter
+  if (options?.locationStatusFilter === "configured") {
+    if (!m.state || !m.lga) return false;
+  } else if (options?.locationStatusFilter === "pending") {
+    if (m.state && m.lga) return false;
   }
 
   return true;

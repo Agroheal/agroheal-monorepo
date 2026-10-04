@@ -433,8 +433,6 @@ const Dashboard = () => {
     };
   }
 
-  const isLegacy = Boolean(profile?.is_legacy || isLegacyMember(profile?.created_at as string));
-
   // Merged Dashboard Primary Navigation & Status Tiles (Privacy-First: Cash amounts exclusively on Wallet)
   const menuTiles = [
     checkoutTile,

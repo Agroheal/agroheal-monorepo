@@ -1,22 +1,40 @@
-import { Edit3, KeyRound, Mail, Phone } from "lucide-react";
+import { Edit3, KeyRound, Mail, Phone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GreenCardBadge, ProgramPills, RoleBadge } from "@/components/admin/MemberBadges";
 import { memberInitial } from "@/lib/memberFilters";
+import { cn } from "@/lib/utils";
 import type { Member } from "@/types/admin";
 
 interface Props {
   member: Member;
   recoveryLoading: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
   onEdit: (m: Member) => void;
   onResetPassword: (m: Member) => void;
 }
 
-export function MemberCard({ member: m, recoveryLoading, onEdit, onResetPassword }: Props) {
+export function MemberCard({
+  member: m,
+  recoveryLoading,
+  selected = false,
+  onToggleSelect,
+  onEdit,
+  onResetPassword,
+}: Props) {
   return (
-    <div className="flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-4">
+    <div className={cn("flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-all", selected && "border-emerald-500 ring-1 ring-emerald-500 bg-emerald-500/5")}>
       <div>
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2.5">
+            {onToggleSelect && (
+              <input
+                type="checkbox"
+                checked={selected}
+                onChange={onToggleSelect}
+                className="h-4 w-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer shrink-0"
+              />
+            )}
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-semibold text-primary">
               {memberInitial(m)}
             </div>
@@ -40,6 +58,24 @@ export function MemberCard({ member: m, recoveryLoading, onEdit, onResetPassword
           )}
 
           <div className="mt-2 space-y-1.5 rounded-lg border border-border bg-background/40 p-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-muted-foreground">Location:</span>
+              {m.state && m.lga ? (
+                <span className="text-[11px] font-medium text-emerald-500 flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> {m.lga}, {m.state}
+                </span>
+              ) : (
+                <span className="text-[11px] text-amber-500 font-medium">Pending LGA</span>
+              )}
+            </div>
+
+            {Number(m.advance_debt_balance || 0) > 0 && (
+              <div className="flex items-center justify-between text-[11px] text-rose-500 font-semibold bg-rose-500/10 px-2 py-0.5 rounded">
+                <span>Advance Debt:</span>
+                <span>₦{Number(m.advance_debt_balance).toLocaleString()}</span>
+              </div>
+            )}
+
             <div className="flex items-center justify-between">
               <span className="text-[11px] text-muted-foreground">Green Card:</span>
               <GreenCardBadge active={m.has_green_card} size="xs" />

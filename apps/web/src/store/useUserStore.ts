@@ -24,6 +24,9 @@ export interface UserProfile {
   has_purchased_starter_pack?: boolean;
   placement_status?: string;
   holding_tank_expires_at?: string | null;
+  country?: string | null;
+  state?: string | null;
+  lga?: string | null;
   [key: string]: unknown;
 }
 
@@ -92,7 +95,7 @@ export const useUserStore = create<UserState>((set, get) => ({
       const [{ data: profileData }, { data: kinData }] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id, email, full_name, role, phone, wallet_balance, avatar_url, member_id, referral_code, has_greencard, greencard_status, is_legacy, has_purchased_starter_pack, placement_status, holding_tank_expires_at")
+          .select("id, email, full_name, role, phone, wallet_balance, avatar_url, member_id, referral_code, has_greencard, greencard_status, is_legacy, has_purchased_starter_pack, placement_status, holding_tank_expires_at, country, state, lga")
           .eq("id", targetUserId)
           .maybeSingle(),
         supabase
@@ -111,7 +114,9 @@ export const useUserStore = create<UserState>((set, get) => ({
         !kin?.kin_name ||
         !kin?.kin_number ||
         String(kin.kin_number).trim().length < 10;
-      const isProfileIncomplete = isPhoneMissing || isKinMissing;
+      const isLocationMissing =
+        !profile?.state || !profile?.lga || String(profile.state).trim().length === 0 || String(profile.lga).trim().length === 0;
+      const isProfileIncomplete = isPhoneMissing || isKinMissing || isLocationMissing;
 
       const hasGreenCard = Boolean(
         profile?.has_greencard === true ||

@@ -10,6 +10,8 @@ const KinDetails = () => {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [phone, setPhone] = useState<string>("");
+  const [userState, setUserState] = useState<string>("");
+  const [userLga, setUserLga] = useState<string>("");
   const [initialData, setInitialData] = useState<{
     kin_name?: string;
     kin_address?: string;
@@ -31,11 +33,13 @@ const KinDetails = () => {
 
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("phone")
+        .select("phone, state, lga")
         .eq("id", user.id)
         .maybeSingle();
 
       setPhone(profileData?.phone || "");
+      setUserState(profileData?.state || "");
+      setUserLga(profileData?.lga || "");
       setUserId(user.id);
       const { data } = await supabase
         .from("kin_details")
@@ -64,6 +68,8 @@ const KinDetails = () => {
       <ProfileCompletionModal
         userId={userId}
         initialPhone={phone}
+        initialState={userState}
+        initialLga={userLga}
         initialKin={initialData}
         canDismiss={true}
         onComplete={() => navigate("/dashboard", { replace: true })}

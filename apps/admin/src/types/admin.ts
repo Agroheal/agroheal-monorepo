@@ -19,6 +19,10 @@ export interface Member {
   green_card_expires_at?: string;
   total_slots: number;
   slots_by_program: MemberSlotSummary[];
+  country?: string;
+  state?: string;
+  lga?: string;
+  advance_debt_balance?: number;
 }
 
 export interface PaymentLog {

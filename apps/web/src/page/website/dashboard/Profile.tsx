@@ -49,6 +49,9 @@ interface UserProfile {
   bank_account_number?: string | null;
   bank_account_name?: string | null;
   bank_code?: string | null;
+  country?: string | null;
+  state?: string | null;
+  lga?: string | null;
 }
 
 interface KinData {
@@ -375,10 +378,26 @@ export const ProfileComponent: React.FC = () => {
                 </Link>
               )}
             </div>
-            <div className="flex justify-between items-center py-1.5">
+            <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
               <span className="text-gray-500 font-medium">Affiliate Referral Code</span>
               <span className="font-mono font-bold text-gray-900 bg-gray-50 border border-gray-200 px-2.5 py-0.5 rounded-lg">
                 {profile?.referral_code || profile?.member_id || "None"}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
+              <span className="text-gray-500 font-medium">State &amp; LGA</span>
+              <span className="font-medium text-gray-900 text-right">
+                {profile?.state && profile?.lga ? (
+                  <span className="text-emerald-800 font-semibold">{profile.lga}, {profile.state}</span>
+                ) : (
+                  <span className="text-amber-600 font-normal">Pending Configuration</span>
+                )}
+              </span>
+            </div>
+            <div className="flex justify-between items-center py-1.5">
+              <span className="text-gray-500 font-medium">Country</span>
+              <span className="font-semibold text-gray-900 text-right">
+                {profile?.country || "Nigeria"}
               </span>
             </div>
           </div>
@@ -614,6 +633,9 @@ export const ProfileComponent: React.FC = () => {
         <ProfileCompletionModal
           userId={profile.id}
           initialPhone={profile.phone || ""}
+          initialCountry={profile.country || "Nigeria"}
+          initialState={profile.state || ""}
+          initialLga={profile.lga || ""}
           initialKin={kin}
           initialBank={{
             bank_name: profile.bank_name || "",

@@ -15,6 +15,7 @@ import {
   Sparkles,
   Phone,
   Check,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ import { apiClient } from "@/lib/apiClient";
 import * as Sentry from "@sentry/react";
 import { DEFAULT_CATEGORY } from "@/constant/projectCategories";
 import { cleanName, cleanEmail, normalizePhoneNumber } from "@shared/dataSanitizers";
+import { NIGERIA_STATES, getLgasForState } from "@shared/nigeriaLocations";
 import {
   BASE_SLOT_PRICE as SLOT_UNIT_PRICE,
   GREEN_CARD_FEE,
@@ -466,6 +468,9 @@ const Checkout = () => {
     lastName: "",
     phone: "",
     email: "",
+    country: "Nigeria",
+    state: "",
+    lga: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -498,7 +503,7 @@ const Checkout = () => {
         ] = await Promise.all([
           supabase
             .from("profiles")
-            .select("full_name, phone, email, referral_earnings, wallet_balance, created_at, has_purchased_starter_pack, is_wealth_creation_active, is_green_card_holder, has_greencard, member_id")
+            .select("full_name, phone, email, referral_earnings, wallet_balance, created_at, has_purchased_starter_pack, is_wealth_creation_active, is_green_card_holder, has_greencard, member_id, country, state, lga")
             .eq("id", user.id)
             .maybeSingle(),
           supabase
@@ -552,6 +557,9 @@ const Checkout = () => {
           lastName: extractedLastName,
           phone: resolvedPhone,
           email: resolvedEmail,
+          country: profile?.country || "Nigeria",
+          state: profile?.state || "",
+          lga: profile?.lga || "",
         });
 
         // Compute available spendable wallet balance
@@ -673,7 +681,7 @@ const Checkout = () => {
             ? "Green Card + Starter Combo"
             : isGreenCardOnly
             ? "Green Card"
-            : (isStarterPack ? "Starter Pack" : category),
+            : (isStarterPack ? "Mushroom Power 100g" : category),
         },
       ])
       .select()
@@ -689,17 +697,21 @@ const Checkout = () => {
       return null;
     }
 
-    // Auto-save full_name and phone to profiles if empty
+    // Auto-save full_name, phone, state, and lga to profiles
     try {
       const combinedName = `${cleanFirstName} ${cleanLastName}`.trim();
+      const profileSyncUpdates: Record<string, any> = {
+        full_name: combinedName,
+        phone: normalizedPhone,
+      };
+      if (formData.state) profileSyncUpdates.state = formData.state;
+      if (formData.lga) profileSyncUpdates.lga = formData.lga;
+      profileSyncUpdates.country = "Nigeria";
+
       await supabase
         .from("profiles")
-        .update({
-          full_name: combinedName,
-          phone: normalizedPhone,
-        })
-        .eq("id", user.id)
-        .or("phone.is.null,full_name.is.null");
+        .update(profileSyncUpdates)
+        .eq("id", user.id);
     } catch (profileSyncErr) {
       console.warn("Non-blocking profile sync error:", profileSyncErr);
     }
@@ -752,12 +764,11 @@ const Checkout = () => {
         throw new Error(rpcRes?.message || "Wallet deduction failed.");
       }
 
-      // Authoritative Unified Settlement Engine: Activates Green Card, Allocates Slots,
-      // Creates Mushroom Power 100g Order, Credits Bonuses, and Auto-Places in Matrix
       let settled = false;
+      let walletSettleRes: any = null;
       for (let attempt = 1; attempt <= 3; attempt++) {
         try {
-          await apiClient.checkout.settle({
+          walletSettleRes = await apiClient.checkout.settle({
             userId: user.id,
             transactionId: String(order.id),
             paymentReference: `WALLET_${order.id}_${Date.now()}`,
@@ -778,6 +789,16 @@ const Checkout = () => {
             await new Promise((r) => setTimeout(r, attempt * 1000));
           }
         }
+      }
+
+      if (walletSettleRes?.isDebtRecovery) {
+        setWalletBalance((prev) => Math.max(0, prev - totalPrice + (Number(walletSettleRes.surplusCredited) || 0)));
+        toast({
+          title: "Loan Settlement Applied! ⚖️",
+          description: `₦${Number(walletSettleRes.debtRecovered || 0).toLocaleString()} was applied towards your advance debt. Remaining debt: ₦${Number(walletSettleRes.remainingDebt || 0).toLocaleString()}.${Number(walletSettleRes.surplusCredited || 0) > 0 ? ` Surplus ₦${Number(walletSettleRes.surplusCredited || 0).toLocaleString()} credited to your wallet.` : ""}`,
+        });
+        navigate("/dashboard");
+        return;
       }
 
       if (!settled) {
@@ -923,6 +944,9 @@ const Checkout = () => {
         },
         meta: {
           user_id: order.user_id,
+          state: formData.state,
+          lga: formData.lga,
+          country: "Nigeria",
           plan: isCombo
             ? "green_card_combo"
             : isGreenCardOnly
@@ -934,6 +958,8 @@ const Checkout = () => {
             ? "Green Card + Starter Combo"
             : isGreenCardOnly
             ? "Green Card"
+            : isStarterPack
+            ? "Mushroom Power 100g"
             : category,
           has_combo: isCombo,
           isCombo: isCombo,
@@ -973,12 +999,11 @@ const Checkout = () => {
 
             const activateSlot = async () => {
               try {
-                // Authoritative Unified Settlement Engine: Activates Green Card, Allocates Slots,
-                // Creates Mushroom Power 100g Order, Credits Bonuses, and Auto-Places in Matrix
                 let settled = false;
+                let flwSettleRes: any = null;
                 for (let attempt = 1; attempt <= 3; attempt++) {
                   try {
-                    await apiClient.checkout.settle({
+                    flwSettleRes = await apiClient.checkout.settle({
                       userId: order.user_id,
                       transactionId: order.id,
                       paymentReference: String(flwTransactionId),
@@ -999,6 +1024,15 @@ const Checkout = () => {
                       await new Promise((r) => setTimeout(r, attempt * 1200));
                     }
                   }
+                }
+
+                if (flwSettleRes?.isDebtRecovery) {
+                  toast({
+                    title: "Loan Settlement Applied! ⚖️",
+                    description: `₦${Number(flwSettleRes.debtRecovered || 0).toLocaleString()} was applied towards your advance debt. Remaining debt: ₦${Number(flwSettleRes.remainingDebt || 0).toLocaleString()}.${Number(flwSettleRes.surplusCredited || 0) > 0 ? ` Surplus ₦${Number(flwSettleRes.surplusCredited || 0).toLocaleString()} credited to your wallet.` : ""}`,
+                  });
+                  navigate("/dashboard");
+                  return;
                 }
 
                 if (!settled) {
@@ -1125,6 +1159,21 @@ const Checkout = () => {
       }
     }
 
+    // Validate State and LGA for community farm anchoring
+    if (!formData.state || !formData.lga) {
+      toast({
+        title: "Jurisdiction Required",
+        description: "Please select the State and Local Government Area (LGA) for this community farm subscription.",
+        variant: "destructive",
+      });
+      const locEl = document.getElementById("checkout-state-select");
+      if (locEl) {
+        locEl.focus();
+        locEl.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return;
+    }
+
     if (!category) {
       setCategory(DEFAULT_CATEGORY);
     }
@@ -1186,6 +1235,92 @@ const Checkout = () => {
               transition={{ duration: 0.4 }}
               className="md:col-span-6 lg:col-span-7 space-y-6"
             >
+              {/* Community Farm Jurisdiction (State & LGA) */}
+              <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-sm border border-border/70 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-border/50">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-600/10 text-emerald-700 flex items-center justify-center font-bold text-sm">
+                      <MapPin className="w-4 h-4 text-emerald-700" />
+                    </div>
+                    <div>
+                      <h2 className="font-bold text-base text-foreground">
+                        Community Farm Jurisdiction
+                      </h2>
+                      <p className="text-xs text-muted-foreground">
+                        Select the State &amp; LGA where your farm operations will be anchored.
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-md">
+                    Nigeria
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-gray-700 block mb-1.5">
+                      Target State <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      id="checkout-state-select"
+                      value={formData.state}
+                      onChange={(e) => {
+                        const newState = e.target.value;
+                        const validLgas = getLgasForState(newState);
+                        setFormData((prev) => ({
+                          ...prev,
+                          state: newState,
+                          lga: validLgas.includes(prev.lga) ? prev.lga : "",
+                        }));
+                      }}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 text-foreground"
+                      required
+                    >
+                      <option value="" disabled>Select State</option>
+                      {NIGERIA_STATES.map((st) => (
+                        <option key={st} value={st}>
+                          {st}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wider text-gray-700 block mb-1.5">
+                      Local Government (LGA) <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={formData.lga}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, lga: e.target.value }))}
+                      disabled={!formData.state}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 text-foreground disabled:opacity-50 disabled:bg-muted"
+                      required
+                    >
+                      <option value="" disabled>
+                        {formData.state ? "Select LGA" : "Select State First"}
+                      </option>
+                      {getLgasForState(formData.state).map((lg) => (
+                        <option key={lg} value={lg}>
+                          {lg}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {formData.state && formData.lga ? (
+                    <span className="text-emerald-800 font-medium">
+                      Anchoring to <strong>{formData.lga}, {formData.state}</strong>. Remote sponsorship allows participating in any LGA nationwide.
+                    </span>
+                  ) : (
+                    <span>
+                      Prefilled from your member profile. You may select any Nigerian LGA to sponsor grassroots community farming there.
+                    </span>
+                  )}
+                </p>
+              </div>
+
               {/* Payment Method Card */}
               <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-sm border border-border/70 space-y-4">
                 <div className="flex items-center justify-between pb-3 border-b border-border/50">
