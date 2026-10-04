@@ -49,7 +49,13 @@ export function PaymentsLogTable({ logs }: { logs: PaymentLog[] }) {
       "S/N": idx + 1,
       "User Email": p.user_email || "",
       "Project Category": p.project_category || "",
-      "Payment Type": p.type === "slot_subscription" ? "Slot Subscription" : "Other Payment",
+      "Payment Type":
+        p.type === "slot_subscription"
+          ? "Farm Slot Subscription"
+          : p.type === "transaction"
+          ? "Online Checkout"
+          : "Setup / Support",
+      "Reference": p.reference || "",
       "Slots": p.slots || 0,
       "Amount (₦)": p.amount || 0,
       "Status": (p.status || "").toUpperCase(),
@@ -129,14 +135,27 @@ export function PaymentsLogTable({ logs }: { logs: PaymentLog[] }) {
                 <TableCell>
                   <span
                     className={cn(
-                      "rounded px-1.5 py-0.5 text-[11px]",
-                      p.type === "slot_subscription" ? "bg-blue-500/10 text-blue-400" : "bg-muted text-muted-foreground",
+                      "rounded px-1.5 py-0.5 text-[11px] font-medium border",
+                      p.type === "slot_subscription"
+                        ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                        : p.type === "transaction"
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        : "bg-muted text-muted-foreground border-border",
                     )}
                   >
-                    {p.type === "slot_subscription" ? "Slot Subscription" : "Setup / Support"}
+                    {p.type === "slot_subscription"
+                      ? "Farm Slot Subscription"
+                      : p.type === "transaction"
+                      ? "Online Checkout"
+                      : "Setup / Support"}
                   </span>
+                  {p.reference && (
+                    <div className="font-mono text-[10px] text-muted-foreground mt-0.5 truncate max-w-[140px]">
+                      {p.reference}
+                    </div>
+                  )}
                 </TableCell>
-                <TableCell className="text-xs">{p.slots}</TableCell>
+                <TableCell className="text-xs">{p.slots || "-"}</TableCell>
                 <TableCell className="text-xs font-semibold">₦{p.amount.toLocaleString()}</TableCell>
                 <TableCell>
                   <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium", statusClass(p.status))}>

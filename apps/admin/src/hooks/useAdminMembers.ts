@@ -13,6 +13,8 @@ interface RawProfileRow {
   referred_by?: string;
   role?: string;
   created_at?: string;
+  is_green_card_holder?: boolean;
+  has_greencard?: boolean;
 }
 
 interface RawSlotRow {
@@ -41,6 +43,18 @@ interface RawSubscriptionRow {
   expires_at: string;
 }
 
+interface RawTransactionRow {
+  id: string | number;
+  user_id?: string;
+  amount?: string | number;
+  status?: string;
+  project_category?: string;
+  created_at?: string;
+  transaction_ref?: string;
+  payment_reference?: string;
+  email?: string;
+}
+
 export function useAdminMembers() {
   const [members, setMembers] = useState<Member[]>([]);
   const [paymentLogs, setPaymentLogs] = useState<PaymentLog[]>([]);
@@ -51,7 +65,7 @@ export function useAdminMembers() {
     setLoading(true);
     setError("");
     try {
-      const [profilesRes, slotsRes, otherPayRes, subscriptionsRes] = await Promise.all([
+      const [profilesRes, slotsRes, otherPayRes, subscriptionsRes, txRes] = await Promise.all([
         supabase.rpc("get_admin_members").then((res) => {
           if (res.error) {
             return supabase.from("profiles").select("*").order("created_at", { ascending: false });
@@ -61,16 +75,17 @@ export function useAdminMembers() {
         supabase.from("slot_subscriptions").select("*").order("last_payment_date", { ascending: false }),
         supabase.from("other_payments").select("*").order("created_at", { ascending: false }),
         supabase.from("subscriptions").select("*").eq("plan", "green_card"),
+        supabase.from("transactions").select("*").order("created_at", { ascending: false }).limit(300),
       ]);
 
       if (profilesRes.error) throw profilesRes.error;
       if (slotsRes.error) throw slotsRes.error;
-      if (otherPayRes.error) throw otherPayRes.error;
 
       const profiles = (profilesRes.data || []) as RawProfileRow[];
       const slots = (slotsRes.data || []) as RawSlotRow[];
       const otherPayments = (otherPayRes.data || []) as RawPaymentRow[];
       const subscriptions = (subscriptionsRes?.data || []) as RawSubscriptionRow[];
+      const transactions = (txRes?.data || []) as RawTransactionRow[];
 
       // High-performance O(1) index maps to replace nested O(N*M) filters
       const activeSlotsByUser = new Map<string, RawSlotRow[]>();
@@ -93,7 +108,14 @@ export function useAdminMembers() {
       const mappedMembers: Member[] = profiles.map((p) => {
         const userSlots = activeSlotsByUser.get(p.id) || [];
         const userGreenCard = activeGreenCardsByUser.get(p.id);
-        const hasGreenCard = Boolean(userGreenCard || (p.member_id && p.member_id.startsWith("AGC-")));
+        
+        // Comprehensive Green Card verification covering GC- legacy prefixes, AGC- modern prefixes, and DB flags
+        const hasGreenCard = Boolean(
+          p.is_green_card_holder === true ||
+          p.has_greencard === true ||
+          userGreenCard ||
+          (p.member_id && (p.member_id.startsWith("GC-") || p.member_id.startsWith("AGC-")))
+        );
 
         const programMap: Record<string, { category: string; slots: number; status: string }> = {};
         let totalSlots = 0;
@@ -117,6 +139,7 @@ export function useAdminMembers() {
           member_id: p.member_id || "No ID Assigned",
           referral_code: p.referral_code || "",
           referred_by: p.referred_by || "",
+          raw_referred_by: p.referred_by || "",
           role: p.role || "user",
           created_at: p.created_at ? new Date(p.created_at).toLocaleDateString() : "N/A",
           has_green_card: hasGreenCard,
@@ -128,39 +151,82 @@ export function useAdminMembers() {
 
       const nameById = new Map(mappedMembers.map((m) => [m.id, m.full_name]));
       const membersWithReferrerNames = mappedMembers.map((m) =>
-        m.referred_by ? { ...m, referred_by: nameById.get(m.referred_by) || "Unknown Referrer" } : m,
+        m.referred_by
+          ? {
+              ...m,
+              raw_referred_by: m.raw_referred_by || m.referred_by,
+              referred_by: nameById.get(m.referred_by) || m.referred_by,
+            }
+          : m,
       );
 
       setMembers(membersWithReferrerNames);
 
       const combinedLogs: PaymentLog[] = [];
+      const seenLogKeys = new Set<string>();
 
-      slots.forEach((s) => {
-        const member = mappedMembers.find((m) => m.id === s.user_id);
+      // 1. Live checkout transactions (Paystack, Monnify, Bank Transfer)
+      transactions.forEach((tx) => {
+        const member = mappedMembers.find(
+          (m) =>
+            m.id === tx.user_id ||
+            (tx.email && m.email.toLowerCase() === tx.email.toLowerCase())
+        );
+        const amt = Number(tx.amount) || 0;
+        const isSlot = (tx.project_category && tx.project_category.toLowerCase().includes("slot")) || amt % 5000 === 0;
+        const inferredSlots = isSlot ? Math.floor(amt / 5000) : 0;
+        const refKey = tx.transaction_ref || tx.payment_reference || `TX-${tx.id}`;
+
+        seenLogKeys.add(refKey);
         combinedLogs.push({
-          id: s.id || `SLOT-${Math.random().toString(36).slice(2, 6)}`,
-          user_email: member?.email || "Unknown",
-          amount: s.amount || 0,
-          project_category: s.project_category || "Mushroom Village",
-          created_at: s.last_payment_date ? new Date(s.last_payment_date).toLocaleString() : "N/A",
-          slots: s.slots || 0,
-          status: s.status || "active",
-          type: "slot_subscription",
+          id: refKey,
+          user_email: member?.email || tx.email || "Unknown",
+          amount: amt,
+          project_category: tx.project_category || (amt === 2000 ? "Green Card Membership" : "Farm Operations"),
+          created_at: tx.created_at ? new Date(tx.created_at).toLocaleString() : "N/A",
+          slots: inferredSlots,
+          status: tx.status === "paid" || tx.status === "successful" ? "success" : tx.status || "pending",
+          type: "transaction",
+          reference: refKey,
         });
       });
 
+      // 2. Slot subscriptions
+      slots.forEach((s) => {
+        const member = mappedMembers.find((m) => m.id === s.user_id);
+        const slotKey = s.id || `SLOT-${Math.random().toString(36).slice(2, 6)}`;
+        if (!seenLogKeys.has(slotKey)) {
+          seenLogKeys.add(slotKey);
+          combinedLogs.push({
+            id: slotKey,
+            user_email: member?.email || "Unknown",
+            amount: s.amount || 0,
+            project_category: s.project_category || "Mushroom Village",
+            created_at: s.last_payment_date ? new Date(s.last_payment_date).toLocaleString() : "N/A",
+            slots: s.slots || 0,
+            status: s.status || "active",
+            type: "slot_subscription",
+          });
+        }
+      });
+
+      // 3. Historical other_payments
       otherPayments.forEach((p) => {
         const member = mappedMembers.find((m) => m.id === p.user_id);
-        combinedLogs.push({
-          id: p.id || `PAY-${Math.random().toString(36).slice(2, 6)}`,
-          user_email: member?.email || "Unknown",
-          amount: p.amount || 0,
-          project_category: p.project_category || "Mushroom Village",
-          created_at: p.created_at ? new Date(p.created_at).toLocaleString() : "N/A",
-          slots: p.slots || 0,
-          status: p.status || "success",
-          type: "other_payment",
-        });
+        const payKey = p.id || `PAY-${Math.random().toString(36).slice(2, 6)}`;
+        if (!seenLogKeys.has(payKey)) {
+          seenLogKeys.add(payKey);
+          combinedLogs.push({
+            id: payKey,
+            user_email: member?.email || "Unknown",
+            amount: p.amount || 0,
+            project_category: p.project_category || "Mushroom Village",
+            created_at: p.created_at ? new Date(p.created_at).toLocaleString() : "N/A",
+            slots: p.slots || 0,
+            status: p.status || "success",
+            type: "other_payment",
+          });
+        }
       });
 
       combinedLogs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());

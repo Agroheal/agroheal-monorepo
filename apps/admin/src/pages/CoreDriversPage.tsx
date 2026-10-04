@@ -73,12 +73,6 @@ const STATIC_CORE_DRIVERS = [
     email: "tonyinyang118@gmail.com",
     sharePerCard: 50,
   },
-  {
-    id: "driver-7",
-    name: "Nathaniel Omokanye",
-    email: "gkygmr56@gmail.com",
-    sharePerCard: 50,
-  },
 ];
 
 const MIN_WITHDRAWAL_THRESHOLD = 2000;
@@ -106,14 +100,19 @@ export default function CoreDriversPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // 1. Get active green cards count
+      // 1. Get active green cards count from subscriptions and profiles
       const { count: greenCardsCount } = await supabase
         .from("subscriptions")
         .select("id", { count: "exact", head: true })
         .eq("plan", "green_card")
         .eq("status", "active");
 
-      const totalCards = greenCardsCount || 0;
+      const { count: profGreenCardCount } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact", head: true })
+        .or("is_green_card_holder.eq.true,has_greencard.eq.true");
+
+      const totalCards = Math.max(greenCardsCount || 0, profGreenCardCount || 0);
       setActiveGreenCardsCount(totalCards);
 
       // 2. Load driver portal access configuration from system_configs
@@ -137,8 +136,9 @@ export default function CoreDriversPage() {
         .in("email", emails);
 
       const profileMap = new Map((profiles || []).map((p) => [p.email?.toLowerCase(), p]));
+      const profileIds = (profiles || []).map((p) => p.id).filter(Boolean);
 
-      // 4. Fetch ledger entries for CORE_DRIVER_BONUS if table exists
+      // 4. Fetch ledger entries for CORE_DRIVER_BONUS
       const { data: ledgerEntries } = await supabase
         .from("wallet_ledger")
         .select("user_id, amount, category, status")
@@ -152,14 +152,33 @@ export default function CoreDriversPage() {
         }
       });
 
-      // 5. Build enriched driver list
+      // 5. Fetch withdrawals for these drivers
+      const withdrawalMap = new Map<string, number>();
+      if (profileIds.length > 0) {
+        const { data: withdrawals } = await supabase
+          .from("withdrawals")
+          .select("user_id, amount, status")
+          .in("user_id", profileIds)
+          .in("status", ["completed", "approved", "pending"]);
+
+        (withdrawals || []).forEach((w) => {
+          if (w.user_id) {
+            const prev = withdrawalMap.get(w.user_id) || 0;
+            withdrawalMap.set(w.user_id, prev + Number(w.amount || 0));
+          }
+        });
+      }
+
+      // 6. Build enriched driver list
       const enrichedDrivers: CoreDriver[] = STATIC_CORE_DRIVERS.map((driver) => {
         const prof = profileMap.get(driver.email.toLowerCase());
         const totalEarned = (prof?.id && ledgerMap.has(prof.id))
           ? (ledgerMap.get(prof.id) || 0)
           : 0;
-        const totalWithdrawn = 0; // Can be wired to withdrawal table when ready
-        const availableBalance = Number(prof?.wallet_balance ?? (totalEarned - totalWithdrawn));
+        const totalWithdrawn = (prof?.id && withdrawalMap.has(prof.id))
+          ? (withdrawalMap.get(prof.id) || 0)
+          : 0;
+        const availableBalance = Number(prof?.wallet_balance ?? Math.max(0, totalEarned - totalWithdrawn));
         const isEligible = availableBalance >= MIN_WITHDRAWAL_THRESHOLD;
         const portalAccess = allowedEmails.includes(driver.email.toLowerCase());
 
@@ -231,18 +250,25 @@ export default function CoreDriversPage() {
     if (!selectedDriverForPayout) return;
     setIsProcessingPayout(true);
     try {
-      // Record payout to ledger
+      // Record payout to withdrawals table with pending status
       if (selectedDriverForPayout.profileId) {
-        await supabase.from("wallet_ledger").insert([
+        const ref = `CD-PAYOUT-${Date.now()}-${selectedDriverForPayout.profileId.slice(0, 6)}`;
+        const { error: wErr } = await supabase.from("withdrawals").insert([
           {
             user_id: selectedDriverForPayout.profileId,
             amount: payoutAmount,
-            entry_type: "DEBIT",
-            category: "WITHDRAWAL",
-            status: "PENDING",
-            description: `Core Driver Growth Bonus Payout to ${selectedDriverForPayout.name}`,
+            fee: 0,
+            net_amount: payoutAmount,
+            reference: ref,
+            status: "pending",
+            bank_name: "Core Driver Pool",
+            account_number: "STATUTORY_POOL",
+            account_name: selectedDriverForPayout.name,
+            withdrawal_type: "bonus",
+            created_at: new Date().toISOString(),
           },
         ]);
+        if (wErr) throw wErr;
       }
 
       flash(

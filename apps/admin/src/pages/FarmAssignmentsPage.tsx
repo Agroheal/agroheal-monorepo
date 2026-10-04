@@ -149,7 +149,15 @@ export default function FarmAssignmentsPage() {
       const map: Record<string, LiveCycle> = {};
       (data || []).forEach((c: any) => {
         if (!map[c.farm_group_id]) {
-          map[c.farm_group_id] = c;
+          map[c.farm_group_id] = {
+            ...c,
+            yield_kg: Number(c.yield_kg ?? c.total_yield_kg ?? 0),
+            total_revenue: Number(c.total_revenue ?? c.gross_revenue ?? 0),
+            distributable_revenue: Number(c.distributable_revenue ?? c.distributable_balance ?? 0),
+            continuation_cost: Number(c.continuation_cost ?? 0),
+            total_bags: Number(c.total_bags ?? c.total_bags_fruiting ?? 0),
+            member_dividend_per_slot: Number(c.member_dividend_per_slot ?? 0),
+          };
         }
       });
       setCyclesByFarm(map);

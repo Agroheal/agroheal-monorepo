@@ -28,19 +28,27 @@ export default function LeaderboardPage() {
   const referralCounts = useMemo(() => {
     const counts = new Map<string, number>();
 
-    // Map referral_code -> user_id to match both codes and UUIDs
+    // Map id, referral_code, member_id, and email -> user_id
     const codeToId = new Map<string, string>();
     members.forEach((m) => {
-      if (m.referral_code) codeToId.set(m.referral_code.toUpperCase(), m.id);
-      if (m.member_id) codeToId.set(m.member_id.toUpperCase(), m.id);
+      codeToId.set(m.id.toLowerCase(), m.id);
+      if (m.referral_code) codeToId.set(m.referral_code.trim().toUpperCase(), m.id);
+      if (m.member_id) codeToId.set(m.member_id.trim().toUpperCase(), m.id);
+      if (m.email) codeToId.set(m.email.trim().toLowerCase(), m.id);
     });
 
     members.forEach((m) => {
-      const ref = m.referred_by?.trim().toUpperCase();
+      const ref = (m.raw_referred_by || m.referred_by || "").trim();
       if (!ref) return;
 
-      const sponsorId = codeToId.get(ref) || ref;
-      counts.set(sponsorId, (counts.get(sponsorId) || 0) + 1);
+      const sponsorId =
+        codeToId.get(ref.toLowerCase()) ||
+        codeToId.get(ref.toUpperCase()) ||
+        codeToId.get(ref);
+
+      if (sponsorId) {
+        counts.set(sponsorId, (counts.get(sponsorId) || 0) + 1);
+      }
     });
 
     return counts;

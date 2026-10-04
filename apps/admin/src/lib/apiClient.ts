@@ -103,6 +103,7 @@ export const adminApiClient = {
         timestamp: string;
       }>("admin/stats"),
     getTreasuryAudit: () => apiRequest<any>("admin/treasury-audit"),
+    getTransactions: (limit = 200) => apiRequest<any[]>(`admin/transactions?limit=${limit}`),
   },
   cycles: {
     draftHarvestYield: (payload: {

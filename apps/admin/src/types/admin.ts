@@ -12,6 +12,7 @@ export interface Member {
   member_id: string;
   referral_code: string;
   referred_by: string;
+  raw_referred_by?: string;
   role?: string;
   created_at: string;
   has_green_card: boolean;
@@ -28,7 +29,8 @@ export interface PaymentLog {
   created_at: string;
   slots: number;
   status: string;
-  type: "slot_subscription" | "other_payment";
+  type: "slot_subscription" | "other_payment" | "transaction";
+  reference?: string;
 }
 
 declare global {
