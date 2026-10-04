@@ -49,6 +49,7 @@ import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import OrganogramSkeleton from "@/components/dashboard/OrganogramSkeleton";
 import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
+import { isLegacyMember } from "@shared/businessRules";
 import { SITE_URL } from "@/config/Index";
 
 export interface OrganogramNode {
@@ -1539,9 +1540,7 @@ const CompoundReferrals: React.FC = () => {
 
   // Dynamic Intelligent Tree Banner based on Member Standing
   const isMemberLegacy = Boolean(
-    currentUserProfile?.is_legacy ||
-      (currentUserProfile?.created_at &&
-        new Date(currentUserProfile.created_at).getTime() < new Date("2026-09-06T00:00:00.000Z").getTime())
+    currentUserProfile?.is_legacy || isLegacyMember(currentUserProfile?.created_at)
   );
   const hasPurchasedStarter = Boolean(currentUserProfile?.has_purchased_starter_pack);
   const hasActiveGreenCard = Boolean(

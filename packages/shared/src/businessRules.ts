@@ -8,7 +8,7 @@
 // ── 1. MEMBERSHIP & ID PASSES ──
 export const GREEN_CARD_FEE = 2000; // Fixed ₦2,000 Green Card lifetime pass for all members
 export const LEGACY_GREEN_CARD_FEE = 2000; // Fixed ₦2,000 Green Card pass (no ₦1,000 discount)
-export const LEGACY_CUTOFF_DATE = "2026-09-06T00:00:00.000Z";
+export const LEGACY_CUTOFF_DATE = "2026-09-24T00:00:00.000Z";
 
 export const isLegacyMember = (createdAt?: string | Date | null): boolean => {
   if (!createdAt) return false;

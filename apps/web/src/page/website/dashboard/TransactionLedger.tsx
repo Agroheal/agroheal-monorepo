@@ -115,7 +115,7 @@ export default function TransactionLedger() {
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   const isItemLegacy = (t: LedgerItem) => {
-    return Boolean(t.is_legacy) || isLegacyMember(t.date) || new Date(t.date).getTime() < new Date("2026-09-06T00:00:00.000Z").getTime();
+    return Boolean(t.is_legacy) || isLegacyMember(t.date);
   };
 
   const legacyTransactions = React.useMemo(() => transactions.filter(isItemLegacy), [transactions]);

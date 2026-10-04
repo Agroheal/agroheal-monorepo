@@ -46,9 +46,9 @@ BEGIN
   v_member_id := public.get_or_create_green_card_member_id(p_user_id, extract(year from now())::int);
 
   -- 5. Determine dynamic fee based on member registration date
-  -- Legacy cutoff: 2026-09-06T00:00:00Z
+  -- Legacy cutoff: 2026-09-24T00:00:00Z
   SELECT created_at INTO v_created_at FROM public.profiles WHERE id = p_user_id;
-  v_is_legacy := (v_created_at IS NOT NULL AND v_created_at < '2026-09-06T00:00:00+00'::timestamptz);
+  v_is_legacy := (v_created_at IS NOT NULL AND v_created_at < '2026-09-24T00:00:00+00'::timestamptz);
 
   IF p_amount IS NOT NULL THEN
     v_fee := p_amount;

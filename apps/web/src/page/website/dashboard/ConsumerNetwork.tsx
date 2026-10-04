@@ -35,6 +35,7 @@ import {
   getUnlockedMatrixLevel,
   formatNaira,
   TOTAL_POTENTIAL_MATRIX_COMMISSIONS,
+  isLegacyMember,
 } from "@shared/businessRules";
 
 export const MATRIX_COMMISSIONS = MATRIX_COMMISSIONS_TIERS;
@@ -140,7 +141,7 @@ export const ConsumerNetwork: React.FC = () => {
       );
       setHasGreenCard(isCardActive);
 
-      const isLegacy = Boolean(prof?.is_legacy || (prof?.created_at && new Date(prof.created_at).getTime() < new Date("2026-09-06T00:00:00.000Z").getTime()));
+      const isLegacy = Boolean(prof?.is_legacy || isLegacyMember(prof?.created_at));
       const hasPurchasedStarter = Boolean(prof?.has_purchased_starter_pack);
       const slotsHeld = slotCount || 0;
 

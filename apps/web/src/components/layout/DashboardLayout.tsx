@@ -277,7 +277,7 @@ const SidebarContent = ({
               AgroHeal Member Portal
             </span>
             <span className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase block truncate">
-              Web App
+              {import.meta.env.PROD ? "Web App" : ((import.meta.env.VITE_APP_LABEL as string) || "Inv App")}
             </span>
           </div>
         )}
