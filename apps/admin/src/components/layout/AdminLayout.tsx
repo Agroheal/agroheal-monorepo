@@ -8,12 +8,15 @@ import {
   LogOut,
   Landmark,
   Award,
+  Trophy,
+  GraduationCap,
 } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
+  SidebarGroupLabel,
   SidebarGroupContent,
   SidebarHeader,
   SidebarInset,
@@ -27,14 +30,61 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/lib/supabaseClient";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 
-const navItems = [
-  { label: "Dashboard", path: "/", icon: LayoutDashboard },
-  { label: "Members", path: "/members", icon: Users },
-  { label: "Farm Management", path: "/farm-assignments", icon: Sprout },
-  { label: "Core Drivers Pool", path: "/core-drivers", icon: Award },
-  { label: "Payments", path: "/payments", icon: CreditCard },
-  { label: "Treasury & Payouts", path: "/treasury", icon: Landmark },
-  { label: "Settings", path: "/settings", icon: SettingsIcon },
+interface NavItem {
+  label: string;
+  path: string;
+  icon: any;
+  superAdminOnly?: boolean;
+  requireTreasury?: boolean;
+  hideForSupport?: boolean;
+  hideForCoordinator?: boolean;
+}
+
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+const navGroups: NavGroup[] = [
+  {
+    title: "Overview",
+    items: [
+      { label: "Dashboard", path: "/", icon: LayoutDashboard },
+    ],
+  },
+  {
+    title: "Community & Network",
+    items: [
+      { label: "Members Directory", path: "/members", icon: Users, hideForCoordinator: true },
+      { label: "Leaderboard & Ranks", path: "/leaderboard", icon: Trophy, hideForCoordinator: true },
+    ],
+  },
+  {
+    title: "Farm Operations",
+    items: [
+      { label: "Farm Management", path: "/farm-assignments", icon: Sprout },
+    ],
+  },
+  {
+    title: "Finance & Treasury",
+    items: [
+      { label: "Treasury & Solvency", path: "/treasury", icon: Landmark, requireTreasury: true, hideForSupport: true, hideForCoordinator: true },
+      { label: "Transactions & Inflows", path: "/payments", icon: CreditCard, hideForCoordinator: true },
+      { label: "Core Drivers Pool", path: "/core-drivers", icon: Award, superAdminOnly: true, hideForSupport: true, hideForCoordinator: true },
+    ],
+  },
+  {
+    title: "CMS & Academy",
+    items: [
+      { label: "Courses & Content", path: "/courses", icon: GraduationCap, hideForCoordinator: true },
+    ],
+  },
+  {
+    title: "System",
+    items: [
+      { label: "Settings", path: "/settings", icon: SettingsIcon, hideForSupport: true, hideForCoordinator: true },
+    ],
+  },
 ];
 
 function isItemActive(path: string, pathname: string) {
@@ -56,20 +106,27 @@ export default function AdminLayout() {
     profile?.role === "super_admin" ||
     profile?.email?.toLowerCase() === "developerelijah360@gmail.com";
 
-  const visibleNavItems = navItems.filter((item) => {
-    // Core Drivers Pool is strictly visible to Super Admin initially
-    if (item.path === "/core-drivers" && !isSuperAdmin) return false;
-    // Support cannot see Treasury or Settings
-    if (isSupport && (item.path === "/settings" || item.path === "/treasury")) return false;
-    // Coordinator can only see Dashboard and Farm Management
-    if (isCoordinator && (item.path === "/settings" || item.path === "/treasury" || item.path === "/payments")) return false;
-    // Treasury requires elevated access (super_admin, admin, reviewer)
-    if (item.path === "/treasury" && !hasTreasuryAccess) return false;
-    return true;
-  });
+  // Filter groups and items by user permissions
+  const visibleGroups = navGroups
+    .map((group) => {
+      const filteredItems = group.items.filter((item) => {
+        if (item.superAdminOnly && !isSuperAdmin) return false;
+        if (item.requireTreasury && !hasTreasuryAccess) return false;
+        if (item.hideForSupport && isSupport) return false;
+        if (item.hideForCoordinator && isCoordinator) return false;
+        return true;
+      });
 
+      return {
+        ...group,
+        items: filteredItems,
+      };
+    })
+    .filter((group) => group.items.length > 0);
+
+  const allVisibleItems = visibleGroups.flatMap((g) => g.items);
   const currentTitle =
-    visibleNavItems.find((item) => isItemActive(item.path, location.pathname))?.label ?? "Dashboard";
+    allVisibleItems.find((item) => isItemActive(item.path, location.pathname))?.label ?? "Dashboard";
 
   const initials = (profile?.full_name || profile?.email || "A").slice(0, 2).toUpperCase();
 
@@ -89,27 +146,31 @@ export default function AdminLayout() {
         </SidebarHeader>
 
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {visibleNavItems.map((item) => {
-                  const active = isItemActive(item.path, location.pathname);
-                  return (
-                    <SidebarMenuItem key={item.path}>
-                      <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
-                        <NavLink to={item.path} end={item.path === "/"}>
-                          <item.icon />
-                          <span>{item.label}</span>
-                        </NavLink>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
+          {visibleGroups.map((group) => (
+            <SidebarGroup key={group.title} className="py-1">
+              <SidebarGroupLabel className="text-[10px] uppercase tracking-wider text-muted-foreground/70 px-2 py-1 group-data-[collapsible=icon]:hidden">
+                {group.title}
+              </SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map((item) => {
+                    const active = isItemActive(item.path, location.pathname);
+                    return (
+                      <SidebarMenuItem key={item.path}>
+                        <SidebarMenuButton asChild isActive={active} tooltip={item.label}>
+                          <NavLink to={item.path} end={item.path === "/"}>
+                            <item.icon />
+                            <span>{item.label}</span>
+                          </NavLink>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          ))}
         </SidebarContent>
-
 
         <SidebarFooter>
           <SidebarMenu>
@@ -124,7 +185,7 @@ export default function AdminLayout() {
       </Sidebar>
 
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4 bg-background">
           <SidebarTrigger />
           <h1 className="text-sm font-medium text-foreground">{currentTitle}</h1>
           <div className="ml-auto flex items-center gap-3">
@@ -135,8 +196,7 @@ export default function AdminLayout() {
           </div>
         </header>
 
-
-        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-background">
           <Outlet />
         </main>
       </SidebarInset>
