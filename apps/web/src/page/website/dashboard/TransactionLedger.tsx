@@ -1440,24 +1440,25 @@ export default function TransactionLedger() {
                     </div>
                   )}
 
-                  {advanceDebt && advanceDebt.isIndebted && advanceDebt.balance > 0 && (
-                    <div className="pt-2">
-                      <div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-200">
-                        <div className="flex items-center justify-between font-semibold mb-1">
-                          <span className="flex items-center gap-1.5 text-amber-300">
-                            <Clock className="w-3.5 h-3.5" />
-                            Corporate Advance Active
-                          </span>
-                          <span className="text-white font-mono">
-                            ₦{advanceDebt.balance.toLocaleString()} remaining
-                          </span>
+                    {/* Loan/advance debt display temporarily suppressed from FE as requested */}
+                    {/* {advanceDebt && advanceDebt.isIndebted && advanceDebt.balance > 0 && (
+                      <div className="pt-2">
+                        <div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-200">
+                          <div className="flex items-center justify-between font-semibold mb-1">
+                            <span className="flex items-center gap-1.5 text-amber-300">
+                              <Clock className="w-3.5 h-3.5" />
+                              Corporate Advance Active
+                            </span>
+                            <span className="text-white font-mono">
+                              ₦{advanceDebt.balance.toLocaleString()} remaining
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-amber-200/70">
+                            100% of future earnings will automatically settle this advance (Repaid: ₦{advanceDebt.repaid.toLocaleString()} of ₦{advanceDebt.total.toLocaleString()}).
+                          </p>
                         </div>
-                        <p className="text-[11px] text-amber-200/70">
-                          100% of future earnings will automatically settle this advance (Repaid: ₦{advanceDebt.repaid.toLocaleString()} of ₦{advanceDebt.total.toLocaleString()}).
-                        </p>
                       </div>
-                    </div>
-                  )}
+                    )} */}
                 </>
               )}
             </div>

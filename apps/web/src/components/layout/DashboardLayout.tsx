@@ -80,6 +80,10 @@ const navGroups: NavGroup[] = [
         label: "Manage My Farm Slots",
         path: "/dashboard/farm-operations/my-slots",
       },
+      {
+        label: "Group Farm Accounts",
+        path: "/dashboard/group-farm-accounts",
+      },
     ],
   },
   {

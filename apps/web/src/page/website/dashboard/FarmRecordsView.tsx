@@ -392,6 +392,17 @@ const FarmRecordsView = () => {
   const [expenses, setExpenses] = useState<FarmExpense[]>([]);
   const [sales, setSales] = useState<FarmSale[]>([]);
   const [loading, setLoading] = useState(true);
+  const normalizeCategory = (cat?: string): string => {
+    if (!cat) return "gingertown";
+    const lower = cat.toLowerCase().trim();
+    if (lower === "ginger town" || lower === "gingertown") return "gingertown";
+    return lower;
+  };
+
+  const isCategoryMatch = (catA?: string, catB?: string): boolean => {
+    return normalizeCategory(catA) === normalizeCategory(catB);
+  };
+
   const [selectedCategory, setSelectedCategory] = useState(DEFAULT_CATEGORY);
   const [allUserFarms, setAllUserFarms] = useState<
     Array<{
@@ -405,7 +416,7 @@ const FarmRecordsView = () => {
   const isOrganicFoodNation =
     selectedCategory ===
     "Organic FoodNation (1 Million Hectares against Hunger)";
-  const isMushroomVillage = farm?.project_category === "Mushroom Village";
+  const isMushroomVillage = isCategoryMatch(farm?.project_category, "Mushroom Village");
 
   const getRecordTotal = (r: FarmRecord) =>
     calcSetup(r) +
@@ -643,7 +654,7 @@ const FarmRecordsView = () => {
 
     // Check farms matching current category
     let categoryFarms = uniqueFarms.filter(
-      (f) => (f.project_category || "Gingertown") === categoryToUse,
+      (f) => isCategoryMatch(f.project_category, categoryToUse),
     );
 
     // If user has no farm in the chosen category, but has farms in other categories, auto-switch to their available category
@@ -652,7 +663,7 @@ const FarmRecordsView = () => {
       categoryToUse = firstAvailableCategory;
       setSelectedCategory(firstAvailableCategory);
       categoryFarms = uniqueFarms.filter(
-        (f) => (f.project_category || "Gingertown") === firstAvailableCategory,
+        (f) => isCategoryMatch(f.project_category, firstAvailableCategory),
       );
     }
 
@@ -1413,11 +1424,11 @@ const FarmRecordsView = () => {
                 {PROJECT_CATEGORIES.filter((cat) => {
                   if (isAdmin || isSupport) return true;
                   return allUserFarms.some(
-                    (f) => (f.project_category || "Gingertown") === cat,
+                    (f) => isCategoryMatch(f.project_category, cat),
                   );
                 }).map((cat) => {
                   const count = allUserFarms.filter(
-                    (f) => (f.project_category || "Gingertown") === cat,
+                    (f) => isCategoryMatch(f.project_category, cat),
                   ).length;
                   return (
                     <option key={cat} value={cat}>
@@ -1690,11 +1701,11 @@ const FarmRecordsView = () => {
                   {PROJECT_CATEGORIES.filter((cat) => {
                     if (isAdmin || isSupport) return true;
                     return allUserFarms.some(
-                      (f) => (f.project_category || "Gingertown") === cat,
+                      (f) => isCategoryMatch(f.project_category, cat),
                     );
                   }).map((cat) => {
                     const count = allUserFarms.filter(
-                      (f) => (f.project_category || "Gingertown") === cat,
+                      (f) => isCategoryMatch(f.project_category, cat),
                     );
                     return (
                       <option key={cat} value={cat}>
@@ -1705,7 +1716,7 @@ const FarmRecordsView = () => {
                 </select>
 
                 {/* Farm Group Selector when multiple groups exist in category */}
-                {allUserFarms.filter((f) => (f.project_category || "Gingertown") === selectedCategory).length > 1 && (
+                {allUserFarms.filter((f) => isCategoryMatch(f.project_category, selectedCategory)).length > 1 && (
                   <select
                     value={farm?.id || ""}
                     onChange={(e) => handleFarmChange(e.target.value)}
@@ -1713,7 +1724,7 @@ const FarmRecordsView = () => {
                     title="Switch between your farm groups in this category"
                   >
                     {allUserFarms
-                      .filter((f) => (f.project_category || "Gingertown") === selectedCategory)
+                      .filter((f) => isCategoryMatch(f.project_category, selectedCategory))
                       .map((f) => (
                         <option key={f.id} value={f.id}>
                           {f.name} {f.coordinator_id === currentUserId ? "★ (Coordinator)" : ""}
@@ -1729,8 +1740,8 @@ const FarmRecordsView = () => {
               <div className="flex items-center gap-1.5 flex-wrap no-print">
                 <span className="text-[11px] text-gray-500 font-medium">Switch Category:</span>
                 {Array.from(new Set(allUserFarms.map((f) => f.project_category || "Gingertown"))).map((cat) => {
-                  const isCurrent = cat === selectedCategory;
-                  const catFarms = allUserFarms.filter((f) => (f.project_category || "Gingertown") === cat);
+                  const isCurrent = isCategoryMatch(cat, selectedCategory);
+                  const catFarms = allUserFarms.filter((f) => isCategoryMatch(f.project_category, cat));
                   return (
                     <button
                       key={cat}
