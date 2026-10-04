@@ -44,6 +44,8 @@ interface NavGroup {
   alwaysExpanded?: boolean;
 }
 
+import { isLegacyMember } from "@shared/businessRules";
+
 // ── Consolidated Information Hierarchy ──
 // 1. Overview (#1)
 // 2. Learning Academy (#2)
@@ -52,7 +54,7 @@ interface NavGroup {
 // 5. Wallet & Ledger (Penultimate)
 // 6. Profile & Settings (My Green Card)
 // 7. Help & Support (Knowledge Base, Customer Service)
-const navGroups: NavGroup[] = [
+const getNavGroups = (isLegacy = false): NavGroup[] => [
   {
     id: "overview",
     label: "Overview",
@@ -80,10 +82,14 @@ const navGroups: NavGroup[] = [
         label: "Manage My Farm Slots",
         path: "/dashboard/farm-operations/my-slots",
       },
-      {
-        label: "Group Farm Accounts",
-        path: "/dashboard/group-farm-accounts",
-      },
+      ...(isLegacy
+        ? [
+            {
+              label: "Group Farm Accounts (Legacy)",
+              path: "/dashboard/group-farm-accounts",
+            },
+          ]
+        : []),
     ],
   },
   {
@@ -176,7 +182,12 @@ const getPageTitle = (currentPath: string): string => {
     return "My Green Card";
   }
 
-  for (const group of navGroups) {
+  if (currentPath === "/dashboard/group-farm-accounts") {
+    return "Group Farm Accounts (Legacy)";
+  }
+
+  const allNavGroups = getNavGroups(true);
+  for (const group of allNavGroups) {
     if (group.subItems) {
       const match = group.subItems.find(
         (sub) =>
@@ -204,6 +215,7 @@ const SidebarContent = ({
   avatarUrl,
   isCollapsed = false,
   onToggleCollapse,
+  isLegacy = false,
 }: {
   normalizedPath: string;
   onLogout: () => void;
@@ -213,7 +225,10 @@ const SidebarContent = ({
   avatarUrl?: string | null;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  isLegacy?: boolean;
 }) => {
+  const navGroups = useMemo(() => getNavGroups(isLegacy), [isLegacy]);
+
   // Determine which group contains the active path
   const activeGroupId = useMemo(() => {
     for (const group of navGroups) {
@@ -238,7 +253,7 @@ const SidebarContent = ({
       }
     }
     return null;
-  }, [normalizedPath]);
+  }, [normalizedPath, navGroups]);
 
   // Track accordion expand/collapse state per group (open by default for network & farm-operations)
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => ({
@@ -617,6 +632,10 @@ const DashboardLayout = () => {
     );
   }
 
+  const isLegacy = Boolean(
+    (profile as any)?.is_legacy || isLegacyMember((profile as any)?.created_at)
+  );
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* ── DESKTOP SIDEBAR — collapsible on lg+ (w-20 collapsed vs w-64/72 expanded, zero scrollbar) ── */}
@@ -630,6 +649,7 @@ const DashboardLayout = () => {
           avatarUrl={profile?.avatar_url}
           isCollapsed={desktopSidebarCollapsed}
           onToggleCollapse={toggleDesktopSidebar}
+          isLegacy={isLegacy}
         />
       </aside>
 
@@ -671,6 +691,7 @@ const DashboardLayout = () => {
                 userName={profile?.full_name}
                 userEmail={profile?.email || session?.user?.email}
                 avatarUrl={profile?.avatar_url}
+                isLegacy={isLegacy}
               />
             </motion.aside>
           </>

@@ -901,7 +901,14 @@ const Checkout = () => {
     }
 
     try {
-      const txRef = `SLOT_${order.id}_${Date.now()}`;
+      const txPrefix = isCombo
+        ? "COMBO"
+        : isGreenCardOnly
+        ? "GC"
+        : isStarterPack
+        ? "SP"
+        : "SLOT";
+      const txRef = `${txPrefix}_${order.id}_${Date.now()}`;
 
       window.FlutterwaveCheckout({
         public_key: flwKey,

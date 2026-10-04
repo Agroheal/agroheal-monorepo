@@ -25,6 +25,7 @@ import {
   User,
   HelpCircle,
   ChevronRight,
+  Landmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
@@ -432,6 +433,8 @@ const Dashboard = () => {
     };
   }
 
+  const isLegacy = Boolean(profile?.is_legacy || isLegacyMember(profile?.created_at as string));
+
   // Merged Dashboard Primary Navigation & Status Tiles (Privacy-First: Cash amounts exclusively on Wallet)
   const menuTiles = [
     checkoutTile,
@@ -447,6 +450,22 @@ const Dashboard = () => {
       iconBg: "bg-emerald-800 text-white",
       tag: "Community",
     },
+    ...(isLegacy
+      ? [
+          {
+            id: "group-farm-accounts",
+            title: "Group Farm Accounts (Legacy)",
+            metricValue: "Founding Records",
+            subtitle: "Historical legacy cluster & farm accounts",
+            badge: "Legacy Records",
+            badgeColor: "bg-amber-100 text-amber-950 border-amber-300",
+            path: "/dashboard/group-farm-accounts",
+            icon: Landmark,
+            iconBg: "bg-amber-700 text-white",
+            tag: "Legacy",
+          },
+        ]
+      : []),
     {
       id: "earnings",
       title: "My Earnings",

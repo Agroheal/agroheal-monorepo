@@ -608,9 +608,15 @@ const MyFarmSlots: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex justify-between items-start">
               <div>
-                <p className="text-slate-500 font-medium text-xs uppercase tracking-wider mb-1">Subscribed Clusters</p>
-                <h3 className="text-4xl font-extrabold text-slate-800">{subscriptions.length}</h3>
-                <p className="text-xs text-slate-500 mt-1">Participating cooperative groups</p>
+                <p className="text-slate-500 font-medium text-xs uppercase tracking-wider mb-1">
+                  {isLegacy ? "Subscribed Clusters" : "Cluster Deployment"}
+                </p>
+                <h3 className="text-2xl sm:text-4xl font-extrabold text-slate-800">
+                  {isLegacy ? subscriptions.length : "Pending"}
+                </h3>
+                <p className="text-xs text-slate-500 mt-1">
+                  {isLegacy ? "Participating cooperative groups" : "LGA & State assignment in progress"}
+                </p>
               </div>
               <div className="p-3 bg-blue-100 rounded-xl">
                 <TrendingUp className="w-6 h-6 text-blue-600" />
@@ -620,13 +626,15 @@ const MyFarmSlots: React.FC = () => {
         </Card>
       </div>
 
-      {/* Subscribed Clusters List */}
+      {/* Subscribed Clusters / Slot Allocation View */}
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b pb-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-slate-800">Active Farm Clusters</h2>
+            <h2 className="text-xl font-bold text-slate-800">
+              {isLegacy ? "Active Farm Clusters" : "Secured Farm Slots"}
+            </h2>
             <Badge variant="secondary" className="font-semibold text-xs bg-slate-100 text-slate-700">
-              {subscriptions.length} Total
+              {isLegacy ? `${subscriptions.length} Total` : `${totalSlots} Active`}
             </Badge>
           </div>
 
@@ -672,7 +680,59 @@ const MyFarmSlots: React.FC = () => {
           )}
         </div>
 
-        {filteredClusters.length === 0 ? (
+        {!isLegacy ? (
+          <div className="space-y-6">
+            {/* Slot Counter & Pending Administrative Assignment Notice */}
+            <Card className="border border-emerald-200 bg-white rounded-2xl shadow-xs overflow-hidden">
+              <div className="h-1.5 w-full bg-emerald-600" />
+              <CardContent className="p-6 sm:p-8 space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+                  <div className="flex items-start gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-center justify-center shrink-0">
+                      <Sprout className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <h3 className="text-xl font-bold text-slate-900">Commercial Production Slots</h3>
+                        <Badge variant="outline" className="bg-amber-50 text-amber-900 border-amber-300 font-bold text-xs">
+                          Pending Assignment
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-slate-600">
+                        {totalSlots} Active {totalSlots === 1 ? "Slot" : "Slots"} • {totalFruitingBags} Fruiting Bags in Production
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <span className="text-3xl sm:text-4xl font-black text-emerald-800 font-mono">
+                        {totalSlots}
+                      </span>
+                      <p className="text-[11px] text-slate-500 font-medium">Secured Slot Units</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-amber-200 bg-amber-50/80 p-4 sm:p-5 text-amber-950 flex items-start gap-3.5">
+                  <AlertCircle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <h4 className="font-bold text-sm text-amber-950">
+                      Cluster Deployment: Pending LGA / State Administrative Assignment
+                    </h4>
+                    <p className="text-xs text-amber-900 leading-relaxed">
+                      Your production slots are active and secured. Regional cluster assignment to your Local Government Area (LGA) and State is currently in progress. Once administrative mapping is finalized, your assigned farm group coordinator, cluster location, and WhatsApp coordination details will appear here.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Note: Legacy cluster card commented out for adaptation to new system soonest:
+                The cluster card with cycle progress, operating expenses, sales inflows, and member roster
+                is preserved below and will be adapted once LGA cluster mapping is activated. */}
+          </div>
+        ) : filteredClusters.length === 0 ? (
           <div className="p-8 text-center text-slate-500 bg-white rounded-xl border border-slate-200">
             No clusters found for the selected filter.
           </div>

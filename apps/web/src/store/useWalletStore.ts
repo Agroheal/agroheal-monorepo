@@ -88,6 +88,8 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 
       // 1. Official wallet_ledger entries (including CORE_DRIVER_BONUS, direct credits)
       (walletLedgerData || []).forEach((entry: any) => {
+        // Pending loan commissions should not show in UI at all, should only show when not pending
+        if ((entry.status || "").toUpperCase() === "PENDING") return;
         const isDebit = entry.entry_type === "DEBIT";
         items.push({
           id: entry.id || `ledger-${entry.reference_id || Math.random()}`,
@@ -96,7 +98,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
           category: (entry.category === "CORE_DRIVER_BONUS" ? "CORE_DRIVER_BONUS" : (entry.category || "REFERRAL_BONUS")) as any,
           amount: Math.abs(Number(entry.amount) || 0),
           description: entry.description || "Wallet Ledger Transaction",
-          status: entry.status === "FAILED" ? "FAILED" : entry.status === "PENDING" ? "PENDING" : "COMPLETED",
+          status: entry.status === "FAILED" ? "FAILED" : "COMPLETED",
           reference: entry.reference_id || entry.id?.slice(0, 8) || "N/A",
         });
       });
@@ -104,7 +106,13 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       // 2. Referral credits (if not already captured in ledger)
       (referralData || []).forEach((ref: any) => {
         const refCode = `REF-${ref.id.slice(0, 8)}`;
-        if (!items.some((it) => it.reference === refCode)) {
+        // Do NOT synthesize a completed referral reward if there is an existing wallet_ledger entry (including pending) for this referral
+        const hasLedgerEntryForRef = (walletLedgerData || []).some(
+          (wl: any) =>
+            wl.reference_id?.includes(ref.id) ||
+            (ref.full_name && wl.description?.toLowerCase().includes(ref.full_name.toLowerCase()))
+        );
+        if (!hasLedgerEntryForRef && !items.some((it) => it.reference === refCode)) {
           items.push({
             id: `ref-${ref.id}`,
             date: ref.created_at || new Date().toISOString(),

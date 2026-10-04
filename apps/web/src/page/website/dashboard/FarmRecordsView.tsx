@@ -1676,7 +1676,7 @@ const FarmRecordsView = () => {
                   return (
                     <div className="flex items-center gap-2 flex-wrap mb-0.5">
                       <h2 className="text-2xl font-bold text-gray-900">
-                        {baseName} Records
+                        {baseName} Records (Legacy)
                       </h2>
                       {clusterBadge && (
                         <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs px-2.5 py-0.5 rounded-lg shadow-2xs">

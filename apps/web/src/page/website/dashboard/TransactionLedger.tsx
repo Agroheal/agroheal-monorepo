@@ -411,7 +411,13 @@ export default function TransactionLedger() {
         refEarnings = Number(apiSummary.directReferralWallet.balance) || 0;
       } else {
         refEarnings = liveLedgerList
-          .filter((e: any) => e.category === "REFERRAL_BONUS" && e.entry_type === "CREDIT" && !e.is_legacy)
+          .filter(
+            (e: any) =>
+              e.category === "REFERRAL_BONUS" &&
+              e.entry_type === "CREDIT" &&
+              !e.is_legacy &&
+              (e.status || "").toUpperCase() !== "PENDING"
+          )
           .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
       }
       setDirectReferralEarnings(refEarnings);
@@ -424,7 +430,15 @@ export default function TransactionLedger() {
         matEarnings = Number(apiSummary.matrixSpilloverWallet.balance) || 0;
       } else {
         matEarnings = liveLedgerList
-          .filter((e: any) => (e.category === "MATRIX_COMMISSION" || e.category === "SLOT_BONUS" || e.category === "CORE_DRIVER_BONUS") && e.entry_type === "CREDIT" && !e.is_legacy)
+          .filter(
+            (e: any) =>
+              (e.category === "MATRIX_COMMISSION" ||
+                e.category === "SLOT_BONUS" ||
+                e.category === "CORE_DRIVER_BONUS") &&
+              e.entry_type === "CREDIT" &&
+              !e.is_legacy &&
+              (e.status || "").toUpperCase() !== "PENDING"
+          )
           .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
       }
       setMatrixEarnings(matEarnings);
@@ -483,6 +497,7 @@ export default function TransactionLedger() {
       const ledgerSource = apiLedgerEntries.length > 0 ? apiLedgerEntries : (dbWalletLedger || []);
       if (ledgerSource.length > 0) {
         ledgerSource.forEach((entry: any) => {
+          if ((entry.status || "").toUpperCase() === "PENDING") return; // Pending loan commissions should not show in UI at all
           items.push({
             id: entry.id || `ledger-${entry.reference_id || Math.random()}`,
             date: entry.created_at || new Date().toISOString(),
@@ -490,7 +505,7 @@ export default function TransactionLedger() {
             category: entry.category || "REFERRAL_BONUS",
             amount: Number(entry.amount) || 0,
             description: entry.description || "Wallet Transaction",
-            status: entry.status === "FAILED" ? "FAILED" : entry.status === "PENDING" ? "PENDING" : "COMPLETED",
+            status: entry.status === "FAILED" ? "FAILED" : "COMPLETED",
             reference: entry.reference_id || entry.id || "N/A",
             is_legacy: Boolean(entry.is_legacy || isLegacyMember(entry.created_at)),
           });
@@ -793,6 +808,7 @@ export default function TransactionLedger() {
 
       // 8. Official wallet_ledger entries (CORE_DRIVER_BONUS, wallet debits/credits)
       (dbWalletLedger || []).forEach((entry: any) => {
+        if ((entry.status || "").toUpperCase() === "PENDING") return; // Pending loan commissions should not show in UI at all
         const ref = entry.reference_id || entry.id?.slice(0, 8) || "N/A";
         if (!items.some((it) => it.id === entry.id || (entry.category === "CORE_DRIVER_BONUS" && it.reference === ref))) {
           const isDebit = entry.entry_type === "DEBIT";
@@ -803,7 +819,7 @@ export default function TransactionLedger() {
             category: entry.category || "CORE_DRIVER_BONUS",
             amount: Math.abs(Number(entry.amount) || 0),
             description: entry.description || "Core Driver Growth Pool Share",
-            status: entry.status === "FAILED" ? "FAILED" : entry.status === "PENDING" ? "PENDING" : "COMPLETED",
+            status: entry.status === "FAILED" ? "FAILED" : "COMPLETED",
             reference: ref,
             is_legacy: Boolean(entry.is_legacy || isLegacyMember(entry.created_at)),
           });
