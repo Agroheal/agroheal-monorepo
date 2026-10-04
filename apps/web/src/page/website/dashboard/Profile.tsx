@@ -643,7 +643,19 @@ export const ProfileComponent: React.FC = () => {
             bank_account_name: profile.bank_account_name || "",
           }}
           defaultOpenBankSection={openBankSectionDirectly}
-          canDismiss={true}
+          canDismiss={
+            Boolean(
+              profile.phone &&
+                String(profile.phone).trim().length >= 10 &&
+                kin?.kin_name &&
+                kin?.kin_number &&
+                String(kin.kin_number).trim().length >= 10 &&
+                profile.state &&
+                profile.lga &&
+                String(profile.state).trim().length > 0 &&
+                String(profile.lga).trim().length > 0,
+            )
+          }
           onClose={() => {
             setShowCompletionModal(false);
             setOpenBankSectionDirectly(false);

@@ -71,9 +71,8 @@ const KinDetails = () => {
         initialState={userState}
         initialLga={userLga}
         initialKin={initialData}
-        canDismiss={true}
+        canDismiss={false}
         onComplete={() => navigate("/dashboard", { replace: true })}
-        onClose={() => navigate("/dashboard", { replace: true })}
       />
     </>
   );

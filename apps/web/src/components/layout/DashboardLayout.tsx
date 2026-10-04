@@ -877,6 +877,7 @@ const DashboardLayout = () => {
           initialState={profile.state || ""}
           initialLga={profile.lga || ""}
           initialKin={kinDetails}
+          canDismiss={false}
           onComplete={() => {
             setProfileIncomplete(false);
           }}

@@ -161,10 +161,15 @@ export const useUserStore = create<UserState>((set, get) => ({
       !kin?.kin_name ||
       !kin?.kin_number ||
       String(kin.kin_number).trim().length < 10;
+    const isLocationMissing =
+      !updated.state ||
+      !updated.lga ||
+      String(updated.state).trim().length === 0 ||
+      String(updated.lga).trim().length === 0;
 
     set({
       profile: updated,
-      isProfileIncomplete: isPhoneMissing || isKinMissing,
+      isProfileIncomplete: isPhoneMissing || isKinMissing || isLocationMissing,
     });
   },
 
@@ -176,10 +181,15 @@ export const useUserStore = create<UserState>((set, get) => ({
       !kin?.kin_name ||
       !kin?.kin_number ||
       String(kin.kin_number).trim().length < 10;
+    const isLocationMissing =
+      !profile?.state ||
+      !profile?.lga ||
+      String(profile.state).trim().length === 0 ||
+      String(profile.lga).trim().length === 0;
 
     set({
       kinDetails: kin,
-      isProfileIncomplete: isPhoneMissing || isKinMissing,
+      isProfileIncomplete: isPhoneMissing || isKinMissing || isLocationMissing,
     });
   },
 
