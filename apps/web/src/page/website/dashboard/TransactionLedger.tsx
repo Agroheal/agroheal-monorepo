@@ -168,8 +168,8 @@ export default function TransactionLedger() {
   // Matrix Withdrawal Qualification: 5 direct referrals AND ₦10,000 PQV in 30 days
   const isMatrixQualified = directReferralsCount >= 5 && activePqv30d >= 10000;
 
-  // Direct Referral Withdrawal Qualification: Active Project Subscribed AND >= ₦2,000
-  const isDirectReferralWithdrawable = isProjectSubscribed && directReferralEarnings >= 2000;
+  // Direct Referral Withdrawal Qualification: Active Project Subscribed AND >= 5 direct referrals AND >= ₦2,000
+  const isDirectReferralWithdrawable = isProjectSubscribed && directReferralsCount >= 5 && directReferralEarnings >= 2000;
   // Pay from wallet temporarily disabled/commented out as requested
   const canSubscribeWithWallet = false;
   const hasGreenCard = Boolean(memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING"));

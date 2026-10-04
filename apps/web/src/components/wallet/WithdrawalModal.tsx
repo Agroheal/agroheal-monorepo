@@ -144,6 +144,13 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
       return;
     }
 
+    if (walletType === "DIRECT_REFERRAL" && !isDirectReferralWithdrawable) {
+      setErrorMsg(
+        "Bank withdrawals are locked until you bring in your first 5 direct referrals."
+      );
+      return;
+    }
+
     if (walletType === "MATRIX_SPILLOVER" && !isMatrixQualified) {
       setErrorMsg(
         "Matrix Spillover Wallet requires 30-day qualification (min. 5 direct referrals + ₦5,000 PQV)."

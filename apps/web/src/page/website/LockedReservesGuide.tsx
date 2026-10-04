@@ -142,7 +142,7 @@ export default function LockedReservesGuide() {
   const totalBalance = walletSummary?.walletBalance ?? 0;
 
   const lockedMatrix = !isMatrixQualified ? matrixEarnings : 0;
-  const lockedDirect = !isProjectSubscribed ? directEarnings : 0;
+  const lockedDirect = (!isProjectSubscribed || directs < 5) ? directEarnings : 0;
   const rawCleared = Math.max(0, totalBalance - (lockedMatrix + lockedDirect));
   const availableBalance = rawCleared >= 2000 ? rawCleared : 0;
   const lockedBelowFloor = rawCleared < 2000 ? rawCleared : 0;
