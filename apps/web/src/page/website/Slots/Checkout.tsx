@@ -437,12 +437,15 @@ const Checkout = () => {
   const [hasPriorSlots, setHasPriorSlots] = useState<boolean>(false);
   const [hasPurchasedStarterPack, setHasPurchasedStarterPack] = useState<boolean>(false);
   const [memberCreatedAt, setMemberCreatedAt] = useState<string | null>(null);
+  const [profileResidenceState, setProfileResidenceState] = useState<string>("");
+  const [profileResidenceLga, setProfileResidenceLga] = useState<string>("");
+  const [hasResidenceSlot, setHasResidenceSlot] = useState<boolean>(false);
 
   // The Combo is the initial slot (₦5,000) + starter mushroom product (Mushroom Power 100g, ₦5,000) = ₦10,000
   // Non-cardholders starting out or users without starter packs are required to get the combo
   const isNewStarter = !hasGreenCard && !isStarterPack && !isStarterCompletion;
-  const isCombo = isComboRequested || isNewStarter || (!hasPriorSlots && !hasPurchasedStarterPack);
-  const isFirstSlotPurchase = isCombo || !hasPriorSlots || !hasPurchasedStarterPack;
+  const isCombo = !isStarterPack && (isComboRequested || isNewStarter || (!hasPriorSlots && !hasPurchasedStarterPack));
+  const isFirstSlotPurchase = !isStarterPack && (isCombo || !hasPriorSlots || !hasPurchasedStarterPack);
 
   const COMBO_PRICE = 10000; // ₦5,000 Initial Slot + ₦5,000 Mushroom Power 100g
   const slotsSubtotal = isStarterPack
@@ -514,7 +517,7 @@ const Checkout = () => {
             .eq("status", "active"),
           supabase
             .from("slot_subscriptions")
-            .select("id", { count: "exact" })
+            .select("id, status, state, lga, slots", { count: "exact" })
             .eq("user_id", user.id)
             .eq("status", "active"),
           supabase
@@ -551,15 +554,34 @@ const Checkout = () => {
         }
 
         const resolvedPhone = profile?.phone || (user.user_metadata?.phone as string) || "";
+        const resState = (profile?.state || "").trim();
+        const resLga = (profile?.lga || "").trim();
+        setProfileResidenceState(resState);
+        setProfileResidenceLga(resLga);
+
+        // First Slot Rule: Check if member already has an active slot in their residential jurisdiction
+        const activeSlots = (slotsData as any[]) || [];
+        const hasHomeSlot = Boolean(
+          activeSlots.length > 0 &&
+          resState &&
+          resLga &&
+          activeSlots.some((s: any) =>
+            (s.state && s.lga &&
+             s.state.toLowerCase() === resState.toLowerCase() &&
+             s.lga.toLowerCase() === resLga.toLowerCase()) ||
+            (!s.state && !s.lga) // legacy slots assumed at home residence
+          )
+        );
+        setHasResidenceSlot(hasHomeSlot);
 
         setFormData({
           firstName: extractedFirstName,
           lastName: extractedLastName,
           phone: resolvedPhone,
           email: resolvedEmail,
-          country: profile?.country || "Nigeria",
-          state: profile?.state || "",
-          lga: profile?.lga || "",
+          country: "Nigeria",
+          state: resState,
+          lga: resLga,
         });
 
         // Compute available spendable wallet balance
@@ -677,6 +699,8 @@ const Checkout = () => {
           amount: totalPrice,
           payment_method: method,
           status: "pending",
+          state: formData.state || null,
+          lga: formData.lga || null,
           project_category: isCombo
             ? "Green Card + Starter Combo"
             : isGreenCardOnly
@@ -697,16 +721,13 @@ const Checkout = () => {
       return null;
     }
 
-    // Auto-save full_name, phone, state, and lga to profiles
+    // Auto-save full_name and phone to profiles (residential location remains unchanged)
     try {
       const combinedName = `${cleanFirstName} ${cleanLastName}`.trim();
       const profileSyncUpdates: Record<string, any> = {
         full_name: combinedName,
         phone: normalizedPhone,
       };
-      if (formData.state) profileSyncUpdates.state = formData.state;
-      if (formData.lga) profileSyncUpdates.lga = formData.lga;
-      profileSyncUpdates.country = "Nigeria";
 
       await supabase
         .from("profiles")
@@ -1264,6 +1285,7 @@ const Checkout = () => {
                     <select
                       id="checkout-state-select"
                       value={formData.state}
+                      disabled={!hasResidenceSlot && Boolean(profileResidenceState && profileResidenceLga)}
                       onChange={(e) => {
                         const newState = e.target.value;
                         const validLgas = getLgasForState(newState);
@@ -1273,7 +1295,7 @@ const Checkout = () => {
                           lga: validLgas.includes(prev.lga) ? prev.lga : "",
                         }));
                       }}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 text-foreground"
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 text-foreground disabled:opacity-75 disabled:bg-muted"
                       required
                     >
                       <option value="" disabled>Select State</option>
@@ -1292,8 +1314,8 @@ const Checkout = () => {
                     <select
                       value={formData.lga}
                       onChange={(e) => setFormData((prev) => ({ ...prev, lga: e.target.value }))}
-                      disabled={!formData.state}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 text-foreground disabled:opacity-50 disabled:bg-muted"
+                      disabled={(!formData.state) || (!hasResidenceSlot && Boolean(profileResidenceState && profileResidenceLga))}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 text-foreground disabled:opacity-75 disabled:bg-muted"
                       required
                     >
                       <option value="" disabled>
@@ -1309,7 +1331,11 @@ const Checkout = () => {
                 </div>
 
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  {formData.state && formData.lga ? (
+                  {!hasResidenceSlot && profileResidenceState && profileResidenceLga ? (
+                    <span className="text-emerald-800 font-medium">
+                      First slot anchored to your residential jurisdiction: <strong>{profileResidenceLga}, {profileResidenceState}</strong>. Subsequent slots can be sponsored in any LGA nationwide.
+                    </span>
+                  ) : formData.state && formData.lga ? (
                     <span className="text-emerald-800 font-medium">
                       Anchoring to <strong>{formData.lga}, {formData.state}</strong>. Remote sponsorship allows participating in any LGA nationwide.
                     </span>
