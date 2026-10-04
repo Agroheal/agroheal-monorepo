@@ -287,7 +287,11 @@ const Dashboard = () => {
           last_payment_date: s.last_payment_date || s.created_at || "",
         });
       });
+      const accountedCheckoutIds = new Set(
+        (subscriptions || []).map((s: any) => String(s.checkout_id)).filter(Boolean)
+      );
       (checkoutsData || []).forEach((c) => {
+        if (accountedCheckoutIds.has(String(c.id))) return;
         const isPaid = ["paid", "success", "completed", "confirmed"].includes(c.status?.toLowerCase());
         if (isPaid) {
           const estimatedSlots = Math.floor(Number(c.amount) / 5000);

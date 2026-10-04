@@ -619,7 +619,7 @@ export default function TransactionLedger() {
         const linkedOrders = (orders || []).filter((o: any) => String(o.transaction_id) === String(c.id));
         const linkedSlots = (slotSubscriptions || []).filter((s: any) => String(s.checkout_id) === String(c.id));
 
-        if (c.notes && c.notes.toLowerCase().includes("corporate advance")) {
+        if (c.notes && (c.notes.toLowerCase().includes("corporate advance") || c.notes.toLowerCase().includes("corporate loan") || c.notes.toLowerCase().includes("advance debt recovery"))) {
           category = "ADVANCE_RECOVERY";
           description = c.notes;
         } else if (linkedOrders.length > 0 && linkedSlots.length > 0) {
