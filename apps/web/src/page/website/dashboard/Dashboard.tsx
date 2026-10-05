@@ -42,6 +42,7 @@ import NextStepModal from "@/components/dashboard/NextStepModal";
 import JourneyProgressionHeader from "@/components/dashboard/JourneyProgressionHeader";
 import ForcePasswordChangeModal from "@/components/dashboard/ForcePasswordChangeModal";
 import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
+import { CutoverCountdownBanner } from "@/components/common/CutoverCountdownBanner";
 import { isLegacyMember, getGreenCardFee, formatNaira } from "@shared/businessRules";
 
 interface ReferralProps {
@@ -618,6 +619,9 @@ const Dashboard = () => {
       </div>
 
       <div className="px-4 md:px-8 -mt-8 pb-12 max-w-[96%] mx-auto">
+        {/* ── SCHEDULED COMPENSATION TRANSITION COUNTDOWN ── */}
+        <CutoverCountdownBanner className="mb-6" />
+
         {/* ── 3-STEP JOURNEY PROGRESSION ACCORDION (LEAP PATHWAY) ── */}
         <JourneyProgressionHeader
           hasGreenCard={hasGreenCard}

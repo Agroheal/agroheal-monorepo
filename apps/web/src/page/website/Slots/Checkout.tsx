@@ -34,6 +34,7 @@ import {
   GREEN_CARD_FEE,
   getGreenCardFee,
 } from "@shared/businessRules";
+import { CutoverCountdownBanner } from "@/components/common/CutoverCountdownBanner";
 import { FLUTTERWAVE_KEYS } from "@/config/Index";
 
 async function ensureFlutterwaveScript(): Promise<boolean> {
@@ -476,6 +477,54 @@ const Checkout = () => {
     lga: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [verifyingTxId, setVerifyingTxId] = useState<string | null>(null);
+  const [isCheckingStatus, setIsCheckingStatus] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!verifyingTxId) return;
+
+    let cancelled = false;
+    let pollInterval: any;
+
+    const checkVerification = async () => {
+      try {
+        setIsCheckingStatus(true);
+        const res = await apiClient.checkout.verify(verifyingTxId);
+        if (res?.verified && res?.status === "paid") {
+          if (!cancelled) {
+            toast({
+              title: "Payment Confirmed! 🎉",
+              description: "Your transaction was successfully verified.",
+            });
+            clearInterval(pollInterval);
+            const targetUrl = isStarterPack ? "/dashboard/my-network" : "/dashboard";
+            window.location.href = targetUrl;
+          }
+        }
+      } catch (err) {
+        console.warn("[Checkout] Verification check err:", err);
+      } finally {
+        if (!cancelled) setIsCheckingStatus(false);
+      }
+    };
+
+    checkVerification();
+
+    let elapsed = 0;
+    pollInterval = setInterval(() => {
+      elapsed += 5000;
+      if (elapsed > 180000) {
+        clearInterval(pollInterval);
+        return;
+      }
+      checkVerification();
+    }, 5000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(pollInterval);
+    };
+  }, [verifyingTxId, isStarterPack, toast]);
 
   const isPhoneValid = normalizePhoneNumber(formData.phone).length >= 10;
 
@@ -870,26 +919,26 @@ const Checkout = () => {
             title: "Milestone 3 Unlocked! 🚀",
             description: `₦${totalPrice.toLocaleString()} paid from wallet. Your Green Card, Farm Slot, and Mushroom Power (100g) are active!`,
           });
-          navigate("/dashboard");
+          window.location.href = "/dashboard";
         } else {
           toast({
             title: "Green Card Activated! 🌿",
             description: `₦${totalPrice.toLocaleString()} paid from wallet. Your lifetime Green Card Pass is active.`,
           });
-          navigate("/dashboard");
+          window.location.href = "/dashboard";
         }
       } else if (isStarterPack) {
         toast({
           title: "Mushroom Power 100g Activated!",
           description: "Your ₦5,000 Mushroom Power 100g (SP-MUSH-100G) has been activated via wallet. 5×7 Matrix & withdrawals unlocked!",
         });
-        navigate("/dashboard/my-network");
+        window.location.href = "/dashboard/my-network";
       } else {
         toast({
           title: "Slot Secured Successfully!",
           description: `₦${totalPrice.toLocaleString()} paid from wallet. ${slotQuantity} slot(s) activated!`,
         });
-        navigate("/dashboard/farm-operations/my-slots");
+        window.location.href = "/dashboard/farm-operations/my-slots";
       }
     } catch (err: any) {
       console.error("Wallet payment failed:", err);
@@ -1226,6 +1275,9 @@ const Checkout = () => {
               <span>256-Bit SSL Encrypted & Verified Checkout</span>
             </div>
           </div>
+
+          {/* ── SCHEDULED COMPENSATION TRANSITION COUNTDOWN ── */}
+          <CutoverCountdownBanner variant="compact" className="mb-6" />
 
           <motion.div
             initial={{ opacity: 0, y: 15 }}

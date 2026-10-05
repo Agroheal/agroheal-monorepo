@@ -483,6 +483,17 @@ export const apiClient = {
         body: JSON.stringify(data),
         timeout: 60000,
       }),
+    verify: (txId: string | number) =>
+      apiRequest<{
+        verified: boolean;
+        status: string;
+        settled?: boolean;
+        alreadySettled?: boolean;
+        result?: any;
+      }>(`checkout/verify/${encodeURIComponent(String(txId))}`, {
+        method: "GET",
+        timeout: 20000,
+      }),
   },
 };
 
