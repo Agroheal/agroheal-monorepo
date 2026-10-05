@@ -24,6 +24,7 @@ import NotificationBell from "./NotificationBell";
 import HowItWorksContent from "@/components/webComponents/HowItWorksContent";
 import UserAvatar from "@/components/ui/UserAvatar";
 import ProfileCompletionModal from "@/components/dashboard/ProfileCompletionModal";
+import { CutoverCountdownBanner } from "@/components/common/CutoverCountdownBanner";
 
 const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
 
@@ -857,6 +858,13 @@ const DashboardLayout = () => {
             </button>
           </div>
         </header>
+
+        {/* Global Cutover Notice on all dashboard sub-pages */}
+        {normalizedPath !== "/dashboard" && (
+          <div className="px-4 sm:px-6 pt-3">
+            <CutoverCountdownBanner variant="compact" />
+          </div>
+        )}
 
         {/* Page Content Viewport */}
         <main className="flex-1 overflow-y-auto bg-gray-50/60">

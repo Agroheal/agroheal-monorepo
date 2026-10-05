@@ -43,6 +43,7 @@ import JourneyProgressionHeader from "@/components/dashboard/JourneyProgressionH
 import ForcePasswordChangeModal from "@/components/dashboard/ForcePasswordChangeModal";
 import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
 import { CutoverCountdownBanner } from "@/components/common/CutoverCountdownBanner";
+import { GreenCardFirst5Card } from "@/components/common/GreenCardFirst5Card";
 import { isLegacyMember, getGreenCardFee, formatNaira } from "@shared/businessRules";
 
 interface ReferralProps {
@@ -621,6 +622,16 @@ const Dashboard = () => {
       <div className="px-4 md:px-8 -mt-8 pb-12 max-w-[96%] mx-auto">
         {/* ── SCHEDULED COMPENSATION TRANSITION COUNTDOWN ── */}
         <CutoverCountdownBanner className="mb-6" />
+
+        {/* ── GREEN CARD FIRST 5™ PROGRESS & DUPLICATION ENGINE ── */}
+        {hasGreenCard && (
+          <GreenCardFirst5Card
+            directReferralsCount={profile?.total_referrals || 0}
+            referralCode={profile?.referral_code}
+            hasGreenCard={hasGreenCard}
+            className="mb-6"
+          />
+        )}
 
         {/* ── 3-STEP JOURNEY PROGRESSION ACCORDION (LEAP PATHWAY) ── */}
         <JourneyProgressionHeader

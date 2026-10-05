@@ -162,6 +162,32 @@ export const NotificationBell: React.FC = () => {
         });
       }
 
+      // 1b. GREEN CARD FIRST 5™ Dynamic Notifications
+      if (greenCardSub || profile?.member_id) {
+        const totalReferrals = Number(profile?.total_referrals || 0);
+        if (totalReferrals >= 5) {
+          notifs.push({
+            id: "notif-first-5-complete",
+            title: "🎉 I HAVE MY 5! (Mission Complete)",
+            message: "Congratulations! You have completed your FIRST 5. Your next mission is to help your 5 build their 5 to create an unstoppable food ecosystem duplication!",
+            type: "bonus",
+            created_at: new Date().toISOString(),
+            read: false,
+            link: "/dashboard/my-network",
+          });
+        } else {
+          notifs.push({
+            id: "notif-first-5-progress",
+            title: `🌱 FIRST 5 MISSION (${totalReferrals}/5 Active)`,
+            message: `Your Green Card journey begins with your FIRST 5. You have activated ${totalReferrals} member${totalReferrals === 1 ? "" : "s"}. Bring ${5 - totalReferrals} more to unlock your First 5 Pioneer Badge!`,
+            type: "matrix",
+            created_at: new Date().toISOString(),
+            read: false,
+            link: "/dashboard",
+          });
+        }
+      }
+
       // 2. Direct Referral Earnings
       const earnings = Number(profile?.referral_earnings || 0);
       if (earnings > 0) {

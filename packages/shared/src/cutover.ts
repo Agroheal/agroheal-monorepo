@@ -1,8 +1,8 @@
 /**
  * AgroHeal Cooperative — Dual-Mode Cutover & ₦15,000 Compensation Engine Specification
  *
- * Effective Cutover: Wednesday, October 7th, 2026 at 9:00 AM West Africa Time (WAT)
- * Strategic UI Countdown Target: Wednesday, October 7th, 2026 at 8:45 AM WAT
+ * Effective Cutover: Friday, October 9th, 2026 at 11:59:59 PM West Africa Time (WAT)
+ * Strategic UI Countdown Target: Friday, October 9th, 2026 at 11:59:59 PM WAT
  */
 
 // ── 1. CUTOVER TIMESTAMP CONSTANTS ──
@@ -13,7 +13,7 @@ export const COUNTDOWN_TARGET_WAT = "2026-10-09T23:59:59+01:00";
 export const COUNTDOWN_TARGET_TIMESTAMP_MS = new Date(COUNTDOWN_TARGET_WAT).getTime(); // 2026-10-09T22:59:59.000Z
 
 /**
- * Checks whether a given transaction/event date falls strictly at or after the 9:00 AM WAT cutover.
+ * Checks whether a given transaction/event date falls strictly at or after the Friday 11:59:59 PM WAT cutover.
  * If no date is supplied, evaluates against current local/system time.
  */
 export const isPostCutover = (date?: Date | string | number | null): boolean => {
