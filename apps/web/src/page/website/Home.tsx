@@ -421,9 +421,7 @@ export default function Home() {
                       src={
                         project.name === "Ginger Town" || project.name === "Gingertown"
                           ? AgrohealImages.HowItWorksTwo
-                          : project.name === "Mushroom Village"
-                            ? AgrohealImages.Mushroom
-                            : AgrohealImages.HowItWorksOne
+                          : AgrohealImages.OrganicGardens
                       }
                       alt={project.name}
                       className="w-full h-full object-cover"

@@ -66,6 +66,7 @@ export interface OrganogramNode {
   networkCount?: number;
   createdAt?: string;
   hasGreenCard: boolean;
+  greenCardActivatedAt?: string | null;
   isSpillover?: boolean;
   sponsorName?: string;
   children: OrganogramNode[];
@@ -446,7 +447,7 @@ const CompoundReferrals: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchStatus, setSearchStatus] = useState<string>("");
   const [directoryFilter, setDirectoryFilter] = useState<"ALL" | "DIRECT" | "TREE" | "UNPAID" | "SPILLOVER">("ALL");
-  const [sortBy, setSortBy] = useState<"SLOTS_DESC" | "SLOTS_ASC" | "DATE_DESC" | "DATE_ASC" | "NAME_ASC" | "LEG_ASC">("SLOTS_DESC");
+  const [sortBy, setSortBy] = useState<"SLOTS_DESC" | "SLOTS_ASC" | "DATE_DESC" | "DATE_ASC" | "GC_DATE_DESC" | "GC_DATE_ASC" | "NAME_ASC" | "LEG_ASC">("SLOTS_DESC");
   const [visibleCount, setVisibleCount] = useState<number>(10);
   const [isMilestoneFolded, setIsMilestoneFolded] = useState<boolean>(true);
 
@@ -712,7 +713,7 @@ const CompoundReferrals: React.FC = () => {
         .eq("user_id", targetId),
       supabase
         .from("profiles")
-        .select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals, placement_parent_id, matrix_position, placement_status")
+        .select("id, full_name, email, phone, member_id, created_at, green_card_activated_at, referred_by, total_referrals, placement_parent_id, matrix_position, placement_status")
         .or(`placement_parent_id.eq.${targetId},referred_by.eq.${targetId}`)
         .order("created_at", { ascending: true })
         .limit(100),
@@ -786,6 +787,7 @@ const CompoundReferrals: React.FC = () => {
             directReferralsCount: grandChildrenCount,
             createdAt: cp.created_at,
             hasGreenCard: Boolean(cp.member_id),
+            greenCardActivatedAt: cp.green_card_activated_at || null,
             isSpillover: cp.referred_by !== targetId,
             children: [],
           };
@@ -812,6 +814,7 @@ const CompoundReferrals: React.FC = () => {
             directReferralsCount: grandChildrenCount,
             createdAt: cp.created_at,
             hasGreenCard: Boolean(cp.member_id),
+            greenCardActivatedAt: cp.green_card_activated_at || null,
             isSpillover: cp.referred_by !== targetId,
             children: [],
           });
@@ -1218,6 +1221,16 @@ const CompoundReferrals: React.FC = () => {
     list.sort((a, b) => {
       if (sortBy === "SLOTS_DESC") return (b.slotsHeld || 0) - (a.slotsHeld || 0);
       if (sortBy === "SLOTS_ASC") return (a.slotsHeld || 0) - (b.slotsHeld || 0);
+      if (sortBy === "GC_DATE_DESC") {
+        const tB = b.greenCardActivatedAt ? new Date(b.greenCardActivatedAt).getTime() : 0;
+        const tA = a.greenCardActivatedAt ? new Date(a.greenCardActivatedAt).getTime() : 0;
+        return tB - tA;
+      }
+      if (sortBy === "GC_DATE_ASC") {
+        const tB = b.greenCardActivatedAt ? new Date(b.greenCardActivatedAt).getTime() : Infinity;
+        const tA = a.greenCardActivatedAt ? new Date(a.greenCardActivatedAt).getTime() : Infinity;
+        return tA - tB;
+      }
       if (sortBy === "DATE_DESC") return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
       if (sortBy === "DATE_ASC") return new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
       if (sortBy === "NAME_ASC") return (a.fullName || "").localeCompare(b.fullName || "");
@@ -2430,6 +2443,8 @@ const CompoundReferrals: React.FC = () => {
                 >
                   <option value="SLOTS_DESC">Most Farm Slots</option>
                   <option value="SLOTS_ASC">Least Farm Slots</option>
+                  <option value="GC_DATE_DESC">GC Activated: Newest First</option>
+                  <option value="GC_DATE_ASC">GC Activated: Oldest First</option>
                   <option value="DATE_DESC">Joined: Newest First</option>
                   <option value="DATE_ASC">Joined: Oldest First</option>
                   <option value="NAME_ASC">Name (A – Z)</option>
@@ -2465,6 +2480,15 @@ const CompoundReferrals: React.FC = () => {
                         </span>
                       </th>
                       <th className="py-3 px-4">AGC Member ID</th>
+                      <th
+                        className="py-3 px-4 cursor-pointer hover:text-emerald-800 transition-colors"
+                        onClick={() => setSortBy((prev) => (prev === "GC_DATE_DESC" ? "GC_DATE_ASC" : "GC_DATE_DESC"))}
+                      >
+                        <span className="inline-flex items-center gap-1">
+                          GC Activated
+                          <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                        </span>
+                      </th>
                       <th className="py-3 px-4">Contact Info</th>
                       <th className="py-3 px-4">Source / Sponsor</th>
                       <th
@@ -2495,6 +2519,27 @@ const CompoundReferrals: React.FC = () => {
                         <td className="py-3 px-4 font-bold text-gray-900 max-w-[150px] truncate" title={m.fullName}>{m.fullName}</td>
                         <td className="py-3 px-4 font-mono font-semibold text-emerald-800 whitespace-nowrap">
                           {m.memberId}
+                        </td>
+                        <td className="py-3 px-4 whitespace-nowrap">
+                          {m.greenCardActivatedAt ? (
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-gray-800 text-[11px]">
+                                {new Date(m.greenCardActivatedAt).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </span>
+                              <span className="text-[10px] text-gray-400">
+                                {new Date(m.greenCardActivatedAt).toLocaleTimeString("en-GB", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 text-[11px] italic">Pending</span>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-gray-600 max-w-[180px] truncate">
                           <div className="truncate" title={m.email}>{m.email}</div>

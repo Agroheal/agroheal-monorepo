@@ -6,11 +6,11 @@
  */
 
 // ── 1. CUTOVER TIMESTAMP CONSTANTS ──
-export const CUTOVER_TIME_WAT = "2026-10-07T09:00:00+01:00";
-export const CUTOVER_TIMESTAMP_MS = new Date(CUTOVER_TIME_WAT).getTime(); // 2026-10-07T08:00:00.000Z
+export const CUTOVER_TIME_WAT = "2026-10-09T23:59:59+01:00";
+export const CUTOVER_TIMESTAMP_MS = new Date(CUTOVER_TIME_WAT).getTime(); // 2026-10-09T22:59:59.000Z
 
-export const COUNTDOWN_TARGET_WAT = "2026-10-07T08:45:00+01:00";
-export const COUNTDOWN_TARGET_TIMESTAMP_MS = new Date(COUNTDOWN_TARGET_WAT).getTime(); // 2026-10-07T07:45:00.000Z
+export const COUNTDOWN_TARGET_WAT = "2026-10-09T23:59:59+01:00";
+export const COUNTDOWN_TARGET_TIMESTAMP_MS = new Date(COUNTDOWN_TARGET_WAT).getTime(); // 2026-10-09T22:59:59.000Z
 
 /**
  * Checks whether a given transaction/event date falls strictly at or after the 9:00 AM WAT cutover.

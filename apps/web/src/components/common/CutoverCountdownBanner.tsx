@@ -75,7 +75,7 @@ export const CutoverCountdownBanner: React.FC<CutoverCountdownBannerProps> = ({
             <strong className="text-amber-900 dark:text-amber-300 uppercase tracking-wide mr-1 font-black">
               ⚠️ Final Price Lock:
             </strong>
-            The complete ₦12,000 Starter Package increases permanently to ₦15,000 on Wednesday, Oct 7 at 9:00 AM WAT. Lock your ₦3,000 savings before time expires!
+            The complete ₦12,000 Starter Package increases permanently to ₦15,000 on Friday, Oct 9 at 11:59 PM WAT. Lock your ₦3,000 savings before time expires!
           </span>
         </div>
         {!timeLeft.isExpired ? (
@@ -117,7 +117,7 @@ export const CutoverCountdownBanner: React.FC<CutoverCountdownBannerProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[11px] font-black uppercase tracking-wider text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-400/30">
-                ⚠️ Final 48-Hour Price Lock Notice
+                ⚠️ Final Price Lock Notice
               </span>
               <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-ping" />
             </div>
@@ -125,7 +125,7 @@ export const CutoverCountdownBanner: React.FC<CutoverCountdownBannerProps> = ({
               Lock In Your ₦12,000 Starter Package Before the Mandatory ₦15,000 Standard Switch!
             </h3>
             <p className="mt-1 text-xs sm:text-[13px] text-emerald-100/90 font-medium leading-relaxed max-w-2xl">
-              Takes effect <strong className="text-amber-300 font-bold">Wednesday, Oct 7, 2026 at 9:00 AM WAT</strong>. Secure your lifetime Green Card, 1st farm slot, and Mushroom Power product at the founder rate now to lock your ₦3,000 discount before package entry increases permanently to ₦15,000.
+              Takes effect <strong className="text-amber-300 font-bold">Friday, Oct 9, 2026 at 11:59 PM WAT</strong>. Secure your lifetime Green Card, 1st farm slot, and Mushroom Power product at the founder rate now to lock your ₦3,000 discount before package entry increases permanently to ₦15,000.
             </p>
           </div>
         </div>

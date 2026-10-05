@@ -121,7 +121,7 @@ const BuySlots: React.FC = () => {
           {/* Real Agricultural Image Banner */}
           <div className="relative h-44 w-full overflow-hidden bg-emerald-950">
             <img
-              src={AgrohealImages.MushroomCropFarm}
+              src={AgrohealImages.IntroductionFarming}
               alt="Mushroom Village Organic Production"
               className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
             />
