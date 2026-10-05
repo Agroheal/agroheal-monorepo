@@ -981,7 +981,7 @@ const Checkout = () => {
     const flwKey =
       (typeof FLUTTERWAVE_KEYS === "string" ? FLUTTERWAVE_KEYS : (FLUTTERWAVE_KEYS as any)?.publicKey) ||
       import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY ||
-      "FLWPUBK-21808627a82aaa069c67aaedb5f7b37f-X";
+      "FLWPUBK-20fafa986173a9b4507c82992f53055b-X";
 
     setIsProcessing(true);
 
@@ -1159,26 +1159,26 @@ const Checkout = () => {
                       title: "Milestone 3 Unlocked! 🚀",
                       description: "Your Green Card + Starter Combo are active! You have jumped straight to Milestone 3.",
                     });
-                    navigate("/dashboard");
+                    setTimeout(() => { window.location.href = "/dashboard"; }, 800);
                   } else {
                     toast({
                       title: "Green Card Activated! 🌿",
                       description: "Welcome! Your lifetime Green Card Pass is active.",
                     });
-                    navigate("/dashboard");
+                    setTimeout(() => { window.location.href = "/dashboard"; }, 800);
                   }
                 } else if (isStarterPack) {
                   toast({
                     title: "Starter Pack Activated!",
                     description: "Your ₦5,000 Mushroom Starter Pack has been activated.",
                   });
-                  navigate("/dashboard/my-network");
+                  setTimeout(() => { window.location.href = "/dashboard/my-network"; }, 800);
                 } else {
                   toast({
                     title: "Payment Successful!",
                     description: "Your slot has been secured!",
                   });
-                  navigate("/dashboard/farm-operations/my-slots");
+                  setTimeout(() => { window.location.href = "/dashboard/farm-operations/my-slots"; }, 800);
                 }
               } catch (err) {
                 console.error("Direct activation failed:", err);
