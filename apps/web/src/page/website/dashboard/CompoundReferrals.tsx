@@ -2346,7 +2346,7 @@ const CompoundReferrals: React.FC = () => {
                 {[
                   {
                     key: "ALL",
-                    label: "All Downline",
+                    label: "All Downlines",
                     count: downlineList.length,
                     activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
                     badgeActive: "bg-emerald-800 text-emerald-200",
