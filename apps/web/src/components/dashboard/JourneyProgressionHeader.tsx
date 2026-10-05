@@ -135,10 +135,10 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
 
   return (
     <div
-      className={`w-full rounded-2xl border transition-all duration-200 shadow-xs mb-8 overflow-hidden ${
+      className={`w-full rounded-2xl border-2 transition-all duration-200 shadow-md mb-8 overflow-hidden ${
         isWarning
-          ? "bg-amber-950/10 dark:bg-amber-950/20 border-amber-500/40"
-          : "bg-emerald-950/10 dark:bg-emerald-950/20 border-emerald-500/40"
+          ? "bg-amber-50/90 dark:bg-amber-950/40 border-amber-400 dark:border-amber-600/70"
+          : "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-400 dark:border-emerald-600/70"
       }`}
     >
       {/* ── COMPACT FOLDED HEADER BAR ── */}
@@ -148,38 +148,38 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
           className="flex items-center gap-3 cursor-pointer select-none flex-1 min-w-0"
         >
           <div
-            className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
               isStep3Done
-                ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                ? "bg-emerald-600 text-white shadow-xs"
                 : isWarning
-                ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
-                : "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                ? "bg-amber-600 text-white shadow-xs"
+                : "bg-emerald-600 text-white shadow-xs"
             }`}
           >
             {isStep3Done ? (
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-5 h-5" />
             ) : (
-              <Compass className="w-4 h-4" />
+              <Compass className="w-5 h-5" />
             )}
           </div>
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="font-extrabold text-xs sm:text-sm text-foreground flex items-center gap-1.5">
+              <span className="font-black text-xs sm:text-sm text-slate-900 dark:text-white flex items-center gap-1.5">
                 What to do now?
               </span>
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border shadow-2xs ${
                   isWarning
-                    ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
-                    : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                    ? "bg-amber-200 text-amber-950 dark:bg-amber-900/80 dark:text-amber-200 border-amber-400 dark:border-amber-600"
+                    : "bg-emerald-200 text-emerald-950 dark:bg-emerald-900/80 dark:text-emerald-200 border-emerald-400 dark:border-emerald-600"
                 }`}
               >
                 {statusBadge}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground truncate mt-0.5">
-              <strong className="text-foreground">{headline}</strong> • {shortSummary}
+            <p className="text-xs text-slate-800 dark:text-slate-200 truncate mt-0.5 font-medium">
+              <strong className="text-slate-950 dark:text-white font-extrabold">{headline}</strong> • {shortSummary}
             </p>
           </div>
         </div>
@@ -198,13 +198,13 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
           </Button>
 
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => setIsFolded((prev) => !prev)}
-            className="h-7 sm:h-8 px-2 rounded-xl text-muted-foreground hover:text-foreground text-xs flex items-center gap-1 cursor-pointer"
+            className="h-7 sm:h-8 px-2.5 rounded-xl border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-800 text-slate-800 hover:text-slate-950 dark:text-slate-200 dark:hover:text-white text-xs flex items-center gap-1.5 cursor-pointer font-bold shadow-2xs"
             title={isFolded ? "Expand pathway" : "Fold banner"}
           >
-            <span className="hidden sm:inline text-[11px] font-medium">
+            <span className="hidden sm:inline text-[11px] font-bold">
               {isFolded ? "Details" : "Fold"}
             </span>
             {isFolded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronUp className="w-3.5 h-3.5" />}
@@ -214,51 +214,51 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
 
       {/* ── EXPANDABLE 3-MILESTONE PATHWAY DETAILS ── */}
       {!isFolded && (
-        <div className="p-4 md:p-5 border-t border-border/40 grid grid-cols-1 md:grid-cols-3 gap-3.5 animate-in fade-in duration-200">
+        <div className="p-4 md:p-5 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-3.5 animate-in fade-in duration-200">
           {/* MILESTONE 1: GREEN CARD */}
           <div
-            className={`rounded-xl p-3.5 border flex flex-col justify-between ${
+            className={`rounded-xl p-3.5 border-2 flex flex-col justify-between shadow-2xs ${
               isStep1Done
-                ? "bg-card/60 border-border/40 text-muted-foreground"
-                : "bg-emerald-500/10 border-emerald-500/40 text-foreground"
+                ? "bg-white/95 dark:bg-slate-900/90 border-emerald-300 dark:border-emerald-700 text-slate-900 dark:text-white"
+                : "bg-amber-50 dark:bg-amber-950/60 border-amber-400 dark:border-amber-600 text-slate-950 dark:text-white"
             }`}
           >
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono font-bold uppercase text-muted-foreground">
+                <span className="text-[10px] font-mono font-black uppercase text-slate-600 dark:text-slate-400">
                   Milestone 01
                 </span>
                 {isStep1Done ? (
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Done
+                  <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Done
                   </span>
                 ) : (
-                  <span className="text-[10px] font-bold text-primary">Pending</span>
+                  <span className="text-[10px] font-black text-amber-700 dark:text-amber-400">Pending</span>
                 )}
               </div>
 
               <div className="flex items-center gap-2 mb-2">
-                <IdCard className="w-4 h-4 text-emerald-500 shrink-0" />
-                <h4 className="text-xs font-bold text-foreground">
+                <IdCard className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <h4 className="text-xs font-black text-slate-900 dark:text-white">
                   Agroheal Green Card
                 </h4>
               </div>
 
-              <p className="text-[11px] text-muted-foreground leading-relaxed mb-2.5">
+              <p className="text-[11.5px] text-slate-700 dark:text-slate-200 leading-relaxed mb-2.5 font-medium">
                 {isMemberLegacy
                   ? "Free lifetime pass for founding members. Enables personal AGC affiliate ID."
                   : "₦2,000 digital lifetime credentials included in ₦12,000 package. Unlocks personal AGC ID & ₦1,000 direct referral bounty."}
               </p>
             </div>
 
-            <div className="pt-2 border-t border-border/30 flex items-center justify-between text-xs">
-              <span className="font-mono text-[11px] text-muted-foreground">
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+              <span className="font-mono text-[11px] font-bold text-slate-600 dark:text-slate-300">
                 {memberId ? `ID: ${memberId}` : "₦2,000 Value"}
               </span>
               {isStep1Done ? (
                 <Link
                   to="/dashboard/profile/green-card"
-                  className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5 text-[11px]"
+                  className="text-emerald-700 dark:text-emerald-400 hover:underline font-bold inline-flex items-center gap-0.5 text-[11px]"
                 >
                   View Pass <ArrowRight className="w-3 h-3" />
                 </Link>
@@ -266,7 +266,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                 <button
                   type="button"
                   onClick={() => navigate("/dashboard/checkout?bundle=starter")}
-                  className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5 text-[11px] cursor-pointer"
+                  className="text-emerald-700 dark:text-emerald-400 hover:underline font-bold inline-flex items-center gap-0.5 text-[11px] cursor-pointer"
                 >
                   Activate <ArrowRight className="w-3 h-3" />
                 </button>
@@ -276,56 +276,56 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
 
           {/* MILESTONE 2: STARTER PACKAGE & MUSHROOM VILLAGE */}
           <div
-            className={`rounded-xl p-3.5 border flex flex-col justify-between ${
+            className={`rounded-xl p-3.5 border-2 flex flex-col justify-between shadow-2xs ${
               isStep2Done
-                ? "bg-card/60 border-border/40 text-muted-foreground"
+                ? "bg-white/95 dark:bg-slate-900/90 border-emerald-300 dark:border-emerald-700 text-slate-900 dark:text-white"
                 : isStep1Done
-                ? "bg-amber-500/10 border-amber-500/40 text-foreground"
-                : "bg-card/40 border-border/30 text-muted-foreground opacity-70"
+                ? "bg-amber-50 dark:bg-amber-950/60 border-amber-400 dark:border-amber-600 text-slate-950 dark:text-white"
+                : "bg-slate-100/80 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 opacity-80"
             }`}
           >
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono font-bold uppercase text-muted-foreground">
+                <span className="text-[10px] font-mono font-black uppercase text-slate-600 dark:text-slate-400">
                   Milestone 02
                 </span>
                 {isStep2Done ? (
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> Active
+                  <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Active
                   </span>
                 ) : isStep1Done ? (
-                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                  <span className="text-[10px] font-black text-amber-700 dark:text-amber-400">
                     Next Step
                   </span>
                 ) : (
-                  <span className="text-[10px] font-bold text-muted-foreground flex items-center gap-1">
+                  <span className="text-[10px] font-black text-slate-600 dark:text-slate-400 flex items-center gap-1">
                     <Lock className="w-2.5 h-2.5" /> Locked
                   </span>
                 )}
               </div>
 
               <div className="flex items-center gap-2 mb-2">
-                <Sprout className="w-4 h-4 text-emerald-500 shrink-0" />
-                <h4 className="text-xs font-bold text-foreground">
+                <Sprout className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <h4 className="text-xs font-black text-slate-900 dark:text-white">
                   Mushroom Village &amp; Welcome Product
                 </h4>
               </div>
 
-              <p className="text-[11px] text-muted-foreground leading-relaxed mb-2.5">
+              <p className="text-[11.5px] text-slate-700 dark:text-slate-200 leading-relaxed mb-2.5 font-medium">
                 {isMemberLegacy
                   ? "Activate Mushroom Power 100g (₦5,000) to unlock full withdrawals & 5×7 matrix organogram."
                   : "Included in ₦12,000 package: Mushroom Power 100g (₦5,000) + 1st Farm Slot (₦5,000) locking your permanent matrix placement & bank withdrawals."}
               </p>
             </div>
 
-            <div className="pt-2 border-t border-border/30 flex items-center justify-between text-xs">
-              <span className="text-[11px] text-muted-foreground font-semibold">
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+              <span className="text-[11px] text-slate-700 dark:text-slate-300 font-bold">
                 {totalSlots > 0 ? `${totalSlots} Farm Slot${totalSlots > 1 ? "s" : ""}` : "₦10,000 Value"}
               </span>
               {isStep2Done ? (
                 <Link
                   to="/dashboard/farm-operations/my-slots"
-                  className="text-primary hover:underline font-semibold inline-flex items-center gap-0.5 text-[11px]"
+                  className="text-emerald-700 dark:text-emerald-400 hover:underline font-bold inline-flex items-center gap-0.5 text-[11px]"
                 >
                   My Slots <ArrowRight className="w-3 h-3" />
                 </Link>
@@ -339,7 +339,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                         : "/dashboard/checkout?bundle=starter"
                     )
                   }
-                  className="text-amber-600 dark:text-amber-400 hover:underline font-semibold inline-flex items-center gap-0.5 text-[11px] cursor-pointer"
+                  className="text-amber-700 dark:text-amber-400 hover:underline font-bold inline-flex items-center gap-0.5 text-[11px] cursor-pointer"
                 >
                   {isMemberLegacy ? "Activate ₦5k" : "Activate ₦12k"} <ArrowRight className="w-3 h-3" />
                 </button>
@@ -349,50 +349,50 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
 
           {/* MILESTONE 3: 5 DIRECTS & 7-TIER MATRIX */}
           <div
-            className={`rounded-xl p-3.5 border flex flex-col justify-between ${
+            className={`rounded-xl p-3.5 border-2 flex flex-col justify-between shadow-2xs ${
               isStep3Done
-                ? "bg-card/60 border-border/40 text-muted-foreground"
+                ? "bg-white/95 dark:bg-slate-900/90 border-emerald-300 dark:border-emerald-700 text-slate-900 dark:text-white"
                 : isStep2Done
-                ? "bg-emerald-500/10 border-emerald-500/40 text-foreground"
-                : "bg-card/40 border-border/30 text-muted-foreground opacity-70"
+                ? "bg-emerald-50 dark:bg-emerald-950/60 border-emerald-400 dark:border-emerald-600 text-slate-950 dark:text-white"
+                : "bg-slate-100/80 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 opacity-80"
             }`}
           >
             <div>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] font-mono font-bold uppercase text-muted-foreground">
+                <span className="text-[10px] font-mono font-black uppercase text-slate-600 dark:text-slate-400">
                   Milestone 03
                 </span>
                 {isStep3Done ? (
-                  <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                    <CheckCircle2 className="w-3 h-3" /> All 7 Tiers Unlocked
+                  <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> All 7 Tiers Unlocked
                   </span>
                 ) : (
-                  <span className="text-[10px] font-bold text-primary">
+                  <span className="text-[10px] font-black text-emerald-700 dark:text-emerald-400">
                     {directReferralsCount}/5 Directs
                   </span>
                 )}
               </div>
 
               <div className="flex items-center gap-2 mb-2">
-                <Users className="w-4 h-4 text-emerald-500 shrink-0" />
-                <h4 className="text-xs font-bold text-foreground">
+                <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <h4 className="text-xs font-black text-slate-900 dark:text-white">
                   Sponsor 5 Direct Partners
                 </h4>
               </div>
 
-              <p className="text-[11px] text-muted-foreground leading-relaxed mb-2.5">
+              <p className="text-[11.5px] text-slate-700 dark:text-slate-200 leading-relaxed mb-2.5 font-medium">
                 Sponsor 5 active members with the ₦12,000 package to unlock all 7 tiers of community matrix commissions. Earn ₦1,000 bounty + ₦500 slot commission per partner.
               </p>
             </div>
 
-            <div className="pt-2 border-t border-border/30 flex items-center justify-between text-xs">
-              <span className="text-[11px] text-muted-foreground font-semibold">
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+              <span className="text-[11px] text-slate-700 dark:text-slate-300 font-bold">
                 Tier {Math.min(7, Math.max(1, directReferralsCount + 2))} Active
               </span>
               <button
                 type="button"
                 onClick={onOpenShareModal ? onOpenShareModal : () => navigate("/dashboard/my-network")}
-                className="text-primary hover:underline font-semibold inline-flex items-center gap-1 text-[11px] cursor-pointer"
+                className="text-emerald-700 dark:text-emerald-400 hover:underline font-bold inline-flex items-center gap-1 text-[11px] cursor-pointer"
               >
                 <Share2 className="w-3 h-3" /> Share Link
               </button>

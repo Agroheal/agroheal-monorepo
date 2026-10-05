@@ -115,6 +115,8 @@ export default function TransactionLedger() {
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   const isItemLegacy = (t: LedgerItem) => {
+    // Core Driver Growth Pool bonuses are strictly live wallet entries regardless of historical creation date
+    if (t.category === "CORE_DRIVER_BONUS") return false;
     return Boolean(t.is_legacy) || isLegacyMember(t.date);
   };
 
@@ -507,7 +509,7 @@ export default function TransactionLedger() {
             description: entry.description || "Wallet Transaction",
             status: entry.status === "FAILED" ? "FAILED" : "COMPLETED",
             reference: entry.reference_id || entry.id || "N/A",
-            is_legacy: Boolean(entry.is_legacy || isLegacyMember(entry.created_at)),
+            is_legacy: entry.category === "CORE_DRIVER_BONUS" ? false : Boolean(entry.is_legacy || isLegacyMember(entry.created_at)),
           });
         });
       }
@@ -840,7 +842,7 @@ export default function TransactionLedger() {
             description: entry.description || "Core Driver Growth Pool Share",
             status: entry.status === "FAILED" ? "FAILED" : "COMPLETED",
             reference: ref,
-            is_legacy: Boolean(entry.is_legacy || isLegacyMember(entry.created_at)),
+            is_legacy: entry.category === "CORE_DRIVER_BONUS" ? false : Boolean(entry.is_legacy || isLegacyMember(entry.created_at)),
           });
         }
       });
@@ -1475,8 +1477,7 @@ export default function TransactionLedger() {
                     </div>
                   )}
 
-                    {/* Loan/advance debt display temporarily suppressed from FE as requested */}
-                    {/* {advanceDebt && advanceDebt.isIndebted && advanceDebt.balance > 0 && (
+                    {advanceDebt && advanceDebt.isIndebted && advanceDebt.balance > 0 && (
                       <div className="pt-2">
                         <div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-200">
                           <div className="flex items-center justify-between font-semibold mb-1">
@@ -1493,7 +1494,7 @@ export default function TransactionLedger() {
                           </p>
                         </div>
                       </div>
-                    )} */}
+                    )}
                 </>
               )}
             </div>

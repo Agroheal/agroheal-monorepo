@@ -184,7 +184,7 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
       {/* ── NODE CARD ── */}
       {isRootNode ? (
         <div
-          className={`w-72 sm:w-80 rounded-2xl p-4 sm:p-5 border-2 shadow-xl flex flex-col items-center text-center relative z-20 ${
+          className={`w-64 sm:w-72 rounded-2xl p-4 sm:p-5 border-2 shadow-xl flex flex-col items-center text-center relative z-20 ${
             isDark
               ? "bg-slate-800 border-emerald-500 text-white"
               : "bg-gradient-to-b from-white to-emerald-50/40 border-emerald-600 text-gray-900"
@@ -239,7 +239,7 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
         </div>
       ) : (
         <div
-          className={`w-44 sm:w-48 rounded-2xl p-3 border shadow-md transition-all flex flex-col justify-between text-center relative z-20 ${
+          className={`w-36 sm:w-40 md:w-44 rounded-2xl p-2.5 sm:p-3 border shadow-md transition-all flex flex-col justify-between text-center relative z-20 ${
             isDark
               ? "bg-slate-800 border-slate-700 hover:border-emerald-500 text-white"
               : "bg-white border-emerald-200 hover:border-emerald-500 text-gray-900"
@@ -354,7 +354,7 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
               return (
                 <div
                   key={child ? child.id : `open-leg-${legNum}`}
-                  className="flex flex-col items-center relative px-2 sm:px-3"
+                  className="flex flex-col items-center relative px-1 sm:px-1.5 md:px-2"
                 >
                   {/* Left horizontal arm (touches previous child's right arm) */}
                   {!isFirst && (
@@ -475,11 +475,16 @@ const CompoundReferrals: React.FC = () => {
   const [isPlacingEnrollee, setIsPlacingEnrollee] = useState<boolean>(false);
 
   // Qualification Gates & Matrix Access Locks
+  const isLegacyUser = Boolean(
+    currentUserProfile?.is_legacy ||
+    isLegacyMember(currentUserProfile?.created_at) ||
+    userSlotsHeld > 0
+  );
   const isLegacyNeedsMushroomPower = Boolean(
-    currentUserProfile?.is_legacy && !currentUserProfile?.has_purchased_starter_pack
+    isLegacyUser && !currentUserProfile?.has_purchased_starter_pack
   );
   const isNonLegacyNeedsStarter = Boolean(
-    !currentUserProfile?.is_legacy && (userSlotsHeld === 0 || !currentUserProfile?.has_purchased_starter_pack)
+    !isLegacyUser && (userSlotsHeld === 0 || !currentUserProfile?.has_purchased_starter_pack)
   );
   const isMatrixLocked = isLegacyNeedsMushroomPower || isNonLegacyNeedsStarter;
 
@@ -2334,99 +2339,75 @@ const CompoundReferrals: React.FC = () => {
               </p>
             </div>
 
-            {/* Intelligent Filter Tabs + Sort Controls */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              {/* Filter Tabs */}
-              <div className="flex items-center gap-1.5 flex-wrap overflow-x-auto pb-1 max-w-full">
-                <Button
-                  variant={directoryFilter === "ALL" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setDirectoryFilter("ALL")}
-                  className={`text-xs h-8 px-3 rounded-xl transition-all cursor-pointer ${
-                    directoryFilter === "ALL"
-                      ? "bg-emerald-800 hover:bg-emerald-700 text-white font-semibold shadow-xs"
-                      : "border-gray-200 text-gray-700 hover:bg-emerald-50 hover:text-emerald-900"
-                  }`}
-                >
-                  <span>All Referrals</span>
-                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] ${
-                    directoryFilter === "ALL" ? "bg-emerald-950/70 text-emerald-200" : "bg-gray-100 text-gray-600"
-                  }`}>
-                    {downlineList.length}
-                  </span>
-                </Button>
-
-                <Button
-                  variant={directoryFilter === "TREE" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setDirectoryFilter("TREE")}
-                  className={`text-xs h-8 px-3 rounded-xl transition-all cursor-pointer ${
-                    directoryFilter === "TREE"
-                      ? "bg-emerald-800 hover:bg-emerald-700 text-white font-semibold shadow-xs"
-                      : "border-gray-200 text-gray-700 hover:bg-emerald-50 hover:text-emerald-900"
-                  }`}
-                >
-                  <span>My Network in Tree</span>
-                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] ${
-                    directoryFilter === "TREE" ? "bg-emerald-950/70 text-emerald-200" : "bg-gray-100 text-gray-600"
-                  }`}>
-                    {downlineList.filter((d) => d.position > 0 && d.slotsHeld > 0).length}
-                  </span>
-                </Button>
-
-                <Button
-                  variant={directoryFilter === "DIRECT" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setDirectoryFilter("DIRECT")}
-                  className={`text-xs h-8 px-3 rounded-xl transition-all cursor-pointer ${
-                    directoryFilter === "DIRECT"
-                      ? "bg-emerald-800 hover:bg-emerald-700 text-white font-semibold shadow-xs"
-                      : "border-gray-200 text-gray-700 hover:bg-emerald-50 hover:text-emerald-900"
-                  }`}
-                >
-                  <span>Direct Personal</span>
-                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] ${
-                    directoryFilter === "DIRECT" ? "bg-emerald-950/70 text-emerald-200" : "bg-gray-100 text-gray-600"
-                  }`}>
-                    {downlineList.filter((d) => !d.isSpillover).length}
-                  </span>
-                </Button>
-
-                <Button
-                  variant={directoryFilter === "UNPAID" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setDirectoryFilter("UNPAID")}
-                  className={`text-xs h-8 px-3 rounded-xl transition-all cursor-pointer ${
-                    directoryFilter === "UNPAID"
-                      ? "bg-amber-600 hover:bg-amber-500 text-white font-semibold shadow-xs"
-                      : "border-gray-200 text-gray-700 hover:bg-amber-50 hover:text-amber-900"
-                  }`}
-                >
-                  <span>Unpaid / 0 Slots</span>
-                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] ${
-                    directoryFilter === "UNPAID" ? "bg-amber-950/70 text-amber-200" : "bg-gray-100 text-gray-600"
-                  }`}>
-                    {downlineList.filter((d) => d.slotsHeld === 0).length}
-                  </span>
-                </Button>
-
-                <Button
-                  variant={directoryFilter === "SPILLOVER" ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setDirectoryFilter("SPILLOVER")}
-                  className={`text-xs h-8 px-3 rounded-xl transition-all cursor-pointer ${
-                    directoryFilter === "SPILLOVER"
-                      ? "bg-emerald-800 hover:bg-emerald-700 text-white font-semibold shadow-xs"
-                      : "border-gray-200 text-gray-700 hover:bg-emerald-50 hover:text-emerald-900"
-                  }`}
-                >
-                  <span>Spillover</span>
-                  <span className={`ml-1.5 px-1.5 py-0.2 rounded-full text-[10px] ${
-                    directoryFilter === "SPILLOVER" ? "bg-emerald-950/70 text-emerald-200" : "bg-gray-100 text-gray-600"
-                  }`}>
-                    {downlineList.filter((d) => d.isSpillover).length}
-                  </span>
-                </Button>
+            {/* Intelligent Filter Segmented Tabs + Sort Controls */}
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-1">
+              {/* Segmented Filter Control */}
+              <div className="inline-flex p-1 bg-gray-100/90 rounded-2xl border border-gray-200/80 max-w-full overflow-x-auto shadow-2xs gap-1">
+                {[
+                  {
+                    key: "ALL",
+                    label: "All Downline",
+                    count: downlineList.length,
+                    activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
+                    badgeActive: "bg-emerald-800 text-emerald-200",
+                    badgeInactive: "bg-gray-200 text-gray-700",
+                  },
+                  {
+                    key: "TREE",
+                    label: "Active in Tree",
+                    count: downlineList.filter((d) => d.position > 0 && d.slotsHeld > 0).length,
+                    activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
+                    badgeActive: "bg-emerald-800 text-emerald-200",
+                    badgeInactive: "bg-gray-200 text-gray-700",
+                  },
+                  {
+                    key: "DIRECT",
+                    label: "Direct Personal",
+                    count: downlineList.filter((d) => !d.isSpillover).length,
+                    activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
+                    badgeActive: "bg-emerald-800 text-emerald-200",
+                    badgeInactive: "bg-gray-200 text-gray-700",
+                  },
+                  {
+                    key: "UNPAID",
+                    label: "Unpaid / 0 Slots",
+                    count: downlineList.filter((d) => d.slotsHeld === 0).length,
+                    activeClass: "bg-amber-700 text-white shadow-xs font-semibold",
+                    badgeActive: "bg-amber-800 text-amber-200",
+                    badgeInactive: "bg-amber-100 text-amber-800 font-semibold",
+                  },
+                  {
+                    key: "SPILLOVER",
+                    label: "Spillover",
+                    count: downlineList.filter((d) => d.isSpillover).length,
+                    activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
+                    badgeActive: "bg-emerald-800 text-emerald-200",
+                    badgeInactive: "bg-gray-200 text-gray-700",
+                  },
+                ].map((tab) => {
+                  const isActive = directoryFilter === tab.key;
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setDirectoryFilter(tab.key as any)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs transition-all whitespace-nowrap cursor-pointer ${
+                        isActive
+                          ? tab.activeClass
+                          : "text-gray-600 hover:text-gray-900 hover:bg-white/60 font-medium"
+                      }`}
+                    >
+                      <span>{tab.label}</span>
+                      <span
+                        className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none ${
+                          isActive ? tab.badgeActive : tab.badgeInactive
+                        }`}
+                      >
+                        {tab.count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Sorting Selector */}
@@ -2504,13 +2485,13 @@ const CompoundReferrals: React.FC = () => {
                     {visibleDirectory.map((m, idx) => (
                       <tr key={m.id} className="hover:bg-emerald-50/30 transition-colors">
                         <td className="py-3 px-4 text-gray-400 font-mono">{idx + 1}</td>
-                        <td className="py-3 px-4 font-bold text-gray-900">{m.fullName}</td>
-                        <td className="py-3 px-4 font-mono font-semibold text-emerald-800">
+                        <td className="py-3 px-4 font-bold text-gray-900 max-w-[150px] truncate" title={m.fullName}>{m.fullName}</td>
+                        <td className="py-3 px-4 font-mono font-semibold text-emerald-800 whitespace-nowrap">
                           {m.memberId}
                         </td>
-                        <td className="py-3 px-4 text-gray-600">
-                          <div>{m.email}</div>
-                          {m.phone && <div className="text-[11px] text-gray-400">{m.phone}</div>}
+                        <td className="py-3 px-4 text-gray-600 max-w-[180px] truncate">
+                          <div className="truncate" title={m.email}>{m.email}</div>
+                          {m.phone && <div className="text-[11px] text-gray-400 truncate">{m.phone}</div>}
                         </td>
                         <td className="py-3 px-4">
                           {m.isSpillover ? (
