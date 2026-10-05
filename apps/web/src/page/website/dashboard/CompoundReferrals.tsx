@@ -478,13 +478,20 @@ const CompoundReferrals: React.FC = () => {
   const isLegacyUser = Boolean(
     currentUserProfile?.is_legacy ||
     isLegacyMember(currentUserProfile?.created_at) ||
-    userSlotsHeld > 0
+    userSlotsHeld > 0 ||
+    Boolean(currentUserProfile?.member_id)
+  );
+  const hasGreenCard = Boolean(
+    currentUserProfile?.has_greencard ||
+    currentUserProfile?.is_green_card_holder ||
+    currentUserProfile?.member_id ||
+    isLegacyUser
   );
   const isLegacyNeedsMushroomPower = Boolean(
-    isLegacyUser && !currentUserProfile?.has_purchased_starter_pack
+    (isLegacyUser || (hasGreenCard && userSlotsHeld > 0)) && !currentUserProfile?.has_purchased_starter_pack
   );
   const isNonLegacyNeedsStarter = Boolean(
-    !isLegacyUser && (userSlotsHeld === 0 || !currentUserProfile?.has_purchased_starter_pack)
+    !isLegacyNeedsMushroomPower && (userSlotsHeld === 0 || !currentUserProfile?.has_purchased_starter_pack)
   );
   const isMatrixLocked = isLegacyNeedsMushroomPower || isNonLegacyNeedsStarter;
 
