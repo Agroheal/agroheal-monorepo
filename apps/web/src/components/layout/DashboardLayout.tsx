@@ -87,7 +87,7 @@ const getNavGroups = (isLegacy = false): NavGroup[] => [
         ? [
             {
               label: "Group Farm Accounts (Legacy)",
-              path: "/dashboard/group-farm-accounts",
+              path: "/legacy/group-farm-accounts",
             },
           ]
         : []),
@@ -183,7 +183,12 @@ const getPageTitle = (currentPath: string): string => {
     return "My Green Card";
   }
 
-  if (currentPath === "/dashboard/group-farm-accounts") {
+  if (
+    currentPath === "/legacy/group-farm-accounts" ||
+    currentPath === "/legacy" ||
+    currentPath.startsWith("/legacy/") ||
+    currentPath === "/dashboard/group-farm-accounts"
+  ) {
     return "Group Farm Accounts (Legacy)";
   }
 
@@ -634,7 +639,11 @@ const DashboardLayout = () => {
   }
 
   const isLegacy = Boolean(
-    (profile as any)?.is_legacy || isLegacyMember((profile as any)?.created_at)
+    (profile as any)?.is_legacy ||
+      isLegacyMember((profile as any)?.created_at) ||
+      (profile as any)?.role === "admin" ||
+      (profile as any)?.role === "superadmin" ||
+      (profile as any)?.role === "coordinator"
   );
 
   return (

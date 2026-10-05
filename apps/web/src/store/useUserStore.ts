@@ -44,6 +44,7 @@ export interface UserState {
   loading: boolean;
   isProfileIncomplete: boolean;
   hasGreenCard: boolean;
+  hasActiveSlots: boolean;
   role: UserRole;
   isAdmin: boolean;
   isSuperAdmin: boolean;
@@ -68,6 +69,7 @@ export const useUserStore = create<UserState>((set, get) => ({
   loading: true,
   isProfileIncomplete: false,
   hasGreenCard: false,
+  hasActiveSlots: false,
   role: UserRole.MEMBER,
   isAdmin: false,
   isSuperAdmin: false,
@@ -82,6 +84,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         kinDetails: null,
         isProfileIncomplete: false,
         hasGreenCard: false,
+        hasActiveSlots: false,
         role: UserRole.MEMBER,
         isAdmin: false,
         isSuperAdmin: false,
@@ -92,7 +95,7 @@ export const useUserStore = create<UserState>((set, get) => ({
     }
 
     try {
-      const [{ data: profileData }, { data: kinData }] = await Promise.all([
+      const [{ data: profileData }, { data: kinData }, { count: slotCount }] = await Promise.all([
         supabase
           .from("profiles")
           .select("id, email, full_name, role, phone, wallet_balance, avatar_url, member_id, referral_code, has_greencard, greencard_status, is_legacy, has_purchased_starter_pack, placement_status, holding_tank_expires_at, country, state, lga")
@@ -103,10 +106,16 @@ export const useUserStore = create<UserState>((set, get) => ({
           .select("kin_name, kin_number, kin_address")
           .eq("user_id", targetUserId)
           .maybeSingle(),
+        supabase
+          .from("slot_subscriptions")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", targetUserId)
+          .eq("status", "active"),
       ]);
 
       const profile = profileData || null;
       const kin = kinData || null;
+      const hasActiveSlots = Boolean(slotCount && slotCount > 0);
 
       const isPhoneMissing =
         !profile?.phone || String(profile.phone).trim().length < 10;
@@ -138,6 +147,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         kinDetails: kin,
         isProfileIncomplete,
         hasGreenCard,
+        hasActiveSlots,
         role,
         isAdmin,
         isSuperAdmin,

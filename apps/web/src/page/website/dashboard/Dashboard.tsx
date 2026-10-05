@@ -441,6 +441,22 @@ const Dashboard = () => {
 
   // Merged Dashboard Primary Navigation & Status Tiles (Privacy-First: Cash amounts exclusively on Wallet)
   const menuTiles = [
+    ...(isLegacy
+      ? [
+          {
+            id: "legacy-portal",
+            title: "Legacy Portal",
+            metricValue: "Founding Records",
+            subtitle: "Historical group farm accounts, batches & expenses",
+            badge: "Legacy Records",
+            badgeColor: "bg-amber-100 text-amber-950 border-amber-300",
+            path: "/legacy/group-farm-accounts",
+            icon: Landmark,
+            iconBg: "bg-amber-700 text-white",
+            tag: "Legacy",
+          },
+        ]
+      : []),
     checkoutTile,
     {
       id: "community-channels",
@@ -454,22 +470,6 @@ const Dashboard = () => {
       iconBg: "bg-emerald-800 text-white",
       tag: "Community",
     },
-    ...(isLegacy
-      ? [
-          {
-            id: "group-farm-accounts",
-            title: "Group Farm Accounts (Legacy)",
-            metricValue: "Founding Records",
-            subtitle: "Historical legacy cluster & farm accounts",
-            badge: "Legacy Records",
-            badgeColor: "bg-amber-100 text-amber-950 border-amber-300",
-            path: "/dashboard/group-farm-accounts",
-            icon: Landmark,
-            iconBg: "bg-amber-700 text-white",
-            tag: "Legacy",
-          },
-        ]
-      : []),
     {
       id: "earnings",
       title: "My Earnings",
@@ -621,7 +621,11 @@ const Dashboard = () => {
 
       <div className="px-4 md:px-8 -mt-8 pb-12 max-w-[96%] mx-auto">
         {/* ── SCHEDULED COMPENSATION TRANSITION COUNTDOWN ── */}
-        <CutoverCountdownBanner className="mb-6" />
+        <CutoverCountdownBanner
+          className="mb-6"
+          hasPurchasedStarterPack={Boolean(profile?.has_purchased_starter_pack)}
+          hasSlots={totalSlotsPurchased > 0}
+        />
 
         {/* ── GREEN CARD FIRST 5™ PROGRESS & DUPLICATION ENGINE ── */}
         {hasGreenCard && (

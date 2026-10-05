@@ -141,6 +141,22 @@ async function recordSubscriptionWithFarmGroupSplit({
     }
 
     try {
+      if (checkoutId) {
+        const { data: existingOrder } = await supabase
+          .from("orders")
+          .select("id")
+          .eq("transaction_id", checkoutId)
+          .maybeSingle();
+
+        if (existingOrder) {
+          await supabase
+            .from("profiles")
+            .update({ has_purchased_starter_pack: true, is_wealth_creation_active: true })
+            .eq("id", userId);
+          return;
+        }
+      }
+
       await supabase.from("orders").insert([
         {
           user_id: userId,
@@ -192,6 +208,22 @@ async function recordSubscriptionWithFarmGroupSplit({
     }
 
     try {
+      if (checkoutId) {
+        const { data: existingOrder } = await supabase
+          .from("orders")
+          .select("id")
+          .eq("transaction_id", checkoutId)
+          .maybeSingle();
+
+        if (existingOrder) {
+          await supabase
+            .from("profiles")
+            .update({ has_purchased_starter_pack: true, is_wealth_creation_active: true })
+            .eq("id", userId);
+          return;
+        }
+      }
+
       await supabase.from("orders").insert([
         {
           user_id: userId,
@@ -316,6 +348,18 @@ async function recordSubscriptionWithFarmGroupSplit({
         if (newCluster?.id) {
           targetGroupId = newCluster.id;
         }
+      }
+    }
+
+    if (checkoutId) {
+      const { data: existingSlot } = await supabase
+        .from("slot_subscriptions")
+        .select("id")
+        .eq("checkout_id", checkoutId)
+        .maybeSingle();
+
+      if (existingSlot) {
+        return;
       }
     }
 

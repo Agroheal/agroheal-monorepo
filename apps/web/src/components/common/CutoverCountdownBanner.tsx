@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Clock, ShieldAlert, Sparkles } from "lucide-react";
 import { COUNTDOWN_TARGET_TIMESTAMP_MS, CUTOVER_TIMESTAMP_MS } from "@shared/cutover";
+import { useUserStore } from "@/store/useUserStore";
 
 interface TimeLeft {
   days: number;
@@ -45,13 +46,24 @@ function calculateTimeLeft(): TimeLeft {
 interface CutoverCountdownBannerProps {
   variant?: "full" | "compact";
   className?: string;
+  hasPurchasedStarterPack?: boolean;
+  hasSlots?: boolean;
 }
 
 export const CutoverCountdownBanner: React.FC<CutoverCountdownBannerProps> = ({
   variant = "full",
   className = "",
+  hasPurchasedStarterPack,
+  hasSlots,
 }) => {
   const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculateTimeLeft());
+  const profile = useUserStore((s) => s.profile);
+  const storeHasActiveSlots = useUserStore((s) => s.hasActiveSlots);
+
+  // Exclude banner for members who have already paid for BOTH slot and mushroom power / starter pack
+  const userHasStarter = hasPurchasedStarterPack ?? Boolean(profile?.has_purchased_starter_pack || (profile as any)?.is_wealth_creation_active);
+  const userHasSlots = hasSlots ?? storeHasActiveSlots;
+  const isExcluded = Boolean(userHasStarter && userHasSlots);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -60,8 +72,8 @@ export const CutoverCountdownBanner: React.FC<CutoverCountdownBannerProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  if (timeLeft.isPostCutover) {
-    return null; // System has already transitioned
+  if (isExcluded || timeLeft.isPostCutover) {
+    return null; // Excluded or post-cutover
   }
 
   if (variant === "compact") {

@@ -497,7 +497,8 @@ const FarmRecordsView = () => {
         .update(payload)
         .eq("id", editingId));
     } else {
-      ({ error } = await (supabase as any).from("lg_farm_records").insert(payload));
+      ({ error } = await (supabase as any).from("lg_farm_records")
+        .upsert(payload, { onConflict: "farm_id,email" }));
     }
     if (error) {
       showToast({

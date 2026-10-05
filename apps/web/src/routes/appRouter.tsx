@@ -156,19 +156,12 @@ export const appRouter = createBrowserRouter([
               </RequireSubscription>
             ),
           },
-          {
-            path: "group-farm-accounts",
-            element: (
-              <RequireSubscription>
-                <FarmRecordsView />
-              </RequireSubscription>
-            ),
-          },
-          { path: "create-farm-group", element: <CreateFarmGroup /> },
-          { path: "farm-admin", element: <FarmRecordsView /> },
+          { path: "group-farm-accounts", element: <Navigate to="/legacy/group-farm-accounts" replace /> },
+          { path: "create-farm-group", element: <Navigate to="/legacy/create-farm-group" replace /> },
+          { path: "farm-admin", element: <Navigate to="/legacy/group-farm-accounts" replace /> },
           { path: "roadmap-guide", element: <RoadmapGuide /> },
-          { path: "other-payments", element: <OtherPayments /> },
-          { path: "mushroom-village", element: <MushroomVillage /> },
+          { path: "other-payments", element: <Navigate to="/legacy/other-payments" replace /> },
+          { path: "mushroom-village", element: <Navigate to="/legacy/mushroom-village" replace /> },
           { path: "kin", element: <KinDetails /> },
           { path: "legal", element: <Legal /> },
           { path: "help/knowledge-base", element: <KnowledgeBase /> },
@@ -184,9 +177,33 @@ export const appRouter = createBrowserRouter([
           { path: "matrix", element: <Navigate to="/dashboard/my-network" replace /> },
           { path: "how-it-works", element: <Navigate to="/how-it-works" replace /> },
           { path: "how-it-works/presentation", element: <PresentationGuide /> },
-          { path: "how-it-works/locked-withdrawals", element: <LockedReservesGuide /> },
           { path: "locked-withdrawals", element: <Navigate to="/how-it-works/locked-withdrawals" replace /> },
-          { path: "locked-reserves", element: <Navigate to="/how-it-works/locked-withdrawals" replace /> },],
+          { path: "locked-reserves", element: <Navigate to="/how-it-works/locked-withdrawals" replace /> },
+        ],
+      },
+
+      // Dedicated Legacy Portal Routes
+      {
+        path: "/legacy",
+        element: <Outlet />,
+        errorElement: <DashboardError />,
+        children: [
+          { index: true, element: <Navigate to="/legacy/group-farm-accounts" replace /> },
+          {
+            path: "group-farm-accounts",
+            element: (
+              <RequireSubscription>
+                <FarmRecordsView />
+              </RequireSubscription>
+            ),
+          },
+          { path: "create-farm-group", element: <CreateFarmGroup /> },
+          { path: "farm-admin", element: <FarmRecordsView /> },
+          { path: "other-payments", element: <OtherPayments /> },
+          { path: "mushroom-village", element: <MushroomVillage /> },
+          { path: "kin", element: <KinDetails /> },
+          { path: "roadmap-guide", element: <RoadmapGuide /> },
+        ],
       },
     ],
   },
