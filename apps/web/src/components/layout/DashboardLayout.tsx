@@ -89,14 +89,6 @@ const getNavGroups = (isLegacy = false): NavGroup[] => [
         label: "Manage My Farm Slots",
         path: "/dashboard/farm-operations/my-slots",
       },
-      ...(isLegacy
-        ? [
-            {
-              label: "Group Farm Accounts (Legacy)",
-              path: "/legacy/group-farm-accounts",
-            },
-          ]
-        : []),
     ],
   },
   {

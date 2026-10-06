@@ -794,23 +794,24 @@ const Dashboard = () => {
       </div>
 
       <div className="px-4 md:px-8 -mt-8 pb-12 max-w-[96%] mx-auto">
-        {/* ── SCHEDULED COMPENSATION TRANSITION COUNTDOWN ── */}
-        <CutoverCountdownBanner
-          className="mb-6"
-          hasPurchasedStarterPack={Boolean(profile?.has_purchased_starter_pack)}
-          hasSlots={totalSlotsPurchased > 0}
-        />
-
-        {/* ── GREEN CARD FIRST 5™ PROGRESS & DUPLICATION ENGINE ── */}
-        {hasGreenCard && (
-          <GreenCardFirst5Card
-            directReferralsCount={profile?.total_referrals || 0}
-            referralCode={profile?.referral_code}
-            hasGreenCard={hasGreenCard}
-            referralsList={enrichedDirects}
-            matrixLevels={matrixLevels}
+        {/* ── HANDOVER: BANNER (BEFORE MILESTONE 2) vs GREEN CARD FIRST 5™ (AFTER MILESTONE 2) ── */}
+        {!profile?.has_purchased_starter_pack ? (
+          <CutoverCountdownBanner
             className="mb-6"
+            hasPurchasedStarterPack={false}
+            hasSlots={totalSlotsPurchased > 0}
           />
+        ) : (
+          hasGreenCard && (
+            <GreenCardFirst5Card
+              directReferralsCount={profile?.total_referrals || 0}
+              referralCode={profile?.referral_code}
+              hasGreenCard={hasGreenCard}
+              referralsList={enrichedDirects}
+              matrixLevels={matrixLevels}
+              className="mb-6"
+            />
+          )
         )}
 
         {/* ── 3-STEP JOURNEY PROGRESSION ACCORDION (LEAP PATHWAY) ── */}

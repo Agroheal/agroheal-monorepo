@@ -386,35 +386,49 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
         </div>
       </div>
 
-      {/* ── LEVEL SUMMARY DUPLICATION PROGRESS BAR ── */}
-      <div className="mb-3 bg-black/30 rounded-xl px-3 py-2 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-white/90">
-            {currentTier.title}:
-          </span>
-          <span className="text-xs font-bold text-emerald-300 font-mono">
-            {currentTier.current} / {currentTier.capacity} Completed
-          </span>
-          {currentTier.isDone && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-400/15 px-1.5 py-0.2 rounded border border-amber-400/30">
-              <CheckCircle2 className="w-3 h-3 text-amber-400" />
-              Completed
-            </span>
-          )}
-        </div>
+      {/* ── LEVEL SUMMARY & METRICS BAR ── */}
+      {(() => {
+        const recruitsWith5 = displayedMembers.filter((m) => (m.directsCount || 0) >= 5).length;
+        const remainingSlots = Math.max(0, currentTier.capacity - currentTier.current);
 
-        <div className="w-full sm:w-44 bg-white/10 rounded-full h-1.5 overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${Math.min(100, (currentTier.current / currentTier.capacity) * 100)}%` }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="h-full bg-gradient-to-r from-emerald-400 to-green-300 rounded-full"
-          />
-        </div>
-      </div>
+        return (
+          <div className="mb-3 bg-black/35 rounded-xl px-3.5 py-2.5 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-white uppercase tracking-wide">
+                  Level {viewingLevel}
+                </span>
+                <span className="text-xs font-mono font-bold text-emerald-300">
+                  {currentTier.current} / {currentTier.capacity} Enrollees
+                </span>
+                {currentTier.isDone && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-400/15 px-1.5 py-0.2 rounded border border-amber-400/30">
+                    <CheckCircle2 className="w-3 h-3 text-amber-400" />
+                    Completed
+                  </span>
+                )}
+              </div>
+              <span className="hidden sm:inline text-white/30 text-xs">•</span>
+              <span className="text-[11px] text-emerald-200/80">
+                {recruitsWith5} of {currentTier.current} recruits have recruited their first direct 5
+                {remainingSlots > 0 && ` (${remainingSlots} to go for this level)`}
+              </span>
+            </div>
 
-      {/* ── MEMBER CARDS GRID (EACH CARD CARRYING MEMBER NAME & X/5 SUMMARY) ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 mb-2.5">
+            <div className="w-full sm:w-44 bg-white/10 rounded-full h-1.5 overflow-hidden shrink-0">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${Math.min(100, (currentTier.current / currentTier.capacity) * 100)}%` }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="h-full bg-gradient-to-r from-emerald-400 to-green-300 rounded-full"
+              />
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ── MEMBER CARDS (HORIZONTAL SCROLL TRACK WHEN OVERFLOWING) ── */}
+      <div className="flex gap-2.5 overflow-x-auto pb-2.5 mb-2.5 scroll-smooth scrollbar-thin scrollbar-thumb-emerald-700/60 scrollbar-track-white/5">
         {displayedMembers.map((member, idx) => {
           const directs = member.directsCount || 0;
           const isFull5 = directs >= 5;
@@ -422,7 +436,7 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
           return (
             <div
               key={member.id || idx}
-              className={`p-2.5 rounded-xl transition-all border flex flex-col justify-between min-h-[64px] ${
+              className={`p-2.5 rounded-xl transition-all border flex flex-col justify-between min-h-[66px] min-w-[190px] w-[210px] shrink-0 ${
                 isFull5
                   ? "bg-emerald-500/15 border-emerald-400/50 text-white"
                   : directs > 0
@@ -477,7 +491,7 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
           Array.from({ length: Math.max(0, 5 - displayedMembers.length) }).map((_, idx) => (
             <div
               key={`open-l1-${idx}`}
-              className="p-2.5 rounded-xl border border-dashed border-white/15 bg-white/[0.02] flex flex-col justify-between min-h-[64px] text-white/30"
+              className="p-2.5 rounded-xl border border-dashed border-white/15 bg-white/[0.02] flex flex-col justify-between min-h-[66px] min-w-[190px] w-[210px] shrink-0 text-white/30"
             >
               <div className="flex items-start justify-between gap-1">
                 <span className="text-xs font-medium truncate">
@@ -491,32 +505,9 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
             </div>
           ))}
 
-        {/* Level 2+ Open Slot Placeholders (Show unfilled slots up to remaining, capped at 15) */}
-        {viewingLevel > 1 &&
-          displayedMembers.length > 0 &&
-          displayedMembers.length < currentTier.capacity &&
-          Array.from({
-            length: Math.min(15, currentTier.capacity - displayedMembers.length),
-          }).map((_, idx) => (
-            <div
-              key={`open-slot-${idx}`}
-              className="p-2.5 rounded-xl border border-dashed border-white/10 bg-white/[0.015] flex flex-col justify-between min-h-[64px] text-white/25"
-            >
-              <div className="flex items-start justify-between gap-1">
-                <span className="text-[11px] font-medium truncate">
-                  Slot #{displayedMembers.length + idx + 1}
-                </span>
-                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/5 text-white/30">
-                  0/5
-                </span>
-              </div>
-              <span className="text-[9px] text-white/20 italic">Open Slot</span>
-            </div>
-          ))}
-
         {/* Unfilled Level Empty State */}
         {viewingLevel > 1 && displayedMembers.length === 0 && (
-          <div className="col-span-full py-4 px-3 rounded-xl bg-white/[0.03] border border-dashed border-white/10 text-center">
+          <div className="w-full py-4 px-3 rounded-xl bg-white/[0.03] border border-dashed border-white/10 text-center">
             <p className="text-xs text-emerald-200/70">
               Level {viewingLevel} slots will unlock as Level {viewingLevel - 1} partners recruit their direct 5.
             </p>

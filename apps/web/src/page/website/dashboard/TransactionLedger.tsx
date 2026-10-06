@@ -1211,43 +1211,6 @@ export default function TransactionLedger() {
 
         {/* ── CENTRALIZED EXECUTIVE MEMBER WALLET (CANONICAL CREDIT CARD ASPECT RATIO) ── */}
         <div className="w-full max-w-[470px] mx-auto">
-          {/* Legacy Member Wallet Mode Toggle */}
-          {isLegacyUser && (
-            <div className="flex justify-center mb-3">
-              <div className="inline-flex p-1 bg-emerald-950/90 border border-emerald-700/60 rounded-2xl shadow-sm">
-                <button
-                  type="button"
-                  onClick={() => setWalletMode("live")}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    walletMode === "live"
-                      ? "bg-emerald-600 text-white shadow-xs"
-                      : "text-emerald-300 hover:text-white"
-                  }`}
-                >
-                  <Zap className="w-3.5 h-3.5" />
-                  <span>Live Wallet</span>
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-900/90 border border-emerald-500/40 text-emerald-200 font-bold">
-                    {liveTransactions.length}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setWalletMode("legacy")}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    walletMode === "legacy"
-                      ? "bg-amber-600 text-white shadow-xs font-extrabold"
-                      : "text-amber-200/90 hover:text-white"
-                  }`}
-                >
-                  <Landmark className="w-3.5 h-3.5" />
-                  <span>Founding Vault</span>
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-950/90 border border-amber-500/40 text-amber-200 font-bold">
-                    {legacyTransactions.length}
-                  </span>
-                </button>
-              </div>
-            </div>
-          )}
 
           <div className={`flex flex-col justify-between ${walletMode === "legacy" ? "bg-[#1f1707] border-amber-600/60" : "bg-[#0c2415] border-emerald-700/50"} border rounded-3xl p-5 sm:p-5.5 text-white shadow-xl relative overflow-hidden space-y-3 transition-colors duration-300`}>
             {/* Background Ambient Glows */}

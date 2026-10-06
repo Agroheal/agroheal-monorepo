@@ -149,6 +149,8 @@ interface MatrixTreeNodeProps {
   isRoot?: boolean;
   isDark?: boolean;
   drillingDownId?: string | null;
+  allowDrillDown?: boolean;
+  onOpenFullscreen?: () => void;
 }
 
 const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
@@ -159,6 +161,8 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
   isRoot = false,
   isDark = true,
   drillingDownId = null,
+  allowDrillDown = true,
+  onOpenFullscreen,
 }) => {
   const isLeaf = node.level >= toLevel;
   const isRootNode = isRoot || node.level === 0;
@@ -179,6 +183,7 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
 
   const hasChildren = displayChildren.length > 0;
   const lineColor = isDark ? "bg-emerald-500" : "bg-emerald-600";
+  const isDirectRecruit = !node.isSpillover;
 
   return (
     <div className="flex flex-col items-center">
@@ -241,16 +246,20 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
       ) : (
         <div
           className={`w-36 sm:w-40 md:w-44 rounded-2xl p-2.5 sm:p-3 border shadow-md transition-all flex flex-col justify-between text-center relative z-20 ${
-            isDark
-              ? "bg-slate-800 border-slate-700 hover:border-emerald-500 text-white"
-              : "bg-white border-emerald-200 hover:border-emerald-500 text-gray-900"
+            isDirectRecruit
+              ? isDark
+                ? "bg-slate-800/95 border-amber-500/80 shadow-amber-500/10 text-white"
+                : "bg-gradient-to-b from-amber-50/50 to-white border-amber-400 shadow-amber-500/10 text-gray-900"
+              : isDark
+                ? "bg-slate-800 border-slate-700 hover:border-emerald-500 text-white"
+                : "bg-white border-emerald-200 hover:border-emerald-500 text-gray-900"
           }`}
         >
           <div>
             <div className="flex items-center justify-between text-[10px] font-bold mb-1.5">
               {node.isSpillover ? (
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[9px] border ${
+                  className={`px-2 py-0.5 rounded-md text-[9px] border font-bold ${
                     isDark
                       ? "bg-blue-900/60 text-blue-300 border-blue-700"
                       : "bg-blue-100 text-blue-800 border-blue-200"
@@ -260,13 +269,13 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
                 </span>
               ) : (
                 <span
-                  className={`px-2 py-0.5 rounded-full text-[9px] border ${
+                  className={`px-2 py-0.5 rounded-md text-[9px] border font-bold ${
                     isDark
-                      ? "bg-emerald-900/60 text-emerald-300 border-emerald-700"
-                      : "bg-emerald-100/80 text-emerald-800 border-emerald-200"
+                      ? "bg-amber-950/80 text-amber-300 border-amber-600"
+                      : "bg-amber-100 text-amber-900 border-amber-300"
                   }`}
                 >
-                  ⭐ Leg #{node.position || 1}
+                  ⭐ Direct Recruit
                 </span>
               )}
               <span className={`font-mono text-[9px] ${isDark ? "text-slate-400" : "text-gray-400"}`}>
@@ -276,7 +285,13 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
 
             <div
               className={`w-8 h-8 rounded-full font-bold mx-auto flex items-center justify-center text-xs shadow-inner ${
-                isDark ? "bg-emerald-900 text-emerald-200" : "bg-emerald-100 text-emerald-800"
+                isDirectRecruit
+                  ? isDark
+                    ? "bg-amber-900/80 text-amber-200"
+                    : "bg-amber-100 text-amber-800"
+                  : isDark
+                    ? "bg-emerald-900 text-emerald-200"
+                    : "bg-emerald-100 text-emerald-800"
               }`}
             >
               {(node.fullName || "M").charAt(0).toUpperCase()}
@@ -287,7 +302,13 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
             </h4>
             <p
               className={`font-mono text-[10px] font-semibold mt-0.5 ${
-                isDark ? "text-emerald-400" : "text-emerald-700"
+                isDirectRecruit
+                  ? isDark
+                    ? "text-amber-300"
+                    : "text-amber-800"
+                  : isDark
+                    ? "text-emerald-400"
+                    : "text-emerald-700"
               }`}
             >
               {node.memberId}
@@ -311,31 +332,48 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
             </div>
           </div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={Boolean(drillingDownId)}
-            onClick={() => onDrillDown(node.id)}
-            className={`mt-2 w-full text-[10px] h-6 rounded-md flex items-center justify-center gap-1 font-semibold cursor-pointer py-0 ${
-              drillingDownId === node.id ? "opacity-80" : ""
-            } ${
-              isDark
-                ? "border-slate-600 bg-slate-700/50 text-slate-200 hover:bg-slate-700 hover:text-white"
-                : "border-emerald-600 text-emerald-800 hover:bg-emerald-50"
-            }`}
-          >
-            {drillingDownId === node.id ? (
-              <>
-                <Loader2 className="w-2.5 h-2.5 animate-spin" />
-                <span>Drilling...</span>
-              </>
-            ) : (
-              <>
-                <span>Drill Down</span>
-                <CornerDownRight className="w-2.5 h-2.5" />
-              </>
-            )}
-          </Button>
+          {allowDrillDown ? (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={Boolean(drillingDownId)}
+              onClick={() => onDrillDown(node.id)}
+              className={`mt-2 w-full text-[10px] h-6 rounded-md flex items-center justify-center gap-1 font-semibold cursor-pointer py-0 ${
+                drillingDownId === node.id ? "opacity-80" : ""
+              } ${
+                isDark
+                  ? "border-slate-600 bg-slate-700/50 text-slate-200 hover:bg-slate-700 hover:text-white"
+                  : "border-emerald-600 text-emerald-800 hover:bg-emerald-50"
+              }`}
+            >
+              {drillingDownId === node.id ? (
+                <>
+                  <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                  <span>Drilling...</span>
+                </>
+              ) : (
+                <>
+                  <span>Drill Down</span>
+                  <CornerDownRight className="w-2.5 h-2.5" />
+                </>
+              )}
+            </Button>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onOpenFullscreen}
+              className={`mt-2 w-full text-[9px] h-6 rounded-md flex items-center justify-center gap-1 font-medium cursor-pointer py-0 ${
+                isDark
+                  ? "border-slate-700 bg-slate-800/40 text-slate-400 hover:text-white hover:border-slate-600"
+                  : "border-gray-200 bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              }`}
+              title="Drill-down is enabled in Full Screen view"
+            >
+              <span>Full Screen to Drill</span>
+              <Maximize2 className="w-2.5 h-2.5" />
+            </Button>
+          )}
         </div>
       )}
 
@@ -378,6 +416,8 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
                       onDrillDown={onDrillDown}
                       isDark={isDark}
                       drillingDownId={drillingDownId}
+                      allowDrillDown={allowDrillDown}
+                      onOpenFullscreen={onOpenFullscreen}
                     />
                   ) : (
                     <div
@@ -388,7 +428,7 @@ const MatrixTreeNode: React.FC<MatrixTreeNodeProps> = ({
                       }`}
                     >
                       <div
-                        className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                        className={`text-[9px] font-bold px-2 py-0.5 rounded-md ${
                           isDark ? "text-slate-500 bg-slate-800" : "text-gray-400 bg-gray-100"
                         }`}
                       >
@@ -1138,6 +1178,48 @@ const CompoundReferrals: React.FC = () => {
   const [aerialView, setAerialView] = useState<boolean>(false);
   const [aerialZoom, setAerialZoom] = useState<number>(1);
 
+  // Drag-to-pan Canvas State & Handlers
+  const inlineCanvasRef = React.useRef<HTMLDivElement>(null);
+  const fullscreenCanvasRef = React.useRef<HTMLDivElement>(null);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 });
+
+  const getPanProps = (ref: React.RefObject<HTMLDivElement | null>) => ({
+    ref,
+    onMouseDown: (e: React.MouseEvent) => {
+      if ((e.target as HTMLElement).closest("button, a, input, select")) return;
+      if (!ref.current) return;
+      setIsPanning(true);
+      setPanStart({
+        x: e.pageX,
+        y: e.pageY,
+        scrollLeft: ref.current.scrollLeft,
+        scrollTop: ref.current.scrollTop,
+      });
+    },
+    onMouseMove: (e: React.MouseEvent) => {
+      if (!isPanning || !ref.current) return;
+      e.preventDefault();
+      const dx = e.pageX - panStart.x;
+      const dy = e.pageY - panStart.y;
+      ref.current.scrollLeft = panStart.scrollLeft - dx;
+      ref.current.scrollTop = panStart.scrollTop - dy;
+    },
+    onMouseUp: () => setIsPanning(false),
+    onMouseLeave: () => setIsPanning(false),
+  });
+
+  const toggleAerialView = (enabled: boolean) => {
+    setAerialView(enabled);
+    if (enabled) {
+      // Auto-fit zoom so entire matrix is comfortably visible without clipping
+      const autoZoom = toLevel >= 3 ? 0.45 : 0.65;
+      setAerialZoom(autoZoom);
+    } else {
+      setAerialZoom(1);
+    }
+  };
+
   const handleFromLevelChange = (newFrom: number) => {
     setFromLevel(newFrom);
     if (toLevel < newFrom) setToLevel(newFrom);
@@ -1355,7 +1437,7 @@ const CompoundReferrals: React.FC = () => {
               <input
                 type="checkbox"
                 checked={aerialView}
-                onChange={(e) => setAerialView(e.target.checked)}
+                onChange={(e) => toggleAerialView(e.target.checked)}
                 className="w-3.5 h-3.5 rounded text-emerald-500 focus:ring-emerald-500 accent-emerald-500 cursor-pointer"
               />
               <span className={`text-[11px] font-bold flex items-center gap-1 ${aerialView ? "text-emerald-300" : "text-slate-300"}`}>
@@ -1450,8 +1532,8 @@ const CompoundReferrals: React.FC = () => {
           )}
         </div>
 
-        {/* Wide Landscape Canvas with continuous touching branches */}
-        <div className="flex-1 overflow-auto p-4 sm:p-8 flex justify-center">
+        {/* Wide Landscape Canvas with drag-to-pan & continuous touching branches */}
+        <div {...getPanProps(fullscreenCanvasRef)} className="flex-1 overflow-auto p-8 sm:p-14 flex justify-center cursor-grab active:cursor-grabbing select-none">
           {activeRootNode ? (
             <div
               className={`flex flex-col items-center py-4 transition-transform duration-200 min-w-max ${
@@ -1484,12 +1566,12 @@ const CompoundReferrals: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-3 text-xs">
                     <span className="text-slate-400 hidden md:inline">
-                      Tip: Scroll horizontally or zoom to pan wide matrices
+                      Tip: Drag mouse or scroll horizontally to pan wide tree
                     </span>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => setAerialView(false)}
+                      onClick={() => toggleAerialView(false)}
                       className="border-slate-700 bg-slate-800 text-slate-300 hover:text-white text-xs h-7 rounded-lg cursor-pointer"
                     >
                       Exit Aerial View
@@ -1523,6 +1605,7 @@ const CompoundReferrals: React.FC = () => {
                   isRoot={true}
                   isDark={true}
                   drillingDownId={drillingDownId}
+                  allowDrillDown={true}
                 />
               ) : (
                 /* When fromLevel > 1, render subtrees at fromLevel side-by-side with branches */
@@ -1546,6 +1629,7 @@ const CompoundReferrals: React.FC = () => {
                             isRoot={false}
                             isDark={true}
                             drillingDownId={drillingDownId}
+                            allowDrillDown={true}
                           />
                         ))}
                     </div>
@@ -2054,7 +2138,7 @@ const CompoundReferrals: React.FC = () => {
                       <input
                         type="checkbox"
                         checked={aerialView}
-                        onChange={(e) => setAerialView(e.target.checked)}
+                        onChange={(e) => toggleAerialView(e.target.checked)}
                         className="w-3.5 h-3.5 rounded text-emerald-800 focus:ring-emerald-700 accent-emerald-800 cursor-pointer"
                       />
                       <span className={`text-[11px] font-bold flex items-center gap-1 ${aerialView ? "text-emerald-800" : "text-gray-600"}`}>
@@ -2230,9 +2314,8 @@ const CompoundReferrals: React.FC = () => {
                 </div>
               </div>
 
-              {/* Tree Canvas */}
-              {/* Tree Canvas */}
-              <div className="w-full overflow-x-auto py-4 flex justify-center">
+              {/* Tree Canvas with drag-to-pan & ample padding */}
+              <div {...getPanProps(inlineCanvasRef)} className="w-full overflow-auto py-8 px-6 sm:px-14 flex justify-center cursor-grab active:cursor-grabbing select-none min-h-[460px]">
                 <div
                   className={`flex flex-col items-center transition-transform duration-200 min-w-max ${
                     aerialView ? "space-y-6" : "space-y-4"
@@ -2265,10 +2348,10 @@ const CompoundReferrals: React.FC = () => {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => setAerialView(false)}
+                        onClick={() => toggleAerialView(false)}
                         className="border-gray-300 text-gray-700 hover:bg-gray-100 text-xs h-7 rounded-lg cursor-pointer"
                       >
-                        Switch to Drill-Down
+                        Exit Aerial View
                       </Button>
                     </div>
                   )}
@@ -2283,6 +2366,8 @@ const CompoundReferrals: React.FC = () => {
                       isRoot={true}
                       isDark={false}
                       drillingDownId={drillingDownId}
+                      allowDrillDown={false}
+                      onOpenFullscreen={() => window.open("/dashboard/my-network?view=fullscreen", "_blank")}
                     />
                   ) : (
                     /* When fromLevel > 1, render subtrees at fromLevel side-by-side with branches */
@@ -2306,6 +2391,8 @@ const CompoundReferrals: React.FC = () => {
                                 isRoot={false}
                                 isDark={false}
                                 drillingDownId={drillingDownId}
+                                allowDrillDown={false}
+                                onOpenFullscreen={() => window.open("/dashboard/my-network?view=fullscreen", "_blank")}
                               />
                             ))}
                         </div>
@@ -2466,13 +2553,13 @@ const CompoundReferrals: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="overflow-x-auto rounded-2xl border border-gray-100">
+              <div className="w-full overflow-x-auto lg:overflow-x-visible rounded-2xl border border-gray-100 shadow-2xs">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-gray-50/80 border-b border-gray-100 text-gray-500 uppercase font-semibold text-[10px] tracking-wider select-none">
                     <tr>
-                      <th className="py-3 px-4">#</th>
+                      <th className="py-2.5 px-2.5 w-8">#</th>
                       <th
-                        className="py-3 px-4 cursor-pointer hover:text-emerald-800 transition-colors"
+                        className="py-2.5 px-3 cursor-pointer hover:text-emerald-800 transition-colors"
                         onClick={() => setSortBy((prev) => (prev === "NAME_ASC" ? "DATE_DESC" : "NAME_ASC"))}
                       >
                         <span className="inline-flex items-center gap-1">
@@ -2480,58 +2567,58 @@ const CompoundReferrals: React.FC = () => {
                           <ArrowUpDown className="w-3 h-3 text-gray-400" />
                         </span>
                       </th>
-                      <th className="py-3 px-4">AGC Member ID</th>
+                      <th className="py-2.5 px-2.5">Member ID</th>
                       <th
-                        className="py-3 px-4 cursor-pointer hover:text-emerald-800 transition-colors"
+                        className="py-2.5 px-2.5 cursor-pointer hover:text-emerald-800 transition-colors"
                         onClick={() => setSortBy((prev) => (prev === "GC_DATE_DESC" ? "GC_DATE_ASC" : "GC_DATE_DESC"))}
                       >
                         <span className="inline-flex items-center gap-1">
-                          GC Activated
+                          GC Date
                           <ArrowUpDown className="w-3 h-3 text-gray-400" />
                         </span>
                       </th>
-                      <th className="py-3 px-4">Contact Info</th>
-                      <th className="py-3 px-4">Source / Sponsor</th>
+                      <th className="py-2.5 px-3">Contact Info</th>
+                      <th className="py-2.5 px-2.5">Source / Sponsor</th>
                       <th
-                        className="py-3 px-4 cursor-pointer hover:text-emerald-800 transition-colors"
+                        className="py-2.5 px-2.5 cursor-pointer hover:text-emerald-800 transition-colors"
                         onClick={() => setSortBy((prev) => (prev === "SLOTS_DESC" ? "SLOTS_ASC" : "SLOTS_DESC"))}
                       >
                         <span className="inline-flex items-center gap-1">
-                          Slots Held
+                          Slots
                           <ArrowUpDown className="w-3 h-3 text-gray-400" />
                         </span>
                       </th>
                       <th
-                        className="py-3 px-4 cursor-pointer hover:text-emerald-800 transition-colors"
+                        className="py-2.5 px-2.5 cursor-pointer hover:text-emerald-800 transition-colors"
                         onClick={() => setSortBy((prev) => (prev === "LEG_ASC" ? "SLOTS_DESC" : "LEG_ASC"))}
                       >
                         <span className="inline-flex items-center gap-1">
-                          Tree Position
+                          Tree Leg
                           <ArrowUpDown className="w-3 h-3 text-gray-400" />
                         </span>
                       </th>
-                      <th className="py-3 px-4 text-right">Actions</th>
+                      <th className="py-2.5 px-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {visibleDirectory.map((m, idx) => (
                       <tr key={m.id} className="hover:bg-emerald-50/30 transition-colors">
-                        <td className="py-3 px-4 text-gray-400 font-mono">{idx + 1}</td>
-                        <td className="py-3 px-4 font-bold text-gray-900 max-w-[150px] truncate" title={m.fullName}>{m.fullName}</td>
-                        <td className="py-3 px-4 font-mono font-semibold text-emerald-800 whitespace-nowrap">
+                        <td className="py-2.5 px-2.5 text-gray-400 font-mono text-[11px]">{idx + 1}</td>
+                        <td className="py-2.5 px-3 font-bold text-gray-900 max-w-[130px] lg:max-w-[160px] truncate" title={m.fullName}>{m.fullName}</td>
+                        <td className="py-2.5 px-2.5 font-mono font-semibold text-emerald-800 whitespace-nowrap text-[11px]">
                           {m.memberId}
                         </td>
-                        <td className="py-3 px-4 whitespace-nowrap">
+                        <td className="py-2.5 px-2.5 whitespace-nowrap">
                           {m.greenCardActivatedAt ? (
                             <div className="flex flex-col">
-                              <span className="font-semibold text-gray-800 text-[11px]">
+                              <span className="font-semibold text-gray-800 text-[10px]">
                                 {new Date(m.greenCardActivatedAt).toLocaleDateString("en-GB", {
                                   day: "2-digit",
                                   month: "short",
                                   year: "numeric",
                                 })}
                               </span>
-                              <span className="text-[10px] text-gray-400">
+                              <span className="text-[9px] text-gray-400">
                                 {new Date(m.greenCardActivatedAt).toLocaleTimeString("en-GB", {
                                   hour: "2-digit",
                                   minute: "2-digit",
@@ -2539,59 +2626,87 @@ const CompoundReferrals: React.FC = () => {
                               </span>
                             </div>
                           ) : (
-                            <span className="text-gray-400 text-[11px] italic">Pending</span>
+                            <span className="text-gray-400 text-[10px] italic">Pending</span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-gray-600 max-w-[180px] truncate">
-                          <div className="truncate" title={m.email}>{m.email}</div>
-                          {m.phone && <div className="text-[11px] text-gray-400 truncate">{m.phone}</div>}
+                        <td className="py-2.5 px-3 text-gray-600">
+                          <div className="flex items-center gap-1.5 group">
+                            <span className="truncate max-w-[110px] lg:max-w-[150px] text-[11px]" title={m.email}>{m.email}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(m.email);
+                                toast.success("Email copied to clipboard!");
+                              }}
+                              className="text-gray-400 hover:text-emerald-700 p-0.5 rounded hover:bg-emerald-50 transition-colors shrink-0 cursor-pointer"
+                              title="Copy Email"
+                            >
+                              <Copy className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                          {m.phone && (
+                            <div className="flex items-center gap-1.5 group text-[10px] text-gray-400 mt-0.5">
+                              <span className="truncate">{m.phone}</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(m.phone || "");
+                                  toast.success("Phone copied to clipboard!");
+                                }}
+                                className="text-gray-400 hover:text-emerald-700 p-0.5 rounded hover:bg-emerald-50 transition-colors shrink-0 cursor-pointer"
+                                title="Copy Phone"
+                              >
+                                <Copy className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                          )}
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-2.5 px-2.5 whitespace-nowrap">
                           {m.isSpillover ? (
-                            <span className="bg-blue-50 text-blue-800 px-2.5 py-0.5 rounded-full border border-blue-200/60 font-medium inline-flex items-center gap-1 text-[11px]">
-                              🌊 Spillover ({m.sponsorName || "Upline"})
+                            <span className="bg-blue-50 text-blue-800 px-2 py-0.5 rounded-md border border-blue-200/60 font-semibold inline-flex items-center gap-1 text-[10px]">
+                              🌊 Spillover
                             </span>
                           ) : (
-                            <span className="bg-emerald-50 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-200/60 font-medium inline-flex items-center gap-1 text-[11px]">
-                              ⭐ Direct Personal
+                            <span className="bg-amber-50 text-amber-900 px-2 py-0.5 rounded-md border border-amber-300 font-semibold inline-flex items-center gap-1 text-[10px]">
+                              ⭐ Direct Recruit
                             </span>
                           )}
                         </td>
-                        <td className="py-3 px-4 font-bold text-gray-800">
+                        <td className="py-2.5 px-2.5 font-bold text-gray-800 whitespace-nowrap">
                           {m.slotsHeld > 0 ? (
-                            <span className="bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-full border border-emerald-200/60 font-medium inline-flex items-center gap-1">
-                              🟢 Active Farm Slot ({m.slotsHeld})
+                            <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-200/60 font-semibold inline-flex items-center gap-1 text-[10px]">
+                              🟢 {m.slotsHeld} Slot{m.slotsHeld > 1 ? "s" : ""}
                             </span>
                           ) : (
-                            <span className="bg-amber-50 text-amber-700 px-2.5 py-0.5 rounded-full border border-amber-200/60 font-medium inline-flex items-center gap-1">
-                              🟡 ₦2k Member (No Farm Slot)
+                            <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md border border-amber-200/60 font-semibold inline-flex items-center gap-1 text-[10px]">
+                              🟡 0 Slots
                             </span>
                           )}
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-2.5 px-2.5 whitespace-nowrap">
                           {m.position > 0 ? (
-                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md text-[11px] border border-emerald-100">
+                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md text-[10px] border border-emerald-100">
                               Leg #{m.position}
                             </span>
                           ) : (
-                            <span className="font-medium text-gray-500 bg-gray-100 px-2.5 py-0.5 rounded-md text-[11px]">
+                            <span className="font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md text-[10px]">
                               Direct Enrollee
                             </span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-right space-x-1.5">
+                        <td className="py-2.5 px-3 text-right space-x-1 whitespace-nowrap">
                           {(!m.position || m.position === 0) && (
                             <button
                               onClick={() => setSelectedHoldingEnrollee(m)}
-                              className="text-emerald-800 hover:text-emerald-950 font-bold bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 px-2.5 py-1 rounded-md text-[11px] transition-colors"
+                              className="text-emerald-800 hover:text-emerald-950 font-bold bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 px-2 py-0.5 rounded-md text-[10px] transition-colors cursor-pointer"
                             >
-                              Place in Matrix
+                              Place
                             </button>
                           )}
                           {m.phone && (
                             <button
                               onClick={() => window.open(`https://wa.me/${m.phone?.replace(/[^0-9]/g, "")}`, "_blank")}
-                              className="text-emerald-700 hover:text-emerald-900 font-bold bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-md text-[11px]"
+                              className="text-emerald-700 hover:text-emerald-900 font-bold bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md text-[10px] cursor-pointer"
                             >
                               WhatsApp
                             </button>
@@ -2601,9 +2716,9 @@ const CompoundReferrals: React.FC = () => {
                               buildSubtree(m.id, false);
                               window.scrollTo({ top: 400, behavior: "smooth" });
                             }}
-                            className="text-blue-700 hover:text-blue-900 font-bold bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md text-[11px]"
+                            className="text-blue-700 hover:text-blue-900 font-bold bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-md text-[10px] cursor-pointer"
                           >
-                            Inspect Tree
+                            Inspect
                           </button>
                         </td>
                       </tr>
