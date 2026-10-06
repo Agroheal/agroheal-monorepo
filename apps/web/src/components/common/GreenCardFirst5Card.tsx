@@ -203,16 +203,8 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
     return 7;
   }, [level1Done, level2Done, level3Done, level4Done, level5Done, level6Done]);
 
-  // Maximum level the user can navigate forward to (actively filling level or higher if downlines exist)
-  const maxViewableLevel = useMemo(() => {
-    let maxLvl = activelyFillingLevel;
-    if (level3Members.length > 0) maxLvl = Math.max(maxLvl, 3);
-    if (level4Members.length > 0) maxLvl = Math.max(maxLvl, 4);
-    if (level5Members.length > 0) maxLvl = Math.max(maxLvl, 5);
-    if (level6Members.length > 0) maxLvl = Math.max(maxLvl, 6);
-    if (level7Members.length > 0) maxLvl = Math.max(maxLvl, 7);
-    return maxLvl;
-  }, [activelyFillingLevel, level3Members, level4Members, level5Members, level6Members, level7Members]);
+  // Controls stop at the level currently being filled up (highest level yet to be filled)
+  const maxViewableLevel = activelyFillingLevel;
 
   // Current level selected by user (defaults to actively filling level)
   const [viewingLevel, setViewingLevel] = useState<number>(activelyFillingLevel);
@@ -517,7 +509,7 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
 
       {/* ── STATUTORY QUALIFICATION FOOTNOTE ── */}
       <p className="text-[10px] text-emerald-300/80 italic mb-3 leading-relaxed">
-        * Note: Spillovers do not count as direct recruits. Only direct, paid Green Card recruits count toward First 5 progression - not just greencard possesion (Qualification requires: Green Card, Mushroom Power 100g, and at least 1 Farm Slot).
+        * Note: Only direct recruits with active Green Card, Starter Pack (100g), and 1 Farm Slot count toward First 5 progression (spillovers excluded).
       </p>
 
       {/* ── COMPACT ACTION ROW (WHATSAPP SHARE & COPY LINK) ── */}
