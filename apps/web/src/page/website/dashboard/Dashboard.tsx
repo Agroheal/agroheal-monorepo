@@ -43,7 +43,11 @@ import JourneyProgressionHeader from "@/components/dashboard/JourneyProgressionH
 import ForcePasswordChangeModal from "@/components/dashboard/ForcePasswordChangeModal";
 import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
 import { CutoverCountdownBanner } from "@/components/common/CutoverCountdownBanner";
-import { GreenCardFirst5Card, type DirectReferralInfo } from "@/components/common/GreenCardFirst5Card";
+import {
+  GreenCardFirst5Card,
+  type DirectReferralInfo,
+  type MatrixLevelsData,
+} from "@/components/common/GreenCardFirst5Card";
 import { isLegacyMember, getGreenCardFee, formatNaira } from "@shared/businessRules";
 
 interface ReferralProps {
@@ -104,6 +108,7 @@ const Dashboard = () => {
   >([]);
   const [milestone3ActiveDate, setMilestone3ActiveDate] = useState<string | null>(null);
   const [enrichedDirects, setEnrichedDirects] = useState<DirectReferralInfo[]>([]);
+  const [matrixLevels, setMatrixLevels] = useState<MatrixLevelsData | undefined>(undefined);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -295,6 +300,83 @@ const Dashboard = () => {
         }
       }
       setEnrichedDirects(enrichedList);
+
+      // Fetch Authoritative 5x7 Matrix Placement Subtree (Levels 1 to 7)
+      try {
+        const matrixResult: MatrixLevelsData = {
+          level1: [],
+          level2: [],
+          level3: [],
+          level4: [],
+          level5: [],
+          level6: [],
+          level7: [],
+        };
+
+        let currentParentIds = [user.id];
+        const allSubtreeMembers: Array<{
+          id: string;
+          full_name: string | null;
+          member_id: string | null;
+          total_referrals: number | null;
+          matrix_position: number | null;
+          placement_parent_id: string | null;
+        }> = [];
+
+        for (let depth = 1; depth <= 7; depth++) {
+          if (currentParentIds.length === 0) break;
+
+          const { data: levelProfiles, error: lvlErr } = await supabase
+            .from("profiles")
+            .select("id, full_name, member_id, total_referrals, matrix_position, placement_parent_id, created_at")
+            .in("placement_parent_id", currentParentIds)
+            .eq("placement_status", "LOCKED")
+            .order("matrix_position", { ascending: true });
+
+          if (lvlErr || !levelProfiles || levelProfiles.length === 0) break;
+
+          const levelKey = `level${depth}` as keyof MatrixLevelsData;
+          matrixResult[levelKey] = levelProfiles.map((p) => ({
+            id: p.id,
+            fullName: p.full_name || "Member",
+            memberId: p.member_id || undefined,
+            directsCount: Number(p.total_referrals) || 0,
+          }));
+
+          allSubtreeMembers.push(...levelProfiles);
+          currentParentIds = levelProfiles.map((p) => p.id);
+        }
+
+        // Batch query direct sponsor counts for all subtree members to guarantee strict accuracy
+        const allSubtreeIds = allSubtreeMembers.map((m) => m.id);
+        if (allSubtreeIds.length > 0) {
+          const { data: directCounts } = await supabase
+            .from("profiles")
+            .select("sponsor_id")
+            .in("sponsor_id", allSubtreeIds);
+
+          if (directCounts && directCounts.length > 0) {
+            const countMap = new Map<string, number>();
+            directCounts.forEach((row: any) => {
+              if (row.sponsor_id) {
+                countMap.set(row.sponsor_id, (countMap.get(row.sponsor_id) || 0) + 1);
+              }
+            });
+
+            for (let depth = 1; depth <= 7; depth++) {
+              const levelKey = `level${depth}` as keyof MatrixLevelsData;
+              matrixResult[levelKey] = matrixResult[levelKey].map((m) => ({
+                ...m,
+                directsCount: Math.max(m.directsCount, countMap.get(m.id) || 0),
+              }));
+            }
+          }
+        }
+
+        setMatrixLevels(matrixResult);
+      } catch (matrixErr) {
+        console.warn("Failed to fetch matrix levels subtree:", matrixErr);
+      }
 
       // Calculate total slots combining slot_subscriptions AND physical farm_records
       const subSlotsCount = (subscriptions || []).reduce((total, item) => {
@@ -726,6 +808,7 @@ const Dashboard = () => {
             referralCode={profile?.referral_code}
             hasGreenCard={hasGreenCard}
             referralsList={enrichedDirects}
+            matrixLevels={matrixLevels}
             className="mb-6"
           />
         )}

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   CheckCircle2,
@@ -8,8 +9,27 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ArrowUpRight,
+  Users,
 } from "lucide-react";
 import { showToast } from "@/components/ui/ToastComponent";
+
+export interface MatrixLevelMember {
+  id: string;
+  fullName: string;
+  memberId?: string;
+  directsCount: number;
+}
+
+export interface MatrixLevelsData {
+  level1: MatrixLevelMember[];
+  level2: MatrixLevelMember[];
+  level3: MatrixLevelMember[];
+  level4: MatrixLevelMember[];
+  level5: MatrixLevelMember[];
+  level6: MatrixLevelMember[];
+  level7: MatrixLevelMember[];
+}
 
 export interface Tier4MemberInfo {
   id: string;
@@ -48,6 +68,7 @@ interface GreenCardFirst5CardProps {
   hasGreenCard: boolean;
   className?: string;
   referralsList?: DirectReferralInfo[];
+  matrixLevels?: MatrixLevelsData;
 }
 
 export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
@@ -56,32 +77,35 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
   hasGreenCard = true,
   className = "",
   referralsList = [],
+  matrixLevels,
 }) => {
   const [copiedLink, setCopiedLink] = useState(false);
 
   // ── 1. PREPARE MEMBER DATA FOR MATRIX LEVELS 1 TO 7 ──
-  // Level 1: Frontline recruits (capacity 5)
-  const level1Members = useMemo(() => {
+  // If authoritative matrixLevels prop is provided, use exact 5x7 matrix placement nodes!
+  // Otherwise, fall back to referralsList hierarchy.
+  const level1Members: MatrixLevelMember[] = useMemo(() => {
+    if (matrixLevels?.level1) {
+      return matrixLevels.level1;
+    }
     return referralsList.slice(0, 5).map((r) => ({
       id: r.id,
       fullName: r.fullName,
       memberId: r.memberId,
       directsCount: r.directsCount || r.tier2Members?.length || 0,
     }));
-  }, [referralsList]);
+  }, [matrixLevels, referralsList]);
 
-  const level1Filled = Math.min(5, Math.max(directReferralsCount, referralsList.length));
+  const level1Filled = matrixLevels
+    ? level1Members.length
+    : (level1Members.length > 0 ? level1Members.length : Math.min(5, Math.max(directReferralsCount, referralsList.length)));
   const level1Done = level1Filled >= 5;
 
-  // Level 2: Duplication tier (5 leaders × 5 = 25 capacity)
-  const level2Members = useMemo(() => {
-    const list: Array<{
-      id: string;
-      fullName: string;
-      memberId?: string;
-      directsCount: number;
-    }> = [];
-
+  const level2Members: MatrixLevelMember[] = useMemo(() => {
+    if (matrixLevels?.level2) {
+      return matrixLevels.level2;
+    }
+    const list: MatrixLevelMember[] = [];
     referralsList.slice(0, 5).forEach((leader) => {
       (leader.tier2Members || []).forEach((m) => {
         list.push({
@@ -92,22 +116,17 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
         });
       });
     });
-
     return list;
-  }, [referralsList]);
+  }, [matrixLevels, referralsList]);
 
   const level2Filled = level2Members.length;
   const level2Done = level1Done && level2Filled >= 25;
 
-  // Level 3: Expansion tier (25 leaders × 5 = 125 capacity)
-  const level3Members = useMemo(() => {
-    const list: Array<{
-      id: string;
-      fullName: string;
-      memberId?: string;
-      directsCount: number;
-    }> = [];
-
+  const level3Members: MatrixLevelMember[] = useMemo(() => {
+    if (matrixLevels?.level3) {
+      return matrixLevels.level3;
+    }
+    const list: MatrixLevelMember[] = [];
     referralsList.slice(0, 5).forEach((leader) => {
       (leader.tier2Members || []).forEach((t2) => {
         (t2.tier3Members || []).forEach((t3) => {
@@ -120,22 +139,17 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
         });
       });
     });
-
     return list;
-  }, [referralsList]);
+  }, [matrixLevels, referralsList]);
 
   const level3Filled = level3Members.length;
   const level3Done = level2Done && level3Filled >= 125;
 
-  // Level 4: Momentum tier (125 leaders × 5 = 625 capacity)
-  const level4Members = useMemo(() => {
-    const list: Array<{
-      id: string;
-      fullName: string;
-      memberId?: string;
-      directsCount: number;
-    }> = [];
-
+  const level4Members: MatrixLevelMember[] = useMemo(() => {
+    if (matrixLevels?.level4) {
+      return matrixLevels.level4;
+    }
+    const list: MatrixLevelMember[] = [];
     referralsList.slice(0, 5).forEach((leader) => {
       (leader.tier2Members || []).forEach((t2) => {
         (t2.tier3Members || []).forEach((t3) => {
@@ -150,19 +164,31 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
         });
       });
     });
-
     return list;
-  }, [referralsList]);
+  }, [matrixLevels, referralsList]);
 
   const level4Filled = level4Members.length;
   const level4Done = level3Done && level4Filled >= 625;
 
-  // Level 5, 6, 7 tiers (capacities 3,125; 15,625; 78,125)
-  const level5Filled = 0;
+  const level5Members: MatrixLevelMember[] = useMemo(() => {
+    return matrixLevels?.level5 || [];
+  }, [matrixLevels]);
+
+  const level5Filled = level5Members.length;
   const level5Done = level4Done && level5Filled >= 3125;
-  const level6Filled = 0;
+
+  const level6Members: MatrixLevelMember[] = useMemo(() => {
+    return matrixLevels?.level6 || [];
+  }, [matrixLevels]);
+
+  const level6Filled = level6Members.length;
   const level6Done = level5Done && level6Filled >= 15625;
-  const level7Filled = 0;
+
+  const level7Members: MatrixLevelMember[] = useMemo(() => {
+    return matrixLevels?.level7 || [];
+  }, [matrixLevels]);
+
+  const level7Filled = level7Members.length;
   const level7Done = level6Done && level7Filled >= 78125;
 
   // ── 2. ACTIVELY FILLING LEVEL CALCULATION ──
@@ -176,6 +202,17 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
     if (!level6Done) return 6;
     return 7;
   }, [level1Done, level2Done, level3Done, level4Done, level5Done, level6Done]);
+
+  // Maximum level the user can navigate forward to (actively filling level or higher if downlines exist)
+  const maxViewableLevel = useMemo(() => {
+    let maxLvl = activelyFillingLevel;
+    if (level3Members.length > 0) maxLvl = Math.max(maxLvl, 3);
+    if (level4Members.length > 0) maxLvl = Math.max(maxLvl, 4);
+    if (level5Members.length > 0) maxLvl = Math.max(maxLvl, 5);
+    if (level6Members.length > 0) maxLvl = Math.max(maxLvl, 6);
+    if (level7Members.length > 0) maxLvl = Math.max(maxLvl, 7);
+    return maxLvl;
+  }, [activelyFillingLevel, level3Members, level4Members, level5Members, level6Members, level7Members]);
 
   // Current level selected by user (defaults to actively filling level)
   const [viewingLevel, setViewingLevel] = useState<number>(activelyFillingLevel);
@@ -224,7 +261,7 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
       capacity: 3125,
       current: level5Filled,
       isDone: level5Done,
-      members: [],
+      members: level5Members,
     },
     {
       lvl: 6,
@@ -232,7 +269,7 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
       capacity: 15625,
       current: level6Filled,
       isDone: level6Done,
-      members: [],
+      members: level6Members,
     },
     {
       lvl: 7,
@@ -240,16 +277,16 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
       capacity: 78125,
       current: level7Filled,
       isDone: level7Done,
-      members: [],
+      members: level7Members,
     },
   ], [
     level1Filled, level1Done, level1Members,
     level2Filled, level2Done, level2Members,
     level3Filled, level3Done, level3Members,
     level4Filled, level4Done, level4Members,
-    level5Filled, level5Done,
-    level6Filled, level6Done,
-    level7Filled, level7Done,
+    level5Filled, level5Done, level5Members,
+    level6Filled, level6Done, level6Members,
+    level7Filled, level7Done, level7Members,
   ]);
 
   const currentTier = tierConfig.find((t) => t.lvl === viewingLevel) || tierConfig[0];
@@ -257,7 +294,6 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
   // Referral links & sharing
   const origin = typeof window !== "undefined" ? window.location.origin : "https://agroheal.solutions";
   const inviteLink = `${origin}/signup?ref=${referralCode || "356FV1"}`;
-
   const shareText = `🌱 Join my AgroHeal organic farming cooperative team with my Green Card invite: ${inviteLink}`;
 
   const handleCopyLink = () => {
@@ -284,7 +320,7 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
     <div
       className={`relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-gradient-to-br from-[#062115] via-[#04170e] to-[#020e07] text-white shadow-md p-3.5 sm:p-4.5 ${className}`}
     >
-      {/* ── HEADER ROW WITH COMPACT NAVIGATION ── */}
+      {/* ── HEADER ROW WITH COMPACT NAVIGATION & VIEW FULL NETWORK LINK ── */}
       <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3 pb-2.5 border-b border-white/10">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0">
@@ -305,33 +341,48 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
           </div>
         </div>
 
-        {/* Level Navigation Controls (< Back / Next >) */}
-        <div className="flex items-center gap-1.5 ml-auto">
-          <button
-            type="button"
-            onClick={() => setViewingLevel((prev) => Math.max(1, prev - 1))}
-            disabled={viewingLevel <= 1}
-            className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
-            title="Go back to previous level"
+        {/* Strategic Link: View Full Network & Level Controls */}
+        <div className="flex items-center gap-2 ml-auto">
+          {/* Neat, small View Full Network link */}
+          <Link
+            to="/dashboard/my-network"
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-300 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-lg border border-white/10 transition-all cursor-pointer"
+            title="View complete interactive network organogram"
           >
-            <ChevronLeft className="w-3.5 h-3.5" />
-            <span>Back</span>
-          </button>
+            <Users className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">View Full Network</span>
+            <span className="sm:hidden">Network</span>
+            <ArrowUpRight className="w-3 h-3 text-white/50" />
+          </Link>
 
-          <div className="px-2 py-0.5 rounded-md bg-black/40 border border-white/10 text-[11px] font-mono font-bold text-emerald-300">
-            {currentTier.current} / {currentTier.capacity}
+          {/* Level Switcher (< Back / Next >) */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setViewingLevel((prev) => Math.max(1, prev - 1))}
+              disabled={viewingLevel <= 1}
+              className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-0.5 text-[11px] font-semibold"
+              title="Go back to previous level"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
+            </button>
+
+            <div className="px-2 py-0.5 rounded-md bg-black/40 border border-white/10 text-[11px] font-mono font-bold text-emerald-300">
+              {currentTier.current} / {currentTier.capacity}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setViewingLevel((prev) => Math.min(maxViewableLevel, prev + 1))}
+              disabled={viewingLevel >= maxViewableLevel}
+              className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-0.5 text-[11px] font-semibold"
+              title="Go to next level"
+            >
+              <span>Next</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setViewingLevel((prev) => Math.min(activelyFillingLevel, prev + 1))}
-            disabled={viewingLevel >= activelyFillingLevel}
-            className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-1 text-[11px] font-semibold"
-            title="Go to next level"
-          >
-            <span>Next</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
 
@@ -437,6 +488,29 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
                 </span>
               </div>
               <span className="text-[9px] text-white/30 italic">Awaiting recruit</span>
+            </div>
+          ))}
+
+        {/* Level 2+ Open Slot Placeholders (Show unfilled slots up to remaining, capped at 15) */}
+        {viewingLevel > 1 &&
+          displayedMembers.length > 0 &&
+          displayedMembers.length < currentTier.capacity &&
+          Array.from({
+            length: Math.min(15, currentTier.capacity - displayedMembers.length),
+          }).map((_, idx) => (
+            <div
+              key={`open-slot-${idx}`}
+              className="p-2.5 rounded-xl border border-dashed border-white/10 bg-white/[0.015] flex flex-col justify-between min-h-[64px] text-white/25"
+            >
+              <div className="flex items-start justify-between gap-1">
+                <span className="text-[11px] font-medium truncate">
+                  Slot #{displayedMembers.length + idx + 1}
+                </span>
+                <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/5 text-white/30">
+                  0/5
+                </span>
+              </div>
+              <span className="text-[9px] text-white/20 italic">Open Slot</span>
             </div>
           ))}
 
