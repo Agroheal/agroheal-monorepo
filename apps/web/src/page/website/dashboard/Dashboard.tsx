@@ -141,7 +141,7 @@ const Dashboard = () => {
           .maybeSingle(),
         supabase
           .from("profiles")
-          .select("id, full_name, phone, created_at")
+          .select("id, full_name, phone, member_id, total_referrals, created_at")
           .or(`referred_by.eq.${user.id},sponsor_id.eq.${user.id}`),
         user.email
           ? supabase
@@ -231,6 +231,20 @@ const Dashboard = () => {
             }
           }
 
+          let t4List: any[] = [];
+          const t3Ids = t3List.map((t: any) => t.id).filter(Boolean);
+          if (t3Ids.length > 0) {
+            try {
+              const { data: tier4Data } = await supabase
+                .from("profiles")
+                .select("id, full_name, referred_by, sponsor_id, member_id, created_at, total_referrals")
+                .or(`referred_by.in.(${t3Ids.join(",")}),sponsor_id.in.(${t3Ids.join(",")})`);
+              t4List = tier4Data || [];
+            } catch (t4Err) {
+              console.warn("Failed to fetch Tier 4 downlines:", t4Err);
+            }
+          }
+
           enrichedList = directReferralsList.map((d: any) => {
             const memberT2 = t2List.filter(
               (t: any) => t.referred_by === d.id || t.sponsor_id === d.id
@@ -249,11 +263,23 @@ const Dashboard = () => {
                   fullName: m.full_name || "Member",
                   memberId: m.member_id,
                   directsCount: Math.max(Number(m.total_referrals) || 0, memberT3.length),
-                  tier3Members: memberT3.map((x: any) => ({
-                    id: x.id,
-                    fullName: x.full_name || "Member",
-                    memberId: x.member_id,
-                  })),
+                  tier3Members: memberT3.map((x: any) => {
+                    const memberT4 = t4List.filter(
+                      (t4: any) => t4.referred_by === x.id || t4.sponsor_id === x.id
+                    );
+                    return {
+                      id: x.id,
+                      fullName: x.full_name || "Member",
+                      memberId: x.member_id,
+                      directsCount: Math.max(Number(x.total_referrals) || 0, memberT4.length),
+                      tier4Members: memberT4.map((t4: any) => ({
+                        id: t4.id,
+                        fullName: t4.full_name || "Member",
+                        memberId: t4.member_id,
+                        directsCount: Number(t4.total_referrals) || 0,
+                      })),
+                    };
+                  }),
                 };
               }),
             };
