@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -19,13 +19,44 @@ import { getCourseBySlug, type Lesson } from "@/helpers/coursesDetails";
 import { cn } from "@/lib/utils";
 import Lottie from "lottie-react";
 import NoDataFound from "../../../assets/Icon/searching.json";
+import { supabase } from "@/lib/supabaseClient";
 
 const CourseDetail = () => {
   const { slug } = useParams<{ slug: string }>();
-  const course = useMemo(() => getCourseBySlug(slug || ""), [slug]);
+  const fallbackCourse = useMemo(() => getCourseBySlug(slug || ""), [slug]);
+  const [course, setCourse] = useState(fallbackCourse);
   const [activeLesson, setActiveLesson] = useState<Lesson | null>(
-    course?.lessons[0] || null,
+    fallbackCourse?.lessons[0] || null,
   );
+
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from("system_configs")
+          .select("value")
+          .eq("key", "academy_courses")
+          .maybeSingle();
+
+        if (data?.value?.courses && Array.isArray(data.value.courses)) {
+          const match = data.value.courses.find((c: any) => c.slug === slug);
+          if (match && isMounted) {
+            setCourse(match);
+            if (match.lessons?.length > 0) {
+              setActiveLesson((prev) => prev || match.lessons[0]);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch dynamic course overrides, using fallback:", err);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [slug]);
   const [completedLessons, setCompletedLessons] = useState<Set<string>>(
     new Set(),
   );

@@ -7,9 +7,10 @@ interface Props {
   members: Member[];
   value: GreenCardFilter;
   onChange: (v: GreenCardFilter) => void;
+  loading?: boolean;
 }
 
-export function MembersKpiCards({ members, value, onChange }: Props) {
+export function MembersKpiCards({ members, value, onChange, loading }: Props) {
   const total = members.length;
   const active = members.filter((m) => m.has_green_card).length;
   const pending = total - active;
@@ -55,7 +56,11 @@ export function MembersKpiCards({ members, value, onChange }: Props) {
             <c.icon className="h-5 w-5" />
           </span>
           <span>
-            <span className="block text-xl font-semibold text-foreground">{c.value}</span>
+            {loading ? (
+              <span className="mb-1 block h-6 w-14 animate-pulse rounded bg-muted" />
+            ) : (
+              <span className="block text-xl font-semibold text-foreground">{c.value}</span>
+            )}
             <span className="block text-xs text-muted-foreground">{c.label}</span>
           </span>
         </button>

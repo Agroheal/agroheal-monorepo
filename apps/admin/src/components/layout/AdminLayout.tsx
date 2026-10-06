@@ -10,6 +10,7 @@ import {
   Award,
   Trophy,
   GraduationCap,
+  FileText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -74,15 +75,16 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    title: "CMS & Academy",
+    title: "Content Management (CMS)",
     items: [
-      { label: "Courses & Content", path: "/courses", icon: GraduationCap, hideForCoordinator: true },
+      { label: "Announcements & Legal", path: "/content", icon: FileText, hideForCoordinator: true },
+      { label: "Academy & Courses", path: "/courses", icon: GraduationCap, hideForCoordinator: true },
     ],
   },
   {
     title: "System",
     items: [
-      { label: "Settings", path: "/settings", icon: SettingsIcon, hideForSupport: true, hideForCoordinator: true },
+      { label: "Platform Settings", path: "/settings", icon: SettingsIcon, hideForSupport: true, hideForCoordinator: true },
     ],
   },
 ];

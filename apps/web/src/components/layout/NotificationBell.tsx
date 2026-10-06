@@ -89,6 +89,7 @@ export const NotificationBell: React.FC = () => {
         { data: subscriptions },
         { data: otherPayments },
         { data: dbNotifications },
+        { data: announcementConfig },
       ] = await Promise.all([
         supabase
           .from("profiles")
@@ -111,11 +112,30 @@ export const NotificationBell: React.FC = () => {
           .eq("user_id", user.id)
           .order("created_at", { ascending: false })
           .limit(20),
+        supabase
+          .from("system_configs")
+          .select("value")
+          .eq("key", "system_announcements")
+          .maybeSingle(),
       ]);
 
       const notifs: InAppNotification[] = [];
 
-      // 0. Live Database Notifications (from real-time system and webhook events)
+      // 0a. Broadcast Announcement (if notification channel is enabled)
+      const activeAnnc = announcementConfig?.value?.active_announcement;
+      if (activeAnnc && activeAnnc.active && activeAnnc.channels?.notification) {
+        notifs.push({
+          id: `annc-${activeAnnc.id}`,
+          title: `📢 ${activeAnnc.title}`,
+          message: activeAnnc.message,
+          type: "system",
+          created_at: activeAnnc.created_at || new Date().toISOString(),
+          read: false,
+          link: activeAnnc.action_url || "/dashboard/notifications",
+        });
+      }
+
+      // 0b. Live Database Notifications (from real-time system and webhook events)
       (dbNotifications || []).forEach((n: any) => {
         let mappedType: InAppNotification["type"] = "system";
         if (n.type === "green_card") mappedType = "greencard";
@@ -241,6 +261,11 @@ export const NotificationBell: React.FC = () => {
         read: n.read || readIds.includes(n.id),
       }));
 
+      // Strictly sort by recency (newest first)
+      finalized.sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+
       setNotifications(finalized);
       setUnreadCount(finalized.filter((n) => !n.read).length);
     } catch (err) {
@@ -361,6 +386,8 @@ export const NotificationBell: React.FC = () => {
     setOpen(false);
     if (n.link) {
       navigate(n.link);
+    } else {
+      navigate(`/dashboard/notifications?id=${n.id}`);
     }
   };
 
@@ -528,11 +555,11 @@ export const NotificationBell: React.FC = () => {
           {/* Footer */}
           <div className="p-2 border-t border-gray-100 bg-gray-50/70 text-center">
             <Link
-              to="/dashboard/transactions"
+              to="/dashboard/notifications"
               onClick={() => setOpen(false)}
               className="text-xs font-semibold text-emerald-800 hover:underline block py-1"
             >
-              View Full Transaction Ledger →
+              View All Notifications &amp; Activity →
             </Link>
           </div>
         </div>

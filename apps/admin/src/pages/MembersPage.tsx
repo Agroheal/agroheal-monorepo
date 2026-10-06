@@ -25,6 +25,7 @@ import { StatusBanner } from "@/components/admin/StatusBanner";
 import type { Member } from "@/types/admin";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { exportToExcel } from "@shared/excelExport";
+import { formatWATDateTime, formatWATDate } from "@/lib/dateTimeFormat";
 import { supabase } from "@/lib/supabaseClient";
 
 function openWhatsApp(text: string) {
@@ -320,7 +321,7 @@ export default function MembersPage() {
         "State": m.state || "-",
         "LGA": m.lga || "-",
         "Green Card Status": m.has_green_card ? "ACTIVE" : "INACTIVE",
-        "Green Card Expiry": m.green_card_expires_at ? new Date(m.green_card_expires_at).toLocaleDateString() : "-",
+        "Green Card Expiry": m.green_card_expires_at ? formatWATDate(m.green_card_expires_at) : "-",
         "Total Slots": m.total_slots || 0,
         "Mushroom Village Slots": mushroomSlots,
         "Gingertown Slots": gingerSlots,
@@ -328,7 +329,7 @@ export default function MembersPage() {
         "Advance Debt Balance (NGN)": Number(m.advance_debt_balance || 0),
         "Referral Code": m.referral_code || "-",
         "Referred By": m.referred_by || "-",
-        "Joined Date": m.created_at ? new Date(m.created_at).toLocaleDateString() : "",
+        "Joined Date": m.created_at ? formatWATDateTime(m.created_at) : "",
       };
     });
 
@@ -374,7 +375,7 @@ export default function MembersPage() {
         "State": m.state || "-",
         "LGA": m.lga || "-",
         "Green Card Status": m.has_green_card ? "ACTIVE" : "INACTIVE",
-        "Green Card Expiry": m.green_card_expires_at ? new Date(m.green_card_expires_at).toLocaleDateString() : "-",
+        "Green Card Expiry": m.green_card_expires_at ? formatWATDate(m.green_card_expires_at) : "-",
         "Total Slots": m.total_slots || 0,
         "Mushroom Village Slots": mushroomSlots,
         "Gingertown Slots": gingerSlots,
@@ -382,7 +383,7 @@ export default function MembersPage() {
         "Advance Debt Balance (NGN)": Number(m.advance_debt_balance || 0),
         "Referral Code": m.referral_code || "-",
         "Referred By": m.referred_by || "-",
-        "Joined Date": m.created_at ? new Date(m.created_at).toLocaleDateString() : "",
+        "Joined Date": m.created_at ? formatWATDateTime(m.created_at) : "",
       };
     });
 
@@ -505,7 +506,7 @@ export default function MembersPage() {
       <StatusBanner variant="success" message={successMessage} />
       <StatusBanner variant="error" message={errorMessage} />
 
-      <MembersKpiCards members={members} value={greenCardFilter} onChange={setGreenCardFilter} />
+      <MembersKpiCards members={members} value={greenCardFilter} onChange={setGreenCardFilter} loading={loading} />
 
       <MassActionsBar
         selectedCount={selectedIds.size}
@@ -548,7 +549,7 @@ export default function MembersPage() {
         <>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>
-              Directory Records ({filteredMembers.length}) &middot; Total Leased Slots:{" "}
+              Directory Records ({filteredMembers.length}) &middot; Active Community Farm Slots:{" "}
               <strong className="text-foreground">{members.reduce((sum, m) => sum + m.total_slots, 0)}</strong>
             </span>
           </div>

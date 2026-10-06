@@ -60,123 +60,23 @@ export function MembersToolbar({
   const availableLgas = stateFilter && stateFilter !== "all" ? getLgasForState(stateFilter) : [];
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* Top Row: Search, Main Filters, View Toggle & Actions */}
-      <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-1 flex-wrap items-center gap-2">
-          {/* Free Text Search */}
-          <div className="relative min-w-[220px] flex-1 sm:max-w-xs">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => onSearchQueryChange(e.target.value)}
-              placeholder="Search name, phone, email, LGA..."
-              className="pl-9 h-9 text-xs"
-            />
-          </div>
-
-          {/* Program Filter */}
-          <Select value={programFilter} onValueChange={onProgramFilterChange}>
-            <SelectTrigger className="w-[160px] h-9 text-xs">
-              <Filter className="mr-1 h-3.5 w-3.5 text-muted-foreground" />
-              <SelectValue placeholder="All Programs" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Programs</SelectItem>
-              <SelectItem value="has_slots">🌱 Has Slots ({hasSlots})</SelectItem>
-              <SelectItem value="no_slots">0 Slots ({noSlots})</SelectItem>
-              <SelectItem value="Mushroom">🍄 Mushroom Village</SelectItem>
-              <SelectItem value="Ginger">🌿 Gingertown</SelectItem>
-              <SelectItem value="FoodNation">🌾 Organic FoodNation</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* State Filter */}
-          <Select
-            value={stateFilter}
-            onValueChange={(val) => {
-              onStateFilterChange(val);
-              onLgaFilterChange("all");
-            }}
-          >
-            <SelectTrigger className="w-[150px] h-9 text-xs">
-              <MapPin className="mr-1 h-3.5 w-3.5 text-muted-foreground" />
-              <SelectValue placeholder="All States" />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              <SelectItem value="all">All States (Nigeria)</SelectItem>
-              {NIGERIA_STATES.map((st) => (
-                <SelectItem key={st} value={st}>
-                  {st}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Cascading LGA Filter */}
-          <Select
-            value={lgaFilter}
-            onValueChange={onLgaFilterChange}
-            disabled={!stateFilter || stateFilter === "all"}
-          >
-            <SelectTrigger className="w-[160px] h-9 text-xs disabled:opacity-50">
-              <SelectValue placeholder={stateFilter && stateFilter !== "all" ? "All LGAs" : "Select State First"} />
-            </SelectTrigger>
-            <SelectContent className="max-h-[300px]">
-              <SelectItem value="all">All LGAs ({availableLgas.length})</SelectItem>
-              {availableLgas.map((lg) => (
-                <SelectItem key={lg} value={lg}>
-                  {lg}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Debtor Filter */}
-          <Select value={debtorFilter} onValueChange={(val) => onDebtorFilterChange(val as DebtorFilter)}>
-            <SelectTrigger className="w-[140px] h-9 text-xs">
-              <SelectValue placeholder="Debtor Standing" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Balances</SelectItem>
-              <SelectItem value="debtors">⚠️ Debtors ({debtorCount})</SelectItem>
-              <SelectItem value="debt_free">✅ Debt-Free</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Location Status Filter */}
-          <Select
-            value={locationStatusFilter}
-            onValueChange={(val) => onLocationStatusFilterChange(val as LocationStatusFilter)}
-          >
-            <SelectTrigger className="w-[140px] h-9 text-xs">
-              <SelectValue placeholder="Location Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Locations</SelectItem>
-              <SelectItem value="configured">📍 Configured LGA</SelectItem>
-              <SelectItem value="pending">⚠️ Pending LGA</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {/* Reset Filters Button */}
-          {hasActiveFilters && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onResetFilters}
-              className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
-              title="Reset all filters"
-            >
-              <RotateCcw className="h-3 w-3" /> Reset
-            </Button>
-          )}
+    <div className="flex flex-col gap-3 bg-card p-3 rounded-xl border border-border">
+      {/* Row 1: Search & Action Buttons */}
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+        {/* Free Text Search */}
+        <div className="relative w-full sm:max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => onSearchQueryChange(e.target.value)}
+            placeholder="Search name, phone, email, LGA..."
+            className="pl-9 h-9 text-xs w-full"
+          />
         </div>
 
         {/* View Switcher & Action Buttons */}
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="flex items-center rounded-lg border border-border bg-card p-0.5">
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap justify-start sm:justify-end shrink-0">
+          <div className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5">
             <ToggleBtn active={viewMode === "table"} onClick={() => onViewModeChange("table")} title="Force table view">
               <TableIcon className="h-3.5 w-3.5" />
             </ToggleBtn>
@@ -204,10 +104,111 @@ export function MembersToolbar({
             </Button>
           )}
 
-          <Button type="button" size="sm" onClick={onIssueGreenCard} className="h-9 gap-1.5 whitespace-nowrap text-xs">
+          <Button type="button" size="sm" onClick={onIssueGreenCard} className="h-9 gap-1.5 whitespace-nowrap text-xs bg-primary hover:bg-primary/90 text-white">
             <IdCard className="h-3.5 w-3.5" /> Issue Green Card
           </Button>
         </div>
+      </div>
+
+      {/* Row 2: Secondary Filters Strip */}
+      <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
+        {/* Program Filter */}
+        <Select value={programFilter} onValueChange={onProgramFilterChange}>
+          <SelectTrigger className="w-[150px] h-8 text-xs">
+            <Filter className="mr-1 h-3 w-3 text-muted-foreground" />
+            <SelectValue placeholder="All Programs" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Programs</SelectItem>
+            <SelectItem value="has_slots">🌱 Has Slots ({hasSlots})</SelectItem>
+            <SelectItem value="no_slots">0 Slots ({noSlots})</SelectItem>
+            <SelectItem value="Mushroom">🍄 Mushroom Village</SelectItem>
+            <SelectItem value="Ginger">🌿 Gingertown</SelectItem>
+            <SelectItem value="FoodNation">🌾 Organic FoodNation</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* State Filter (with Typeahead textValue) */}
+        <Select
+          value={stateFilter}
+          onValueChange={(val) => {
+            onStateFilterChange(val);
+            onLgaFilterChange("all");
+          }}
+        >
+          <SelectTrigger className="w-[145px] h-8 text-xs">
+            <MapPin className="mr-1 h-3 w-3 text-muted-foreground" />
+            <SelectValue placeholder="All States" />
+          </SelectTrigger>
+          <SelectContent className="max-h-[300px]">
+            <SelectItem value="all" textValue="All States">All States (Nigeria)</SelectItem>
+            {NIGERIA_STATES.map((st) => (
+              <SelectItem key={st} value={st} textValue={st}>
+                {st}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Cascading LGA Filter (with Typeahead textValue) */}
+        <Select
+          value={lgaFilter}
+          onValueChange={onLgaFilterChange}
+          disabled={!stateFilter || stateFilter === "all"}
+        >
+          <SelectTrigger className="w-[150px] h-8 text-xs disabled:opacity-50">
+            <SelectValue placeholder={stateFilter && stateFilter !== "all" ? "All LGAs" : "Select State First"} />
+          </SelectTrigger>
+          <SelectContent className="max-h-[300px]">
+            <SelectItem value="all" textValue="All LGAs">All LGAs ({availableLgas.length})</SelectItem>
+            {availableLgas.map((lg) => (
+              <SelectItem key={lg} value={lg} textValue={lg}>
+                {lg}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Debtor Filter */}
+        <Select value={debtorFilter} onValueChange={(val) => onDebtorFilterChange(val as DebtorFilter)}>
+          <SelectTrigger className="w-[135px] h-8 text-xs">
+            <SelectValue placeholder="Debtor Standing" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Balances</SelectItem>
+            <SelectItem value="debtors">⚠️ Debtors ({debtorCount})</SelectItem>
+            <SelectItem value="debt_free">✅ Debt-Free</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Location Status Filter */}
+        <Select
+          value={locationStatusFilter}
+          onValueChange={(val) => onLocationStatusFilterChange(val as LocationStatusFilter)}
+        >
+          <SelectTrigger className="w-[135px] h-8 text-xs">
+            <SelectValue placeholder="Location Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Locations</SelectItem>
+            <SelectItem value="configured">📍 Configured LGA</SelectItem>
+            <SelectItem value="pending">⚠️ Pending LGA</SelectItem>
+          </SelectContent>
+        </Select>
+
+        {/* Reset Filters Button */}
+        {hasActiveFilters && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onResetFilters}
+            className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+            title="Reset all filters"
+          >
+            <RotateCcw className="h-3 w-3" /> Reset
+          </Button>
+        )}
       </div>
     </div>
   );

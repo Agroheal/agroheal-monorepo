@@ -16,6 +16,7 @@ import {
 import { supabase } from "@/lib/supabaseClient";
 import { StatCard } from "@/components/admin/StatCard";
 import { StatusBanner } from "@/components/admin/StatusBanner";
+import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -624,13 +625,7 @@ export default function CoreDriversPage() {
                     {driverLedgerEntries.map((entry) => (
                       <tr key={entry.id} className="hover:bg-muted/30">
                         <td className="px-3 py-2 whitespace-nowrap text-muted-foreground font-mono text-[11px]">
-                          {new Date(entry.created_at).toLocaleDateString("en-NG", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {formatWATDateTime(entry.created_at)}
                         </td>
                         <td className="px-3 py-2 whitespace-nowrap">
                           <div className="flex items-center gap-1.5">

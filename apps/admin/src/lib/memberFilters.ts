@@ -9,16 +9,18 @@ export function memberMatchesQuery(m: Member, queryStr: string) {
   const query = queryStr.toLowerCase().trim();
   if (!query) return true;
 
-  const cleanPhone = m.phone.replace(/[^0-9]/g, "");
+  const isNumericOrPhoneQuery = /^[0-9+\-\s()]+$/.test(query);
+  const cleanPhone = (m.phone || "").replace(/[^0-9]/g, "");
   const cleanQuery = query.replace(/[^0-9]/g, "");
+  const matchesPhone = isNumericOrPhoneQuery && cleanQuery.length >= 3 && cleanPhone.includes(cleanQuery);
 
   return (
     m.full_name.toLowerCase().includes(query) ||
     m.email.toLowerCase().includes(query) ||
-    (cleanQuery.length >= 3 && cleanPhone.includes(cleanQuery)) ||
-    m.phone.toLowerCase().includes(query) ||
-    m.member_id.toLowerCase().includes(query) ||
-    m.referral_code.toLowerCase().includes(query) ||
+    matchesPhone ||
+    (m.phone ? m.phone.toLowerCase().includes(query) : false) ||
+    (m.member_id ? m.member_id.toLowerCase().includes(query) : false) ||
+    (m.referral_code ? m.referral_code.toLowerCase().includes(query) : false) ||
     Boolean(m.state && m.state.toLowerCase().includes(query)) ||
     Boolean(m.lga && m.lga.toLowerCase().includes(query))
   );

@@ -600,7 +600,7 @@ const CompoundReferrals: React.FC = () => {
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", authId).maybeSingle(),
         supabase.from("slot_subscriptions").select("slots, amount, status").eq("user_id", authId),
-        supabase.from("profiles").select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals").eq("referred_by", authId),
+        supabase.from("profiles").select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals, is_green_card_holder, has_purchased_starter_pack").eq("referred_by", authId),
         supabase.from("other_payments").select("amount, created_at").eq("user_id", authId),
         supabase.from("subscriptions").select("id").eq("user_id", authId).eq("status", "active").limit(1),
         supabase.from("transactions").select("id").eq("user_id", authId).eq("status", "paid").limit(1),
@@ -617,7 +617,9 @@ const CompoundReferrals: React.FC = () => {
       const totalSlots = (slotSubsRes.data || []).reduce((sum, s) => sum + (Number(s.slots) || 0), 0);
       setUserSlotsHeld(totalSlots);
 
-      const directCount = directRefsRes.data ? directRefsRes.data.length : 0;
+      const directCount = (directRefsRes.data || []).filter(
+        (r: any) => Boolean(r.is_green_card_holder || r.member_id || r.has_purchased_starter_pack)
+      ).length;
       setDirectReferralsCount(directCount);
 
       // Compute 30-Day PQV

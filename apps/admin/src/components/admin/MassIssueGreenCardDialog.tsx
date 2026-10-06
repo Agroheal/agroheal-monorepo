@@ -36,7 +36,7 @@ export function MassIssueGreenCardDialog({
 
   return (
     <Dialog open={open} onOpenChange={loading ? () => {} : onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600">
@@ -68,12 +68,12 @@ export function MassIssueGreenCardDialog({
           </div>
 
           {unpaidMembers.length === 0 ? (
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-emerald-50/70 border border-emerald-200/80 text-xs text-emerald-900">
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-950 dark:text-emerald-100 font-medium">
               <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
               <span>All {selectedMembers.length} selected members already hold active Green Cards. No activation needed.</span>
             </div>
           ) : (
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-xs text-amber-900">
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-950 dark:text-amber-100 font-medium">
               <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <span>
                 This action will provision <strong>{unpaidMembers.length}</strong> official Green Cards, assign unique AGC Member IDs, credit statutory sponsor bonuses, and log double-entry ledger entries.

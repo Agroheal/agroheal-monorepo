@@ -9,6 +9,9 @@ import {
   RefreshCw,
   Lock,
   Users,
+  UserPlus,
+  Search,
+  Loader2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +19,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { adminApiClient } from "@/lib/apiClient";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -127,6 +138,70 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
       onSuccess("Admin permission updated successfully");
     } catch (err: any) {
       onError(err.message || "Failed to update admin permission");
+    }
+  }
+
+  // Appoint Admin candidate state
+  const [isAddAdminOpen, setIsAddAdminOpen] = useState(false);
+  const [candidateQuery, setCandidateQuery] = useState("");
+  const [candidateResults, setCandidateResults] = useState<any[]>([]);
+  const [searchingCandidates, setSearchingCandidates] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null);
+  const [newAdminRole, setNewAdminRole] = useState<"admin" | "super_admin">("admin");
+  const [grantConfigAccess, setGrantConfigAccess] = useState(false);
+  const [appointing, setAppointing] = useState(false);
+
+  async function handleSearchCandidates(q: string) {
+    setCandidateQuery(q);
+    if (!q.trim() || q.trim().length < 2) {
+      setCandidateResults([]);
+      return;
+    }
+    setSearchingCandidates(true);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, member_id, role, can_manage_system_configs")
+        .or(`full_name.ilike.%${q}%,email.ilike.%${q}%,member_id.ilike.%${q}%`)
+        .limit(8);
+
+      if (error) throw error;
+      setCandidateResults(data || []);
+    } catch (err) {
+      console.warn("Search candidate error:", err);
+    } finally {
+      setSearchingCandidates(false);
+    }
+  }
+
+  async function handleConfirmAppoint() {
+    if (!selectedCandidate) return;
+    setAppointing(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          role: newAdminRole,
+          can_manage_system_configs: newAdminRole === "super_admin" ? true : grantConfigAccess,
+        })
+        .eq("id", selectedCandidate.id);
+
+      if (error) throw error;
+
+      onSuccess(
+        `Successfully appointed ${selectedCandidate.full_name || selectedCandidate.email} as ${
+          newAdminRole === "super_admin" ? "Super Admin" : "Admin"
+        }!`
+      );
+      setIsAddAdminOpen(false);
+      setSelectedCandidate(null);
+      setCandidateQuery("");
+      setCandidateResults([]);
+      fetchAdminUsers();
+    } catch (err: any) {
+      onError(err.message || "Failed to appoint admin staff");
+    } finally {
+      setAppointing(false);
     }
   }
 
@@ -442,14 +517,25 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
       {/* Super Admin Delegation Section */}
       {userRole === "super_admin" && (
         <Card className="border-border/60 bg-card/60 backdrop-blur-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Users className="h-4.5 w-4.5 text-blue-400" />
-              <CardTitle className="text-base">Admin Permissions &amp; Delegation</CardTitle>
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <Users className="h-4.5 w-4.5 text-primary" />
+                <CardTitle className="text-base">Admin Permissions &amp; Delegation</CardTitle>
+              </div>
+              <CardDescription className="text-xs text-muted-foreground mt-1">
+                Super Admin control: appoint administrators and delegate system economic parameter controls.
+              </CardDescription>
             </div>
-            <CardDescription className="text-xs text-muted-foreground">
-              Super Admin control: toggle permission for individual Admins to edit sensitive platform economics.
-            </CardDescription>
+
+            <Button
+              size="sm"
+              onClick={() => setIsAddAdminOpen(true)}
+              className="gap-1.5 text-xs h-8 bg-primary text-primary-foreground hover:bg-primary/90 font-medium shrink-0"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              Appoint Admin
+            </Button>
           </CardHeader>
           <CardContent>
             {loadingAdmins ? (
@@ -461,7 +547,7 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
                     <div>
                       <div className="text-xs font-medium text-foreground flex items-center gap-2">
                         {admin.full_name || "Unnamed Admin"}
-                        <Badge variant="outline" className="text-[10px] py-0">
+                        <Badge variant="outline" className="text-[10px] py-0 border-primary/30 text-primary">
                           {admin.role}
                         </Badge>
                       </div>
@@ -473,8 +559,8 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
                         {admin.role === "super_admin"
                           ? "Super Admin (Full)"
                           : admin.can_manage_system_configs
-                          ? "Economics Allowed"
-                          : "Read-Only"}
+                          ? "Parameters: Configurable"
+                          : "Parameters: Read-Only"}
                       </Label>
                       {admin.role !== "super_admin" && (
                         <Switch
@@ -496,6 +582,141 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
           </CardContent>
         </Card>
       )}
+
+      {/* Appoint Admin Modal Dialog */}
+      <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
+        <DialogContent className="w-[95vw] sm:max-w-md p-4 sm:p-6 bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+              <UserPlus className="w-4 h-4 text-primary" /> Appoint New Administrator
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Search a registered member by name, email, or AGC ID to elevate to staff administration.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Search Member</Label>
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Type member name, email or AGC ID..."
+                  value={candidateQuery}
+                  onChange={(e) => handleSearchCandidates(e.target.value)}
+                  className="pl-8 text-xs h-9"
+                />
+              </div>
+            </div>
+
+            {/* Candidate Search Results */}
+            {searchingCandidates && (
+              <div className="text-xs text-muted-foreground flex items-center gap-2 py-2">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Searching members...
+              </div>
+            )}
+
+            {candidateResults.length > 0 && !selectedCandidate && (
+              <div className="border border-border rounded-lg max-h-40 overflow-y-auto divide-y divide-border/60 bg-muted/20">
+                {candidateResults.map((candidate) => (
+                  <div
+                    key={candidate.id}
+                    onClick={() => {
+                      setSelectedCandidate(candidate);
+                      setCandidateResults([]);
+                    }}
+                    className="p-2.5 hover:bg-muted/60 cursor-pointer flex items-center justify-between transition-colors"
+                  >
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">
+                        {candidate.full_name || "Member"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {candidate.email} • {candidate.member_id || "No AGC ID"}
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-[10px]">
+                      {candidate.role || "member"}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Selected Candidate Display */}
+            {selectedCandidate && (
+              <div className="p-3 rounded-lg border border-primary/40 bg-primary/5 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-foreground">
+                      {selectedCandidate.full_name || "Selected Member"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">{selectedCandidate.email}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedCandidate(null)}
+                    className="h-6 text-[10px] text-muted-foreground hover:text-foreground"
+                  >
+                    Change
+                  </Button>
+                </div>
+
+                <div className="space-y-1.5 pt-2 border-t border-border/60">
+                  <Label className="text-xs font-medium">Assign Role</Label>
+                  <select
+                    value={newAdminRole}
+                    onChange={(e) => setNewAdminRole(e.target.value as any)}
+                    className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                  >
+                    <option value="admin">Administrator (Operations &amp; Support)</option>
+                    <option value="super_admin">Super Administrator (Full Unrestricted)</option>
+                  </select>
+                </div>
+
+                {newAdminRole !== "super_admin" && (
+                  <div className="flex items-center justify-between pt-2">
+                    <div>
+                      <Label htmlFor="grant-cfg" className="text-xs font-medium block">
+                        Allow Economics Configuration
+                      </Label>
+                      <span className="text-[10px] text-muted-foreground block">
+                        Grant permission to modify platform financial constants.
+                      </span>
+                    </div>
+                    <Switch
+                      id="grant-cfg"
+                      checked={grantConfigAccess}
+                      onCheckedChange={setGrantConfigAccess}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="pt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAddAdminOpen(false)}
+              className="text-xs"
+            >
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleConfirmAppoint}
+              disabled={!selectedCandidate || appointing}
+              className="text-xs bg-primary text-primary-foreground hover:bg-primary/90 font-medium gap-1.5"
+            >
+              {appointing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              {appointing ? "Appointing..." : "Confirm Staff Appointment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

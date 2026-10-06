@@ -20,14 +20,14 @@ export function IssuedGreenCardSuccessDialog({ details, onOpenChange, onCopied }
 
   return (
     <Dialog open={Boolean(details)} onOpenChange={onOpenChange}>
-      <DialogContent className="text-center sm:max-w-md">
+      <DialogContent className="text-center w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-center gap-2 text-emerald-400">
+          <DialogTitle className="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400">
             <CheckCircle2 className="h-5 w-5" /> Green Card Successfully Issued!
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-left text-sm">
+        <div className="space-y-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-left text-sm text-foreground">
           <div>
             <strong>Member Name:</strong> {member.full_name}
           </div>

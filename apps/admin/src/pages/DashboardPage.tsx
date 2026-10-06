@@ -14,6 +14,7 @@ import {
   Layers,
 } from "lucide-react";
 import { useAdminMembers } from "@/hooks/useAdminMembers";
+import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import { StatCard } from "@/components/admin/StatCard";
 import { SlotCreditorForm } from "@/components/admin/SlotCreditorForm";
 import { OfflineRegistrationForm } from "@/components/admin/OfflineRegistrationForm";
@@ -30,7 +31,7 @@ import {
 import { adminApiClient } from "@/lib/apiClient";
 
 export default function DashboardPage() {
-  const { members, paymentLogs, refetch } = useAdminMembers();
+  const { members, paymentLogs, loading, refetch } = useAdminMembers();
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [showCreditorModal, setShowCreditorModal] = useState(false);
@@ -133,24 +134,28 @@ export default function DashboardPage() {
           value={serverStats ? serverStats.totalMembers : members.length}
           footer="Total member profiles"
           icon={Users}
+          loading={loading && !serverStats}
         />
         <StatCard
           label="Green Card Holders"
           value={serverStats ? serverStats.activeGreenCards : members.filter((m) => m.has_green_card).length}
           footer={`${(serverStats ? serverStats.totalMembers : members.length) - (serverStats ? serverStats.activeGreenCards : members.filter((m) => m.has_green_card).length)} pending activation`}
           icon={ShieldCheck}
+          loading={loading && !serverStats}
         />
         <StatCard
           label="Active Farm Slots"
           value={serverStats ? serverStats.activeSlots : activeSlots}
-          footer="Total active leased slots"
+          footer="Active community production farm slots"
           icon={Sprout}
+          loading={loading && !serverStats}
         />
         <StatCard
-          label="Total Operations Logs"
+          label="Platform Operations"
           value={paymentLogs.length}
-          footer="Payments &amp; ledger records"
+          footer="Verified payments &amp; ledger transactions"
           icon={CreditCard}
+          loading={loading}
         />
       </div>
 
@@ -207,11 +212,32 @@ export default function DashboardPage() {
                 <th className="py-2.5 px-3">Member ID</th>
                 <th className="py-2.5 px-3 text-center">Green Card</th>
                 <th className="py-2.5 px-3 text-center">Active Slots</th>
-                <th className="py-2.5 px-3 text-right">Joined</th>
+                <th className="py-2.5 px-3 text-right">Joined (WAT)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {recentMembers.length === 0 ? (
+              {loading && members.length === 0 ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="py-2.5 px-3">
+                      <div className="h-3.5 w-28 bg-muted rounded mb-1" />
+                      <div className="h-3 w-36 bg-muted/60 rounded" />
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <div className="h-3.5 w-16 bg-muted rounded" />
+                    </td>
+                    <td className="py-2.5 px-3 text-center">
+                      <div className="h-4 w-12 bg-muted rounded mx-auto" />
+                    </td>
+                    <td className="py-2.5 px-3 text-center">
+                      <div className="h-3.5 w-6 bg-muted rounded mx-auto" />
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      <div className="h-3.5 w-24 bg-muted rounded ml-auto" />
+                    </td>
+                  </tr>
+                ))
+              ) : recentMembers.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="py-6 text-center text-muted-foreground">
                     No members enrolled yet.
@@ -243,8 +269,8 @@ export default function DashboardPage() {
                     <td className="py-2.5 px-3 text-center font-semibold">
                       {m.total_slots || 0}
                     </td>
-                    <td className="py-2.5 px-3 text-right text-muted-foreground text-[11px]">
-                      {m.created_at ? new Date(m.created_at).toLocaleDateString() : "-"}
+                    <td className="py-2.5 px-3 text-right text-muted-foreground text-[11px] whitespace-nowrap">
+                      {m.created_at ? formatWATDateTime(m.created_at) : "-"}
                     </td>
                   </tr>
                 ))
@@ -256,7 +282,7 @@ export default function DashboardPage() {
 
       {/* Modal: Quick Slot Creditor */}
       <Dialog open={showCreditorModal} onOpenChange={setShowCreditorModal}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="w-[95vw] sm:max-w-xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Quick Farm Slot Allocation</DialogTitle>
             <DialogDescription>
@@ -277,7 +303,7 @@ export default function DashboardPage() {
 
       {/* Modal: Quick Offline Registration */}
       <Dialog open={showRegisterModal} onOpenChange={setShowRegisterModal}>
-        <DialogContent className="max-w-xl">
+        <DialogContent className="w-[95vw] sm:max-w-xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle>Offline Member Registration</DialogTitle>
             <DialogDescription>

@@ -40,6 +40,7 @@ import ConsumerNetwork from "@/page/website/dashboard/ConsumerNetwork";
 import ProducerNetwork from "@/page/website/dashboard/ProducerNetwork";
 import KnowledgeBase from "@/page/website/dashboard/KnowledgeBase";
 import CustomerService from "@/page/website/dashboard/CustomerService";
+import NotificationsPage from "@/page/website/dashboard/NotificationsPage";
 
 import CoursesBridge from "@/page/website/CoursesBridge";
 import FarmSlotsBridge from "@/page/website/FarmSlotsBridge";
@@ -110,6 +111,7 @@ export const appRouter = createBrowserRouter([
         errorElement: <DashboardError />,
         children: [
           { index: true, element: <Dashboard /> },
+          { path: "notifications", element: <NotificationsPage /> },
           { path: "transactions", element: <TransactionLedger /> },
           { path: "wallet", element: <Navigate to="/dashboard/transactions" replace /> },
 

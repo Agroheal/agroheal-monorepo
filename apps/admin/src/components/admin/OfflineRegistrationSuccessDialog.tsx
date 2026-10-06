@@ -26,9 +26,9 @@ export function OfflineRegistrationSuccessDialog({ credentials, onOpenChange, on
 
   return (
     <Dialog open={Boolean(credentials)} onOpenChange={onOpenChange}>
-      <DialogContent className="text-center sm:max-w-md">
+      <DialogContent className="text-center w-[95vw] sm:max-w-md max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center justify-center gap-2 text-emerald-400">
+          <DialogTitle className="flex items-center justify-center gap-2 text-emerald-600 dark:text-emerald-400">
             <CheckCircle2 className="h-5 w-5" /> Member Registration Complete!
           </DialogTitle>
         </DialogHeader>

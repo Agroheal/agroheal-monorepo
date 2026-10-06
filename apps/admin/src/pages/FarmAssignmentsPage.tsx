@@ -20,6 +20,7 @@ import { useFarmAssignmentGaps, type FarmAssignmentGap } from "@/hooks/useFarmAs
 import { fetchFarmGroups, assignSlotsToFarmGroup, type FarmGroup } from "@/lib/farmAssignment";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { exportToExcel } from "@shared/excelExport";
+import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import { adminApiClient } from "@/lib/apiClient";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -385,7 +386,7 @@ export default function FarmAssignmentsPage() {
       { Metric: "Total Purchased Slots", Value: totalPurchased },
       { Metric: "Total Assigned Slots", Value: totalAssigned },
       { Metric: "Total Unassigned Shortfall", Value: totalShortfall },
-      { Metric: "Generated Date", Value: new Date().toLocaleString() },
+      { Metric: "Generated Date", Value: formatWATDateTime(new Date()) },
     ];
 
     exportToExcel({

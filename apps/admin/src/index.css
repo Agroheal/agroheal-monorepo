@@ -6,57 +6,55 @@
 
 /*
   Admin is a permanently dark, single-theme app (no light mode / no .dark
-  toggle) — these are the only tokens that exist, defined directly on :root.
+  toggle) — sleek 2-color theme: Deep Obsidian neutral base + Vivid Emerald accent.
 */
 :root {
-  --background: 228 27% 6%;
-  --foreground: 220 20% 95%;
+  /* Obsidian Base (150 hue, subtle dark forest black) */
+  --background: 155 12% 5%;
+  --foreground: 150 15% 96%;
 
-  --card: 228 24% 9%;
-  --card-foreground: 220 20% 95%;
-  --popover: 228 24% 9%;
-  --popover-foreground: 220 20% 95%;
+  --card: 155 14% 8%;
+  --card-foreground: 150 15% 96%;
+  --popover: 155 14% 8%;
+  --popover-foreground: 150 15% 96%;
 
-  /* Brand emerald maps to shadcn's `primary` slot — use bg-primary for
-     brand CTAs, never bg-accent (accent is a neutral hover surface below). */
-  --primary: 160 84% 39%;
-  --primary-foreground: 0 0% 100%;
+  /* Brand Emerald Primary (Vivid Mint / Emerald 158 hue) */
+  --primary: 158 84% 40%;
+  --primary-foreground: 155 12% 5%;
 
-  --secondary: 230 22% 13%;
-  --secondary-foreground: 220 20% 95%;
+  --secondary: 155 12% 11%;
+  --secondary-foreground: 150 15% 94%;
 
-  --muted: 230 22% 13%;
-  --muted-foreground: 220 9% 65%;
+  --muted: 155 10% 12%;
+  --muted-foreground: 150 10% 65%;
 
-  --accent: 158 64% 52%;
-  --accent-foreground: 220 20% 95%;
+  --accent: 158 75% 42%;
+  --accent-foreground: 150 15% 96%;
 
-  --destructive: 0 84% 60%;
+  --destructive: 0 72% 55%;
   --destructive-foreground: 0 0% 100%;
 
   --warning: 38 92% 50%;
   --warning-foreground: 0 0% 100%;
-  --info: 217 91% 60%;
-  --info-foreground: 0 0% 100%;
+  --info: 158 80% 45%;
+  --info-foreground: 155 12% 5%;
 
-  --border: 230 15% 18%;
-  --input: 230 15% 18%;
-  --ring: 160 84% 39%;
+  --border: 155 10% 16%;
+  --input: 155 10% 16%;
+  --ring: 158 84% 40%;
 
   --radius: 0.5rem;
 
-  --sidebar-background: 228 30% 5%;
-  --sidebar-foreground: 220 20% 95%;
-  --sidebar-primary: 160 84% 39%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 230 22% 13%;
-  --sidebar-accent-foreground: 220 20% 95%;
-  --sidebar-border: 230 15% 18%;
-  --sidebar-ring: 160 84% 39%;
+  --sidebar-background: 155 16% 4%;
+  --sidebar-foreground: 150 15% 94%;
+  --sidebar-primary: 158 84% 40%;
+  --sidebar-primary-foreground: 155 12% 5%;
+  --sidebar-accent: 155 12% 10%;
+  --sidebar-accent-foreground: 150 15% 96%;
+  --sidebar-border: 155 10% 14%;
+  --sidebar-ring: 158 84% 40%;
 
-  /* Translucent border for hairlines that want the old rgba look —
-     shadcn's --border must stay a solid HSL triplet. */
-  --border-color-subtle: rgba(255, 255, 255, 0.08);
+  --border-color-subtle: rgba(255, 255, 255, 0.07);
 }
 
 * {

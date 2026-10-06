@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { StatusBanner } from "@/components/admin/StatusBanner";
+import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import { adminApiClient } from "@/lib/apiClient";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 
@@ -492,13 +493,8 @@ export default function TreasuryPage() {
                         </span>
                       </td>
 
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
-                        {new Date(w.created_at).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                        {formatWATDateTime(w.created_at)}
                       </td>
 
                       <td className="px-4 py-3 text-right space-x-2">

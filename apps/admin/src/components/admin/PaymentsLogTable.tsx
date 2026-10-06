@@ -13,6 +13,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { cn } from "@/lib/utils";
+import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import type { PaymentLog } from "@/types/admin";
 
 const PAGE_SIZE = 25;
@@ -59,7 +60,7 @@ export function PaymentsLogTable({ logs }: { logs: PaymentLog[] }) {
       "Slots": p.slots || 0,
       "Amount (₦)": p.amount || 0,
       "Status": (p.status || "").toUpperCase(),
-      "Date": p.created_at ? new Date(p.created_at).toLocaleString() : "",
+      "Date": p.created_at ? formatWATDateTime(p.created_at) : "",
       "Log ID": p.id,
     }));
 
@@ -124,6 +125,7 @@ export function PaymentsLogTable({ logs }: { logs: PaymentLog[] }) {
               <TableHead>Slots</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead className="text-right">Date &amp; Time (WAT)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -162,11 +164,14 @@ export function PaymentsLogTable({ logs }: { logs: PaymentLog[] }) {
                     {p.status}
                   </span>
                 </TableCell>
+                <TableCell className="text-xs text-muted-foreground text-right whitespace-nowrap">
+                  {formatWATDateTime(p.created_at)}
+                </TableCell>
               </TableRow>
             ))}
             {pageItems.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={8} className="py-10 text-center text-sm text-muted-foreground">
                   No payment operations found.
                 </TableCell>
               </TableRow>

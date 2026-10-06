@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import type { Member, PaymentLog } from "@/types/admin";
 
 interface RawProfileRow {
@@ -145,7 +146,7 @@ export function useAdminMembers() {
           referred_by: p.referred_by || "",
           raw_referred_by: p.referred_by || "",
           role: p.role || "user",
-          created_at: p.created_at ? new Date(p.created_at).toLocaleDateString() : "N/A",
+          created_at: p.created_at ? formatWATDateTime(p.created_at) : "N/A",
           has_green_card: hasGreenCard,
           green_card_expires_at: userGreenCard?.expires_at,
           total_slots: totalSlots,

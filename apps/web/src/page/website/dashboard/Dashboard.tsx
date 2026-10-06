@@ -1072,19 +1072,6 @@ const Dashboard = () => {
         onClose={() => setShowShareModal(false)}
         referralCode={profile?.referral_code ?? ""}
       />
-      {profile && (!profile.has_purchased_starter_pack || totalSlotsPurchased === 0) && (
-        <NextStepModal
-          hasGreenCard={Boolean(profile.member_id || hasGreenCard)}
-          totalSlots={totalSlotsPurchased}
-          directReferralsCount={profile.referrals?.length ?? 0}
-          referralCode={profile.referral_code ?? ""}
-          forceOpen={forceOpenNextStep}
-          createdAt={profile.created_at}
-          hasPurchasedStarterPack={Boolean(profile.has_purchased_starter_pack)}
-          isLegacy={isLegacy}
-          onCloseExternal={() => setForceOpenNextStep(false)}
-        />
-      )}
 
       <RegulatoryNotice className="mt-8 mb-2" />
     </div>

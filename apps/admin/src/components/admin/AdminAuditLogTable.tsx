@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import {
   Dialog,
   DialogContent,
@@ -181,7 +182,7 @@ export function AdminAuditLogTable() {
       const p = log.payload || {};
       return {
         "S/N": idx + 1,
-        "Timestamp": log.created_at ? new Date(log.created_at).toLocaleString() : "",
+        "Timestamp": log.created_at ? formatWATDateTime(log.created_at) : "",
         "Action": getActionLabel(log.action),
         "Authorizing Admin": p.admin_email || p.admin_name || "System",
         "Admin Role": p.admin_role || "admin",
@@ -443,12 +444,7 @@ export function AdminAuditLogTable() {
                   <TableRow key={log.id} className="text-xs hover:bg-muted/30">
                     <TableCell className="font-mono text-muted-foreground">{serial}</TableCell>
                     <TableCell className="font-mono whitespace-nowrap text-muted-foreground">
-                      {new Date(log.created_at).toLocaleString([], {
-                        month: "short",
-                        day: "numeric",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
+                      {formatWATDateTime(log.created_at)}
                     </TableCell>
                     <TableCell>
                       {renderActionBadge(log)}
@@ -532,7 +528,7 @@ export function AdminAuditLogTable() {
 
       {/* Receipt Viewer Modal */}
       <Dialog open={Boolean(selectedReceiptUrl)} onOpenChange={(open) => !open && setSelectedReceiptUrl(null)}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-sm font-semibold flex items-center justify-between">
               <span>Verified Bank Transfer Receipt</span>

@@ -86,7 +86,7 @@ export function IssueGreenCardDialog({ open, onOpenChange, members, activatingMe
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <IdCard className="h-5 w-5 text-primary" /> Issue Green Card to Member
@@ -101,26 +101,32 @@ export function IssueGreenCardDialog({ open, onOpenChange, members, activatingMe
         <div className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">
-              Select Member (Search by Name, Email, Phone, or ID)
+              Select Member (Unpaid / Pending Members Only)
             </label>
             <MemberCombobox
-              members={members}
+              members={members.filter((m) => !m.has_green_card)}
               value={selectedId}
               onChange={setSelectedId}
-              placeholder="Search member..."
+              placeholder="Search member without Green Card..."
               renderBadge={(m) => <GreenCardBadge active={m.has_green_card} size="xs" />}
             />
           </div>
 
-          {selected && (
+          {selected?.has_green_card && (
+            <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-200 text-xs font-semibold">
+              ⚠️ This member already holds an active Green Card ({selected.member_id || "Active"}). Re-issuance is blocked.
+            </div>
+          )}
+
+          {selected && !selected.has_green_card && (
             <>
-              <div className="space-y-1.5 rounded-lg border border-primary/20 bg-primary/5 p-3.5 text-sm text-muted-foreground">
-                <span className="block text-xs font-semibold text-primary">Confirmation Summary:</span>
+              <div className="space-y-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3.5 text-sm text-emerald-950 dark:text-emerald-100">
+                <span className="block text-xs font-bold text-emerald-800 dark:text-emerald-400 uppercase tracking-wider">Confirmation Summary:</span>
                 <p className="leading-relaxed">
-                  &bull; <strong className="text-foreground">Member:</strong> {selected.full_name} ({selected.email})
-                  <br />&bull; <strong className="text-foreground">Subscription:</strong> Lifetime Permanent Agroheal Green Card Membership
-                  <br />&bull; <strong className="text-foreground">Fee:</strong> ₦2,000 (Standard Member Rate)
-                  <br />&bull; <strong className="text-foreground">Action:</strong> Assigns sequential Member ID &amp; enables
+                  &bull; <strong className="text-foreground font-bold">Member:</strong> {selected.full_name} ({selected.email})
+                  <br />&bull; <strong className="text-foreground font-bold">Subscription:</strong> Lifetime Permanent AgroHeal Green Card Membership
+                  <br />&bull; <strong className="text-foreground font-bold">Fee:</strong> ₦2,000 (Standard Member Rate)
+                  <br />&bull; <strong className="text-foreground font-bold">Action:</strong> Assigns sequential Member ID &amp; enables
                   community benefits
                 </p>
               </div>
@@ -192,7 +198,7 @@ export function IssueGreenCardDialog({ open, onOpenChange, members, activatingMe
           </Button>
           <Button
             type="button"
-            disabled={!selected || activatingMemberId === selected?.id || uploading}
+            disabled={!selected || selected.has_green_card || activatingMemberId === selected?.id || uploading}
             onClick={handleConfirm}
             className="gap-2"
           >

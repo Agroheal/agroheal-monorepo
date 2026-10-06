@@ -79,7 +79,7 @@ serve(async (req) => {
       const { data: authData, error: createErr } = await adminClient.auth.admin.createUser({
         email: email.trim().toLowerCase(),
         password: tempPassword,
-        email_confirm: true,
+        email_confirm: false,
         user_metadata: {
           full_name,
           phone,

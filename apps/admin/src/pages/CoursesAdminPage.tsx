@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   GraduationCap,
   BookOpen,
@@ -14,12 +14,17 @@ import {
   Edit3,
   Star,
   Layers,
+  Save,
+  Trash2,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/lib/supabaseClient";
 import {
   Dialog,
   DialogContent,
@@ -39,8 +44,14 @@ export default function CoursesAdminPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
+  // Database persistence state
+  const [savingDb, setSavingDb] = useState(false);
+  const [loadingDb, setLoadingDb] = useState(false);
+  const [feedback, setFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
   // Modal states
   const [activeCourseForLessons, setActiveCourseForLessons] = useState<AdminCourse | null>(null);
+  const [editableLessons, setEditableLessons] = useState<CourseLesson[]>([]);
   const [editingCourse, setEditingCourse] = useState<AdminCourse | null>(null);
   const [isCreating, setIsCreating] = useState(false);
 
@@ -55,6 +66,112 @@ export default function CoursesAdminPage() {
     rating: 5.0,
     lessons: [],
   });
+
+  useEffect(() => {
+    loadCoursesFromDb();
+  }, []);
+
+  async function loadCoursesFromDb() {
+    setLoadingDb(true);
+    try {
+      const { data, error } = await supabase
+        .from("system_configs")
+        .select("value")
+        .eq("key", "academy_courses")
+        .maybeSingle();
+
+      if (error) throw error;
+      if (data?.value?.courses && Array.isArray(data.value.courses) && data.value.courses.length > 0) {
+        setCourses(data.value.courses);
+      }
+    } catch (err) {
+      console.warn("Could not load courses from DB, using baseline:", err);
+    } finally {
+      setLoadingDb(false);
+    }
+  }
+
+  async function saveAllCoursesToDb(updatedCourses: AdminCourse[]) {
+    setSavingDb(true);
+    try {
+      const { error } = await supabase
+        .from("system_configs")
+        .upsert({
+          key: "academy_courses",
+          value: {
+            courses: updatedCourses,
+            updated_at: new Date().toISOString(),
+          },
+          updated_at: new Date().toISOString(),
+        });
+
+      if (error) throw error;
+      setFeedback({ type: "success", text: "Curriculum and video links saved to database successfully!" });
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err: any) {
+      setFeedback({ type: "error", text: err.message || "Failed to persist courses to database." });
+      setTimeout(() => setFeedback(null), 4000);
+    } finally {
+      setSavingDb(false);
+    }
+  }
+
+  function extractYouTubeId(urlOrId: string): string {
+    if (!urlOrId) return "";
+    const trimmed = urlOrId.trim();
+    const match = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+    return match ? match[1] : trimmed;
+  }
+
+  // Open lessons modal with copy of lessons
+  const handleOpenLessonsModal = (course: AdminCourse) => {
+    setActiveCourseForLessons(course);
+    setEditableLessons(JSON.parse(JSON.stringify(course.lessons || [])));
+  };
+
+  const handleUpdateLesson = (index: number, field: keyof CourseLesson, value: string) => {
+    setEditableLessons((prev) => {
+      const updated = [...prev];
+      if (field === "videoId") {
+        updated[index] = { ...updated[index], videoId: extractYouTubeId(value) };
+      } else {
+        updated[index] = { ...updated[index], [field]: value };
+      }
+      return updated;
+    });
+  };
+
+  const handleAddLesson = () => {
+    const newLessonId = `${activeCourseForLessons?.id || Date.now()}-${editableLessons.length + 1}`;
+    const newLesson: CourseLesson = {
+      id: newLessonId,
+      title: `Lesson ${editableLessons.length + 1}`,
+      duration: "30:00",
+      videoId: "",
+    };
+    setEditableLessons((prev) => [...prev, newLesson]);
+  };
+
+  const handleDeleteLesson = (index: number) => {
+    setEditableLessons((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSaveLessons = async () => {
+    if (!activeCourseForLessons) return;
+    const updatedCourse: AdminCourse = {
+      ...activeCourseForLessons,
+      lessons: editableLessons,
+      lessonsCount: editableLessons.length,
+    };
+
+    const updatedCourses = courses.map((c) =>
+      c.id === updatedCourse.id ? updatedCourse : c
+    );
+
+    setCourses(updatedCourses);
+    setActiveCourseForLessons(null);
+    await saveAllCoursesToDb(updatedCourses);
+  };
 
   // Extract unique categories
   const categories = useMemo(() => {
@@ -86,15 +203,15 @@ export default function CoursesAdminPage() {
     [courses]
   );
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingCourse) return;
-    setCourses((prev) =>
-      prev.map((c) => (c.id === editingCourse.id ? editingCourse : c))
-    );
+    const updated = courses.map((c) => (c.id === editingCourse.id ? editingCourse : c));
+    setCourses(updated);
     setEditingCourse(null);
+    await saveAllCoursesToDb(updated);
   };
 
-  const handleCreateCourse = () => {
+  const handleCreateCourse = async () => {
     if (!newCourse.title || !newCourse.slug) return;
     const created: AdminCourse = {
       id: String(Date.now()),
@@ -108,7 +225,8 @@ export default function CoursesAdminPage() {
       status: "published",
       lessons: [],
     };
-    setCourses((prev) => [created, ...prev]);
+    const updated = [created, ...courses];
+    setCourses(updated);
     setIsCreating(false);
     setNewCourse({
       title: "",
@@ -120,6 +238,7 @@ export default function CoursesAdminPage() {
       rating: 5.0,
       lessons: [],
     });
+    await saveAllCoursesToDb(updated);
   };
 
   return (
@@ -132,19 +251,56 @@ export default function CoursesAdminPage() {
             AgroHeal Academy &amp; Curriculum Management
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Curate learning curricula, practical masterclasses, and video guides for Green Card members.
+            Curate learning curricula, practical masterclasses, and editable YouTube video guides for Green Card members.
           </p>
         </div>
 
-        <Button
-          size="sm"
-          className="gap-2 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
-          onClick={() => setIsCreating(true)}
-        >
-          <Plus className="w-4 h-4" />
-          Add Masterclass
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={loadCoursesFromDb}
+            disabled={loadingDb || savingDb}
+            className="text-xs h-8 border-border"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loadingDb ? "animate-spin" : ""}`} />
+            Reload DB
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => saveAllCoursesToDb(courses)}
+            disabled={savingDb}
+            className="text-xs h-8 border-primary/40 text-primary hover:bg-primary/10"
+          >
+            {savingDb ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Save className="w-3.5 h-3.5 mr-1.5" />}
+            Save All to DB
+          </Button>
+
+          <Button
+            size="sm"
+            className="gap-2 shrink-0 bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-xs h-8"
+            onClick={() => setIsCreating(true)}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add Masterclass
+          </Button>
+        </div>
       </div>
+
+      {feedback && (
+        <div
+          className={`p-3 rounded-lg border text-xs flex items-center gap-2 ${
+            feedback.type === "success"
+              ? "bg-emerald-950/30 border-emerald-500/40 text-emerald-300"
+              : "bg-red-950/30 border-red-500/40 text-red-300"
+          }`}
+        >
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{feedback.text}</span>
+        </div>
+      )}
 
       {/* KPI Stats */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -261,10 +417,10 @@ export default function CoursesAdminPage() {
                   variant="ghost"
                   size="sm"
                   className="h-6 px-2 text-[11px] text-primary gap-1 hover:bg-primary/10"
-                  onClick={() => setActiveCourseForLessons(c)}
+                  onClick={() => handleOpenLessonsModal(c)}
                 >
                   <Eye className="w-3 h-3" />
-                  View Lessons ({c.lessonsCount})
+                  View &amp; Edit Lessons ({c.lessonsCount})
                 </Button>
               </div>
 
@@ -306,104 +462,147 @@ export default function CoursesAdminPage() {
         </div>
       )}
 
-      {/* View Lessons Dialog */}
+      {/* View & Edit Lessons Dialog */}
       <Dialog
         open={Boolean(activeCourseForLessons)}
         onOpenChange={(open) => !open && setActiveCourseForLessons(null)}
       >
-        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+        <DialogContent className="w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto flex flex-col p-4 sm:p-6 bg-card border-border">
           <DialogHeader>
-            <div className="flex items-center gap-2 mb-1">
-              <Badge variant="outline" className="text-[10px] text-primary">
-                {activeCourseForLessons?.category}
-              </Badge>
-              <span className="text-xs text-muted-foreground">
-                {activeCourseForLessons?.lessonsCount} lessons • {activeCourseForLessons?.duration}
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-1">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px] text-primary border-primary/30">
+                  {activeCourseForLessons?.category}
+                </Badge>
+                <span className="text-xs text-muted-foreground font-mono">
+                  {editableLessons.length} lessons • {activeCourseForLessons?.duration}
+                </span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleAddLesson}
+                className="text-xs h-7 gap-1 border-primary/40 text-primary hover:bg-primary/10 self-start sm:self-auto"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Lesson
+              </Button>
             </div>
-            <DialogTitle className="text-base font-bold">
-              {activeCourseForLessons?.title}
+            <DialogTitle className="text-base font-bold text-foreground">
+              Curriculum &amp; Video Links: {activeCourseForLessons?.title}
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground line-clamp-2">
-              {activeCourseForLessons?.description}
+            <DialogDescription className="text-xs text-muted-foreground">
+              Add or update YouTube video IDs, duration, and lesson titles. Changes are persisted live to the platform database.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto pr-1 space-y-2.5 my-2">
-            {activeCourseForLessons?.lessons && activeCourseForLessons.lessons.length > 0 ? (
-              activeCourseForLessons.lessons.map((lesson: CourseLesson, index: number) => (
+          <div className="flex-1 overflow-y-auto pr-1 space-y-3 my-3">
+            {editableLessons.length > 0 ? (
+              editableLessons.map((lesson: CourseLesson, index: number) => (
                 <div
                   key={lesson.id || index}
-                  className="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/60 transition-colors"
+                  className="p-3.5 rounded-lg border border-border bg-muted/20 hover:bg-muted/30 transition-colors space-y-2.5"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-7 h-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
-                      {index + 1}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs shrink-0">
+                        {index + 1}
+                      </span>
+                      <Input
+                        value={lesson.title}
+                        onChange={(e) => handleUpdateLesson(index, "title", e.target.value)}
+                        placeholder="Lesson Title (e.g. Day 1: Bed Preparation)"
+                        className="h-8 text-xs font-semibold"
+                      />
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteLesson(index)}
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
+                      title="Delete Lesson"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
                     <div>
-                      <p className="text-xs font-semibold text-foreground line-clamp-1">
-                        {lesson.title}
-                      </p>
-                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-0.5">
-                        <Clock className="w-3 h-3" />
-                        <span>{lesson.duration}</span>
+                      <label className="text-[10px] text-muted-foreground mb-1 block">Duration</label>
+                      <Input
+                        value={lesson.duration}
+                        onChange={(e) => handleUpdateLesson(index, "duration", e.target.value)}
+                        placeholder="e.g. 45:00"
+                        className="h-8 text-xs font-mono"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="text-[10px] text-muted-foreground mb-1 block">
+                        YouTube Video ID or Full Link
+                      </label>
+                      <div className="flex items-center gap-1.5">
+                        <Input
+                          value={lesson.videoId || ""}
+                          onChange={(e) => handleUpdateLesson(index, "videoId", e.target.value)}
+                          placeholder="e.g. yMSHPl11JHI or paste YouTube URL"
+                          className="h-8 text-xs font-mono flex-1"
+                        />
                         {lesson.videoId && (
-                          <span className="font-mono text-[10px] bg-background px-1.5 py-0.2 rounded border">
-                            ID: {lesson.videoId}
-                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                            className="h-8 px-2.5 text-xs text-primary border-primary/30 shrink-0 gap-1"
+                            onClick={() =>
+                              window.open(
+                                `https://www.youtube.com/watch?v=${lesson.videoId}`,
+                                "_blank"
+                              )
+                            }
+                          >
+                            <PlayCircle className="w-3.5 h-3.5" /> Test
+                          </Button>
                         )}
                       </div>
                     </div>
                   </div>
-
-                  {lesson.videoId && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 text-xs gap-1 text-primary hover:bg-primary/10 shrink-0"
-                      onClick={() =>
-                        window.open(
-                          `https://www.youtube.com/watch?v=${lesson.videoId}`,
-                          "_blank"
-                        )
-                      }
-                    >
-                      <PlayCircle className="w-3.5 h-3.5" />
-                      Watch Video
-                    </Button>
-                  )}
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-xs text-muted-foreground">
-                No lessons defined yet for this course.
+              <div className="text-center py-8 text-xs text-muted-foreground border border-dashed rounded-lg">
+                No lessons defined yet. Click &quot;Add Lesson&quot; to begin building this curriculum.
               </div>
             )}
           </div>
 
-          <DialogFooter className="border-t pt-3">
+          <DialogFooter className="border-t pt-3 flex flex-col sm:flex-row gap-2 justify-between">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setActiveCourseForLessons(null)}
+              className="text-xs"
             >
-              Close
+              Cancel
             </Button>
-            <Button
-              size="sm"
-              className="gap-1 bg-primary text-primary-foreground"
-              onClick={() => {
-                if (activeCourseForLessons) {
-                  window.open(
-                    `https://agroheal.solutions/dashboard/courses/${activeCourseForLessons.slug}`,
-                    "_blank"
-                  );
-                }
-              }}
-            >
-              <ExternalLink className="w-3.5 h-3.5" />
-              Open in Member Portal
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddLesson}
+                className="text-xs gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Another Lesson
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveLessons}
+                disabled={savingDb}
+                className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-medium"
+              >
+                {savingDb ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                {savingDb ? "Saving..." : "Save Curriculum to DB"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -413,7 +612,7 @@ export default function CoursesAdminPage() {
         open={Boolean(editingCourse)}
         onOpenChange={(open) => !open && setEditingCourse(null)}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
               <Edit3 className="w-4 h-4 text-primary" />
@@ -545,7 +744,7 @@ export default function CoursesAdminPage() {
 
       {/* Create Course Dialog */}
       <Dialog open={isCreating} onOpenChange={setIsCreating}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2">
               <Plus className="w-4 h-4 text-primary" />

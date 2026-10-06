@@ -23,6 +23,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import CoreDriversPage from "@/pages/CoreDriversPage";
 import LeaderboardPage from "@/pages/LeaderboardPage";
 import CoursesAdminPage from "@/pages/CoursesAdminPage";
+import ContentManagementPage from "@/pages/ContentManagementPage";
 
 const router = createBrowserRouter([
   { path: "/signin", element: <LoginPage /> },
@@ -40,6 +41,7 @@ const router = createBrowserRouter([
           { path: "core-drivers", element: <CoreDriversPage /> },
           { path: "payments", element: <PaymentsPage /> },
           { path: "treasury", element: <TreasuryPage /> },
+          { path: "content", element: <ContentManagementPage /> },
           { path: "courses", element: <CoursesAdminPage /> },
           { path: "settings", element: <SettingsPage /> },
         ],

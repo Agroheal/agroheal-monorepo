@@ -24,6 +24,7 @@ import NotificationBell from "./NotificationBell";
 import HowItWorksContent from "@/components/webComponents/HowItWorksContent";
 import UserAvatar from "@/components/ui/UserAvatar";
 import ProfileCompletionModal from "@/components/dashboard/ProfileCompletionModal";
+import BroadcastAnnouncementModal from "@/components/dashboard/BroadcastAnnouncementModal";
 import { CutoverCountdownBanner } from "@/components/common/CutoverCountdownBanner";
 
 const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
@@ -900,6 +901,9 @@ const DashboardLayout = () => {
           }}
         />
       )}
+
+      {/* Unskippable 5-Second Broadcast Announcement Modal */}
+      <BroadcastAnnouncementModal />
     </div>
   );
 };
