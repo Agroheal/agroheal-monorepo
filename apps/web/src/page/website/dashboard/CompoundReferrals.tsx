@@ -38,6 +38,7 @@ import {
   ChevronUp,
   Compass,
   Loader2,
+  MessageCircle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,8 @@ export interface OrganogramNode {
   phone?: string | null;
   memberId: string;
   parentId?: string | null;
+  placementParentId?: string | null;
+  placementStatus?: string | null;
   position: number; // 1 to 5
   level: number;
   slotsHeld: number;
@@ -487,7 +490,7 @@ const CompoundReferrals: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchStatus, setSearchStatus] = useState<string>("");
   const [directoryFilter, setDirectoryFilter] = useState<"ALL" | "DIRECT" | "TREE" | "UNPAID" | "SPILLOVER">("ALL");
-  const [sortBy, setSortBy] = useState<"SLOTS_DESC" | "SLOTS_ASC" | "DATE_DESC" | "DATE_ASC" | "GC_DATE_DESC" | "GC_DATE_ASC" | "NAME_ASC" | "LEG_ASC">("SLOTS_DESC");
+  const [sortBy, setSortBy] = useState<"SLOTS_DESC" | "SLOTS_ASC" | "DATE_DESC" | "DATE_ASC" | "GC_DATE_DESC" | "GC_DATE_ASC" | "NAME_ASC" | "LEG_ASC">("GC_DATE_DESC");
   const [visibleCount, setVisibleCount] = useState<number>(10);
   const [isMilestoneFolded, setIsMilestoneFolded] = useState<boolean>(true);
 
@@ -823,6 +826,8 @@ const CompoundReferrals: React.FC = () => {
             phone: cp.phone || null,
             memberId: formatAgcId(cp.member_id),
             parentId: targetId,
+            placementParentId: cp.placement_parent_id || targetId,
+            placementStatus: cp.placement_status || "PLACED",
             position: leg,
             level: 1,
             slotsHeld: cSlotCount,
@@ -843,14 +848,17 @@ const CompoundReferrals: React.FC = () => {
         if (!Array.from(occupiedLegs.values()).some((p) => p.id === cp.id)) {
           const cSlotCount = slotsMap.get(cp.id) || 0;
           const grandChildrenCount = grandChildrenCountMap.get(cp.id) || 0;
+          const isPlaced = Boolean(cp.placement_parent_id || cp.placement_status === "PLACED");
           allRoster.push({
             id: cp.id,
             fullName: cp.full_name || "Downline Partner",
             email: cp.email || "",
             phone: cp.phone || null,
             memberId: formatAgcId(cp.member_id),
-            parentId: targetId,
-            position: 0,
+            parentId: cp.placement_parent_id || targetId,
+            placementParentId: cp.placement_parent_id || null,
+            placementStatus: cp.placement_status || (isPlaced ? "PLACED" : "HOLDING_TANK"),
+            position: cp.placement_parent_id === targetId ? cp.matrix_position || 0 : 0,
             level: 2,
             slotsHeld: cSlotCount,
             directReferralsCount: grandChildrenCount,
@@ -1292,7 +1300,7 @@ const CompoundReferrals: React.FC = () => {
       if (!matchSearch && q) return false;
 
       if (directoryFilter === "DIRECT") return !item.isSpillover;
-      if (directoryFilter === "TREE") return item.position > 0 && item.slotsHeld > 0;
+      if (directoryFilter === "TREE") return (item.position > 0 || Boolean(item.placementParentId) || item.placementStatus === "PLACED") && item.slotsHeld > 0;
       if (directoryFilter === "UNPAID") return item.slotsHeld === 0;
       if (directoryFilter === "SPILLOVER") return Boolean(item.isSpillover);
       return true;
@@ -1363,11 +1371,11 @@ const CompoundReferrals: React.FC = () => {
 
   if (isFullscreen) {
     return (
-      <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col font-sans">
+      <div className="h-screen w-screen overflow-hidden bg-slate-900 text-slate-100 flex flex-col font-sans">
         <Toaster position="top-right" />
 
         {/* Minimal Fullscreen Header */}
-        <header className="bg-slate-950/95 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 sticky top-0 z-50">
+        <header className="shrink-0 bg-slate-950/95 backdrop-blur-md border-b border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 sticky top-0 z-50">
           <div className="flex items-center gap-3">
             <Button
               variant="outline"
@@ -1446,38 +1454,36 @@ const CompoundReferrals: React.FC = () => {
               </span>
             </label>
 
-            {/* Zoom Controls when Aerial View is active */}
-            {aerialView && (
-              <div className="hidden lg:flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-xl px-2 py-0.5 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setAerialZoom((z) => Math.max(0.4, Number((z - 0.15).toFixed(2))))}
-                  className="p-1 text-slate-300 hover:text-white cursor-pointer"
-                  title="Zoom Out"
-                >
-                  <ZoomOut className="w-3.5 h-3.5" />
-                </button>
-                <span className="font-mono text-[10px] text-emerald-400 font-bold px-1 select-none">
-                  {Math.round(aerialZoom * 100)}%
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setAerialZoom((z) => Math.min(1.8, Number((z + 0.15).toFixed(2))))}
-                  className="p-1 text-slate-300 hover:text-white cursor-pointer"
-                  title="Zoom In"
-                >
-                  <ZoomIn className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAerialZoom(1)}
-                  className="text-[10px] text-slate-400 hover:text-emerald-300 ml-1 underline cursor-pointer"
-                  title="Reset Zoom"
-                >
-                  Reset
-                </button>
-              </div>
-            )}
+            {/* Canvas Zoom Controls */}
+            <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-xl px-2 py-0.5 text-xs">
+              <button
+                type="button"
+                onClick={() => setAerialZoom((z) => Math.max(0.3, Number((z - 0.1).toFixed(2))))}
+                className="p-1 text-slate-300 hover:text-white cursor-pointer"
+                title="Zoom Out"
+              >
+                <ZoomOut className="w-3.5 h-3.5" />
+              </button>
+              <span className="font-mono text-[10px] text-emerald-400 font-bold px-1 select-none">
+                {Math.round(aerialZoom * 100)}%
+              </span>
+              <button
+                type="button"
+                onClick={() => setAerialZoom((z) => Math.min(1.8, Number((z + 0.1).toFixed(2))))}
+                className="p-1 text-slate-300 hover:text-white cursor-pointer"
+                title="Zoom In"
+              >
+                <ZoomIn className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setAerialZoom(1)}
+                className="text-[10px] text-slate-400 hover:text-emerald-300 ml-1 underline cursor-pointer"
+                title="Reset Zoom"
+              >
+                Reset
+              </button>
+            </div>
 
             {activeRootNode && activeRootNode.id !== currentUserId && (
               <Button
@@ -1495,7 +1501,7 @@ const CompoundReferrals: React.FC = () => {
         </header>
 
         {/* Search bar in landscape */}
-        <div className="bg-slate-950/60 border-b border-slate-800 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
+        <div className="shrink-0 bg-slate-950/60 border-b border-slate-800 px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
           <form onSubmit={handleSearch} className="flex items-center gap-2 max-w-md w-full">
             <div className="relative flex-1">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -1533,14 +1539,14 @@ const CompoundReferrals: React.FC = () => {
         </div>
 
         {/* Wide Landscape Canvas with drag-to-pan & continuous touching branches */}
-        <div {...getPanProps(fullscreenCanvasRef)} className="flex-1 overflow-auto p-8 sm:p-14 flex justify-center cursor-grab active:cursor-grabbing select-none">
+        <div {...getPanProps(fullscreenCanvasRef)} className="flex-1 overflow-auto p-8 sm:p-14 cursor-grab active:cursor-grabbing select-none">
           {activeRootNode ? (
             <div
-              className={`flex flex-col items-center py-4 transition-transform duration-200 min-w-max ${
+              className={`w-fit min-w-fit mx-auto flex flex-col items-center py-6 px-16 sm:px-24 transition-transform duration-200 ${
                 aerialView ? "space-y-6" : "space-y-4"
               }`}
               style={
-                aerialView
+                aerialZoom !== 1
                   ? { transform: `scale(${aerialZoom})`, transformOrigin: "top center" }
                   : undefined
               }
@@ -2315,9 +2321,9 @@ const CompoundReferrals: React.FC = () => {
               </div>
 
               {/* Tree Canvas with drag-to-pan & ample padding */}
-              <div {...getPanProps(inlineCanvasRef)} className="w-full overflow-auto py-8 px-6 sm:px-14 flex justify-center cursor-grab active:cursor-grabbing select-none min-h-[460px]">
+              <div {...getPanProps(inlineCanvasRef)} className="w-full overflow-auto py-8 px-6 sm:px-14 cursor-grab active:cursor-grabbing select-none min-h-[460px]">
                 <div
-                  className={`flex flex-col items-center transition-transform duration-200 min-w-max ${
+                  className={`w-fit min-w-fit mx-auto flex flex-col items-center transition-transform duration-200 px-6 sm:px-12 ${
                     aerialView ? "space-y-6" : "space-y-4"
                   }`}
                   style={
@@ -2434,111 +2440,110 @@ const CompoundReferrals: React.FC = () => {
 
         {/* ── DOWNLINE MEMBERS DIRECTORY ── */}
         <div id="downline-directory" className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">
-                  <Users className="w-4 h-4" />
-                </span>
-                <h3 className="text-lg font-bold text-gray-900">Downline Members Directory</h3>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Comprehensive roster of all members in your downline structure with contact actions.
-              </p>
+          {/* Directory Title Row */}
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">
+                <Users className="w-4 h-4" />
+              </span>
+              <h3 className="text-lg font-bold text-gray-900">Downline Members Directory</h3>
             </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Comprehensive roster of all members in your downline structure with direct WhatsApp contact.
+            </p>
+          </div>
 
-            {/* Intelligent Filter Segmented Tabs + Sort Controls */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-1">
-              {/* Segmented Filter Control */}
-              <div className="inline-flex p-1 bg-gray-100/90 rounded-2xl border border-gray-200/80 max-w-full overflow-x-auto shadow-2xs gap-1">
-                {[
-                  {
-                    key: "ALL",
-                    label: "All Downlines",
-                    count: downlineList.length,
-                    activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
-                    badgeActive: "bg-emerald-800 text-emerald-200",
-                    badgeInactive: "bg-gray-200 text-gray-700",
-                  },
-                  {
-                    key: "TREE",
-                    label: "Active in Tree",
-                    count: downlineList.filter((d) => d.position > 0 && d.slotsHeld > 0).length,
-                    activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
-                    badgeActive: "bg-emerald-800 text-emerald-200",
-                    badgeInactive: "bg-gray-200 text-gray-700",
-                  },
-                  {
-                    key: "DIRECT",
-                    label: "Direct Personal",
-                    count: downlineList.filter((d) => !d.isSpillover).length,
-                    activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
-                    badgeActive: "bg-emerald-800 text-emerald-200",
-                    badgeInactive: "bg-gray-200 text-gray-700",
-                  },
-                  {
-                    key: "UNPAID",
-                    label: "Unpaid / 0 Slots",
-                    count: downlineList.filter((d) => d.slotsHeld === 0).length,
-                    activeClass: "bg-amber-700 text-white shadow-xs font-semibold",
-                    badgeActive: "bg-amber-800 text-amber-200",
-                    badgeInactive: "bg-amber-100 text-amber-800 font-semibold",
-                  },
-                  {
-                    key: "SPILLOVER",
-                    label: "Spillover",
-                    count: downlineList.filter((d) => d.isSpillover).length,
-                    activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
-                    badgeActive: "bg-emerald-800 text-emerald-200",
-                    badgeInactive: "bg-gray-200 text-gray-700",
-                  },
-                ].map((tab) => {
-                  const isActive = directoryFilter === tab.key;
-                  return (
-                    <button
-                      key={tab.key}
-                      type="button"
-                      onClick={() => setDirectoryFilter(tab.key as any)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs transition-all whitespace-nowrap cursor-pointer ${
-                        isActive
-                          ? tab.activeClass
-                          : "text-gray-600 hover:text-gray-900 hover:bg-white/60 font-medium"
+          {/* Intelligent Filter Segmented Tabs + Sort Controls */}
+          <div className="flex flex-wrap items-center justify-between gap-3 pt-1 border-b border-gray-100 pb-4">
+            {/* Segmented Filter Control */}
+            <div className="inline-flex flex-wrap p-1 bg-gray-100/90 rounded-2xl border border-gray-200/80 shadow-2xs gap-1">
+              {[
+                {
+                  key: "ALL",
+                  label: "All Downlines",
+                  count: downlineList.length,
+                  activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
+                  badgeActive: "bg-emerald-800 text-emerald-200",
+                  badgeInactive: "bg-gray-200 text-gray-700",
+                },
+                {
+                  key: "TREE",
+                  label: "Active in Tree",
+                  count: downlineList.filter((d) => (d.position > 0 || Boolean(d.placementParentId) || d.placementStatus === "PLACED") && d.slotsHeld > 0).length,
+                  activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
+                  badgeActive: "bg-emerald-800 text-emerald-200",
+                  badgeInactive: "bg-gray-200 text-gray-700",
+                },
+                {
+                  key: "DIRECT",
+                  label: "Direct Personal",
+                  count: downlineList.filter((d) => !d.isSpillover).length,
+                  activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
+                  badgeActive: "bg-emerald-800 text-emerald-200",
+                  badgeInactive: "bg-gray-200 text-gray-700",
+                },
+                {
+                  key: "UNPAID",
+                  label: "Unpaid / 0 Slots",
+                  count: downlineList.filter((d) => d.slotsHeld === 0).length,
+                  activeClass: "bg-amber-700 text-white shadow-xs font-semibold",
+                  badgeActive: "bg-amber-800 text-amber-200",
+                  badgeInactive: "bg-amber-100 text-amber-800 font-semibold",
+                },
+                {
+                  key: "SPILLOVER",
+                  label: "Spillover",
+                  count: downlineList.filter((d) => d.isSpillover).length,
+                  activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
+                  badgeActive: "bg-emerald-800 text-emerald-200",
+                  badgeInactive: "bg-gray-200 text-gray-700",
+                },
+              ].map((tab) => {
+                const isActive = directoryFilter === tab.key;
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setDirectoryFilter(tab.key as any)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs transition-all whitespace-nowrap cursor-pointer ${
+                      isActive
+                        ? tab.activeClass
+                        : "text-gray-600 hover:text-gray-900 hover:bg-white/60 font-medium"
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span
+                      className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none ${
+                        isActive ? tab.badgeActive : tab.badgeInactive
                       }`}
                     >
-                      <span>{tab.label}</span>
-                      <span
-                        className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono leading-none ${
-                          isActive ? tab.badgeActive : tab.badgeInactive
-                        }`}
-                      >
-                        {tab.count}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                      {tab.count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
 
-              {/* Sorting Selector */}
-              <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs text-gray-500 font-medium flex items-center gap-1">
-                  <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
-                  <span>Sort by:</span>
-                </span>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
-                  className="bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-800 text-xs font-semibold rounded-xl px-3 py-1.5 outline-none cursor-pointer transition-colors shadow-2xs"
-                >
-                  <option value="SLOTS_DESC">Most Farm Slots</option>
-                  <option value="SLOTS_ASC">Least Farm Slots</option>
-                  <option value="GC_DATE_DESC">GC Activated: Newest First</option>
-                  <option value="GC_DATE_ASC">GC Activated: Oldest First</option>
-                  <option value="DATE_DESC">Joined: Newest First</option>
-                  <option value="DATE_ASC">Joined: Oldest First</option>
-                  <option value="NAME_ASC">Name (A – Z)</option>
-                  <option value="LEG_ASC">Tree Leg (1 – 5)</option>
-                </select>
-              </div>
+            {/* Sorting Selector */}
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs text-gray-500 font-medium flex items-center gap-1">
+                <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
+                <span>Sort by:</span>
+              </span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="bg-gray-50 hover:bg-gray-100 border border-gray-200 text-gray-800 text-xs font-semibold rounded-xl px-3 py-1.5 outline-none cursor-pointer transition-colors shadow-2xs"
+              >
+                <option value="GC_DATE_DESC">GC Activated: Newest First</option>
+                <option value="GC_DATE_ASC">GC Activated: Oldest First</option>
+                <option value="SLOTS_DESC">Most Farm Slots</option>
+                <option value="SLOTS_ASC">Least Farm Slots</option>
+                <option value="DATE_DESC">Joined: Newest First</option>
+                <option value="DATE_ASC">Joined: Oldest First</option>
+                <option value="NAME_ASC">Name (A – Z)</option>
+                <option value="LEG_ASC">Tree Leg (1 – 5)</option>
+              </select>
             </div>
           </div>
 
@@ -2553,7 +2558,7 @@ const CompoundReferrals: React.FC = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="w-full overflow-x-auto lg:overflow-x-visible rounded-2xl border border-gray-100 shadow-2xs">
+              <div className="w-full overflow-x-auto rounded-2xl border border-gray-100 shadow-2xs">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-gray-50/80 border-b border-gray-100 text-gray-500 uppercase font-semibold text-[10px] tracking-wider select-none">
                     <tr>
@@ -2597,14 +2602,13 @@ const CompoundReferrals: React.FC = () => {
                           <ArrowUpDown className="w-3 h-3 text-gray-400" />
                         </span>
                       </th>
-                      <th className="py-2.5 px-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {visibleDirectory.map((m, idx) => (
                       <tr key={m.id} className="hover:bg-emerald-50/30 transition-colors">
                         <td className="py-2.5 px-2.5 text-gray-400 font-mono text-[11px]">{idx + 1}</td>
-                        <td className="py-2.5 px-3 font-bold text-gray-900 max-w-[130px] lg:max-w-[160px] truncate" title={m.fullName}>{m.fullName}</td>
+                        <td className="py-2.5 px-3 font-bold text-gray-900 max-w-[130px] lg:max-w-[170px] truncate" title={m.fullName}>{m.fullName}</td>
                         <td className="py-2.5 px-2.5 font-mono font-semibold text-emerald-800 whitespace-nowrap text-[11px]">
                           {m.memberId}
                         </td>
@@ -2645,7 +2649,7 @@ const CompoundReferrals: React.FC = () => {
                             </button>
                           </div>
                           {m.phone && (
-                            <div className="flex items-center gap-1.5 group text-[10px] text-gray-400 mt-0.5">
+                            <div className="flex items-center gap-1.5 group text-[10px] text-gray-500 mt-0.5">
                               <span className="truncate">{m.phone}</span>
                               <button
                                 type="button"
@@ -2657,6 +2661,19 @@ const CompoundReferrals: React.FC = () => {
                                 title="Copy Phone"
                               >
                                 <Copy className="w-2.5 h-2.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const cleanPhone = (m.phone || "").replace(/[^0-9]/g, "");
+                                  if (cleanPhone) {
+                                    window.open(`https://wa.me/${cleanPhone}`, "_blank");
+                                  }
+                                }}
+                                className="text-emerald-600 hover:text-emerald-800 p-0.5 rounded hover:bg-emerald-100 transition-colors shrink-0 cursor-pointer ml-0.5"
+                                title="Chat on WhatsApp"
+                              >
+                                <MessageCircle className="w-3.5 h-3.5" />
                               </button>
                             </div>
                           )}
@@ -2688,38 +2705,15 @@ const CompoundReferrals: React.FC = () => {
                             <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md text-[10px] border border-emerald-100">
                               Leg #{m.position}
                             </span>
+                          ) : m.placementParentId || m.placementStatus === "PLACED" ? (
+                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md text-[10px] border border-emerald-100">
+                              Placed in Tree
+                            </span>
                           ) : (
-                            <span className="font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md text-[10px]">
-                              Direct Enrollee
+                            <span className="font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md text-[10px] border border-amber-200">
+                              Holding Tank
                             </span>
                           )}
-                        </td>
-                        <td className="py-2.5 px-3 text-right space-x-1 whitespace-nowrap">
-                          {(!m.position || m.position === 0) && (
-                            <button
-                              onClick={() => setSelectedHoldingEnrollee(m)}
-                              className="text-emerald-800 hover:text-emerald-950 font-bold bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 px-2 py-0.5 rounded-md text-[10px] transition-colors cursor-pointer"
-                            >
-                              Place
-                            </button>
-                          )}
-                          {m.phone && (
-                            <button
-                              onClick={() => window.open(`https://wa.me/${m.phone?.replace(/[^0-9]/g, "")}`, "_blank")}
-                              className="text-emerald-700 hover:text-emerald-900 font-bold bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-md text-[10px] cursor-pointer"
-                            >
-                              WhatsApp
-                            </button>
-                          )}
-                          <button
-                            onClick={() => {
-                              buildSubtree(m.id, false);
-                              window.scrollTo({ top: 400, behavior: "smooth" });
-                            }}
-                            className="text-blue-700 hover:text-blue-900 font-bold bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-md text-[10px] cursor-pointer"
-                          >
-                            Inspect
-                          </button>
                         </td>
                       </tr>
                     ))}
