@@ -395,7 +395,13 @@ const SidebarContent = ({
                 key={group.id}
                 to={group.path}
                 end={group.exact}
-                onClick={handleClose}
+                onClick={(e) => {
+                  handleClose();
+                  if (group.id === "return-modern" && isLegacyRoute) {
+                    e.preventDefault();
+                    window.location.href = group.path;
+                  }
+                }}
                 title={group.label}
                 className={({ isActive }) =>
                   `flex items-center justify-center p-2.5 rounded-xl transition-all duration-150 ${
@@ -423,7 +429,13 @@ const SidebarContent = ({
                 key={group.id}
                 to={group.path}
                 end={group.exact}
-                onClick={handleClose}
+                onClick={(e) => {
+                  handleClose();
+                  if (group.id === "return-modern" && isLegacyRoute) {
+                    e.preventDefault();
+                    window.location.href = group.path;
+                  }
+                }}
                 className={({ isActive }) =>
                   `flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all duration-150 ${
                     isActive
@@ -528,7 +540,13 @@ const SidebarContent = ({
                         <NavLink
                           key={sub.path}
                           to={sub.path}
-                          onClick={handleClose}
+                          onClick={(e) => {
+                            handleClose();
+                            if (sub.path.startsWith("/legacy") && !isLegacyRoute) {
+                              e.preventDefault();
+                              window.location.href = sub.path;
+                            }
+                          }}
                           className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                             isSubActive
                               ? "bg-white text-emerald-950 font-semibold shadow-xs"
@@ -888,6 +906,46 @@ const DashboardLayout = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            {/* Dedicated Legacy / Modern Mode View Switcher (Forces hard reload to align entire data) */}
+            {isLegacy && (
+              <div className="flex items-center p-0.5 rounded-xl bg-gray-100 border border-gray-200 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (normalizedPath.startsWith("/legacy")) {
+                      window.location.href = "/dashboard";
+                    }
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    !normalizedPath.startsWith("/legacy")
+                      ? "bg-emerald-700 text-white shadow-xs"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                  title="Switch to Modern Dashboard"
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Modern</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!normalizedPath.startsWith("/legacy")) {
+                      window.location.href = "/legacy/group-farm-accounts";
+                    }
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    normalizedPath.startsWith("/legacy")
+                      ? "bg-amber-600 text-white shadow-xs font-extrabold"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                  title="Switch to Legacy Founding Records Portal"
+                >
+                  <Landmark className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Legacy</span>
+                </button>
+              </div>
+            )}
+
             {/* How It Works Header Button */}
             <button
               onClick={() => setHowItWorksOpen(true)}

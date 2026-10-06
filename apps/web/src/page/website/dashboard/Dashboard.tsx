@@ -205,17 +205,32 @@ const Dashboard = () => {
       profileData.total_referrals = computedTotalReferrals;
       profileData.referrals = directReferralsList;
 
-      // Build enriched direct referrals with Tier 2 downline enrollees
+      // Build enriched direct referrals with Tier 2 & Tier 3 downline enrollees
       let enrichedList: DirectReferralInfo[] = [];
       if (directReferralsList.length > 0) {
         try {
-          const directIds = directReferralsList.map((d: any) => d.id);
+          const directIds = directReferralsList.map((d: any) => d.id).filter(Boolean);
           const { data: tier2Data } = await supabase
             .from("profiles")
-            .select("id, full_name, referred_by, sponsor_id, member_id, created_at")
+            .select("id, full_name, referred_by, sponsor_id, member_id, created_at, total_referrals")
             .or(`referred_by.in.(${directIds.join(",")}),sponsor_id.in.(${directIds.join(",")})`);
 
           const t2List = tier2Data || [];
+          const t2Ids = t2List.map((t: any) => t.id).filter(Boolean);
+
+          let t3List: any[] = [];
+          if (t2Ids.length > 0) {
+            try {
+              const { data: tier3Data } = await supabase
+                .from("profiles")
+                .select("id, full_name, referred_by, sponsor_id, member_id, created_at, total_referrals")
+                .or(`referred_by.in.(${t2Ids.join(",")}),sponsor_id.in.(${t2Ids.join(",")})`);
+              t3List = tier3Data || [];
+            } catch (t3Err) {
+              console.warn("Failed to fetch Tier 3 downlines:", t3Err);
+            }
+          }
+
           enrichedList = directReferralsList.map((d: any) => {
             const memberT2 = t2List.filter(
               (t: any) => t.referred_by === d.id || t.sponsor_id === d.id
@@ -225,11 +240,22 @@ const Dashboard = () => {
               fullName: d.full_name || "Member",
               memberId: d.member_id,
               directsCount: Math.max(Number(d.total_referrals) || 0, memberT2.length),
-              tier2Members: memberT2.map((m: any) => ({
-                id: m.id,
-                fullName: m.full_name || "Member",
-                memberId: m.member_id,
-              })),
+              tier2Members: memberT2.map((m: any) => {
+                const memberT3 = t3List.filter(
+                  (t3: any) => t3.referred_by === m.id || t3.sponsor_id === m.id
+                );
+                return {
+                  id: m.id,
+                  fullName: m.full_name || "Member",
+                  memberId: m.member_id,
+                  directsCount: Math.max(Number(m.total_referrals) || 0, memberT3.length),
+                  tier3Members: memberT3.map((x: any) => ({
+                    id: x.id,
+                    fullName: x.full_name || "Member",
+                    memberId: x.member_id,
+                  })),
+                };
+              }),
             };
           });
         } catch (t2Err) {
@@ -809,6 +835,14 @@ const Dashboard = () => {
                 ) : (
                   <Link
                     to={tile.path}
+                    onClick={
+                      tile.id === "legacy-portal"
+                        ? (e) => {
+                            e.preventDefault();
+                            window.location.href = tile.path;
+                          }
+                        : undefined
+                    }
                     className="group relative bg-white rounded-2xl p-4 sm:p-5 border border-gray-200/80 hover:border-emerald-600 hover:shadow-md transition-all duration-200 flex flex-col justify-between h-full overflow-hidden"
                   >
                     <div>

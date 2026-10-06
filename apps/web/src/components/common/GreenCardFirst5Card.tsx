@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "react-router-dom";
 import {
@@ -15,22 +15,40 @@ import {
   ChevronLeft,
   ChevronRight,
   GitBranch,
-  ShieldCheck,
-  UserCheck,
   ArrowRight,
+  Layers,
+  LayoutGrid,
 } from "lucide-react";
 import { showToast } from "@/components/ui/ToastComponent";
+
+export interface Tier4MemberInfo {
+  id: string;
+  fullName: string;
+  memberId?: string;
+}
+
+export interface Tier3MemberInfo {
+  id: string;
+  fullName: string;
+  memberId?: string;
+  directsCount?: number;
+  tier4Members?: Tier4MemberInfo[];
+}
+
+export interface Tier2MemberInfo {
+  id: string;
+  fullName: string;
+  memberId?: string;
+  directsCount?: number;
+  tier3Members?: Tier3MemberInfo[];
+}
 
 export interface DirectReferralInfo {
   id: string;
   fullName: string;
   memberId?: string;
   directsCount: number;
-  tier2Members?: Array<{
-    id: string;
-    fullName: string;
-    memberId?: string;
-  }>;
+  tier2Members?: Tier2MemberInfo[];
 }
 
 interface GreenCardFirst5CardProps {
@@ -52,21 +70,102 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
   const [activeDay, setActiveDay] = useState<1 | 2 | 3>(1);
   const [copiedScript, setCopiedScript] = useState(false);
   const [selectedLeaderIndex, setSelectedLeaderIndex] = useState(0);
+  const [selectedTeam3Index, setSelectedTeam3Index] = useState(0);
+  const [selectedTeam4Index, setSelectedTeam4Index] = useState(0);
+  const [viewMode, setViewMode] = useState<"stepper" | "carousel">("stepper");
 
-  // Frontline: The first 5 direct recruits
+  const carouselRef = useRef<HTMLDivElement>(null);
+
+  // Frontline: The first 5 direct recruits (Level 1)
   const frontline5 = referralsList.slice(0, 5);
   const effectiveCount = Math.max(directReferralsCount, referralsList.length);
-  const level1Completed = frontline5.length >= 5 || effectiveCount >= 5;
+  const level1Count = Math.min(5, effectiveCount);
+  const level1Completed = level1Count >= 5;
 
-  // Tier 2: 25 expansion slots across the 5 leaders
+  // Level 2: 25 expansion slots across the 5 frontline leaders
   const totalTier2Count = frontline5.reduce(
     (acc, r) => acc + (r.tier2Members?.length || r.directsCount || 0),
     0
   );
   const level2Completed = level1Completed && totalTier2Count >= 25;
 
-  // Active level determination: Level 1 (First 5) -> Level 2 (25 Team Duplication) -> Level 3 (Expansion)
-  const currentLevel: 1 | 2 | 3 = !level1Completed ? 1 : !level2Completed ? 2 : 3;
+  // Level 3: 125 expansion slots across 25 Level 2 leaders
+  const level3Teams = useMemo(() => {
+    const teams: Array<{
+      teamIndex: number;
+      parentIdx: number;
+      parentName: string;
+      member: Tier2MemberInfo | null;
+      memberName: string;
+      isLeaderActive: boolean;
+      slots: Array<{
+        slotIdx: number;
+        member: Tier3MemberInfo | null;
+        isFilled: boolean;
+        name: string;
+      }>;
+      filledCount: number;
+    }> = [];
+
+    for (let leaderIdx = 0; leaderIdx < 5; leaderIdx++) {
+      const parentLeader = frontline5[leaderIdx] || null;
+      const parentName = parentLeader ? parentLeader.fullName.split(" ")[0] : `Frontline #${leaderIdx + 1}`;
+
+      for (let slotIdx = 0; slotIdx < 5; slotIdx++) {
+        const teamIndex = leaderIdx * 5 + slotIdx;
+        const tier2Member = parentLeader?.tier2Members?.[slotIdx] || null;
+        const isLeaderActive = Boolean(tier2Member) || (parentLeader?.directsCount || 0) > slotIdx;
+        const memberName = tier2Member
+          ? tier2Member.fullName.split(" ")[0]
+          : isLeaderActive
+          ? `Partner #${slotIdx + 1}`
+          : `Slot #${slotIdx + 1}`;
+
+        const tier3List = tier2Member?.tier3Members || [];
+        const t3Directs = tier2Member?.directsCount || 0;
+
+        const teamSlots = [1, 2, 3, 4, 5].map((sNum) => {
+          const t3Mem = tier3List[sNum - 1] || null;
+          const isFilled = Boolean(t3Mem) || t3Directs >= sNum;
+          const name = t3Mem
+            ? t3Mem.fullName.split(" ")[0]
+            : isFilled
+            ? `Partner #${sNum}`
+            : `Slot ${sNum}`;
+          return { slotIdx: sNum, member: t3Mem, isFilled, name };
+        });
+
+        const filledCount = teamSlots.filter((s) => s.isFilled).length;
+
+        teams.push({
+          teamIndex,
+          parentIdx: leaderIdx,
+          parentName,
+          member: tier2Member,
+          memberName,
+          isLeaderActive,
+          slots: teamSlots,
+          filledCount,
+        });
+      }
+    }
+    return teams;
+  }, [frontline5]);
+
+  const totalTier3Count = level3Teams.reduce((acc, t) => acc + t.filledCount, 0);
+  const level3Completed = level2Completed && totalTier3Count >= 125;
+
+  // Level 4: 625 expansion slots across 125 Level 3 leaders
+  const totalTier4Count = 0;
+  const level4Completed = level3Completed && totalTier4Count >= 625;
+
+  // Determine current progression tier
+  const activeLevel = !level1Completed ? 1 : !level2Completed ? 2 : !level3Completed ? 3 : 4;
+  const [viewingLevel, setViewingLevel] = useState<number>(() => activeLevel);
+
+  useEffect(() => {
+    setViewingLevel(activeLevel);
+  }, [activeLevel]);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "https://agroheal.solutions";
   const inviteLink = `${origin}/signup?ref=${referralCode || "356FV1"}`;
@@ -117,6 +216,26 @@ Join our next onboarding session and let's help your first 5 get started immedia
   };
 
   const activeLeader = frontline5[selectedLeaderIndex] || frontline5[0] || null;
+  const activeTeam3 = level3Teams[selectedTeam3Index] || level3Teams[0];
+
+  const scrollCarousel = (direction: "left" | "right") => {
+    if (carouselRef.current) {
+      const scrollAmount = 320;
+      carouselRef.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      });
+    }
+  };
+
+  const tierMeta = [
+    { lvl: 1, label: "Level 1", target: 5, current: level1Count, isDone: level1Completed },
+    { lvl: 2, label: "Level 2", target: 25, current: totalTier2Count, isDone: level2Completed },
+    { lvl: 3, label: "Level 3", target: 125, current: totalTier3Count, isDone: level3Completed },
+    { lvl: 4, label: "Level 4", target: 625, current: totalTier4Count, isDone: level4Completed },
+  ];
+
+  const currentMeta = tierMeta.find((t) => t.lvl === viewingLevel) || tierMeta[0];
 
   return (
     <div
@@ -128,7 +247,7 @@ Join our next onboarding session and let's help your first 5 get started immedia
 
       <div className="relative p-4 sm:p-6 lg:p-7">
         {/* Top Header Badge & Tagline */}
-        <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-3 mb-4">
+        <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-3 mb-3">
           <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-green-400 p-0.5 shadow-md flex items-center justify-center shrink-0">
               <div className="w-full h-full bg-[#0a2416] rounded-[10px] flex items-center justify-center">
@@ -139,58 +258,97 @@ Join our next onboarding session and let's help your first 5 get started immedia
               <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap">
                 <h3 className="text-sm sm:text-base lg:text-lg font-black tracking-tight text-white whitespace-nowrap">
                   <span>
-                    {currentLevel === 1
+                    {viewingLevel === 1
                       ? "GREEN CARD FIRST 5™"
-                      : currentLevel === 2
+                      : viewingLevel === 2
                       ? "TIER 2 DUPLICATION (25 SLOTS)"
-                      : "TIER 3 EXPANSION (125 SLOTS)"}
+                      : viewingLevel === 3
+                      ? "TIER 3 EXPANSION (125 SLOTS)"
+                      : "TIER 4 MOMENTUM (625 SLOTS)"}
                   </span>
                 </h3>
                 <span className="shrink-0 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 whitespace-nowrap">
-                  Level {currentLevel} Target
+                  Level {viewingLevel} Target
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-emerald-200/90 font-medium truncate sm:whitespace-normal">
-                {currentLevel === 1
+                {viewingLevel === 1
                   ? "Activate your first 5 frontline partners to complete Level 1."
-                  : currentLevel === 2
+                  : viewingLevel === 2
                   ? "Guide your 5 frontline leaders to each complete their 5."
-                  : "All frontline leaders duplicated! Matrix expansion in full progress."}
+                  : viewingLevel === 3
+                  ? "Duplicate matrix depth across 25 Level 2 leaders into Level 3."
+                  : "Expand matrix momentum across 125 Level 3 leaders into Level 4."}
               </p>
             </div>
           </div>
 
           {/* Level Progress Pill */}
           <div className="flex items-center gap-2 shrink-0">
-            {currentLevel === 1 ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-emerald-200 text-xs font-semibold">
-                <Users className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{Math.min(5, effectiveCount)} of 5 Activated</span>
-              </span>
-            ) : currentLevel === 2 ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-emerald-500/20 border border-emerald-400/40 text-emerald-300 text-xs font-bold shadow-sm">
-                <GitBranch className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{totalTier2Count} of 25 Duplicated</span>
-              </span>
-            ) : (
+            {currentMeta.isDone ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/25 to-emerald-500/25 border border-amber-400/40 text-amber-300 text-xs font-bold shadow-sm">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                <span>🎉 Tier 2 Master Achieved!</span>
+                <span>Level {viewingLevel} Mastered!</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-emerald-200 text-xs font-semibold">
+                <Users className="w-3.5 h-3.5 text-emerald-400" />
+                <span>
+                  {currentMeta.current} of {currentMeta.target} Completed
+                </span>
               </span>
             )}
           </div>
         </div>
 
+        {/* ── LEVEL SELECTOR NAVIGATION TABS ── */}
+        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none">
+          {tierMeta.map((tier) => {
+            const isSelected = viewingLevel === tier.lvl;
+            const isCurrentActive = activeLevel === tier.lvl;
+
+            return (
+              <button
+                key={tier.lvl}
+                type="button"
+                onClick={() => setViewingLevel(tier.lvl)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                  isSelected
+                    ? "bg-gradient-to-r from-emerald-500 to-green-400 text-emerald-950 shadow-md font-extrabold ring-2 ring-emerald-300"
+                    : "bg-white/10 text-emerald-100 hover:bg-white/15 border border-white/10"
+                }`}
+              >
+                <span>
+                  {tier.label} ({tier.target} Slots)
+                </span>
+                {tier.isDone ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-950 fill-emerald-300" />
+                ) : isCurrentActive ? (
+                  <span className="px-1.5 py-0.2 rounded-full text-[9px] bg-emerald-900/80 text-emerald-300 border border-emerald-400/30">
+                    Active
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-white/50 font-mono">
+                    {tier.current}/{tier.target}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
         {/* ── STAGE 1: LEVEL 1 TARGET (FIRST 5 DIRECTS ONLY) ── */}
-        {currentLevel === 1 && (
+        {viewingLevel === 1 && (
           <div className="bg-black/30 backdrop-blur-md rounded-xl sm:rounded-2xl p-3.5 sm:p-4 border border-white/10 mb-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-emerald-200/80 mb-2.5 gap-1.5 font-medium">
               <span className="flex items-center gap-1.5 text-white font-semibold">
                 <span>FIRST 5 FRONTLINE</span>
-                <span className="text-emerald-400 text-xs">({Math.min(5, effectiveCount)}/5 Completed)</span>
+                <span className="text-emerald-400 text-xs">
+                  ({level1Count}/5 Completed)
+                </span>
               </span>
               <span className="text-white/70">
-                {5 - Math.min(5, effectiveCount)} more needed to advance to Tier 2 Duplication
+                {Math.max(0, 5 - level1Count)} more needed to advance to Tier 2 Duplication
               </span>
             </div>
 
@@ -229,7 +387,10 @@ Join our next onboarding session and let's help your first 5 get started immedia
                     </div>
 
                     <div className="text-center w-full px-0.5 my-1">
-                      <span className="text-[10px] sm:text-xs font-bold tracking-tight block truncate max-w-full text-white" title={member?.fullName || firstName}>
+                      <span
+                        className="text-[10px] sm:text-xs font-bold tracking-tight block truncate max-w-full text-white"
+                        title={member?.fullName || firstName}
+                      >
                         {firstName}
                       </span>
                     </div>
@@ -254,7 +415,7 @@ Join our next onboarding session and let's help your first 5 get started immedia
             <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden mt-3">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${(Math.min(5, effectiveCount) / 5) * 100}%` }}
+                animate={{ width: `${(level1Count / 5) * 100}%` }}
                 transition={{ duration: 0.8, ease: "easeOut" }}
                 className="h-full bg-gradient-to-r from-emerald-400 to-green-300 rounded-full"
               />
@@ -267,7 +428,7 @@ Join our next onboarding session and let's help your first 5 get started immedia
         )}
 
         {/* ── STAGE 2: LEVEL 2 TARGET (TIER 2 DUPLICATION — 25 SLOTS) ── */}
-        {currentLevel === 2 && (
+        {viewingLevel === 2 && (
           <div className="bg-black/40 backdrop-blur-md rounded-xl sm:rounded-2xl p-3.5 sm:p-4 border border-white/10 mb-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-2 border-b border-white/10">
               <div>
@@ -360,14 +521,14 @@ Join our next onboarding session and let's help your first 5 get started immedia
                     {activeLeader.fullName}'s Direct 5 Team:
                   </span>
                   <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
-                    {(activeLeader.tier2Members?.length || activeLeader.directsCount || 0)} of 5 Slots Filled
+                    {activeLeader.tier2Members?.length || activeLeader.directsCount || 0} of 5 Slots Filled
                   </span>
                 </div>
 
                 <div className="grid grid-cols-5 gap-2 sm:gap-3 py-1">
                   {[1, 2, 3, 4, 5].map((slotIdx) => {
                     const tier2Member = activeLeader.tier2Members?.[slotIdx - 1];
-                    const isFilled = Boolean(tier2Member) || (activeLeader.directsCount >= slotIdx);
+                    const isFilled = Boolean(tier2Member) || activeLeader.directsCount >= slotIdx;
                     const memberName = tier2Member?.fullName
                       ? tier2Member.fullName.split(" ")[0]
                       : isFilled
@@ -398,7 +559,10 @@ Join our next onboarding session and let's help your first 5 get started immedia
                         </div>
 
                         <div className="text-center w-full px-0.5 my-1">
-                          <span className="text-[10px] sm:text-xs font-bold tracking-tight block truncate max-w-full text-white" title={tier2Member?.fullName || memberName}>
+                          <span
+                            className="text-[10px] sm:text-xs font-bold tracking-tight block truncate max-w-full text-white"
+                            title={tier2Member?.fullName || memberName}
+                          >
                             {memberName}
                           </span>
                         </div>
@@ -421,34 +585,379 @@ Join our next onboarding session and let's help your first 5 get started immedia
               </div>
             )}
 
-            {/* Spillover note */}
+            {/* Progress bar line */}
+            <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden mt-3">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${(Math.min(25, totalTier2Count) / 25) * 100}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="h-full bg-gradient-to-r from-emerald-400 to-green-300 rounded-full"
+              />
+            </div>
+
             <p className="text-[10px] text-emerald-300/70 mt-2.5 italic">
               * Note: Spillovers do not count as direct recruits. Only direct, paid Green Card recruits count toward First 5 progression.
             </p>
           </div>
         )}
 
-        {/* ── STAGE 3: LEVEL 3+ EXPANSION (ACHIEVEMENT CARD) ── */}
-        {currentLevel === 3 && (
-          <div className="bg-black/40 backdrop-blur-md rounded-xl sm:rounded-2xl p-4 border border-amber-400/30 mb-5">
-            <div className="flex items-center justify-between">
+        {/* ── STAGE 3: LEVEL 3 TARGET (TIER 3 EXPANSION — 125 SLOTS CAROUSEL / SCROLL LIST) ── */}
+        {viewingLevel === 3 && (
+          <div className="bg-black/40 backdrop-blur-md rounded-xl sm:rounded-2xl p-3.5 sm:p-4 border border-white/10 mb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-2 border-b border-white/10">
               <div>
-                <h4 className="text-sm sm:text-base font-bold text-amber-300 flex items-center gap-1.5">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>Tier 2 Completed (25/25 Duplicated)</span>
+                <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                  <GitBranch className="w-4 h-4 text-emerald-400" />
+                  <span>Tier 3 Duplication Matrix (125 Expansion Slots)</span>
                 </h4>
-                <p className="text-xs text-emerald-200/80 mt-1">
-                  Your network is expanding through Tier 3 (125 Slots) and Tier 4 (625 Slots).
+                <p className="text-[10px] sm:text-[11px] text-emerald-200/80 mt-0.5">
+                  25 Level 2 teams duplicating across Level 3 depth.
                 </p>
               </div>
-              <Link
-                to="/dashboard/my-network"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500 text-emerald-950 font-bold text-xs shadow-md hover:bg-emerald-400 transition-colors"
-              >
-                <span>View Full Matrix</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+
+              <div className="flex items-center gap-2">
+                {/* View Mode Toggle: Stepper vs Scroll-All */}
+                <div className="inline-flex p-0.5 bg-white/10 rounded-lg border border-white/10 text-[10px]">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("stepper")}
+                    className={`px-2 py-1 rounded-md font-bold transition-all ${
+                      viewMode === "stepper"
+                        ? "bg-emerald-500 text-emerald-950 shadow-xs"
+                        : "text-emerald-200 hover:text-white"
+                    }`}
+                  >
+                    Stepper
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("carousel")}
+                    className={`px-2 py-1 rounded-md font-bold transition-all ${
+                      viewMode === "carousel"
+                        ? "bg-emerald-500 text-emerald-950 shadow-xs"
+                        : "text-emerald-200 hover:text-white"
+                    }`}
+                  >
+                    Scroll All (25)
+                  </button>
+                </div>
+
+                <span className="text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  {totalTier3Count} / 125 Duplicated
+                </span>
+              </div>
             </div>
+
+            {/* MODE A: STEPPER VIEW WITH 25-TEAM QUICK JUMP STRIP */}
+            {viewMode === "stepper" && (
+              <>
+                {/* Stepper Navigation Bar */}
+                <div className="flex items-center justify-between gap-2 mb-2 bg-black/30 p-2 rounded-xl border border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTeam3Index((prev) => Math.max(0, prev - 1))}
+                    disabled={selectedTeam3Index === 0}
+                    className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/70 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                    aria-label="Previous team"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+
+                  <div className="text-center min-w-0 flex-1 px-2">
+                    <span className="text-xs font-bold text-white block truncate">
+                      Team #{selectedTeam3Index + 1} of 25: {activeTeam3.memberName}
+                    </span>
+                    <span className="text-[10px] text-emerald-300/80 block truncate">
+                      Frontline Branch: {activeTeam3.parentName} · {activeTeam3.filledCount}/5 Slots
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTeam3Index((prev) => Math.min(level3Teams.length - 1, prev + 1))}
+                    disabled={selectedTeam3Index >= level3Teams.length - 1}
+                    className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/70 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                    aria-label="Next team"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Quick-Jump 25-Team Strip */}
+                <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-3 scrollbar-thin scrollbar-thumb-emerald-700/40">
+                  {level3Teams.map((team, idx) => {
+                    const isSelected = selectedTeam3Index === idx;
+                    const isDone = team.filledCount >= 5;
+
+                    return (
+                      <button
+                        key={team.teamIndex}
+                        type="button"
+                        onClick={() => setSelectedTeam3Index(idx)}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-mono transition-all shrink-0 cursor-pointer ${
+                          isSelected
+                            ? "bg-emerald-400 text-emerald-950 font-extrabold ring-1 ring-emerald-300"
+                            : isDone
+                            ? "bg-amber-400/20 text-amber-300 border border-amber-400/30"
+                            : "bg-white/5 text-emerald-200/70 hover:bg-white/10"
+                        }`}
+                        title={`Team ${idx + 1}: ${team.memberName} (${team.filledCount}/5)`}
+                      >
+                        T{idx + 1}: {team.filledCount}/5
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Active Team's 5 Slots */}
+                <div className="bg-black/30 rounded-xl p-3 border border-white/5 mb-3">
+                  <div className="flex items-center justify-between text-xs text-emerald-200/80 mb-2.5 font-medium">
+                    <span className="font-semibold text-white">
+                      {activeTeam3.memberName}'s Level 3 Downline Slots:
+                    </span>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+                      {activeTeam3.filledCount} of 5 Slots Filled
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-5 gap-2 sm:gap-3 py-1">
+                    {activeTeam3.slots.map((slot) => (
+                      <div
+                        key={slot.slotIdx}
+                        className={`relative flex flex-col items-center justify-between py-2.5 sm:py-3 px-1.5 rounded-xl sm:rounded-2xl transition-all duration-300 min-h-[96px] sm:min-h-[110px] ${
+                          slot.isFilled
+                            ? "bg-gradient-to-b from-emerald-500/25 to-emerald-600/15 border-2 border-emerald-400 text-white shadow-lg shadow-emerald-950/50"
+                            : "bg-white/5 border border-dashed border-white/20 text-emerald-300/40"
+                        }`}
+                      >
+                        <div
+                          className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs transition-transform ${
+                            slot.isFilled
+                              ? "bg-emerald-400 text-emerald-950 shadow-xs"
+                              : "bg-white/10 text-white/60"
+                          }`}
+                        >
+                          {slot.isFilled ? (
+                            <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
+                          ) : (
+                            <span>{slot.slotIdx}</span>
+                          )}
+                        </div>
+
+                        <div className="text-center w-full px-0.5 my-1">
+                          <span
+                            className="text-[10px] sm:text-xs font-bold tracking-tight block truncate max-w-full text-white"
+                            title={slot.member?.fullName || slot.name}
+                          >
+                            {slot.name}
+                          </span>
+                        </div>
+
+                        <div className="w-full text-center">
+                          {slot.isFilled ? (
+                            <span className="inline-block text-[8px] sm:text-[9px] font-semibold px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 truncate max-w-full">
+                              Partner
+                            </span>
+                          ) : (
+                            <span className="text-[8px] sm:text-[9px] text-white/40 font-mono">
+                              Open Slot
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* MODE B: LONG HORIZONTAL SCROLL LIST / CAROUSEL (ALL 25 TEAMS SIDE-BY-SIDE) */}
+            {viewMode === "carousel" && (
+              <div className="relative mb-3">
+                {/* Horizontal Scroll Controls */}
+                <div className="flex items-center justify-between mb-2 px-1">
+                  <span className="text-[11px] text-emerald-200/80 font-medium">
+                    Scroll horizontally through all 25 teams (125 Slots):
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => scrollCarousel("left")}
+                      className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+                      aria-label="Scroll left"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => scrollCarousel("right")}
+                      className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white cursor-pointer"
+                      aria-label="Scroll right"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  ref={carouselRef}
+                  className="flex gap-3 overflow-x-auto pb-3 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-emerald-600/50 scrollbar-track-white/5"
+                >
+                  {level3Teams.map((team) => (
+                    <div
+                      key={team.teamIndex}
+                      className="min-w-[270px] sm:min-w-[300px] snap-start bg-black/40 rounded-xl p-3 border border-white/10 flex flex-col justify-between shrink-0"
+                    >
+                      <div className="flex items-start justify-between gap-1 mb-2">
+                        <div>
+                          <span className="text-xs font-bold text-white block">
+                            Team #{team.teamIndex + 1}: {team.memberName}
+                          </span>
+                          <span className="text-[10px] text-emerald-300/80 block">
+                            Under {team.parentName}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                          {team.filledCount}/5
+                        </span>
+                      </div>
+
+                      {/* 5 mini-slots */}
+                      <div className="grid grid-cols-5 gap-1 py-1">
+                        {team.slots.map((s) => (
+                          <div
+                            key={s.slotIdx}
+                            className={`p-1 rounded-lg flex flex-col items-center justify-center text-center ${
+                              s.isFilled
+                                ? "bg-emerald-500/20 border border-emerald-400 text-emerald-200"
+                                : "bg-white/5 border border-dashed border-white/10 text-white/40"
+                            }`}
+                          >
+                            <span className="text-[9px] font-bold">#{s.slotIdx}</span>
+                            <span className="text-[8px] truncate max-w-full block font-medium">
+                              {s.name}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Progress bar line */}
+            <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden mt-2">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${(Math.min(125, totalTier3Count) / 125) * 100}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="h-full bg-gradient-to-r from-emerald-400 to-green-300 rounded-full"
+              />
+            </div>
+
+            <p className="text-[10px] text-emerald-300/70 mt-2.5 italic">
+              * Note: Spillovers do not count as direct recruits. Only direct, paid Green Card recruits count toward First 5 progression.
+            </p>
+          </div>
+        )}
+
+        {/* ── STAGE 4: LEVEL 4 TARGET (TIER 4 MOMENTUM — 625 SLOTS) ── */}
+        {viewingLevel === 4 && (
+          <div className="bg-black/40 backdrop-blur-md rounded-xl sm:rounded-2xl p-4 border border-white/10 mb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-2 border-b border-white/10">
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                  <Layers className="w-4 h-4 text-emerald-400" />
+                  <span>Tier 4 Momentum Matrix (625 Expansion Slots)</span>
+                </h4>
+                <p className="text-[10px] sm:text-[11px] text-emerald-200/80 mt-0.5">
+                  125 Level 3 leaders duplicating across Level 4 depth.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  {totalTier4Count} / 625 Duplicated
+                </span>
+                <Link
+                  to="/dashboard/my-network"
+                  className="inline-flex items-center gap-1 text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold underline underline-offset-2 ml-1"
+                >
+                  Full Network →
+                </Link>
+              </div>
+            </div>
+
+            {/* Stepper Navigation Bar for 125 Teams */}
+            <div className="flex items-center justify-between gap-2 mb-3 bg-black/30 p-2 rounded-xl border border-white/5">
+              <button
+                type="button"
+                onClick={() => setSelectedTeam4Index((prev) => Math.max(0, prev - 1))}
+                disabled={selectedTeam4Index === 0}
+                className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/70 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                aria-label="Previous Level 4 team"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <div className="text-center min-w-0 flex-1 px-2">
+                <span className="text-xs font-bold text-white block truncate">
+                  Team #{selectedTeam4Index + 1} of 125 (Level 4 Nodes)
+                </span>
+                <span className="text-[10px] text-emerald-300/80 block truncate">
+                  Target: 5 Downline Duplications per node (625 Total)
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedTeam4Index((prev) => Math.min(124, prev + 1))}
+                disabled={selectedTeam4Index >= 124}
+                className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/70 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                aria-label="Next Level 4 team"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Selected Level 4 Team's 5 Slots */}
+            <div className="grid grid-cols-5 gap-2 sm:gap-3 py-2">
+              {[1, 2, 3, 4, 5].map((slotNumber) => (
+                <div
+                  key={slotNumber}
+                  className="relative flex flex-col items-center justify-between py-2.5 sm:py-3 px-1.5 rounded-xl sm:rounded-2xl bg-white/5 border border-dashed border-white/20 text-emerald-300/40 min-h-[96px] sm:min-h-[110px]"
+                >
+                  <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs bg-white/10 text-white/60">
+                    <span>{slotNumber}</span>
+                  </div>
+                  <div className="text-center w-full px-0.5 my-1">
+                    <span className="text-[10px] sm:text-xs font-bold tracking-tight block truncate max-w-full text-white/60">
+                      Slot {slotNumber}
+                    </span>
+                  </div>
+                  <div className="w-full text-center">
+                    <span className="text-[8px] sm:text-[9px] text-white/40 font-mono">
+                      Open Slot
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Progress bar line */}
+            <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden mt-3">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${(Math.min(625, totalTier4Count) / 625) * 100}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+                className="h-full bg-gradient-to-r from-emerald-400 to-green-300 rounded-full"
+              />
+            </div>
+
+            <p className="text-[10px] text-emerald-300/70 mt-2.5 italic">
+              * Note: Spillovers do not count as direct recruits. Only direct, paid Green Card recruits count toward First 5 progression.
+            </p>
           </div>
         )}
 
