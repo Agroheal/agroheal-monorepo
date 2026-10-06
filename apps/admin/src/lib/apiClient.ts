@@ -104,6 +104,16 @@ export const adminApiClient = {
       }>("admin/stats"),
     getTreasuryAudit: () => apiRequest<any>("admin/treasury-audit"),
     getTransactions: (limit = 200) => apiRequest<any[]>(`admin/transactions?limit=${limit}`),
+    impersonateMember: (userId: string, reason?: string) =>
+      apiRequest<{
+        member: { id: string; fullName: string; email: string; memberId: string };
+        actionLink: string;
+        emailOtp: string;
+        redirectTo: string;
+      }>(`admin/members/${userId}/impersonate`, {
+        method: "POST",
+        body: JSON.stringify({ reason }),
+      }),
   },
   cycles: {
     draftHarvestYield: (payload: {

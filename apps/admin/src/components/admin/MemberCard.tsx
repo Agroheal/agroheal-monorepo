@@ -1,4 +1,4 @@
-import { Edit3, KeyRound, Mail, Phone, MapPin } from "lucide-react";
+import { Edit3, KeyRound, Mail, Phone, MapPin, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GreenCardBadge, ProgramPills, RoleBadge } from "@/components/admin/MemberBadges";
 import { memberInitial } from "@/lib/memberFilters";
@@ -13,6 +13,8 @@ interface Props {
   onEdit: (m: Member) => void;
   onResetPassword: (m: Member) => void;
   onToggleSuspend?: (m: Member) => void;
+  onImpersonate?: (m: Member) => void;
+  isSuperAdmin?: boolean;
 }
 
 export function MemberCard({
@@ -23,6 +25,8 @@ export function MemberCard({
   onEdit,
   onResetPassword,
   onToggleSuspend,
+  onImpersonate,
+  isSuperAdmin,
 }: Props) {
   return (
     <div className={cn("flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-all", selected && "border-emerald-500 ring-1 ring-emerald-500 bg-emerald-500/5")}>
@@ -128,6 +132,18 @@ export function MemberCard({
         <Button type="button" size="sm" variant="outline" className="h-8 flex-1 gap-1.5 text-xs" onClick={() => onEdit(m)}>
           <Edit3 className="h-3.5 w-3.5" /> Edit
         </Button>
+        {isSuperAdmin && onImpersonate && m.role !== "super_admin" && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1 px-2.5 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10 cursor-pointer"
+            onClick={() => onImpersonate(m)}
+            title="Sign in as this member (Super Admin)"
+          >
+            <ShieldAlert className="h-3.5 w-3.5 text-amber-400" /> Impersonate
+          </Button>
+        )}
         <Button
           type="button"
           size="sm"

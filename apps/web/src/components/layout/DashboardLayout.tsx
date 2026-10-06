@@ -687,6 +687,33 @@ const DashboardLayout = () => {
     });
   }, []);
 
+  const [isImpersonated, setIsImpersonated] = useState(false);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("impersonated") === "true") {
+      try {
+        sessionStorage.setItem("agroheal_impersonated", "true");
+      } catch {}
+      setIsImpersonated(true);
+    } else {
+      try {
+        if (sessionStorage.getItem("agroheal_impersonated") === "true") {
+          setIsImpersonated(true);
+        }
+      } catch {}
+    }
+  }, [location.search]);
+
+  const handleExitImpersonation = async () => {
+    try {
+      sessionStorage.removeItem("agroheal_impersonated");
+      await supabase.auth.signOut();
+    } catch {}
+    const adminUrl = (import.meta.env.VITE_ADMIN_URL as string) || "http://localhost:5175";
+    window.location.href = adminUrl;
+  };
+
   async function handleLogout() {
     try {
       await supabase.auth.signOut();
@@ -849,6 +876,27 @@ const DashboardLayout = () => {
 
       {/* ── MAIN CONTENT AREA ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Super Admin Impersonation Sticky Banner */}
+        {isImpersonated && (
+          <div className="bg-amber-500 text-amber-950 px-4 py-2 text-xs font-semibold flex items-center justify-between gap-3 shadow-xs z-30 shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="px-1.5 py-0.5 rounded bg-amber-900 text-amber-100 font-bold text-[10px] tracking-wide">
+                IMPERSONATION SESSION
+              </span>
+              <span>
+                Viewing as <strong>{profile?.full_name || "Member"}</strong> ({profile?.email || session?.user?.email}).
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={handleExitImpersonation}
+              className="px-2.5 py-1 rounded bg-amber-950 text-white hover:bg-black text-xs font-bold transition-all cursor-pointer shadow-xs"
+            >
+              Exit Session
+            </button>
+          </div>
+        )}
+
         {/* Top bar */}
         <header className="bg-white border-b border-gray-200 px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4 z-20 shrink-0">
           <div className="flex items-center gap-3 min-w-0">

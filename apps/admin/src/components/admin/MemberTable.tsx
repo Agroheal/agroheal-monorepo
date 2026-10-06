@@ -1,4 +1,4 @@
-import { Edit3, KeyRound, Phone, MapPin } from "lucide-react";
+import { Edit3, KeyRound, Phone, MapPin, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { GreenCardBadge, ProgramPills, RoleBadge, TotalSlotsBadge } from "@/components/admin/MemberBadges";
@@ -14,6 +14,8 @@ interface Props {
   onEdit: (m: Member) => void;
   onResetPassword: (m: Member) => void;
   onToggleSuspend?: (m: Member) => void;
+  onImpersonate?: (m: Member) => void;
+  isSuperAdmin?: boolean;
 }
 
 export function MemberTable({
@@ -25,6 +27,8 @@ export function MemberTable({
   onEdit,
   onResetPassword,
   onToggleSuspend,
+  onImpersonate,
+  isSuperAdmin,
 }: Props) {
   const allSelected = members.length > 0 && members.every((m) => selectedIds.has(m.id));
   const someSelected = members.some((m) => selectedIds.has(m.id)) && !allSelected;
@@ -132,6 +136,18 @@ export function MemberTable({
                     <Button type="button" size="sm" variant="outline" className="h-7 gap-1 px-2 text-xs" onClick={() => onEdit(m)}>
                       <Edit3 className="h-3 w-3" /> Edit
                     </Button>
+                    {isSuperAdmin && onImpersonate && m.role !== "super_admin" && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 px-2 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10 cursor-pointer"
+                        onClick={() => onImpersonate(m)}
+                        title="Sign in as this member (Super Admin)"
+                      >
+                        <ShieldAlert className="h-3 w-3 text-amber-400" /> Impersonate
+                      </Button>
+                    )}
                     <Button
                       type="button"
                       size="sm"

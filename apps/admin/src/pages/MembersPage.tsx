@@ -17,6 +17,7 @@ import { EditMemberDialog, type EditMemberValues } from "@/components/admin/Edit
 import { IssueGreenCardDialog } from "@/components/admin/IssueGreenCardDialog";
 import { IssuedGreenCardSuccessDialog } from "@/components/admin/IssuedGreenCardSuccessDialog";
 import { PasswordResetModal } from "@/components/admin/PasswordResetModal";
+import { ImpersonateModal } from "@/components/admin/ImpersonateModal";
 import { CreateMemberDialog } from "@/components/admin/CreateMemberDialog";
 import { MassActionsBar } from "@/components/admin/MassActionsBar";
 import { MassAssignLocationDialog } from "@/components/admin/MassAssignLocationDialog";
@@ -30,9 +31,11 @@ import { formatWATDateTime, formatWATDate } from "@/lib/dateTimeFormat";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function MembersPage() {
-  const { isReadOnly } = useAdminAuth();
+  const { isReadOnly, isSuperDeveloper } = useAdminAuth();
   const { members, loading, refetch } = useAdminMembers();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+
+  const [impersonatingMember, setImpersonatingMember] = useState<Member | null>(null);
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
@@ -581,6 +584,8 @@ export default function MembersPage() {
               onEdit={setEditingMember}
               onResetPassword={handlePasswordReset}
               onToggleSuspend={handleToggleSuspend}
+              onImpersonate={(m) => setImpersonatingMember(m)}
+              isSuperAdmin={isSuperDeveloper}
             />
           )}
 
@@ -596,6 +601,8 @@ export default function MembersPage() {
                   onEdit={setEditingMember}
                   onResetPassword={handlePasswordReset}
                   onToggleSuspend={handleToggleSuspend}
+                  onImpersonate={(m) => setImpersonatingMember(m)}
+                  isSuperAdmin={isSuperDeveloper}
                 />
               ))}
               {filteredMembers.length === 0 && (
@@ -656,6 +663,13 @@ export default function MembersPage() {
         onConfirm={handleMassIssueGreenCards}
         loading={massLoading}
         progress={massProgress}
+      />
+
+      <ImpersonateModal
+        member={impersonatingMember}
+        onOpenChange={(open) => !open && setImpersonatingMember(null)}
+        onSuccess={(msg) => flash(setSuccessMessage, msg)}
+        onError={(msg) => setErrorMessage(msg)}
       />
 
       <PasswordResetModal
