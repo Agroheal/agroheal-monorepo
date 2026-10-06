@@ -95,30 +95,30 @@ Join our next onboarding session and let's help your first 5 get started immedia
 
       <div className="relative p-4 sm:p-6 lg:p-7">
         {/* Top Header Badge & Tagline */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-green-400 p-0.5 shadow-md flex items-center justify-center">
+        <div className="flex flex-wrap sm:flex-nowrap items-start sm:items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-green-400 p-0.5 shadow-md flex items-center justify-center shrink-0">
               <div className="w-full h-full bg-[#0a2416] rounded-[10px] flex items-center justify-center">
-                <Flame className="w-5 h-5 text-emerald-400 animate-pulse" />
+                <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400 animate-pulse" />
               </div>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-1.5">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-nowrap">
+                <h3 className="text-sm sm:text-base lg:text-lg font-black tracking-tight text-white whitespace-nowrap">
                   <span>GREEN CARD FIRST 5™</span>
                 </h3>
-                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Culture & Habit
+                <span className="shrink-0 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 whitespace-nowrap">
+                  Culture
                 </span>
               </div>
-              <p className="text-xs text-emerald-200/90 font-medium">
+              <p className="text-[11px] sm:text-xs text-emerald-200/90 font-medium truncate sm:whitespace-normal">
                 Get 5. Help your 5 get 5. Build the Revolution.
               </p>
             </div>
           </div>
 
           {/* Completion Status Pill */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {isCompleted ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/25 to-emerald-500/25 border border-amber-400/40 text-amber-300 text-xs font-bold shadow-sm">
                 <Sparkles className="w-3.5 h-3.5 text-amber-400" />

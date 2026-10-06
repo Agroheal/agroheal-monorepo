@@ -1621,9 +1621,6 @@ const CompoundReferrals: React.FC = () => {
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
                   <GitBranch className="w-3.5 h-3.5" /> 5×7 Community Matrix Engine
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/20 text-amber-300 border border-amber-400/30">
-                  <Award className="w-3.5 h-3.5" /> 40% Commission Waterfall
-                </span>
               </div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
                 {treeBannerTitle}
@@ -1666,13 +1663,15 @@ const CompoundReferrals: React.FC = () => {
               >
                 My Tree
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleJumpToApex}
-                className="border-amber-600/40 bg-amber-950/30 text-amber-200 hover:bg-amber-900/40 text-xs px-3 py-2.5 rounded-xl transition-all"
-              >
-                Apex Root (Esther)
-              </Button>
+              {currentUserProfile?.role === "admin" && (
+                <Button
+                  variant="outline"
+                  onClick={handleJumpToApex}
+                  className="border-amber-600/40 bg-amber-950/30 text-amber-200 hover:bg-amber-900/40 text-xs px-3 py-2.5 rounded-xl transition-all"
+                >
+                  Apex Root (Esther)
+                </Button>
+              )}
             </div>
           </div>
         </div>

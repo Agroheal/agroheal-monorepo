@@ -246,12 +246,17 @@ export const ConsumerNetwork: React.FC = () => {
               className="rounded-2xl border border-gray-200/80 bg-gradient-to-b from-white to-gray-50/50 hover:border-emerald-300 hover:shadow-md transition-all flex flex-col justify-between overflow-hidden group"
             >
               {/* Product Packaging Image */}
-              <div className="relative aspect-4/3 w-full overflow-hidden bg-emerald-950/5 border-b border-gray-100">
+              <div className="relative aspect-4/3 w-full overflow-hidden bg-emerald-950/5 border-b border-gray-100 flex items-center justify-center">
+                {/* Product image commented out per design review; keeping inspectable structure and path intact:
                 <img
                   src={prod.image}
                   alt={prod.name}
                   className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
                 />
+                */}
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100/60 border border-emerald-200/80 flex items-center justify-center text-emerald-800/60">
+                  <Package className="w-6 h-6" />
+                </div>
                 <span className="absolute top-3 left-3 bg-emerald-950/80 backdrop-blur-md text-emerald-200 text-[10px] font-bold px-2.5 py-0.5 rounded-md border border-emerald-500/30">
                   {prod.tag}
                 </span>

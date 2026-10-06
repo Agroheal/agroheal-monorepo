@@ -203,7 +203,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
         badgeText: "Milestone 2 of 3 · Activation",
         benefits: [
           "100g Mushroom Power organic extract delivered to your address",
-          "Unlocks 5×7 community matrix commission waterfall and spillover payouts",
+          "Unlocks 5×7 community matrix commissions and spillover payouts",
           "Activates full commercial bank withdrawal rights on cleared balance",
           "Satisfies rolling PQV requirement without recurring maintenance fees",
         ],
