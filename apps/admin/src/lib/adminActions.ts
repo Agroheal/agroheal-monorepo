@@ -131,6 +131,7 @@ export async function createMember(input: {
   email: string;
   phone?: string;
   referral_code?: string;
+  role?: string;
 }) {
   await assertAuditAuthorized();
   const sanitizedInput = {
@@ -138,6 +139,7 @@ export async function createMember(input: {
     email: cleanEmail(input.email),
     phone: input.phone ? normalizePhoneNumber(input.phone) : undefined,
     referral_code: input.referral_code ? cleanReferralCode(input.referral_code) : undefined,
+    role: input.role || "member",
   };
 
   let resultData: { email: string; temp_password: string; member_id?: string; user_id?: string };
@@ -173,6 +175,7 @@ export async function createMember(input: {
         full_name: sanitizedInput.full_name,
         phone: sanitizedInput.phone || null,
         referred_by: referrerId,
+        role: sanitizedInput.role,
       })
       .select()
       .single();
@@ -254,6 +257,59 @@ export async function resetPassword(input: { user_id: string; email: string }) {
   });
 
   return resultData;
+}
+
+export async function sendPasswordResetEmail(input: { user_id: string; email: string }) {
+  await assertAuditAuthorized();
+  const sanitizedEmail = cleanEmail(input.email);
+  if (!sanitizedEmail) {
+    throw new Error("Member does not have a valid email address.");
+  }
+  const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/reset-password` : undefined;
+  const { error } = await supabase.auth.resetPasswordForEmail(sanitizedEmail, {
+    redirectTo,
+  });
+  if (error) {
+    throw new Error(error.message || "Failed to dispatch password reset email.");
+  }
+
+  await recordAuditEvent({
+    action: "ADMIN_TRIGGER_PASSWORD_RESET_EMAIL",
+    entity_type: "profiles",
+    entity_id: input.user_id,
+    payload: {
+      target_user_id: input.user_id,
+      target_email: sanitizedEmail,
+      notes: "Password reset link emailed to member by Administrator",
+    },
+  });
+
+  return { email: sanitizedEmail, success: true };
+}
+
+export async function toggleSuspendMember(input: { user_id: string; is_suspended: boolean; reason?: string }) {
+  await assertAuditAuthorized();
+  const { error } = await supabase
+    .from("profiles")
+    .update({ is_suspended: input.is_suspended })
+    .eq("id", input.user_id);
+
+  if (error) {
+    throw new Error(friendlyDbError(error, "Failed to update member suspension status."));
+  }
+
+  await recordAuditEvent({
+    action: input.is_suspended ? "ADMIN_SUSPEND_MEMBER" : "ADMIN_UNSUSPEND_MEMBER",
+    entity_type: "profiles",
+    entity_id: input.user_id,
+    payload: {
+      target_user_id: input.user_id,
+      is_suspended: input.is_suspended,
+      reason: input.reason || "Administrative directive",
+    },
+  });
+
+  return { success: true };
 }
 
 export async function creditSlots(input: {
@@ -420,7 +476,6 @@ export async function updateMember(input: {
         email: sanitizedInput.email || null,
         phone: sanitizedInput.phone,
         member_id: sanitizedInput.member_id || null,
-        referral_code: sanitizedInput.referral_code || null,
         role: sanitizedInput.role,
       })
       .eq("id", sanitizedInput.user_id);

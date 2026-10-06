@@ -13,6 +13,7 @@ interface Props {
   onToggleSelectAll: () => void;
   onEdit: (m: Member) => void;
   onResetPassword: (m: Member) => void;
+  onToggleSuspend?: (m: Member) => void;
 }
 
 export function MemberTable({
@@ -23,6 +24,7 @@ export function MemberTable({
   onToggleSelectAll,
   onEdit,
   onResetPassword,
+  onToggleSuspend,
 }: Props) {
   const allSelected = members.length > 0 && members.every((m) => selectedIds.has(m.id));
   const someSelected = members.some((m) => selectedIds.has(m.id)) && !allSelected;
@@ -69,7 +71,14 @@ export function MemberTable({
                   />
                 </TableCell>
                 <TableCell>
-                  <div className="text-sm font-semibold text-foreground">{m.full_name}</div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-sm font-semibold text-foreground">{m.full_name}</span>
+                    {m.is_suspended && (
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-destructive/15 text-destructive border border-destructive/30">
+                        Suspended
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-muted-foreground">{m.email}</div>
                   {m.phone && (
                     <div className="mt-0.5 flex items-center gap-1 text-xs font-medium text-emerald-400">
@@ -133,6 +142,23 @@ export function MemberTable({
                     >
                       <KeyRound className="h-3 w-3" /> Reset
                     </Button>
+                    {onToggleSuspend && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className={cn(
+                          "h-7 gap-1 px-2 text-xs",
+                          m.is_suspended
+                            ? "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
+                            : "border-destructive/40 text-destructive hover:bg-destructive/10",
+                        )}
+                        onClick={() => onToggleSuspend(m)}
+                        title={m.is_suspended ? "Unblock account" : "Suspend account"}
+                      >
+                        {m.is_suspended ? "Unblock" : "Suspend"}
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

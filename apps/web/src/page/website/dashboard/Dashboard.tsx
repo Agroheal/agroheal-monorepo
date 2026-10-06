@@ -485,12 +485,12 @@ const Dashboard = () => {
       ? [
           {
             id: "legacy-portal",
-            title: "Legacy Portal",
-            metricValue: "Founding Records",
-            subtitle: "Historical group farm accounts, batches & expenses",
+            title: "Legacy Dashboard",
+            metricValue: "Full Legacy System",
+            subtitle: "Access your full legacy portal, historical farm accounts & records",
             badge: "Legacy Records",
             badgeColor: "bg-amber-100 text-amber-950 border-amber-300",
-            path: "/legacy/group-farm-accounts",
+            path: "/legacy",
             icon: Landmark,
             iconBg: "bg-amber-700 text-white",
             tag: "Legacy",

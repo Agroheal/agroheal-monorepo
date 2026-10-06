@@ -11,6 +11,7 @@ import {
   Trophy,
   GraduationCap,
   FileText,
+  ShieldCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -71,6 +72,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "Treasury & Solvency", path: "/treasury", icon: Landmark, requireTreasury: true, hideForSupport: true, hideForCoordinator: true },
       { label: "Transactions & Inflows", path: "/payments", icon: CreditCard, hideForCoordinator: true },
+      { label: "Audit Trail", path: "/audit", icon: ShieldCheck, hideForCoordinator: true },
       { label: "Core Drivers Pool", path: "/core-drivers", icon: Award, superAdminOnly: true, hideForSupport: true, hideForCoordinator: true },
     ],
   },

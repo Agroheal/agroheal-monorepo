@@ -23,6 +23,7 @@ export interface Member {
   state?: string;
   lga?: string;
   advance_debt_balance?: number;
+  is_suspended?: boolean;
 }
 
 export interface PaymentLog {

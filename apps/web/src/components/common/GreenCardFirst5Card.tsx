@@ -160,20 +160,28 @@ Join our next onboarding session and let's help your first 5 get started immedia
           </div>
         </div>
 
-        {/* ── CORE PROGRESS INDICATOR: 5 SLOTS WITH NAMES & DIRECT RECRUIT COUNTERS ── */}
+        {/* ── CORE PROGRESS INDICATOR: SLOTS WITH NAMES & DIRECT RECRUIT COUNTERS ── */}
         <div className="bg-black/30 backdrop-blur-md rounded-xl sm:rounded-2xl p-3.5 sm:p-4 border border-white/10 mb-5">
-          <div className="flex items-center justify-between text-xs text-emerald-200/80 mb-2.5 font-medium">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-emerald-200/80 mb-2.5 gap-1.5 font-medium">
             <span className="flex items-center gap-1.5 text-white font-semibold">
               <span>FIRST 5 PROGRESS</span>
               <span className="text-emerald-400 text-xs">({completedCount}/5 Completed)</span>
             </span>
-            <span>{isCompleted ? "Goal Achieved — Duplicate Your 5!" : `${5 - completedCount} more to unlock badge`}</span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
+                {referralsList.filter((r) => (r.tier2Members?.length || r.directsCount || 0) >= 5).length} of {Math.max(completedCount, referralsList.length)} completed their First 5
+              </span>
+              <span className="text-white/70">
+                {isCompleted ? "Goal Achieved — Duplicate Your 5!" : `${5 - completedCount} more to unlock badge`}
+              </span>
+            </div>
           </div>
 
-          {/* 5 Step Progress Nodes */}
-          <div className="grid grid-cols-5 gap-1.5 sm:gap-3 mb-3">
-            {[1, 2, 3, 4, 5].map((slotNumber) => {
-              const member = referralsList[slotNumber - 1];
+          {/* Horizontal Scrollable Carousel Nodes */}
+          <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-3 pt-1 no-scrollbar sm:scrollbar-thin">
+            {Array.from({ length: Math.max(5, referralsList.length) }).map((_, idx) => {
+              const slotNumber = idx + 1;
+              const member = referralsList[idx];
               const isSlotDone = Boolean(member) || completedCount >= slotNumber;
               const firstName = member?.fullName
                 ? member.fullName.split(" ")[0]
@@ -186,7 +194,7 @@ Join our next onboarding session and let's help your first 5 get started immedia
               return (
                 <div
                   key={slotNumber}
-                  className={`relative flex flex-col items-center justify-between py-2 sm:py-3 px-1 rounded-xl sm:rounded-2xl transition-all duration-300 min-h-[90px] sm:min-h-[105px] ${
+                  className={`relative flex flex-col items-center justify-between py-2.5 sm:py-3 px-2 rounded-xl sm:rounded-2xl transition-all duration-300 min-h-[96px] sm:min-h-[110px] min-w-[90px] sm:min-w-[105px] max-w-[110px] shrink-0 ${
                     isSlotDone
                       ? "bg-gradient-to-b from-emerald-500/25 to-emerald-600/15 border-2 border-emerald-400 text-white shadow-lg shadow-emerald-950/50"
                       : "bg-white/5 border border-dashed border-white/20 text-emerald-300/40"
@@ -209,7 +217,7 @@ Join our next onboarding session and let's help your first 5 get started immedia
 
                   {/* Member Name */}
                   <div className="text-center w-full px-0.5 my-1">
-                    <span className="text-[10px] sm:text-xs font-bold tracking-tight block truncate max-w-full text-white">
+                    <span className="text-[10px] sm:text-xs font-bold tracking-tight block truncate max-w-full text-white" title={member?.fullName || firstName}>
                       {firstName}
                     </span>
                   </div>
@@ -238,7 +246,7 @@ Join our next onboarding session and let's help your first 5 get started immedia
           </div>
 
           {/* Progress bar line */}
-          <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden">
+          <div className="w-full bg-white/10 rounded-full h-1.5 overflow-hidden mt-1">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
@@ -246,6 +254,11 @@ Join our next onboarding session and let's help your first 5 get started immedia
               className="h-full bg-gradient-to-r from-emerald-400 to-green-300 rounded-full"
             />
           </div>
+
+          {/* Tiny Note on Direct vs Spillover */}
+          <p className="text-[10px] text-emerald-300/70 mt-2 italic flex items-center gap-1">
+            <span>* Note: Spillovers do not count as direct recruits. Only direct, paid Green Card recruits count toward First 5 progression.</span>
+          </p>
         </div>
 
         {/* ── TIER 2 (THE 25 EXPANSION SLOTS DUPLICATION CAROUSEL) ── */}
@@ -323,43 +336,71 @@ Join our next onboarding session and let's help your first 5 get started immedia
               </button>
             </div>
 
-            {/* Selected Leader's 5 Slots Grid */}
+            {/* Selected Leader's 5 Slots Carousel */}
             {activeLeader ? (
               <div className="bg-black/30 rounded-xl p-3 border border-white/5">
-                <div className="flex items-center justify-between text-[11px] text-emerald-300 mb-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-emerald-200/80 mb-2.5 gap-1 font-medium">
                   <span className="font-semibold text-white">
                     {activeLeader.fullName}'s Direct 5 Team:
                   </span>
-                  <span>
+                  <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/25">
                     {(activeLeader.tier2Members?.length || activeLeader.directsCount || 0)} of 5 Slots Filled
                   </span>
                 </div>
 
-                <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+                <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 pt-1 no-scrollbar sm:scrollbar-thin">
                   {[1, 2, 3, 4, 5].map((slotIdx) => {
                     const tier2Member = activeLeader.tier2Members?.[slotIdx - 1];
                     const isFilled = Boolean(tier2Member) || (activeLeader.directsCount >= slotIdx);
                     const memberName = tier2Member?.fullName
                       ? tier2Member.fullName.split(" ")[0]
                       : isFilled
-                      ? `Member #${slotIdx}`
+                      ? `Partner #${slotIdx}`
                       : `Slot ${slotIdx}`;
 
                     return (
                       <div
                         key={slotIdx}
-                        className={`p-2 rounded-lg text-center flex flex-col items-center justify-center min-h-[55px] sm:min-h-[65px] border transition-all ${
+                        className={`relative flex flex-col items-center justify-between py-2.5 sm:py-3 px-2 rounded-xl sm:rounded-2xl transition-all duration-300 min-h-[96px] sm:min-h-[110px] min-w-[90px] sm:min-w-[105px] max-w-[110px] shrink-0 ${
                           isFilled
-                            ? "bg-emerald-500/20 border-emerald-400/60 text-white"
-                            : "bg-white/5 border-dashed border-white/15 text-white/40"
+                            ? "bg-gradient-to-b from-emerald-500/25 to-emerald-600/15 border-2 border-emerald-400 text-white shadow-lg shadow-emerald-950/50"
+                            : "bg-white/5 border border-dashed border-white/20 text-emerald-300/40"
                         }`}
                       >
-                        <span className="text-[10px] sm:text-xs font-bold block truncate max-w-full">
-                          {memberName}
-                        </span>
-                        <span className="text-[8px] sm:text-[9px] mt-0.5 text-emerald-300/80">
-                          {isFilled ? "Active" : "Open"}
-                        </span>
+                        {/* Top Badge Icon */}
+                        <div
+                          className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs transition-transform ${
+                            isFilled
+                              ? "bg-emerald-400 text-emerald-950 shadow-xs"
+                              : "bg-white/10 text-white/60"
+                          }`}
+                        >
+                          {isFilled ? (
+                            <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
+                          ) : (
+                            <span>{slotIdx}</span>
+                          )}
+                        </div>
+
+                        {/* Member Name */}
+                        <div className="text-center w-full px-0.5 my-1">
+                          <span className="text-[10px] sm:text-xs font-bold tracking-tight block truncate max-w-full text-white" title={tier2Member?.fullName || memberName}>
+                            {memberName}
+                          </span>
+                        </div>
+
+                        {/* Status badge */}
+                        <div className="w-full text-center">
+                          {isFilled ? (
+                            <span className="inline-block text-[8px] sm:text-[9px] font-semibold px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 truncate max-w-full">
+                              Active Partner
+                            </span>
+                          ) : (
+                            <span className="text-[8px] sm:text-[9px] text-white/40 font-mono">
+                              Open Slot
+                            </span>
+                          )}
+                        </div>
                       </div>
                     );
                   })}

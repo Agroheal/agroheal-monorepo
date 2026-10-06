@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { adminApiClient } from "@/lib/apiClient";
 import { supabase } from "@/lib/supabaseClient";
+import { createMember } from "@/lib/adminActions";
 
 interface SystemConfigs {
   green_card_fee: number;
@@ -85,12 +86,15 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
         .eq("id", user.id)
         .maybeSingle();
 
-      const role = profile?.role || "admin";
-      const hasPerm = role === "super_admin" || profile?.can_manage_system_configs === true;
+      const isSuper =
+        profile?.role === "super_admin" ||
+        user.email?.toLowerCase() === "developerelijah360@gmail.com";
+      const role = isSuper ? "super_admin" : (profile?.role || "admin");
+      const hasPerm = isSuper || profile?.can_manage_system_configs === true;
       setUserRole(role);
       setCanManage(hasPerm);
 
-      if (role === "super_admin") {
+      if (isSuper) {
         fetchAdminUsers();
       }
     } catch (err) {
@@ -148,6 +152,10 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
 
   // Appoint Admin candidate state
   const [isAddAdminOpen, setIsAddAdminOpen] = useState(false);
+  const [appointMode, setAppointMode] = useState<"search" | "new">("search");
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState("");
   const [candidateQuery, setCandidateQuery] = useState("");
   const [candidateResults, setCandidateResults] = useState<any[]>([]);
   const [searchingCandidates, setSearchingCandidates] = useState(false);
@@ -180,6 +188,45 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
   }
 
   async function handleConfirmAppoint() {
+    if (appointMode === "new") {
+      if (!newName.trim() || !newEmail.trim()) {
+        onError("Full name and email are required to create a new staff account.");
+        return;
+      }
+      setAppointing(true);
+      try {
+        const result = await createMember({
+          full_name: newName.trim(),
+          email: newEmail.trim(),
+          phone: newPhone.trim() || undefined,
+          role: newAdminRole,
+        });
+
+        if (result.user_id) {
+          await supabase
+            .from("profiles")
+            .update({
+              can_manage_system_configs: newAdminRole === "super_admin" ? true : grantConfigAccess,
+            })
+            .eq("id", result.user_id);
+        }
+
+        onSuccess(
+          `Staff account created for ${newName} (${newAdminRole.replace("_", " ").toUpperCase()})! Temp password: ${result.temp_password}`
+        );
+        setIsAddAdminOpen(false);
+        setNewName("");
+        setNewEmail("");
+        setNewPhone("");
+        fetchAdminUsers();
+      } catch (err: any) {
+        onError(err.message || "Failed to create new staff account");
+      } finally {
+        setAppointing(false);
+      }
+      return;
+    }
+
     if (!selectedCandidate) return;
     setAppointing(true);
     try {
@@ -596,75 +643,174 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Search Member</Label>
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Type member name, email or AGC ID..."
-                  value={candidateQuery}
-                  onChange={(e) => handleSearchCandidates(e.target.value)}
-                  className="pl-8 text-xs h-9"
-                />
-              </div>
+            {/* Mode Switcher */}
+            <div className="flex items-center gap-1.5 p-1 rounded-lg bg-muted/60 border border-border">
+              <button
+                type="button"
+                onClick={() => setAppointMode("search")}
+                className={`flex-1 py-1 text-xs font-semibold rounded transition-all ${
+                  appointMode === "search"
+                    ? "bg-card text-foreground shadow-xs border border-border/40"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Promote Existing Member
+              </button>
+              <button
+                type="button"
+                onClick={() => setAppointMode("new")}
+                className={`flex-1 py-1 text-xs font-semibold rounded transition-all ${
+                  appointMode === "new"
+                    ? "bg-card text-foreground shadow-xs border border-border/40"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Create New Admin / Staff
+              </button>
             </div>
 
-            {/* Candidate Search Results */}
-            {searchingCandidates && (
-              <div className="text-xs text-muted-foreground flex items-center gap-2 py-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Searching members...
-              </div>
-            )}
-
-            {candidateResults.length > 0 && !selectedCandidate && (
-              <div className="border border-border rounded-lg max-h-40 overflow-y-auto divide-y divide-border/60 bg-muted/20">
-                {candidateResults.map((candidate) => (
-                  <div
-                    key={candidate.id}
-                    onClick={() => {
-                      setSelectedCandidate(candidate);
-                      setCandidateResults([]);
-                    }}
-                    className="p-2.5 hover:bg-muted/60 cursor-pointer flex items-center justify-between transition-colors"
-                  >
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">
-                        {candidate.full_name || "Member"}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {candidate.email} • {candidate.member_id || "No AGC ID"}
-                      </p>
-                    </div>
-                    <Badge variant="outline" className="text-[10px]">
-                      {candidate.role || "member"}
-                    </Badge>
+            {appointMode === "search" ? (
+              <>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Search Member</Label>
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Type member name, email or AGC ID..."
+                      value={candidateQuery}
+                      onChange={(e) => handleSearchCandidates(e.target.value)}
+                      className="pl-8 text-xs h-9"
+                    />
                   </div>
-                ))}
-              </div>
-            )}
-
-            {/* Selected Candidate Display */}
-            {selectedCandidate && (
-              <div className="p-3 rounded-lg border border-primary/40 bg-primary/5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-bold text-foreground">
-                      {selectedCandidate.full_name || "Selected Member"}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">{selectedCandidate.email}</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setSelectedCandidate(null)}
-                    className="h-6 text-[10px] text-muted-foreground hover:text-foreground"
-                  >
-                    Change
-                  </Button>
                 </div>
 
-                <div className="space-y-1.5 pt-2 border-t border-border/60">
-                  <Label className="text-xs font-medium">Assign Role</Label>
+                {/* Candidate Search Results */}
+                {searchingCandidates && (
+                  <div className="text-xs text-muted-foreground flex items-center gap-2 py-2">
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Searching members...
+                  </div>
+                )}
+
+                {candidateResults.length > 0 && !selectedCandidate && (
+                  <div className="border border-border rounded-lg max-h-40 overflow-y-auto divide-y divide-border/60 bg-muted/20">
+                    {candidateResults.map((candidate) => (
+                      <div
+                        key={candidate.id}
+                        onClick={() => {
+                          setSelectedCandidate(candidate);
+                          setCandidateResults([]);
+                        }}
+                        className="p-2.5 hover:bg-muted/60 cursor-pointer flex items-center justify-between transition-colors"
+                      >
+                        <div>
+                          <p className="text-xs font-semibold text-foreground">
+                            {candidate.full_name || "Member"}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {candidate.email} • {candidate.member_id || "No AGC ID"}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-[10px]">
+                          {candidate.role || "member"}
+                        </Badge>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Selected Candidate Display */}
+                {selectedCandidate && (
+                  <div className="p-3 rounded-lg border border-primary/40 bg-primary/5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-bold text-foreground">
+                          {selectedCandidate.full_name || "Selected Member"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">{selectedCandidate.email}</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedCandidate(null)}
+                        className="h-6 text-[10px] text-muted-foreground hover:text-foreground"
+                      >
+                        Change
+                      </Button>
+                    </div>
+
+                    <div className="space-y-1.5 pt-2 border-t border-border/60">
+                      <Label className="text-xs font-medium">Assign Role</Label>
+                      <select
+                        value={newAdminRole}
+                        onChange={(e) => setNewAdminRole(e.target.value)}
+                        className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
+                      >
+                        <option value="support">Support Specialist (Customer Desk &amp; Member Assistance)</option>
+                        <option value="coordinator">Farm Coordinator (Cluster &amp; Field Operations)</option>
+                        <option value="finance">Finance Officer (Ledger &amp; Treasury Review)</option>
+                        <option value="admin">Administrator (System &amp; Member Operations)</option>
+                        <option value="super_admin">Super Administrator (Full Unrestricted Access)</option>
+                      </select>
+                    </div>
+
+                    {newAdminRole === "admin" && (
+                      <div className="flex items-center justify-between pt-2">
+                        <div>
+                          <Label htmlFor="grant-cfg" className="text-xs font-medium block">
+                            Allow Economics Configuration
+                          </Label>
+                          <span className="text-[10px] text-muted-foreground block">
+                            Grant permission to modify platform financial constants (defaults to read-only).
+                          </span>
+                        </div>
+                        <Switch
+                          id="grant-cfg"
+                          checked={grantConfigAccess}
+                          onCheckedChange={setGrantConfigAccess}
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              /* Mode 2: Create Brand New Staff */
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Full Name *</Label>
+                  <Input
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="e.g. Adeola Johnson"
+                    className="text-xs h-9"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Email Address *</Label>
+                  <Input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="e.g. adeola@agroheal.solutions"
+                    className="text-xs h-9"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <Label className="text-xs font-medium">Phone Number (Optional)</Label>
+                  <Input
+                    value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
+                    placeholder="e.g. 08012345678"
+                    className="text-xs h-9"
+                  />
+                </div>
+
+                <div className="space-y-1 pt-1">
+                  <Label className="text-xs font-medium">Role Assignment</Label>
                   <select
                     value={newAdminRole}
                     onChange={(e) => setNewAdminRole(e.target.value)}
@@ -679,9 +825,9 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
                 </div>
 
                 {newAdminRole === "admin" && (
-                  <div className="flex items-center justify-between pt-2">
+                  <div className="flex items-center justify-between pt-2 border-t border-border/60">
                     <div>
-                      <Label htmlFor="grant-cfg" className="text-xs font-medium block">
+                      <Label htmlFor="grant-cfg-new" className="text-xs font-medium block">
                         Allow Economics Configuration
                       </Label>
                       <span className="text-[10px] text-muted-foreground block">
@@ -689,7 +835,7 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
                       </span>
                     </div>
                     <Switch
-                      id="grant-cfg"
+                      id="grant-cfg-new"
                       checked={grantConfigAccess}
                       onCheckedChange={setGrantConfigAccess}
                     />
@@ -711,11 +857,19 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
             <Button
               size="sm"
               onClick={handleConfirmAppoint}
-              disabled={!selectedCandidate || appointing}
+              disabled={
+                appointing ||
+                (appointMode === "search" && !selectedCandidate) ||
+                (appointMode === "new" && (!newName.trim() || !newEmail.trim()))
+              }
               className="text-xs bg-primary text-primary-foreground hover:bg-primary/90 font-medium gap-1.5"
             >
               {appointing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-              {appointing ? "Appointing..." : "Confirm Staff Appointment"}
+              {appointing
+                ? "Processing..."
+                : appointMode === "new"
+                ? "Create & Appoint Staff"
+                : "Confirm Staff Appointment"}
             </Button>
           </DialogFooter>
         </DialogContent>

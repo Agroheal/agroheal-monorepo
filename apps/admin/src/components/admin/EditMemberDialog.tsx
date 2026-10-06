@@ -212,8 +212,18 @@ export function EditMemberDialog({
                   <FormItem>
                     <FormLabel>Referral Code</FormLabel>
                     <FormControl>
-                      <Input placeholder="REF123" className="font-mono" {...field} />
+                      <Input
+                        placeholder="REF123"
+                        className="font-mono bg-muted/60 text-muted-foreground cursor-not-allowed"
+                        disabled
+                        readOnly
+                        title="Referral code is permanently immutable to prevent breaking downstream referral trees."
+                        {...field}
+                      />
                     </FormControl>
+                    <span className="text-[11px] text-muted-foreground">
+                      Permanently assigned on registration. Read-only to preserve tree integrity.
+                    </span>
                     <FormMessage />
                   </FormItem>
                 )}

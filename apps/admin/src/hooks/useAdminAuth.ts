@@ -106,7 +106,7 @@ export const useAdminAuth = () => {
   const isSupport = profile?.role === UserRole.SUPPORT;
   const canAccessAdmin = canAccessAdminPortal(profile?.role, profile?.email);
   const hasTreasuryAccess = canAccessTreasury(profile?.role, profile?.email);
-  const isReadOnly = isSupport;
+  const isReadOnly = isSupport && !isSuperDeveloper && !isAdmin;
 
   return {
     session,

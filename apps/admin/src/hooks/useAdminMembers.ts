@@ -20,6 +20,7 @@ interface RawProfileRow {
   state?: string;
   lga?: string;
   advance_debt_balance?: number;
+  is_suspended?: boolean;
 }
 
 interface RawSlotRow {
@@ -155,6 +156,7 @@ export function useAdminMembers() {
           state: p.state || "",
           lga: p.lga || "",
           advance_debt_balance: Number(p.advance_debt_balance) || 0,
+          is_suspended: p.is_suspended === true,
         };
       });
 

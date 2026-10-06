@@ -12,6 +12,7 @@ interface Props {
   onToggleSelect?: () => void;
   onEdit: (m: Member) => void;
   onResetPassword: (m: Member) => void;
+  onToggleSuspend?: (m: Member) => void;
 }
 
 export function MemberCard({
@@ -21,6 +22,7 @@ export function MemberCard({
   onToggleSelect,
   onEdit,
   onResetPassword,
+  onToggleSuspend,
 }: Props) {
   return (
     <div className={cn("flex flex-col justify-between gap-4 rounded-xl border border-border bg-card p-4 transition-all", selected && "border-emerald-500 ring-1 ring-emerald-500 bg-emerald-500/5")}>
@@ -39,7 +41,14 @@ export function MemberCard({
               {memberInitial(m)}
             </div>
             <div>
-              <div className="text-sm font-semibold text-foreground">{m.full_name}</div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-sm font-semibold text-foreground">{m.full_name}</span>
+                {m.is_suspended && (
+                  <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-destructive/15 text-destructive border border-destructive/30">
+                    Suspended
+                  </span>
+                )}
+              </div>
               <div className="text-[11px] text-muted-foreground">Joined {m.created_at}</div>
             </div>
           </div>
@@ -129,6 +138,23 @@ export function MemberCard({
         >
           <KeyRound className="h-3.5 w-3.5" /> Reset
         </Button>
+        {onToggleSuspend && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className={cn(
+              "h-8 px-2 text-xs",
+              m.is_suspended
+                ? "border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10"
+                : "border-destructive/40 text-destructive hover:bg-destructive/10",
+            )}
+            onClick={() => onToggleSuspend(m)}
+            title={m.is_suspended ? "Unblock account" : "Suspend account"}
+          >
+            {m.is_suspended ? "Unblock" : "Suspend"}
+          </Button>
+        )}
       </div>
     </div>
   );

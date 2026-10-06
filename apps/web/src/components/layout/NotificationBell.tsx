@@ -201,7 +201,7 @@ export const NotificationBell: React.FC = () => {
             title: `🌱 FIRST 5 MISSION (${totalReferrals}/5 Active)`,
             message: `Your Green Card journey begins with your FIRST 5. You have activated ${totalReferrals} member${totalReferrals === 1 ? "" : "s"}. Bring ${5 - totalReferrals} more to unlock your First 5 Pioneer Badge!`,
             type: "matrix",
-            created_at: new Date().toISOString(),
+            created_at: profile?.created_at || new Date().toISOString(),
             read: false,
             link: "/dashboard",
           });
@@ -216,7 +216,7 @@ export const NotificationBell: React.FC = () => {
           title: "Direct Referral Bonus",
           message: `You have earned ₦${earnings.toLocaleString()} in referral bonuses. Direct referral earnings are withdrawable once they reach ₦2,000.`,
           type: "bonus",
-          created_at: new Date().toISOString(),
+          created_at: profile?.created_at || new Date().toISOString(),
           read: false,
           link: "/dashboard/transactions",
         });
@@ -233,7 +233,7 @@ export const NotificationBell: React.FC = () => {
           title: "Farm Slots Confirmed",
           message: `You hold ${totalSlots} active farm slot(s). Production yields and harvest dividends are active.`,
           type: "slot",
-          created_at: new Date().toISOString(),
+          created_at: subscriptions?.[0]?.started_at || profile?.created_at || new Date().toISOString(),
           read: false,
           link: "/dashboard/farm-operations/my-slots",
         });
@@ -384,11 +384,7 @@ export const NotificationBell: React.FC = () => {
     }
 
     setOpen(false);
-    if (n.link) {
-      navigate(n.link);
-    } else {
-      navigate(`/dashboard/notifications?id=${n.id}`);
-    }
+    navigate(`/dashboard/notifications?id=${n.id}`);
   };
 
   const getIcon = (type: InAppNotification["type"]) => {

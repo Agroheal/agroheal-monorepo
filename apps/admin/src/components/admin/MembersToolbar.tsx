@@ -1,11 +1,11 @@
 import type { ReactNode } from "react";
-import { Search, Filter, IdCard, LayoutGrid, Table as TableIcon, FileSpreadsheet, MapPin, RotateCcw } from "lucide-react";
+import { Search, Filter, IdCard, LayoutGrid, Table as TableIcon, FileSpreadsheet, MapPin, RotateCcw, UserPlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { Member } from "@/types/admin";
-import type { DebtorFilter, LocationStatusFilter } from "@/lib/memberFilters";
+import type { DebtorFilter, LocationStatusFilter, GreenCardFilter } from "@/lib/memberFilters";
 import { NIGERIA_STATES, getLgasForState } from "@shared/nigeriaLocations";
 
 export type MemberViewMode = "auto" | "table" | "cards";
@@ -16,6 +16,8 @@ interface Props {
   onSearchQueryChange: (v: string) => void;
   programFilter: string;
   onProgramFilterChange: (v: string) => void;
+  greenCardFilter?: GreenCardFilter;
+  onGreenCardFilterChange?: (v: GreenCardFilter) => void;
   stateFilter: string;
   onStateFilterChange: (v: string) => void;
   lgaFilter: string;
@@ -29,6 +31,7 @@ interface Props {
   viewMode: MemberViewMode;
   onViewModeChange: (v: MemberViewMode) => void;
   onIssueGreenCard: () => void;
+  onCreateMember?: () => void;
   onExportExcel?: () => void;
 }
 
@@ -38,6 +41,8 @@ export function MembersToolbar({
   onSearchQueryChange,
   programFilter,
   onProgramFilterChange,
+  greenCardFilter = "all",
+  onGreenCardFilterChange,
   stateFilter,
   onStateFilterChange,
   lgaFilter,
@@ -51,11 +56,14 @@ export function MembersToolbar({
   viewMode,
   onViewModeChange,
   onIssueGreenCard,
+  onCreateMember,
   onExportExcel,
 }: Props) {
   const hasSlots = members.filter((m) => m.total_slots > 0).length;
   const noSlots = members.length - hasSlots;
   const debtorCount = members.filter((m) => Number(m.advance_debt_balance || 0) > 0).length;
+  const greenCardActiveCount = members.filter((m) => m.has_green_card).length;
+  const greenCardUnpaidCount = members.length - greenCardActiveCount;
 
   const availableLgas = stateFilter && stateFilter !== "all" ? getLgasForState(stateFilter) : [];
 
@@ -104,6 +112,17 @@ export function MembersToolbar({
             </Button>
           )}
 
+          {onCreateMember && (
+            <Button
+              type="button"
+              size="sm"
+              onClick={onCreateMember}
+              className="h-9 gap-1.5 whitespace-nowrap text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
+            >
+              <UserPlus className="h-3.5 w-3.5" /> New Member
+            </Button>
+          )}
+
           <Button type="button" size="sm" onClick={onIssueGreenCard} className="h-9 gap-1.5 whitespace-nowrap text-xs bg-primary hover:bg-primary/90 text-white">
             <IdCard className="h-3.5 w-3.5" /> Issue Green Card
           </Button>
@@ -112,6 +131,21 @@ export function MembersToolbar({
 
       {/* Row 2: Secondary Filters Strip */}
       <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
+        {/* Green Card Status Filter */}
+        {onGreenCardFilterChange && (
+          <Select value={greenCardFilter} onValueChange={(val) => onGreenCardFilterChange(val as GreenCardFilter)}>
+            <SelectTrigger className="w-[165px] h-8 text-xs">
+              <IdCard className="mr-1 h-3 w-3 text-muted-foreground" />
+              <SelectValue placeholder="Green Card Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Card Statuses</SelectItem>
+              <SelectItem value="active">🪪 Active / Issued ({greenCardActiveCount})</SelectItem>
+              <SelectItem value="unpaid">⏳ Unissued / Pending ({greenCardUnpaidCount})</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+
         {/* Program Filter */}
         <Select value={programFilter} onValueChange={onProgramFilterChange}>
           <SelectTrigger className="w-[150px] h-8 text-xs">

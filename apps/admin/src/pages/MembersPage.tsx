@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
-import { Copy, MessageCircle, Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { useAdminMembers } from "@/hooks/useAdminMembers";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import {
@@ -9,7 +8,7 @@ import {
   type DebtorFilter,
   type LocationStatusFilter,
 } from "@/lib/memberFilters";
-import { activateGreenCard, resetPassword, updateMember, recordAuditEvent } from "@/lib/adminActions";
+import { activateGreenCard, updateMember, recordAuditEvent, toggleSuspendMember } from "@/lib/adminActions";
 import { MembersKpiCards } from "@/components/admin/MembersKpiCards";
 import { MembersToolbar, type MemberViewMode } from "@/components/admin/MembersToolbar";
 import { MemberTable } from "@/components/admin/MemberTable";
@@ -17,6 +16,8 @@ import { MemberCard } from "@/components/admin/MemberCard";
 import { EditMemberDialog, type EditMemberValues } from "@/components/admin/EditMemberDialog";
 import { IssueGreenCardDialog } from "@/components/admin/IssueGreenCardDialog";
 import { IssuedGreenCardSuccessDialog } from "@/components/admin/IssuedGreenCardSuccessDialog";
+import { PasswordResetModal } from "@/components/admin/PasswordResetModal";
+import { CreateMemberDialog } from "@/components/admin/CreateMemberDialog";
 import { MassActionsBar } from "@/components/admin/MassActionsBar";
 import { MassAssignLocationDialog } from "@/components/admin/MassAssignLocationDialog";
 import { MassAssignRoleDialog } from "@/components/admin/MassAssignRoleDialog";
@@ -27,10 +28,6 @@ import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { exportToExcel } from "@shared/excelExport";
 import { formatWATDateTime, formatWATDate } from "@/lib/dateTimeFormat";
 import { supabase } from "@/lib/supabaseClient";
-
-function openWhatsApp(text: string) {
-  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
-}
 
 export default function MembersPage() {
   const { isReadOnly } = useAdminAuth();
@@ -67,10 +64,8 @@ export default function MembersPage() {
   const [issuedGreenCardDetails, setIssuedGreenCardDetails] = useState<{ member: Member; memberId: string } | null>(
     null,
   );
-  const [recoveryLoading, setRecoveryLoading] = useState(false);
-  const [recoveryCredentials, setRecoveryCredentials] = useState<{ email: string; pass: string; name: string } | null>(
-    null,
-  );
+  const [passwordResetMember, setPasswordResetMember] = useState<Member | null>(null);
+  const [isCreateMemberOpen, setIsCreateMemberOpen] = useState(false);
 
   const hasActiveFilters =
     Boolean(searchQuery.trim()) ||
@@ -481,23 +476,33 @@ export default function MembersPage() {
     }
   };
 
-  const handlePasswordReset = async (member: Member) => {
+  const handlePasswordReset = (member: Member) => {
     if (isReadOnly) {
       flash(setErrorMessage, "Support role is Read-Only. Password resets require Administrator privileges.");
       return;
     }
+    setPasswordResetMember(member);
+  };
 
-    setRecoveryLoading(true);
-    setErrorMessage("");
-    setRecoveryCredentials(null);
+  const handleToggleSuspend = async (member: Member) => {
+    if (isReadOnly) {
+      flash(setErrorMessage, "Support role is Read-Only. Account status modifications require Administrator privileges.");
+      return;
+    }
+    const newStatus = !member.is_suspended;
     try {
-      const result = await resetPassword({ user_id: member.id, email: member.email });
-      setRecoveryCredentials({ email: result.email || member.email, pass: result.temp_password, name: member.full_name });
-      flash(setSuccessMessage, `Password reset successfully for ${member.full_name}!`);
+      await toggleSuspendMember({
+        user_id: member.id,
+        is_suspended: newStatus,
+        reason: newStatus ? "Suspended by Administrator" : "Reactivated by Administrator",
+      });
+      flash(
+        setSuccessMessage,
+        `Account for ${member.full_name} has been ${newStatus ? "suspended" : "reactivated"} successfully!`,
+      );
+      await refetch();
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : "Failed to reset password.");
-    } finally {
-      setRecoveryLoading(false);
+      setErrorMessage(err instanceof Error ? err.message : "Failed to update member status.");
     }
   };
 
@@ -525,6 +530,8 @@ export default function MembersPage() {
         onSearchQueryChange={setSearchQuery}
         programFilter={programFilter}
         onProgramFilterChange={setProgramFilter}
+        greenCardFilter={greenCardFilter}
+        onGreenCardFilterChange={setGreenCardFilter}
         stateFilter={stateFilter}
         onStateFilterChange={setStateFilter}
         lgaFilter={lgaFilter}
@@ -538,6 +545,7 @@ export default function MembersPage() {
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         onIssueGreenCard={() => setIsIssueModalOpen(true)}
+        onCreateMember={() => setIsCreateMemberOpen(true)}
         onExportExcel={handleExportExcel}
       />
 
@@ -557,12 +565,13 @@ export default function MembersPage() {
           {showTable && (
             <MemberTable
               members={filteredMembers}
-              recoveryLoading={recoveryLoading}
+              recoveryLoading={false}
               selectedIds={selectedIds}
               onToggleSelect={handleToggleSelect}
               onToggleSelectAll={handleToggleSelectAll}
               onEdit={setEditingMember}
               onResetPassword={handlePasswordReset}
+              onToggleSuspend={handleToggleSuspend}
             />
           )}
 
@@ -572,11 +581,12 @@ export default function MembersPage() {
                 <MemberCard
                   key={m.id}
                   member={m}
-                  recoveryLoading={recoveryLoading}
+                  recoveryLoading={false}
                   selected={selectedIds.has(m.id)}
                   onToggleSelect={() => handleToggleSelect(m.id)}
                   onEdit={setEditingMember}
                   onResetPassword={handlePasswordReset}
+                  onToggleSuspend={handleToggleSuspend}
                 />
               ))}
               {filteredMembers.length === 0 && (
@@ -587,50 +597,6 @@ export default function MembersPage() {
             </div>
           )}
         </>
-      )}
-
-      {recoveryCredentials && (
-        <div className="rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 p-5">
-          <span className="mb-1.5 block text-sm font-semibold text-amber-400">
-            Password Reset for {recoveryCredentials.name}
-          </span>
-          <p className="mb-3 text-sm text-muted-foreground">
-            The temporary password is active immediately. You can forward it directly to the member or their family.
-          </p>
-          <div className="inline-block rounded-lg bg-background px-3 py-2.5 font-mono text-sm leading-relaxed">
-            Email: <strong>{recoveryCredentials.email}</strong>
-            <br />
-            Temporary Password: <strong>{recoveryCredentials.pass}</strong>
-          </div>
-          <div className="mt-3.5 flex gap-2.5">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => {
-                navigator.clipboard.writeText(
-                  `Hello ${recoveryCredentials.name},\n\nYour Agroheal account password has been reset.\nEmail: ${recoveryCredentials.email}\nTemporary Password: ${recoveryCredentials.pass}\n\nLogin at: https://www.agroheal.solutions/login`,
-                );
-                flash(setSuccessMessage, "Reset message copied to clipboard!", 3000);
-              }}
-            >
-              <Copy className="h-3.5 w-3.5" /> Copy Message
-            </Button>
-            <Button
-              type="button"
-              size="sm"
-              className="gap-1.5 bg-[#25D366] text-white hover:bg-[#1ebe57]"
-              onClick={() =>
-                openWhatsApp(
-                  `Hello ${recoveryCredentials.name},\n\nYour Agroheal LEAP password has been reset:\nEmail: ${recoveryCredentials.email}\nTemporary Password: ${recoveryCredentials.pass}\n\nSign in at: https://www.agroheal.solutions/login`,
-                )
-              }
-            >
-              <MessageCircle className="h-3.5 w-3.5" /> Forward via WhatsApp
-            </Button>
-          </div>
-        </div>
       )}
 
       <EditMemberDialog
@@ -681,6 +647,21 @@ export default function MembersPage() {
         onConfirm={handleMassIssueGreenCards}
         loading={massLoading}
         progress={massProgress}
+      />
+
+      <PasswordResetModal
+        member={passwordResetMember}
+        onOpenChange={(open) => !open && setPasswordResetMember(null)}
+        onSuccess={(msg) => flash(setSuccessMessage, msg)}
+        onError={(msg) => setErrorMessage(msg)}
+      />
+
+      <CreateMemberDialog
+        open={isCreateMemberOpen}
+        onOpenChange={setIsCreateMemberOpen}
+        onRegistered={refetch}
+        onSuccess={(msg) => flash(setSuccessMessage, msg)}
+        onError={(msg) => setErrorMessage(msg)}
       />
     </div>
   );
