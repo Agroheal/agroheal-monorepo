@@ -16,6 +16,11 @@ import {
   ShoppingBag,
   CornerDownRight,
   PanelLeft,
+  Landmark,
+  CreditCard,
+  Users,
+  PlusCircle,
+  ArrowLeft,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
@@ -131,6 +136,52 @@ const getNavGroups = (isLegacy = false): NavGroup[] => [
   },
 ];
 
+const getLegacyNavGroups = (): NavGroup[] => [
+  {
+    id: "legacy-home",
+    label: "Group Farm Accounts",
+    path: "/legacy/group-farm-accounts",
+    icon: Landmark,
+    exact: true,
+  },
+  {
+    id: "legacy-create-farm",
+    label: "Create Farm Group",
+    path: "/legacy/create-farm-group",
+    icon: PlusCircle,
+  },
+  {
+    id: "legacy-mushroom",
+    label: "Mushroom Village",
+    path: "/legacy/mushroom-village",
+    icon: Sprout,
+  },
+  {
+    id: "legacy-other-payments",
+    label: "Other Payments",
+    path: "/legacy/other-payments",
+    icon: CreditCard,
+  },
+  {
+    id: "legacy-kin",
+    label: "Next of Kin Records",
+    path: "/legacy/kin",
+    icon: Users,
+  },
+  {
+    id: "legacy-roadmap",
+    label: "Roadmap & Guide",
+    path: "/legacy/roadmap-guide",
+    icon: BookOpen,
+  },
+  {
+    id: "return-modern",
+    label: "Modern Dashboard",
+    path: "/dashboard",
+    icon: ArrowLeft,
+  },
+];
+
 const HIDDEN_ROUTES = ["/signin", "/signup"];
 
 const getPageTitle = (currentPath: string): string => {
@@ -185,12 +236,26 @@ const getPageTitle = (currentPath: string): string => {
   }
 
   if (
-    currentPath === "/legacy/group-farm-accounts" ||
     currentPath === "/legacy" ||
-    currentPath.startsWith("/legacy/") ||
+    currentPath === "/legacy/group-farm-accounts" ||
     currentPath === "/dashboard/group-farm-accounts"
   ) {
-    return "Group Farm Accounts (Legacy)";
+    return "Legacy · Group Farm Accounts";
+  }
+  if (currentPath === "/legacy/create-farm-group") {
+    return "Legacy · Create Farm Group";
+  }
+  if (currentPath === "/legacy/mushroom-village") {
+    return "Legacy · Mushroom Village";
+  }
+  if (currentPath === "/legacy/other-payments") {
+    return "Legacy · Other Payments";
+  }
+  if (currentPath === "/legacy/kin") {
+    return "Legacy · Next of Kin Records";
+  }
+  if (currentPath === "/legacy/roadmap-guide") {
+    return "Legacy · Roadmap & Guide";
   }
 
   const allNavGroups = getNavGroups(true);
@@ -234,7 +299,11 @@ const SidebarContent = ({
   onToggleCollapse?: () => void;
   isLegacy?: boolean;
 }) => {
-  const navGroups = useMemo(() => getNavGroups(isLegacy), [isLegacy]);
+  const isLegacyRoute = normalizedPath.startsWith("/legacy");
+  const navGroups = useMemo(
+    () => (isLegacyRoute ? getLegacyNavGroups() : getNavGroups(isLegacy)),
+    [isLegacyRoute, isLegacy]
+  );
 
   // Determine which group contains the active path
   const activeGroupId = useMemo(() => {
@@ -300,10 +369,10 @@ const SidebarContent = ({
         {!isCollapsed && (
           <div className="min-w-0 flex-1">
             <span className="text-white font-black text-sm tracking-tight block leading-tight truncate">
-              AgroHeal Member Portal
+              {isLegacyRoute ? "AgroHeal Legacy System" : "AgroHeal Member Portal"}
             </span>
-            <span className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase block truncate">
-              {import.meta.env.PROD ? "Web App" : ((import.meta.env.VITE_APP_LABEL as string) || "Inv App")}
+            <span className={`text-[10px] font-bold tracking-wider uppercase block truncate ${isLegacyRoute ? "text-amber-400" : "text-emerald-400"}`}>
+              {isLegacyRoute ? "Founding Records" : (import.meta.env.PROD ? "Web App" : ((import.meta.env.VITE_APP_LABEL as string) || "Inv App"))}
             </span>
           </div>
         )}

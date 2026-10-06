@@ -24,6 +24,8 @@ export interface Member {
   lga?: string;
   advance_debt_balance?: number;
   is_suspended?: boolean;
+  can_manage_system_configs?: boolean;
+  custom_permissions?: Record<string, boolean>;
 }
 
 export interface PaymentLog {

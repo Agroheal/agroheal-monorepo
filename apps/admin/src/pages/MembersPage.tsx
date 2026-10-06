@@ -465,6 +465,15 @@ export default function MembersPage() {
         member_id: values.member_id || undefined,
         referral_code: values.referral_code || undefined,
         role: values.role,
+        can_manage_system_configs: values.can_manage_system_configs,
+        custom_permissions: {
+          access_treasury: values.access_treasury,
+          process_withdrawals: values.process_withdrawals,
+          manage_members: values.manage_members,
+          manage_farms: values.manage_farms,
+          mutate_financials: values.mutate_financials,
+          export_data: values.export_data,
+        },
       });
       flash(setSuccessMessage, `Profile updated successfully for ${values.full_name}!`);
       setEditingMember(null);

@@ -18,6 +18,9 @@ interface Props {
   loading: boolean;
 }
 
+import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { Lock } from "lucide-react";
+
 export function MassAssignRoleDialog({
   open,
   onOpenChange,
@@ -25,10 +28,29 @@ export function MassAssignRoleDialog({
   onConfirm,
   loading,
 }: Props) {
+  const { canAssignRoles, allowedAssignableRoles } = useAdminAuth();
   const [selectedRole, setSelectedRole] = useState<string>("member");
 
+  const availableRoleOptions = allowedAssignableRoles.map((r) => {
+    switch (r) {
+      case "super_admin":
+        return { value: "super_admin", label: "Super Administrator" };
+      case "admin":
+        return { value: "admin", label: "Administrator" };
+      case "reviewer":
+        return { value: "reviewer", label: "Reviewer / Auditor" };
+      case "coordinator":
+        return { value: "coordinator", label: "Farm Coordinator" };
+      case "support":
+        return { value: "support", label: "Support Specialist" };
+      case "user":
+      default:
+        return { value: "member", label: "Standard Member" };
+    }
+  });
+
   const handleApply = async () => {
-    if (!selectedRole) return;
+    if (!selectedRole || !canAssignRoles) return;
     await onConfirm(selectedRole);
     onOpenChange(false);
   };
@@ -51,25 +73,33 @@ export function MassAssignRoleDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-3">
-          <div>
-            <label className="text-xs font-semibold text-foreground block mb-1.5">
-              Select New Role <span className="text-rose-500">*</span>
-            </label>
-            <Select value={selectedRole} onValueChange={setSelectedRole}>
-              <SelectTrigger className="w-full text-xs">
-                <SelectValue placeholder="Select Role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="member">Member</SelectItem>
-                <SelectItem value="coordinator">Coordinator</SelectItem>
-                <SelectItem value="support">Support</SelectItem>
-                <SelectItem value="admin">Administrator</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
-              Note: Changing a member's role to Coordinator grants operational cluster oversight.
-            </p>
-          </div>
+          {!canAssignRoles ? (
+            <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-xs text-rose-400 flex items-center gap-2">
+              <Lock className="h-4 w-4 shrink-0" />
+              Role creation and assignment is restricted to Super Admin and authorized delegation.
+            </div>
+          ) : (
+            <div>
+              <label className="text-xs font-semibold text-foreground block mb-1.5">
+                Select New Role <span className="text-rose-500">*</span>
+              </label>
+              <Select value={selectedRole} onValueChange={setSelectedRole}>
+                <SelectTrigger className="w-full text-xs">
+                  <SelectValue placeholder="Select Role" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableRoleOptions.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed">
+                Roles are strictly filtered based on your delegation authority tier.
+              </p>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">

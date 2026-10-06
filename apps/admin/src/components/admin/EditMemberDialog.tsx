@@ -2,16 +2,18 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { AlertCircle, CreditCard, Save, ShieldCheck, UserCog } from "lucide-react";
+import { AlertCircle, CreditCard, Lock, Save, Shield, ShieldCheck, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Switch } from "@/components/ui/switch";
 import { getProgramEmoji, getProgramPillClass } from "@/lib/memberFilters";
 import { cn } from "@/lib/utils";
 import type { Member } from "@/types/admin";
 import { cleanName, cleanEmail, normalizePhoneNumber, cleanMemberId, cleanReferralCode } from "@shared/dataSanitizers";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 const editMemberSchema = z.object({
   full_name: z.string().trim().min(1, "Full Name cannot be empty."),
@@ -19,7 +21,14 @@ const editMemberSchema = z.object({
   phone: z.string().trim(),
   member_id: z.string().trim(),
   referral_code: z.string().trim(),
-  role: z.enum(["user", "admin"]),
+  role: z.string(),
+  can_manage_system_configs: z.boolean().default(false),
+  access_treasury: z.boolean().default(false),
+  process_withdrawals: z.boolean().default(false),
+  manage_members: z.boolean().default(false),
+  manage_farms: z.boolean().default(false),
+  mutate_financials: z.boolean().default(false),
+  export_data: z.boolean().default(false),
 });
 
 export type EditMemberValues = z.infer<typeof editMemberSchema>;
@@ -39,9 +48,25 @@ export function EditMemberDialog({
   saving,
   onRequestIssueGreenCard,
 }: Props) {
+  const { isSuperDeveloper, canAssignRoles, allowedAssignableRoles } = useAdminAuth();
+
   const form = useForm<EditMemberValues>({
     resolver: zodResolver(editMemberSchema),
-    defaultValues: { full_name: "", email: "", phone: "", member_id: "", referral_code: "", role: "user" },
+    defaultValues: {
+      full_name: "",
+      email: "",
+      phone: "",
+      member_id: "",
+      referral_code: "",
+      role: "user",
+      can_manage_system_configs: false,
+      access_treasury: false,
+      process_withdrawals: false,
+      manage_members: false,
+      manage_farms: false,
+      mutate_financials: false,
+      export_data: false,
+    },
   });
 
   useEffect(() => {
@@ -52,12 +77,53 @@ export function EditMemberDialog({
         phone: member.phone || "",
         member_id: member.member_id === "No ID Assigned" ? "" : member.member_id,
         referral_code: member.referral_code || "",
-        role: member.role === "admin" ? "admin" : "user",
+        role: member.role || "user",
+        can_manage_system_configs: Boolean(member.can_manage_system_configs),
+        access_treasury: Boolean(member.custom_permissions?.access_treasury),
+        process_withdrawals: Boolean(member.custom_permissions?.process_withdrawals),
+        manage_members: Boolean(member.custom_permissions?.manage_members),
+        manage_farms: Boolean(member.custom_permissions?.manage_farms),
+        mutate_financials: Boolean(member.custom_permissions?.mutate_financials),
+        export_data: Boolean(member.custom_permissions?.export_data),
       });
     }
   }, [member, form]);
 
   if (!member) return null;
+
+  const isTargetSuper = member.role === "super_admin";
+  const canModifyRole = canAssignRoles && (!isTargetSuper || isSuperDeveloper);
+
+  const availableRoleOptions = allowedAssignableRoles.map((r) => {
+    switch (r) {
+      case "super_admin":
+        return { value: "super_admin", label: "Super Administrator" };
+      case "admin":
+        return { value: "admin", label: "Administrator" };
+      case "reviewer":
+        return { value: "reviewer", label: "Reviewer / Auditor" };
+      case "coordinator":
+        return { value: "coordinator", label: "Farm Coordinator" };
+      case "support":
+        return { value: "support", label: "Support Specialist" };
+      case "user":
+      default:
+        return { value: "user", label: "Standard Member" };
+    }
+  });
+
+  const hasCurrentRoleInOptions = availableRoleOptions.some(
+    (opt) => opt.value === (member.role || "user")
+  );
+  const roleOptionsToRender = hasCurrentRoleInOptions
+    ? availableRoleOptions
+    : [
+        {
+          value: member.role || "user",
+          label: `Current: ${member.role || "Member"}`,
+        },
+        ...availableRoleOptions,
+      ];
 
   return (
     <Dialog open={Boolean(member)} onOpenChange={onOpenChange}>
@@ -78,6 +144,13 @@ export function EditMemberDialog({
                 member_id: cleanMemberId(values.member_id),
                 referral_code: cleanReferralCode(values.referral_code),
                 role: values.role,
+                can_manage_system_configs: values.can_manage_system_configs,
+                access_treasury: values.access_treasury,
+                process_withdrawals: values.process_withdrawals,
+                manage_members: values.manage_members,
+                manage_farms: values.manage_farms,
+                mutate_financials: values.mutate_financials,
+                export_data: values.export_data,
               };
               onSave(cleaned);
             })}
@@ -235,22 +308,233 @@ export function EditMemberDialog({
               name="role"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>User Access Role</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>User Access Role</FormLabel>
+                    {!canModifyRole && (
+                      <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        <Lock className="h-3 w-3" /> Delegation restricted
+                      </span>
+                    )}
+                  </div>
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={!canModifyRole}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="user">Standard User</SelectItem>
-                      <SelectItem value="admin">Administrator</SelectItem>
+                      {roleOptionsToRender.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
+                  {!canModifyRole && (
+                    <span className="text-[11px] text-muted-foreground">
+                      Only Super Admin and authorized delegation can modify account roles.
+                    </span>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}
             />
+
+            {/* Granular Permission Overrides */}
+            <div className="rounded-lg border border-border bg-background/50 p-3.5 space-y-3">
+              <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <Shield className="h-4 w-4 text-primary" />
+                  Granular Permission Overrides
+                </div>
+                <span className="text-[11px] text-muted-foreground">
+                  User-specific capability toggles
+                </span>
+              </div>
+
+              <div className="space-y-2.5">
+                {/* Platform Economics / System Configs */}
+                <FormField
+                  control={form.control}
+                  name="can_manage_system_configs"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between space-y-0 rounded-md border border-border/40 p-2">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-xs font-medium cursor-pointer">
+                          Platform Parameters & Economics
+                        </FormLabel>
+                        <p className="text-[10px] text-muted-foreground">
+                          {isSuperDeveloper
+                            ? "Authorize platform fee, parameter, and reserve controls"
+                            : "Delegation strictly reserved for Super Administrator"}
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={!isSuperDeveloper}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Treasury & Solvency Shield */}
+                <FormField
+                  control={form.control}
+                  name="access_treasury"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between space-y-0 rounded-md border border-border/40 p-2">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-xs font-medium cursor-pointer">
+                          Financial Treasury Access
+                        </FormLabel>
+                        <p className="text-[10px] text-muted-foreground">
+                          View live treasury audits, liquid balances, and reserves
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={!canAssignRoles}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Disbursement Queue */}
+                <FormField
+                  control={form.control}
+                  name="process_withdrawals"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between space-y-0 rounded-md border border-border/40 p-2">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-xs font-medium cursor-pointer">
+                          Disbursement Queue Management
+                        </FormLabel>
+                        <p className="text-[10px] text-muted-foreground">
+                          Review, approve, and disburse bank withdrawals
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={!canAssignRoles}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Member Operations */}
+                <FormField
+                  control={form.control}
+                  name="manage_members"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between space-y-0 rounded-md border border-border/40 p-2">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-xs font-medium cursor-pointer">
+                          Member Management
+                        </FormLabel>
+                        <p className="text-[10px] text-muted-foreground">
+                          Manage profile details, activations, and suspensions
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={!canAssignRoles}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Farm Management */}
+                <FormField
+                  control={form.control}
+                  name="manage_farms"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between space-y-0 rounded-md border border-border/40 p-2">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-xs font-medium cursor-pointer">
+                          Farm Management & Operations
+                        </FormLabel>
+                        <p className="text-[10px] text-muted-foreground">
+                          Supervise farm groups, assign slots, and record expenses
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={!canAssignRoles}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Financial Mutations */}
+                <FormField
+                  control={form.control}
+                  name="mutate_financials"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between space-y-0 rounded-md border border-border/40 p-2">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-xs font-medium cursor-pointer">
+                          Financial Mutations & Green Cards
+                        </FormLabel>
+                        <p className="text-[10px] text-muted-foreground">
+                          Execute offline activations and manual slot crediting
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={!canAssignRoles}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* Data Export */}
+                <FormField
+                  control={form.control}
+                  name="export_data"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between space-y-0 rounded-md border border-border/40 p-2">
+                      <div className="space-y-0.5">
+                        <FormLabel className="text-xs font-medium cursor-pointer">
+                          Data Export to Excel
+                        </FormLabel>
+                        <p className="text-[10px] text-muted-foreground">
+                          Export members, transactions, and audit reports
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={!canAssignRoles}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

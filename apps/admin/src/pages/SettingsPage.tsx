@@ -2,6 +2,7 @@ import { ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlatformEconomicsEditor } from "@/components/admin/PlatformEconomicsEditor";
+import { RolePrivilegeMatrix } from "@/components/admin/RolePrivilegeMatrix";
 import { StatusBanner } from "@/components/admin/StatusBanner";
 
 export default function SettingsPage() {
@@ -23,6 +24,9 @@ export default function SettingsPage() {
         onSuccess={(msg) => flash(setSuccessMessage, msg)}
         onError={(msg) => flash(setErrorMessage, msg)}
       />
+
+      {/* Downward-Only Role Privileges Summary Matrix */}
+      <RolePrivilegeMatrix />
 
       <Card className="border-border bg-card">
         <CardHeader>

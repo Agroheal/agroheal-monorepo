@@ -21,6 +21,8 @@ interface RawProfileRow {
   lga?: string;
   advance_debt_balance?: number;
   is_suspended?: boolean;
+  can_manage_system_configs?: boolean;
+  custom_permissions?: Record<string, boolean>;
 }
 
 interface RawSlotRow {
@@ -157,6 +159,8 @@ export function useAdminMembers() {
           lga: p.lga || "",
           advance_debt_balance: Number(p.advance_debt_balance) || 0,
           is_suspended: p.is_suspended === true,
+          can_manage_system_configs: p.can_manage_system_configs === true,
+          custom_permissions: p.custom_permissions || {},
         };
       });
 

@@ -438,6 +438,8 @@ export async function updateMember(input: {
   member_id?: string;
   referral_code?: string;
   role: string;
+  can_manage_system_configs?: boolean;
+  custom_permissions?: Record<string, boolean>;
 }) {
   await assertAuditAuthorized();
   const sanitizedInput = {
@@ -448,6 +450,8 @@ export async function updateMember(input: {
     member_id: input.member_id ? cleanMemberId(input.member_id) : undefined,
     referral_code: input.referral_code ? cleanReferralCode(input.referral_code) : undefined,
     role: input.role,
+    can_manage_system_configs: input.can_manage_system_configs,
+    custom_permissions: input.custom_permissions,
   };
 
   // Fetch previous profile state for detailed audit diff
@@ -455,7 +459,7 @@ export async function updateMember(input: {
   try {
     const { data } = await supabase
       .from("profiles")
-      .select("full_name, email, phone, member_id, referral_code, role")
+      .select("full_name, email, phone, member_id, referral_code, role, can_manage_system_configs, custom_permissions")
       .eq("id", input.user_id)
       .maybeSingle();
     priorProfile = data;
@@ -469,15 +473,24 @@ export async function updateMember(input: {
   } else if (edgeResult.definitive) {
     throw new Error(edgeResult.message);
   } else {
+    const updatePayload: Record<string, any> = {
+      full_name: sanitizedInput.full_name,
+      email: sanitizedInput.email || null,
+      phone: sanitizedInput.phone,
+      member_id: sanitizedInput.member_id || null,
+      role: sanitizedInput.role,
+      updated_at: new Date().toISOString(),
+    };
+    if (typeof sanitizedInput.can_manage_system_configs === "boolean") {
+      updatePayload.can_manage_system_configs = sanitizedInput.can_manage_system_configs;
+    }
+    if (sanitizedInput.custom_permissions) {
+      updatePayload.custom_permissions = sanitizedInput.custom_permissions;
+    }
+
     const { error } = await supabase
       .from("profiles")
-      .update({
-        full_name: sanitizedInput.full_name,
-        email: sanitizedInput.email || null,
-        phone: sanitizedInput.phone,
-        member_id: sanitizedInput.member_id || null,
-        role: sanitizedInput.role,
-      })
+      .update(updatePayload)
       .eq("id", sanitizedInput.user_id);
 
     if (error) throw new Error(friendlyDbError(error, "Failed to update member profile."));
@@ -498,6 +511,8 @@ export async function updateMember(input: {
         member_id: sanitizedInput.member_id,
         referral_code: sanitizedInput.referral_code,
         role: sanitizedInput.role,
+        can_manage_system_configs: sanitizedInput.can_manage_system_configs,
+        custom_permissions: sanitizedInput.custom_permissions,
       },
     },
   });

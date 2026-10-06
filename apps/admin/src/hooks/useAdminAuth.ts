@@ -7,6 +7,9 @@ import {
   canAccessAdminPortal,
   canAccessTreasury,
   SUPER_DEV_EMAIL,
+  ESTHER_BOLA_EMAIL,
+  canCreateRoles,
+  getAllowedAssignableRoles,
 } from "@shared";
 
 export interface AdminProfile {
@@ -107,6 +110,9 @@ export const useAdminAuth = () => {
   const canAccessAdmin = canAccessAdminPortal(profile?.role, profile?.email);
   const hasTreasuryAccess = canAccessTreasury(profile?.role, profile?.email);
   const isReadOnly = isSupport && !isSuperDeveloper && !isAdmin;
+  const isEstherBola = profile?.email?.toLowerCase() === ESTHER_BOLA_EMAIL.toLowerCase();
+  const canAssignRoles = canCreateRoles(profile?.role, profile?.email);
+  const allowedAssignableRoles = getAllowedAssignableRoles(profile?.role, profile?.email);
 
   return {
     session,
@@ -114,12 +120,15 @@ export const useAdminAuth = () => {
     loading,
     isAdmin,
     isSuperDeveloper,
+    isEstherBola,
     isReviewer,
     isCoordinator,
     isSupport,
     canAccessAdmin,
     hasTreasuryAccess,
     isReadOnly,
+    canAssignRoles,
+    allowedAssignableRoles,
   };
 };
 

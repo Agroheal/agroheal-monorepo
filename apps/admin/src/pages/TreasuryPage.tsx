@@ -47,7 +47,7 @@ interface TreasuryAuditData {
 }
 
 export default function TreasuryPage() {
-  const { isSuperDeveloper, isAdmin } = useAdminAuth();
+  const { isSuperDeveloper, isAdmin, profile } = useAdminAuth();
 
   const [refreshing, setRefreshing] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -73,6 +73,26 @@ export default function TreasuryPage() {
   const [withdrawals, setWithdrawals] = useState<PendingWithdrawal[]>([]);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [batchProcessing, setBatchProcessing] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [autoApproveStatutory, setAutoApproveStatutory] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("auto_approve_statutory") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const isSuperAdminOrEsther =
+    profile?.email?.toLowerCase() === "developerelijah360@gmail.com" ||
+    profile?.email?.toLowerCase() === "estherbola888@gmail.com" ||
+    profile?.role === "super_admin";
+
+  const meetsMinimumRequirements = (w: PendingWithdrawal): boolean => {
+    const amount = Number(w.net_amount || w.amount || 0);
+    const hasMinAmount = amount >= 2000;
+    const hasValidAccount = Boolean(w.account_number && w.account_number.trim().length === 10);
+    return hasMinAmount && hasValidAccount;
+  };
 
   const flash = (fn: (v: string) => void, text: string) => {
     fn(text);
@@ -178,6 +198,102 @@ export default function TreasuryPage() {
     }
   };
 
+  const handleToggleSelectAll = () => {
+    if (selectedIds.size === withdrawals.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(withdrawals.map((w) => w.id)));
+    }
+  };
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleApproveSelected = async () => {
+    if (!isAdmin && !isSuperDeveloper) {
+      flash(setErrorMessage, "Only Platform Admins can execute disbursements.");
+      return;
+    }
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) {
+      flash(setErrorMessage, "Please select at least one pending withdrawal to approve.");
+      return;
+    }
+
+    const selectedWithdrawals = withdrawals.filter((w) => selectedIds.has(w.id));
+    const totalAmount = selectedWithdrawals.reduce((sum, w) => sum + (w.net_amount || w.amount), 0);
+
+    const confirm = window.confirm(
+      `Disburse ${ids.length} selected withdrawal(s) totaling ₦${totalAmount.toLocaleString()}?`
+    );
+    if (!confirm) return;
+
+    setBatchProcessing(true);
+    setErrorMessage("");
+    try {
+      const res = await adminApiClient.withdrawals.batchDisburse({
+        liquidBankBalance,
+        withdrawalIds: ids,
+      });
+      flash(
+        setSuccessMessage,
+        `Disbursed ${res.disbursedCount} selected transfers totaling ₦${res.totalDisbursed.toLocaleString()}.`
+      );
+      setSelectedIds(new Set());
+      await loadData();
+    } catch (err: any) {
+      flash(setErrorMessage, err.message || "Disbursement failed.");
+    } finally {
+      setBatchProcessing(false);
+    }
+  };
+
+  const handleAutoApproveQualified = async () => {
+    if (!isSuperAdminOrEsther) {
+      flash(setErrorMessage, "Only Super Admin and Esther Bola can authorize statutory auto-approval.");
+      return;
+    }
+    const qualified = withdrawals.filter((w) => meetsMinimumRequirements(w));
+    if (qualified.length === 0) {
+      flash(
+        setErrorMessage,
+        "No pending withdrawals meet minimum statutory criteria (≥ ₦2,000, 5 directs & valid 10-digit NUBAN)."
+      );
+      return;
+    }
+
+    const totalAmount = qualified.reduce((sum, w) => sum + (w.net_amount || w.amount), 0);
+    const confirm = window.confirm(
+      `Auto-approve ${qualified.length} statutory qualified withdrawal(s) totaling ₦${totalAmount.toLocaleString()}?`
+    );
+    if (!confirm) return;
+
+    setBatchProcessing(true);
+    setErrorMessage("");
+    try {
+      const res = await adminApiClient.withdrawals.batchDisburse({
+        liquidBankBalance,
+        withdrawalIds: qualified.map((w) => w.id),
+      });
+      flash(
+        setSuccessMessage,
+        `Auto-approved ${res.disbursedCount} qualified requests totaling ₦${res.totalDisbursed.toLocaleString()}.`
+      );
+      setSelectedIds(new Set());
+      await loadData();
+    } catch (err: any) {
+      flash(setErrorMessage, err.message || "Auto-approval failed.");
+    } finally {
+      setBatchProcessing(false);
+    }
+  };
+
   const handleBatchDisburse = async () => {
     if (!isAdmin && !isSuperDeveloper) {
       flash(setErrorMessage, "Only Platform Admins can execute batch disbursements.");
@@ -198,7 +314,7 @@ export default function TreasuryPage() {
     }
 
     const confirm = window.confirm(
-      `Execute batch disbursal of ${withdrawals.length} pending withdrawals totaling ₦${solvencyShield.totalPendingLiability.toLocaleString()}?`
+      `Execute batch disbursal of ALL ${withdrawals.length} pending withdrawals totaling ₦${solvencyShield.totalPendingLiability.toLocaleString()}?`
     );
     if (!confirm) return;
 
@@ -213,6 +329,7 @@ export default function TreasuryPage() {
         setSuccessMessage,
         `Batch execution completed: ${res.disbursedCount} transfers disbursed (Total: ₦${res.totalDisbursed.toLocaleString()}).`
       );
+      setSelectedIds(new Set());
       await loadData();
     } catch (err: any) {
       flash(setErrorMessage, err.message || "Batch disbursement failed.");
@@ -420,14 +537,68 @@ export default function TreasuryPage() {
 
       {/* ── SECTION 3: WITHDRAWALS DISBURSAL QUEUE ── */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Coins className="w-4 h-4 text-primary" />
-            Pending Withdrawal Settlement Queue ({withdrawals.length})
-          </h3>
-          <span className="text-xs text-muted-foreground">
-            All requests must be disbursed to verified NUBAN accounts or canceled and refunded to wallet.
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Coins className="w-4 h-4 text-primary" />
+              Pending Withdrawal Settlement Queue ({withdrawals.length})
+            </h3>
+            <span className="text-xs text-muted-foreground">
+              Disburse to verified NUBAN accounts or refund to wallet ledger.
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {isSuperAdminOrEsther && (
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={batchProcessing || withdrawals.length === 0}
+                  onClick={handleAutoApproveQualified}
+                  className="h-8 text-xs font-semibold gap-1.5 border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                  title="Only Super Admin & Esther Bola can trigger statutory auto-approval"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                  Auto-Approve Qualified (≥ ₦2k)
+                </Button>
+                <label className="flex items-center gap-1.5 border border-border/70 rounded-md px-2 py-1 bg-background/60 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoApproveStatutory}
+                    onChange={(e) => {
+                      const next = e.target.checked;
+                      setAutoApproveStatutory(next);
+                      try {
+                        localStorage.setItem("auto_approve_statutory", String(next));
+                      } catch {}
+                    }}
+                    className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+                  />
+                  <span className="text-[11px] text-muted-foreground font-medium">Auto-Gate</span>
+                </label>
+              </div>
+            )}
+
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={batchProcessing || selectedIds.size === 0}
+              onClick={handleApproveSelected}
+              className="h-8 text-xs font-semibold gap-1 border-primary/40 text-primary hover:bg-primary/10"
+            >
+              Approve Selected ({selectedIds.size})
+            </Button>
+
+            <Button
+              size="sm"
+              disabled={batchProcessing || withdrawals.length === 0 || !solvencyShield?.isSolvent}
+              onClick={handleBatchDisburse}
+              className="h-8 text-xs font-bold gap-1 bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              Approve All ({withdrawals.length})
+            </Button>
+          </div>
         </div>
 
         {withdrawals.length === 0 ? (
@@ -440,6 +611,14 @@ export default function TreasuryPage() {
             <table className="w-full text-left text-sm">
               <thead className="border-b border-border bg-muted/40 text-xs uppercase text-muted-foreground">
                 <tr>
+                  <th className="px-3 py-3 w-8">
+                    <input
+                      type="checkbox"
+                      checked={withdrawals.length > 0 && selectedIds.size === withdrawals.length}
+                      onChange={handleToggleSelectAll}
+                      className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
+                    />
+                  </th>
                   <th className="px-4 py-3">Member</th>
                   <th className="px-4 py-3">Gross / Net Amount</th>
                   <th className="px-4 py-3">Bank Details</th>
@@ -452,9 +631,18 @@ export default function TreasuryPage() {
                 {withdrawals.map((w) => {
                   const net = w.net_amount || w.amount;
                   const isProcessing = processingId === w.id;
+                  const isSelected = selectedIds.has(w.id);
 
                   return (
-                    <tr key={w.id} className="hover:bg-muted/20">
+                    <tr key={w.id} className={`hover:bg-muted/20 ${isSelected ? "bg-primary/5" : ""}`}>
+                      <td className="px-3 py-3 w-8">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleSelect(w.id)}
+                          className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5"
+                        />
+                      </td>
                       <td className="px-4 py-3">
                         <div className="font-semibold text-foreground">
                           {w.profiles?.name || "Member"}

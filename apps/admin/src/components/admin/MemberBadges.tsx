@@ -29,27 +29,30 @@ export function GreenCardBadge({ active, size = "sm" }: { active: boolean; size?
 export function RoleBadge({ role }: { role?: string }) {
   const isSuper = role === "super_admin";
   const isAdmin = role === "admin";
-  const isSupport = role === "support";
+  const isReviewer = role === "reviewer";
   const isCoord = role === "coordinator";
+  const isSupport = role === "support";
 
   const badgeClass = isSuper
     ? "bg-purple-500/15 text-purple-400 border border-purple-500/30 font-semibold"
     : isAdmin
     ? "bg-primary/15 text-primary border border-primary/30 font-semibold"
-    : isSupport
-    ? "bg-blue-500/15 text-blue-400 border border-blue-500/30"
+    : isReviewer
+    ? "bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 font-semibold"
     : isCoord
     ? "bg-amber-500/15 text-amber-400 border border-amber-500/30 font-semibold"
+    : isSupport
+    ? "bg-blue-500/15 text-blue-400 border border-blue-500/30 font-semibold"
     : "bg-muted text-muted-foreground";
 
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px]",
+        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] capitalize",
         badgeClass,
       )}
     >
-      {role || "user"}
+      {role === "user" ? "member" : role || "member"}
     </span>
   );
 }

@@ -11,11 +11,13 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createMember } from "@/lib/adminActions";
 import {
   OfflineRegistrationSuccessDialog,
   type OfflineRegistrationCredentials,
 } from "@/components/admin/OfflineRegistrationSuccessDialog";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 interface Props {
   open: boolean;
@@ -26,12 +28,32 @@ interface Props {
 }
 
 export function CreateMemberDialog({ open, onOpenChange, onRegistered, onSuccess, onError }: Props) {
+  const { canAssignRoles, allowedAssignableRoles } = useAdminAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [referrer, setReferrer] = useState("");
+  const [role, setRole] = useState("member");
   const [loading, setLoading] = useState(false);
   const [tempCredentials, setTempCredentials] = useState<OfflineRegistrationCredentials | null>(null);
+
+  const availableRoleOptions = allowedAssignableRoles.map((r) => {
+    switch (r) {
+      case "super_admin":
+        return { value: "super_admin", label: "Super Administrator" };
+      case "admin":
+        return { value: "admin", label: "Administrator" };
+      case "reviewer":
+        return { value: "reviewer", label: "Reviewer / Auditor" };
+      case "coordinator":
+        return { value: "coordinator", label: "Farm Coordinator" };
+      case "support":
+        return { value: "support", label: "Support Specialist" };
+      case "user":
+      default:
+        return { value: "member", label: "Standard Member" };
+    }
+  });
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -47,6 +69,7 @@ export function CreateMemberDialog({ open, onOpenChange, onRegistered, onSuccess
         email: email.trim(),
         phone: phone.trim() || undefined,
         referral_code: referrer.trim() || undefined,
+        role: canAssignRoles ? role : "member",
       });
       setTempCredentials({
         fullName: name.trim(),
@@ -59,6 +82,7 @@ export function CreateMemberDialog({ open, onOpenChange, onRegistered, onSuccess
       setEmail("");
       setPhone("");
       setReferrer("");
+      setRole("member");
       onRegistered();
       onOpenChange(false);
     } catch (err) {
@@ -124,6 +148,27 @@ export function CreateMemberDialog({ open, onOpenChange, onRegistered, onSuccess
                 className="text-xs h-9 font-mono uppercase"
               />
             </div>
+
+            {canAssignRoles && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">Initial Account Role</Label>
+                <Select value={role} onValueChange={setRole}>
+                  <SelectTrigger className="text-xs h-9">
+                    <SelectValue placeholder="Select initial role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableRoleOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-[10px] text-muted-foreground">
+                  Scoped to your administrative assignment authority.
+                </p>
+              </div>
+            )}
 
             <DialogFooter className="pt-2">
               <Button
