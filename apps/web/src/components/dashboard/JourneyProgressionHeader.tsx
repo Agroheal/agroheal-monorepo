@@ -60,6 +60,11 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   else if (isStep1Done && isStep2Done && !isStep3Done) currentStep = 3;
   else if (isStep3Done) currentStep = 4;
 
+  // User Specification: Anyone who has completed all 3 milestones should no longer see the milestone component
+  if (isStep3Done) {
+    return null;
+  }
+
   // Management Rule: When Milestone 3 is active and in-progress, stop showing after 21 days
   const m3Date = milestone3ActiveDate || createdAt;
   const daysSinceMilestone3 = m3Date
@@ -67,31 +72,6 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
     : 0;
 
   if (currentStep === 3 && m3Date && daysSinceMilestone3 > 21) {
-    return null;
-  }
-
-  // Management Rule: Once Milestone 3 is COMPLETED, allow the milestone stuff to be there for 21 days total
-  const m3CompletedKey = memberId ? `agroheal_m3_completed_${memberId}` : "agroheal_m3_completed_default";
-  let completionTimestamp = 0;
-  if (isStep3Done) {
-    const stored = typeof window !== "undefined" ? localStorage.getItem(m3CompletedKey) : null;
-    if (!stored) {
-      const nowIso = new Date().toISOString();
-      if (typeof window !== "undefined") {
-        try { localStorage.setItem(m3CompletedKey, nowIso); } catch {}
-      }
-      completionTimestamp = Date.now();
-    } else {
-      completionTimestamp = new Date(stored).getTime();
-    }
-  }
-
-  const daysSinceCompleted = isStep3Done && completionTimestamp
-    ? Math.floor((Date.now() - completionTimestamp) / (1000 * 60 * 60 * 24))
-    : 0;
-
-  // Disappears after 21 days total
-  if (isStep3Done && daysSinceCompleted >= 21) {
     return null;
   }
 

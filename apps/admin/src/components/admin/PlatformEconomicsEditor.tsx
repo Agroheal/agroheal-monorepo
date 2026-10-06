@@ -117,7 +117,7 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
       const { data, error } = await supabase
         .from("profiles")
         .select("id, full_name, email, role, can_manage_system_configs")
-        .in("role", ["admin", "super_admin"])
+        .in("role", ["admin", "super_admin", "support", "finance", "coordinator"])
         .order("full_name");
 
       if (error) throw error;
@@ -129,15 +129,20 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
     }
   }
 
-  async function handleToggleAdminPermission(targetId: string, currentVal: boolean) {
+  async function handleSetAdminPermission(targetId: string, canManage: boolean) {
     try {
-      await adminApiClient.configs.updateAdminPermission(targetId, !currentVal);
+      const { error } = await supabase
+        .from("profiles")
+        .update({ can_manage_system_configs: canManage })
+        .eq("id", targetId);
+      if (error) throw error;
+
       setAdminUsers((prev) =>
-        prev.map((u) => (u.id === targetId ? { ...u, can_manage_system_configs: !currentVal } : u))
+        prev.map((u) => (u.id === targetId ? { ...u, can_manage_system_configs: canManage } : u))
       );
-      onSuccess("Admin permission updated successfully");
+      onSuccess(`Staff permission updated: ${canManage ? "Parameters Configurable" : "Read-Only"}`);
     } catch (err: any) {
-      onError(err.message || "Failed to update admin permission");
+      onError(err.message || "Failed to update staff permission");
     }
   }
 
@@ -147,7 +152,7 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
   const [candidateResults, setCandidateResults] = useState<any[]>([]);
   const [searchingCandidates, setSearchingCandidates] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<any | null>(null);
-  const [newAdminRole, setNewAdminRole] = useState<"admin" | "super_admin">("admin");
+  const [newAdminRole, setNewAdminRole] = useState<string>("admin");
   const [grantConfigAccess, setGrantConfigAccess] = useState(false);
   const [appointing, setAppointing] = useState(false);
 
@@ -189,9 +194,7 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
       if (error) throw error;
 
       onSuccess(
-        `Successfully appointed ${selectedCandidate.full_name || selectedCandidate.email} as ${
-          newAdminRole === "super_admin" ? "Super Admin" : "Admin"
-        }!`
+        `Successfully appointed ${selectedCandidate.full_name || selectedCandidate.email} as ${newAdminRole.replace("_", " ").toUpperCase()}!`
       );
       setIsAddAdminOpen(false);
       setSelectedCandidate(null);
@@ -555,24 +558,21 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <Label htmlFor={`perm-${admin.id}`} className="text-xs text-muted-foreground">
-                        {admin.role === "super_admin"
-                          ? "Super Admin (Full)"
-                          : admin.can_manage_system_configs
-                          ? "Parameters: Configurable"
-                          : "Parameters: Read-Only"}
-                      </Label>
-                      {admin.role !== "super_admin" && (
-                        <Switch
-                          id={`perm-${admin.id}`}
-                          checked={admin.can_manage_system_configs === true}
-                          onCheckedChange={() =>
-                            handleToggleAdminPermission(
-                              admin.id,
-                              admin.can_manage_system_configs === true
-                            )
+                      {admin.role === "super_admin" ? (
+                        <Badge variant="secondary" className="text-[10px] bg-primary/10 text-primary border-primary/20">
+                          Full Unrestricted
+                        </Badge>
+                      ) : (
+                        <select
+                          value={admin.can_manage_system_configs ? "configurable" : "readonly"}
+                          onChange={(e) =>
+                            handleSetAdminPermission(admin.id, e.target.value === "configurable")
                           }
-                        />
+                          className="text-[11px] h-7 px-2 rounded-md border border-border bg-card text-foreground cursor-pointer focus:outline-none"
+                        >
+                          <option value="readonly">Read-Only (Default)</option>
+                          <option value="configurable">Parameters: Configurable</option>
+                        </select>
                       )}
                     </div>
                   </div>
@@ -583,15 +583,15 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
         </Card>
       )}
 
-      {/* Appoint Admin Modal Dialog */}
+      {/* Appoint Staff / Admin Modal Dialog */}
       <Dialog open={isAddAdminOpen} onOpenChange={setIsAddAdminOpen}>
         <DialogContent className="w-[95vw] sm:max-w-md p-4 sm:p-6 bg-card border-border">
           <DialogHeader>
             <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-              <UserPlus className="w-4 h-4 text-primary" /> Appoint New Administrator
+              <UserPlus className="w-4 h-4 text-primary" /> Appoint Staff / Administrator
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              Search a registered member by name, email, or AGC ID to elevate to staff administration.
+              Search a registered member by name, email, or AGC ID to elevate to staff administration or specialized operational roles.
             </DialogDescription>
           </DialogHeader>
 
@@ -667,22 +667,25 @@ export function PlatformEconomicsEditor({ onSuccess, onError }: Props) {
                   <Label className="text-xs font-medium">Assign Role</Label>
                   <select
                     value={newAdminRole}
-                    onChange={(e) => setNewAdminRole(e.target.value as any)}
-                    className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                    onChange={(e) => setNewAdminRole(e.target.value)}
+                    className="w-full h-8 rounded-md border border-input bg-background px-3 text-xs shadow-sm focus:outline-none focus:ring-1 focus:ring-ring cursor-pointer"
                   >
-                    <option value="admin">Administrator (Operations &amp; Support)</option>
-                    <option value="super_admin">Super Administrator (Full Unrestricted)</option>
+                    <option value="support">Support Specialist (Customer Desk &amp; Member Assistance)</option>
+                    <option value="coordinator">Farm Coordinator (Cluster &amp; Field Operations)</option>
+                    <option value="finance">Finance Officer (Ledger &amp; Treasury Review)</option>
+                    <option value="admin">Administrator (System &amp; Member Operations)</option>
+                    <option value="super_admin">Super Administrator (Full Unrestricted Access)</option>
                   </select>
                 </div>
 
-                {newAdminRole !== "super_admin" && (
+                {newAdminRole === "admin" && (
                   <div className="flex items-center justify-between pt-2">
                     <div>
                       <Label htmlFor="grant-cfg" className="text-xs font-medium block">
                         Allow Economics Configuration
                       </Label>
                       <span className="text-[10px] text-muted-foreground block">
-                        Grant permission to modify platform financial constants.
+                        Grant permission to modify platform financial constants (defaults to read-only).
                       </span>
                     </div>
                     <Switch

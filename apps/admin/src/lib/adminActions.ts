@@ -103,55 +103,15 @@ type AdminActionResult<T> =
       definitive: boolean;
     };
 
-/**
- * supabase-js puts the Edge Function's own JSON body in `error.context`
- * (a raw Response) whenever the function responds with a non-2xx status —
- * `data` is left empty in that case. If we can parse a `{ message }` out
- * of it, the function actually ran and told us exactly why it failed, so
- * that counts as a definitive answer (don't fall back). Only a genuine
- * network/relay failure — no parseable body at all — is non-definitive.
- */
-async function resolveEdgeError(error: { message?: string; context?: unknown }): Promise<{
-  message: string;
-  definitive: boolean;
-}> {
-  const context = error.context;
-  if (context && typeof context === "object" && typeof (context as Response).json === "function") {
-    try {
-      const body = await (context as Response).clone().json();
-      if (body && typeof body.message === "string" && body.message) {
-        return { message: body.message, definitive: true };
-      }
-    } catch {
-      // Response body wasn't JSON — this wasn't a real answer from the
-      // function, fall through to the generic non-definitive message.
-    }
-  }
-  return { message: error.message || "Could not reach the admin service.", definitive: false };
-}
+
 
 async function invokeAdminAction<T = unknown>(
-  action: string,
-  body: Record<string, unknown>,
+  _action: string,
+  _body: Record<string, unknown>,
 ): Promise<AdminActionResult<T>> {
-  const { data, error } = await supabase.functions.invoke("admin-actions", {
-    body: { action, ...body },
-  });
-
-  if (!error && data?.success) {
-    return { ok: true, data: data.data as T };
-  }
-
-  if (data && typeof data.message === "string" && data.message) {
-    return { ok: false, message: data.message, definitive: true };
-  }
-
-  if (error) {
-    const { message, definitive } = await resolveEdgeError(error);
-    return { ok: false, message, definitive };
-  }
-
-  return { ok: false, message: "The admin service returned an unexpected response.", definitive: false };
+  // Supabase Edge Function retired per user architectural mandate.
+  // Direct client writes and Node.js backend are the single source of truth.
+  return { ok: false, message: "Edge function retired; utilizing direct backend operations.", definitive: false };
 }
 
 /** Turns a raw Postgrest error into something an admin can actually act on. */

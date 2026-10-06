@@ -43,7 +43,7 @@ import JourneyProgressionHeader from "@/components/dashboard/JourneyProgressionH
 import ForcePasswordChangeModal from "@/components/dashboard/ForcePasswordChangeModal";
 import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
 import { CutoverCountdownBanner } from "@/components/common/CutoverCountdownBanner";
-import { GreenCardFirst5Card } from "@/components/common/GreenCardFirst5Card";
+import { GreenCardFirst5Card, type DirectReferralInfo } from "@/components/common/GreenCardFirst5Card";
 import { isLegacyMember, getGreenCardFee, formatNaira } from "@shared/businessRules";
 
 interface ReferralProps {
@@ -103,6 +103,7 @@ const Dashboard = () => {
     Array<{ id: string; name: string; project_category: string; slots: number }>
   >([]);
   const [milestone3ActiveDate, setMilestone3ActiveDate] = useState<string | null>(null);
+  const [enrichedDirects, setEnrichedDirects] = useState<DirectReferralInfo[]>([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -203,6 +204,45 @@ const Dashboard = () => {
       );
       profileData.total_referrals = computedTotalReferrals;
       profileData.referrals = directReferralsList;
+
+      // Build enriched direct referrals with Tier 2 downline enrollees
+      let enrichedList: DirectReferralInfo[] = [];
+      if (directReferralsList.length > 0) {
+        try {
+          const directIds = directReferralsList.map((d: any) => d.id);
+          const { data: tier2Data } = await supabase
+            .from("profiles")
+            .select("id, full_name, referred_by, sponsor_id, member_id, created_at")
+            .or(`referred_by.in.(${directIds.join(",")}),sponsor_id.in.(${directIds.join(",")})`);
+
+          const t2List = tier2Data || [];
+          enrichedList = directReferralsList.map((d: any) => {
+            const memberT2 = t2List.filter(
+              (t: any) => t.referred_by === d.id || t.sponsor_id === d.id
+            );
+            return {
+              id: d.id,
+              fullName: d.full_name || "Member",
+              memberId: d.member_id,
+              directsCount: Math.max(Number(d.total_referrals) || 0, memberT2.length),
+              tier2Members: memberT2.map((m: any) => ({
+                id: m.id,
+                fullName: m.full_name || "Member",
+                memberId: m.member_id,
+              })),
+            };
+          });
+        } catch (t2Err) {
+          console.warn("Failed to fetch Tier 2 downlines:", t2Err);
+          enrichedList = directReferralsList.map((d: any) => ({
+            id: d.id,
+            fullName: d.full_name || "Member",
+            memberId: d.member_id,
+            directsCount: Number(d.total_referrals) || 0,
+          }));
+        }
+      }
+      setEnrichedDirects(enrichedList);
 
       // Calculate total slots combining slot_subscriptions AND physical farm_records
       const subSlotsCount = (subscriptions || []).reduce((total, item) => {
@@ -633,6 +673,7 @@ const Dashboard = () => {
             directReferralsCount={profile?.total_referrals || 0}
             referralCode={profile?.referral_code}
             hasGreenCard={hasGreenCard}
+            referralsList={enrichedDirects}
             className="mb-6"
           />
         )}

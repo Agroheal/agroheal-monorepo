@@ -1,26 +1,43 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Link } from "react-router-dom";
 import {
   CheckCircle2,
   Copy,
-  Share2,
   Sparkles,
   ChevronDown,
   ChevronUp,
   Award,
   Users,
   MessageCircle,
-  ExternalLink,
   Flame,
   Check,
+  ChevronLeft,
+  ChevronRight,
+  GitBranch,
+  ShieldCheck,
+  UserCheck,
 } from "lucide-react";
 import { showToast } from "@/components/ui/ToastComponent";
+
+export interface DirectReferralInfo {
+  id: string;
+  fullName: string;
+  memberId?: string;
+  directsCount: number;
+  tier2Members?: Array<{
+    id: string;
+    fullName: string;
+    memberId?: string;
+  }>;
+}
 
 interface GreenCardFirst5CardProps {
   directReferralsCount: number;
   referralCode?: string;
   hasGreenCard: boolean;
   className?: string;
+  referralsList?: DirectReferralInfo[];
 }
 
 export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
@@ -28,14 +45,22 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
   referralCode = "",
   hasGreenCard = true,
   className = "",
+  referralsList = [],
 }) => {
   const [showChallenge, setShowChallenge] = useState(false);
   const [activeDay, setActiveDay] = useState<1 | 2 | 3>(1);
   const [copiedScript, setCopiedScript] = useState(false);
+  const [selectedLeaderIndex, setSelectedLeaderIndex] = useState(0);
 
-  const completedCount = Math.min(Math.max(directReferralsCount, 0), 5);
+  const effectiveCount = Math.max(directReferralsCount, referralsList.length);
+  const completedCount = Math.min(effectiveCount, 5);
   const isCompleted = completedCount >= 5;
   const progressPercent = (completedCount / 5) * 100;
+
+  // Calculate total Tier 2 count across all direct referrals (up to 25)
+  const totalTier2Count = referralsList.reduce((acc, r) => acc + (r.tier2Members?.length || r.directsCount || 0), 0);
+  const tier2Cap = 25;
+  const tier2Progress = Math.min(100, (totalTier2Count / tier2Cap) * 100);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "https://agroheal.org";
   const inviteLink = `${origin}/signup?ref=${referralCode || "356FV1"}`;
@@ -85,6 +110,8 @@ Join our next onboarding session and let's help your first 5 get started immedia
     window.open(`https://wa.me/?text=${encoded}`, "_blank", "noopener,noreferrer");
   };
 
+  const activeLeader = referralsList[selectedLeaderIndex] || null;
+
   return (
     <div
       className={`relative overflow-hidden rounded-2xl sm:rounded-3xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950 via-[#0a2416] to-[#04150c] text-white shadow-xl shadow-emerald-950/20 ${className}`}
@@ -133,7 +160,7 @@ Join our next onboarding session and let's help your first 5 get started immedia
           </div>
         </div>
 
-        {/* Core Progress Indicator (1 to 5) */}
+        {/* ── CORE PROGRESS INDICATOR: 5 SLOTS WITH NAMES & DIRECT RECRUIT COUNTERS ── */}
         <div className="bg-black/30 backdrop-blur-md rounded-xl sm:rounded-2xl p-3.5 sm:p-4 border border-white/10 mb-5">
           <div className="flex items-center justify-between text-xs text-emerald-200/80 mb-2.5 font-medium">
             <span className="flex items-center gap-1.5 text-white font-semibold">
@@ -144,20 +171,30 @@ Join our next onboarding session and let's help your first 5 get started immedia
           </div>
 
           {/* 5 Step Progress Nodes */}
-          <div className="grid grid-cols-5 gap-2 sm:gap-3 mb-3">
+          <div className="grid grid-cols-5 gap-1.5 sm:gap-3 mb-3">
             {[1, 2, 3, 4, 5].map((slotNumber) => {
-              const isSlotDone = completedCount >= slotNumber;
+              const member = referralsList[slotNumber - 1];
+              const isSlotDone = Boolean(member) || completedCount >= slotNumber;
+              const firstName = member?.fullName
+                ? member.fullName.split(" ")[0]
+                : isSlotDone
+                ? `Direct #${slotNumber}`
+                : `Slot ${slotNumber}`;
+              const directsCount = member?.directsCount ?? 0;
+              const hasDuplicated5 = directsCount >= 5;
+
               return (
                 <div
                   key={slotNumber}
-                  className={`relative flex flex-col items-center justify-center py-2.5 sm:py-3.5 px-1 rounded-xl sm:rounded-2xl transition-all duration-300 ${
+                  className={`relative flex flex-col items-center justify-between py-2 sm:py-3 px-1 rounded-xl sm:rounded-2xl transition-all duration-300 min-h-[90px] sm:min-h-[105px] ${
                     isSlotDone
                       ? "bg-gradient-to-b from-emerald-500/25 to-emerald-600/15 border-2 border-emerald-400 text-white shadow-lg shadow-emerald-950/50"
                       : "bg-white/5 border border-dashed border-white/20 text-emerald-300/40"
                   }`}
                 >
+                  {/* Top Badge Icon */}
                   <div
-                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs mb-1 transition-transform ${
+                    className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs transition-transform ${
                       isSlotDone
                         ? "bg-emerald-400 text-emerald-950 shadow-xs"
                         : "bg-white/10 text-white/60"
@@ -169,9 +206,32 @@ Join our next onboarding session and let's help your first 5 get started immedia
                       <span>{slotNumber}</span>
                     )}
                   </div>
-                  <span className="text-[10px] sm:text-xs font-semibold tracking-tight text-center truncate max-w-full">
-                    {isSlotDone ? "Active" : `Slot ${slotNumber}`}
-                  </span>
+
+                  {/* Member Name */}
+                  <div className="text-center w-full px-0.5 my-1">
+                    <span className="text-[10px] sm:text-xs font-bold tracking-tight block truncate max-w-full text-white">
+                      {firstName}
+                    </span>
+                  </div>
+
+                  {/* Duplication Sub-counter badge */}
+                  <div className="w-full text-center">
+                    {isSlotDone ? (
+                      hasDuplicated5 ? (
+                        <span className="inline-block text-[8px] sm:text-[9px] font-black uppercase tracking-tighter px-1 py-0.5 rounded bg-amber-400/25 text-amber-300 border border-amber-400/30">
+                          5/5 Done!
+                        </span>
+                      ) : (
+                        <span className="inline-block text-[8px] sm:text-[9px] font-semibold px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 truncate max-w-full">
+                          {directsCount}/5 Directs
+                        </span>
+                      )
+                    ) : (
+                      <span className="text-[8px] sm:text-[9px] text-white/40 font-mono">
+                        Available
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -187,6 +247,131 @@ Join our next onboarding session and let's help your first 5 get started immedia
             />
           </div>
         </div>
+
+        {/* ── TIER 2 (THE 25 EXPANSION SLOTS DUPLICATION CAROUSEL) ── */}
+        {referralsList.length > 0 && (
+          <div className="bg-black/40 backdrop-blur-md rounded-xl sm:rounded-2xl p-3.5 sm:p-4 border border-white/10 mb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 pb-2 border-b border-white/10">
+              <div>
+                <h4 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
+                  <GitBranch className="w-4 h-4 text-emerald-400" />
+                  <span>Tier 2 Duplication Team (25 Expansion Slots)</span>
+                </h4>
+                <p className="text-[10px] sm:text-[11px] text-emerald-200/80 mt-0.5">
+                  Monitor each of your direct partners' 5 slots as they duplicate.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] sm:text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  {totalTier2Count} / 25 Duplicated
+                </span>
+                <Link
+                  to="/dashboard/my-network"
+                  className="inline-flex items-center gap-1 text-[11px] text-emerald-400 hover:text-emerald-300 font-semibold underline underline-offset-2 ml-1"
+                >
+                  Full Network →
+                </Link>
+              </div>
+            </div>
+
+            {/* Direct Leader Selectors / Carousel Tabs */}
+            <div className="flex items-center justify-between gap-1 mb-3">
+              <button
+                type="button"
+                onClick={() => setSelectedLeaderIndex((prev) => Math.max(0, prev - 1))}
+                disabled={selectedLeaderIndex === 0}
+                className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/70 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                aria-label="Previous direct leader"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto py-1 px-1 flex-1 justify-center no-scrollbar">
+                {referralsList.slice(0, 5).map((leader, idx) => {
+                  const isSelected = selectedLeaderIndex === idx;
+                  const leaderCount = leader.tier2Members?.length || leader.directsCount || 0;
+                  return (
+                    <button
+                      key={leader.id || idx}
+                      type="button"
+                      onClick={() => setSelectedLeaderIndex(idx)}
+                      className={`px-2 sm:px-3 py-1.5 rounded-xl text-[10px] sm:text-xs font-semibold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                        isSelected
+                          ? "bg-emerald-500 text-emerald-950 shadow-md font-bold"
+                          : "bg-white/5 text-emerald-200 hover:bg-white/10 border border-white/10"
+                      }`}
+                    >
+                      <UserCheck className="w-3 h-3" />
+                      <span>{leader.fullName.split(" ")[0]}</span>
+                      <span className={`text-[9px] px-1 rounded-full ${isSelected ? "bg-emerald-950/20 text-emerald-950" : "bg-white/10 text-emerald-300"}`}>
+                        {leaderCount}/5
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedLeaderIndex((prev) => Math.min(referralsList.length - 1, prev + 1))}
+                disabled={selectedLeaderIndex >= referralsList.length - 1}
+                className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/70 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shrink-0"
+                aria-label="Next direct leader"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Selected Leader's 5 Slots Grid */}
+            {activeLeader ? (
+              <div className="bg-black/30 rounded-xl p-3 border border-white/5">
+                <div className="flex items-center justify-between text-[11px] text-emerald-300 mb-2">
+                  <span className="font-semibold text-white">
+                    {activeLeader.fullName}'s Direct 5 Team:
+                  </span>
+                  <span>
+                    {(activeLeader.tier2Members?.length || activeLeader.directsCount || 0)} of 5 Slots Filled
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+                  {[1, 2, 3, 4, 5].map((slotIdx) => {
+                    const tier2Member = activeLeader.tier2Members?.[slotIdx - 1];
+                    const isFilled = Boolean(tier2Member) || (activeLeader.directsCount >= slotIdx);
+                    const memberName = tier2Member?.fullName
+                      ? tier2Member.fullName.split(" ")[0]
+                      : isFilled
+                      ? `Member #${slotIdx}`
+                      : `Slot ${slotIdx}`;
+
+                    return (
+                      <div
+                        key={slotIdx}
+                        className={`p-2 rounded-lg text-center flex flex-col items-center justify-center min-h-[55px] sm:min-h-[65px] border transition-all ${
+                          isFilled
+                            ? "bg-emerald-500/20 border-emerald-400/60 text-white"
+                            : "bg-white/5 border-dashed border-white/15 text-white/40"
+                        }`}
+                      >
+                        <span className="text-[10px] sm:text-xs font-bold block truncate max-w-full">
+                          {memberName}
+                        </span>
+                        <span className="text-[8px] sm:text-[9px] mt-0.5 text-emerald-300/80">
+                          {isFilled ? "Active" : "Open"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4 text-xs text-emerald-200/60">
+                Activate your first direct referrals above to start tracking Tier 2 duplication.
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Motivational Callout */}
         <div className="mb-5 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs sm:text-sm text-emerald-100 flex items-start gap-2.5">
@@ -352,3 +537,5 @@ Join our next onboarding session and let's help your first 5 get started immedia
     </div>
   );
 };
+
+export default GreenCardFirst5Card;
