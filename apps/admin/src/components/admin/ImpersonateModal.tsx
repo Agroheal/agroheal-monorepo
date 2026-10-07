@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ShieldAlert, ExternalLink, KeyRound, Copy, Check, Loader2, ArrowRight } from "lucide-react";
+import { ShieldAlert, ExternalLink, KeyRound, Copy, Check, Loader2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
