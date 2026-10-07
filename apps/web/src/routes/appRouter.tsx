@@ -23,6 +23,7 @@ import Checkout from "@/page/website/Slots/Checkout";
 import DashboardError from "@/page/error/DashboardError";
 import ForgotPasswordForm from "@/page/ForgotPassword";
 import UpdatePasswordForm from "@/page/UpdatePassword";
+import ConfirmEmail from "@/page/ConfirmEmail";
 import ProfileComponent from "@/page/website/dashboard/Profile";
 import Legal from "@/page/website/Legal";
 import RoadmapGuide from "@/page/website/dashboard/RoadmapGuide";
@@ -73,6 +74,8 @@ export const appRouter = createBrowserRouter([
       { path: "signup", element: <Signup /> },
       { path: "forgot-password", element: <ForgotPasswordForm /> },
       { path: "reset-password", element: <UpdatePasswordForm /> },
+      { path: "confirm-email", element: <ConfirmEmail /> },
+      { path: "verify-email", element: <ConfirmEmail /> },
       { path: "verify-card/:memberId", element: <VerifyCard /> },
       { path: "subscribe", element: <Navigate to="/signup" replace /> },
     ],

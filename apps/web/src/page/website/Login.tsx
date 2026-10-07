@@ -240,18 +240,26 @@ const Login = () => {
                   Email Confirmation Required
                 </div>
                 <p className="leading-relaxed text-amber-800">
-                  Your email has not been confirmed yet. Please verify your email via the link sent to your inbox, or click below to receive a new link.
+                  Your email has not been confirmed yet. Please verify your email via the link or code sent to your inbox, or request a fresh confirmation link.
                 </p>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={handleResendFromLogin}
-                  disabled={resending}
-                  className="w-full text-xs h-9 border-amber-300 bg-white hover:bg-amber-100 text-amber-900 font-semibold rounded-lg"
-                >
-                  {resending ? "Sending fresh link..." : "Resend Confirmation Email"}
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleResendFromLogin}
+                    disabled={resending}
+                    className="flex-1 text-xs h-9 border-amber-300 bg-white hover:bg-amber-100 text-amber-900 font-semibold rounded-lg"
+                  >
+                    {resending ? "Sending fresh link..." : "Resend Email"}
+                  </Button>
+                  <Link
+                    to={`/confirm-email?email=${encodeURIComponent(email)}`}
+                    className="flex-1 inline-flex items-center justify-center text-xs h-9 bg-amber-800 hover:bg-amber-700 text-white font-semibold rounded-lg text-center"
+                  >
+                    Enter Code
+                  </Link>
+                </div>
               </motion.div>
             )}
 

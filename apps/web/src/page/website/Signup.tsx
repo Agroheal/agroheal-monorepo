@@ -284,6 +284,12 @@ const Signup = () => {
               </div>
 
               <div className="space-y-3">
+                <Link
+                  to={`/confirm-email?email=${encodeURIComponent(email)}`}
+                  className="block w-full py-2.5 bg-green-800 hover:bg-green-700 text-white font-medium text-sm rounded-xl text-center transition-colors shadow-sm"
+                >
+                  Enter Confirmation Code
+                </Link>
                 <Button
                   onClick={handleResendVerification}
                   variant="outline"
@@ -294,7 +300,7 @@ const Signup = () => {
                 </Button>
                 <Link
                   to={redirectUrl !== "/dashboard" ? `/signin?redirect=${encodeURIComponent(redirectUrl)}` : "/signin"}
-                  className="block w-full py-2.5 bg-green-800 hover:bg-green-900 text-white font-medium text-sm rounded-xl text-center transition-colors"
+                  className="block w-full py-2 text-gray-600 hover:text-green-800 font-medium text-xs rounded-xl text-center transition-colors"
                 >
                   Proceed to Sign In
                 </Link>
