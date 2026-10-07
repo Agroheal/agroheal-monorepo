@@ -228,6 +228,7 @@ export interface EntryPricingStructure {
   greenCardFee: number;
   farmSlotPrice: number;
   starterPackPrice: number;
+  comboPrice: number;
   totalEntryFee: number;
   directSponsorReward: number;
   groupFarmAllocation: number;
@@ -241,7 +242,8 @@ export const getEntryPricing = (date?: Date | string | number | null): EntryPric
       greenCardFee: NEW_GREEN_CARD_FEE,
       farmSlotPrice: NEW_FARM_SLOT_PRICE,
       starterPackPrice: NEW_STARTER_PACK_PRICE,
-      totalEntryFee: NEW_TOTAL_ENTRY_FEE,
+      comboPrice: NEW_FARM_SLOT_PRICE + NEW_STARTER_PACK_PRICE, // ₦5,000 Farm Slot + ₦8,000 Mushroom Power = ₦13,000
+      totalEntryFee: NEW_TOTAL_ENTRY_FEE, // ₦2,000 GC + ₦5,000 Slot + ₦8,000 Mushroom Power = ₦15,000
       directSponsorReward: NEW_TOTAL_DIRECT_SPONSOR_BONUS,
       groupFarmAllocation: NEW_GROUP_FARM_PRODUCTION_FUND,
       networkPool: NEW_NETWORK_COMMISSION_POOL,
@@ -254,7 +256,8 @@ export const getEntryPricing = (date?: Date | string | number | null): EntryPric
     greenCardFee: 2000,
     farmSlotPrice: 5000,
     starterPackPrice: 5000,
-    totalEntryFee: 12000,
+    comboPrice: 10000, // ₦5,000 Farm Slot + ₦5,000 Mushroom Power = ₦10,000
+    totalEntryFee: 12000, // ₦2,000 GC + ₦5,000 Slot + ₦5,000 Mushroom Power = ₦12,000
     directSponsorReward: 1500, // ₦1,000 GC + ₦500 Slot
     groupFarmAllocation: 0,
     networkPool: 2000,

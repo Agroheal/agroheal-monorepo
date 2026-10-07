@@ -35,6 +35,7 @@ import {
   getGreenCardFee,
 } from "@shared/businessRules";
 import { CutoverCountdownBanner } from "@/components/common/CutoverCountdownBanner";
+import { getEntryPricing, isPostCutover } from "@shared/cutover";
 import { FLUTTERWAVE_KEYS } from "@/config/Index";
 
 async function ensureFlutterwaveScript(): Promise<boolean> {
@@ -486,21 +487,22 @@ const Checkout = () => {
   const [profileResidenceLga, setProfileResidenceLga] = useState<string>("");
   const [hasResidenceSlot, setHasResidenceSlot] = useState<boolean>(false);
 
-  // The Combo is the initial slot (₦5,000) + starter mushroom product (Mushroom Power 100g, ₦5,000) = ₦10,000
-  // Non-cardholders starting out or users without starter packs are required to get the combo
+  // Dynamic entry pricing selector (Pre-cutover ₦12,000 package vs Post-cutover ₦15,000 package)
+  const entryPricing = getEntryPricing();
   const isNewStarter = !hasGreenCard && !isStarterPack && !isStarterCompletion;
   const isCombo = !isStarterPack && (isComboRequested || isNewStarter || (!hasPriorSlots && !hasPurchasedStarterPack));
   const isFirstSlotPurchase = !isStarterPack && (isCombo || !hasPriorSlots || !hasPurchasedStarterPack);
 
-  const COMBO_PRICE = 10000; // ₦5,000 Initial Slot + ₦5,000 Mushroom Power 100g
+  const COMBO_PRICE = entryPricing.comboPrice; // ₦10,000 pre-cutover -> ₦13,000 post-cutover
+  const currentStarterPackPrice = isPostCutover() ? entryPricing.starterPackPrice : starterProduct.price;
+
   const slotsSubtotal = isStarterPack
-    ? starterProduct.price
+    ? currentStarterPackPrice
     : isCombo
     ? COMBO_PRICE + Math.max(0, slotQuantity - 1) * SLOT_UNIT_PRICE
     : slotQuantity * SLOT_UNIT_PRICE;
 
-  // Green Card fee is ₦2,000 for non-cardholders starting out (part of ₦12,000 package)
-  const activeGreenCardRate = 2000;
+  const activeGreenCardRate = entryPricing.greenCardFee;
   const needsGreenCard = !hasGreenCard && !isStarterPack && !isStarterCompletion;
   const greenCardFee = needsGreenCard ? activeGreenCardRate : 0;
   const totalPrice = slotsSubtotal + greenCardFee;
@@ -921,7 +923,7 @@ const Checkout = () => {
           await recordSubscriptionWithFarmGroupSplit({
             userId: user.id,
             checkoutId: order.id,
-            amount: isCombo ? 5000 : totalPrice,
+            amount: isCombo ? entryPricing.farmSlotPrice : totalPrice,
             slotPrice: SLOT_UNIT_PRICE,
             slots: (isGreenCardOnly || isStarterPack) ? 0 : Math.max(1, slotQuantity),
             category: isCombo ? "Mushroom Village" : category,
@@ -1084,11 +1086,11 @@ const Checkout = () => {
         },
         customizations: {
           title: isStarterPack
-            ? "Mushroom Power 100g (SP-MUSH-100G)"
+            ? `Mushroom Power 100g (SP-MUSH-100G) — ₦${totalPrice.toLocaleString()}`
             : isStarterCompletion
-            ? "AgroHeal Package (₦10,000 Combo)"
+            ? `AgroHeal Package (₦${totalPrice.toLocaleString()} Combo)`
             : isCombo
-            ? "AgroHeal Package (₦12,000)"
+            ? `AgroHeal Package (₦${totalPrice.toLocaleString()})`
             : "Agroheal Farm Slot",
           description: isStarterPack
             ? "Mushroom Power 100g (Product ID: SP-MUSH-100G)"
@@ -1167,7 +1169,7 @@ const Checkout = () => {
                     await recordSubscriptionWithFarmGroupSplit({
                       userId: order.user_id,
                       checkoutId: order.id,
-                      amount: isCombo ? 5000 : totalPrice,
+                      amount: isCombo ? entryPricing.farmSlotPrice : totalPrice,
                       slotPrice: SLOT_UNIT_PRICE,
                       slots: (isGreenCardOnly || isStarterPack) ? 0 : Math.max(1, slotQuantity),
                       category: isCombo ? "Mushroom Village" : category,
@@ -1218,7 +1220,7 @@ const Checkout = () => {
                 } else if (isStarterPack) {
                   toast({
                     title: "Starter Pack Activated!",
-                    description: "Your ₦5,000 Mushroom Starter Pack has been activated.",
+                    description: `Your ₦${currentStarterPackPrice.toLocaleString()} Mushroom Starter Pack has been activated.`,
                   });
                   setTimeout(() => { window.location.href = "/dashboard/my-network"; }, 800);
                 } else {
@@ -1337,7 +1339,7 @@ const Checkout = () => {
               {isStarterPack
                 ? "Activate Your Mushroom Starter Pack (100g)"
                 : isStarterCompletion
-                ? "Secure Your Starter Package (₦10,000 Combo)"
+                ? `Secure Your Starter Package (₦${entryPricing.comboPrice.toLocaleString()} Combo)`
                 : isGreenCardOnly || isCombo
                 ? "Complete Your AgroHeal Membership Activation"
                 : "Secure Commercial Farm Slots"}
@@ -1612,7 +1614,7 @@ const Checkout = () => {
                 </div>
 
                 <div className="p-5 sm:p-6 space-y-5">
-                  {/* SCENARIO 1: Full Starter Package for New Members (₦12,000) */}
+                  {/* SCENARIO 1: Full Starter Package for New Members */}
                   {!hasGreenCard && !isStarterPack && !isStarterCompletion && (
                     <div className="space-y-3">
                       <div className="p-4 rounded-xl border-2 border-emerald-700 bg-emerald-50/90 shadow-sm ring-2 ring-emerald-600/30 space-y-3">
@@ -1621,7 +1623,7 @@ const Checkout = () => {
                             <Sparkles className="w-3 h-3" /> Required Starting Package
                           </span>
                           <span className="font-mono text-sm font-black text-emerald-950 bg-emerald-200/70 px-2.5 py-0.5 rounded-lg border border-emerald-300">
-                            ₦12,000
+                            ₦{entryPricing.totalEntryFee.toLocaleString()}
                           </span>
                         </div>
 
@@ -1632,15 +1634,15 @@ const Checkout = () => {
                           <div className="text-xs text-emerald-900 font-medium space-y-1">
                             <p className="flex items-center gap-1.5">
                               <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                              <span>₦2,000 Digital Green Card Lifetime Pass</span>
+                              <span>₦{entryPricing.greenCardFee.toLocaleString()} Digital Green Card Lifetime Pass</span>
                             </p>
                             <p className="flex items-center gap-1.5">
                               <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                              <span>₦5,000 Initial Farm Slot (2 Bags · Cycle Doubling)</span>
+                              <span>₦{entryPricing.farmSlotPrice.toLocaleString()} Initial Farm Slot (2 Bags · Cycle Doubling)</span>
                             </p>
                             <p className="flex items-center gap-1.5">
                               <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                              <span>₦5,000 Mushroom Power 100g (Product ID: SP-MUSH-100G)</span>
+                              <span>₦{entryPricing.starterPackPrice.toLocaleString()} Mushroom Power 100g (Product ID: SP-MUSH-100G)</span>
                             </p>
                           </div>
                           <p className="text-[11px] text-muted-foreground pt-1 leading-snug">
@@ -1667,7 +1669,7 @@ const Checkout = () => {
                           </div>
                         </div>
                         <span className="font-mono font-bold text-sm text-foreground bg-amber-100 px-2.5 py-1 rounded-lg">
-                          ₦{starterProduct.price.toLocaleString()}
+                          ₦{currentStarterPackPrice.toLocaleString()}
                         </span>
                       </div>
                       <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
@@ -1727,18 +1729,18 @@ const Checkout = () => {
                         <div className="flex justify-between items-center text-muted-foreground">
                           <span>Group Farm Slot (Mushroom Village)</span>
                           <span className="font-mono font-semibold text-foreground">
-                            ₦5,000
+                            ₦{entryPricing.farmSlotPrice.toLocaleString()}
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-muted-foreground">
                           <span>Mushroom Power 100g (SP-MUSH-100G)</span>
                           <span className="font-mono font-semibold text-foreground">
-                            ₦5,000
+                            ₦{entryPricing.starterPackPrice.toLocaleString()}
                           </span>
                         </div>
                         {slotQuantity > 1 && (
                           <div className="flex justify-between items-center text-muted-foreground">
-                            <span>{slotQuantity - 1} Additional Slot(s) (@ ₦5,000)</span>
+                            <span>{slotQuantity - 1} Additional Slot(s) (@ ₦{SLOT_UNIT_PRICE.toLocaleString()})</span>
                             <span className="font-mono font-semibold text-foreground">
                               ₦{((slotQuantity - 1) * SLOT_UNIT_PRICE).toLocaleString()}
                             </span>
@@ -1760,7 +1762,7 @@ const Checkout = () => {
                       <div className="flex justify-between items-center text-muted-foreground">
                         <span>{starterProduct.name}</span>
                         <span className="font-mono font-semibold text-foreground">
-                          ₦{starterProduct.price.toLocaleString()}
+                          ₦{currentStarterPackPrice.toLocaleString()}
                         </span>
                       </div>
                     )}
