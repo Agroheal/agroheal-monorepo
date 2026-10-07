@@ -56,8 +56,23 @@ export const NEW_LEADERSHIP_POOL = 200; // Dedicated leadership reserve account
 export const NEW_CAR_AWARD_POOL = 200; // Dedicated quarterly car award reserve account
 
 // ── 3. 5×7 MLM NETWORK DESCENDING WEIGHT ENGINE ──
+export const GENERATION_INDIRECT_LABELS: Record<number, string> = {
+  1: "1st Generation Indirect",
+  2: "2nd Generation Indirect",
+  3: "3rd Generation Indirect",
+  4: "4th Generation Indirect",
+  5: "5th Generation Indirect",
+  6: "6th Generation Indirect",
+  7: "7th Generation Indirect",
+};
+
+export function getGenerationLabel(level: number): string {
+  return GENERATION_INDIRECT_LABELS[level] || `Level ${level} Generation Indirect`;
+}
+
 export interface MatrixLevelSpec {
   level: number;
+  label: string;
   positions: number;
   displayPercentageOfRewardPool: number; // For UI display only (% of ₦1,750)
   displayApproxRate: number; // For UI display only (e.g. ₦235.43)
@@ -67,14 +82,14 @@ export interface MatrixLevelSpec {
 }
 
 // Stated descending percentages of the ₦1,750 pool
-const RAW_PERCENTAGES = [
-  0.134674, // L1
-  0.126517, // L2
-  0.118361, // L3
-  0.110204, // L4
-  0.102047, // L5
-  0.093891, // L6
-  0.085734, // L7
+export const RAW_PERCENTAGES = [
+  0.134674, // L1 (1st Generation Indirect)
+  0.126517, // L2 (2nd Generation Indirect)
+  0.118361, // L3 (3rd Generation Indirect)
+  0.110204, // L4 (4th Generation Indirect)
+  0.102047, // L5 (5th Generation Indirect)
+  0.093891, // L6 (6th Generation Indirect)
+  0.085734, // L7 (7th Generation Indirect)
 ];
 
 const SUM_RAW_PERCENTAGES = RAW_PERCENTAGES.reduce((a, b) => a + b, 0); // 0.771428 (₦1,350 / ₦1,750)
@@ -91,6 +106,7 @@ export const MATRIX_5X7_LEVELS: readonly MatrixLevelSpec[] = RAW_PERCENTAGES.map
 
   return {
     level,
+    label: getGenerationLabel(level),
     positions,
     displayPercentageOfRewardPool: Number((rawPct * 100).toFixed(4)),
     displayApproxRate: approxRates[idx],
@@ -104,31 +120,107 @@ export const TOTAL_5X7_POSITIONS = LEVEL_POSITIONS.reduce((a, b) => a + b, 0); /
 export const TOTAL_POTENTIAL_5X7_EARNINGS = 15000000; // ₦15,000,000 EXACTLY
 
 /**
+ * Detects whether a product belongs to the Starter Pack tier (one-time onboarding),
+ * or whether it is a regular product that uses the 15% PQV commission engine.
+ */
+export function isStarterPackProduct(product?: { category?: string | null; code?: string | null; sku?: string | null } | null): boolean {
+  if (!product) return false;
+  const cat = (product.category || "").toUpperCase();
+  const code = (product.code || "").toUpperCase();
+  const sku = (product.sku || "").toUpperCase();
+  return (
+    cat === "STARTER_PACK" ||
+    code === "SP-MUSH-100G" ||
+    sku === "MP-100G"
+  );
+}
+
+export interface PqvDistributionTier {
+  level: number;
+  label: string;
+  positions: number;
+  percentageOfRewardPool: number; // e.g. 13.4674%
+  normalizedWeight: number;
+  exactRate: number;
+  amount: number; // rounded to 2 decimal places for financial display
+}
+
+export interface PqvProductCommissionResult {
+  orderAmount: number;
+  totalRewardPool: number; // 15% of orderAmount
+  networkCommissionPool: number; // 77.142857% of totalRewardPool (₦1,350 / ₦1,750)
+  leadershipPoolAmount: number; // 11.428571% of totalRewardPool (₦200 / ₦1,750)
+  carAwardPoolAmount: number; // 11.428571% of totalRewardPool (₦200 / ₦1,750)
+  tiers: PqvDistributionTier[];
+}
+
+/**
  * Returns the exact 7-level commission breakdown for a qualifying starter pack or product purchase.
- * If isProduct is true, uses 15% of the product purchase amount as the pool.
  */
 export const calculateNetworkCommissions = (
   poolAmount: number = NEW_NETWORK_COMMISSION_POOL
-): { level: number; amount: number; rate: number }[] => {
+): { level: number; label: string; amount: number; rate: number }[] => {
   return MATRIX_5X7_LEVELS.map((spec) => ({
     level: spec.level,
+    label: spec.label,
     amount: spec.normalizedWeight * poolAmount,
     rate: spec.normalizedWeight * poolAmount,
   }));
 };
 
 /**
- * Returns the 15% retail product commission distribution across 7 upline levels.
+ * Returns the 15% retail product commission distribution across 7 preceding upline generations.
+ * Allocates 77.142857% of the 15% pool across the 7 generations.
  */
 export const calculateProductNetworkCommissions = (
   productTotal: number
-): { level: number; amount: number }[] => {
-  const pool = Number(productTotal || 0) * 0.15; // 15% of product amount
+): { level: number; label: string; amount: number; rate: number }[] => {
+  const totalPool = Number(productTotal || 0) * 0.15; // 15% of product amount
+  const networkPool = totalPool * (NEW_NETWORK_COMMISSION_POOL / NEW_STARTER_PACK_REWARD_POOL); // 77.142857%
   return MATRIX_5X7_LEVELS.map((spec) => ({
     level: spec.level,
-    amount: spec.normalizedWeight * pool,
+    label: spec.label,
+    amount: Math.round(spec.normalizedWeight * networkPool * 100) / 100,
+    rate: spec.normalizedWeight * networkPool,
   }));
 };
+
+/**
+ * Authoritative Post-Cutover PQV Product Commission Calculator.
+ * Applies to all retail / general products purchased on the platform (excluding starter packs).
+ */
+export function calculatePqvProductCommissions(
+  orderAmount: number
+): PqvProductCommissionResult {
+  const base = Math.max(0, Number(orderAmount) || 0);
+  const totalRewardPool = base * 0.15; // 15% pool
+  const networkCommissionPool = totalRewardPool * (NEW_NETWORK_COMMISSION_POOL / NEW_STARTER_PACK_REWARD_POOL); // 77.142857%
+  const leadershipPoolAmount = Math.round(totalRewardPool * (NEW_LEADERSHIP_POOL / NEW_STARTER_PACK_REWARD_POOL) * 100) / 100;
+  const carAwardPoolAmount = Math.round(totalRewardPool * (NEW_CAR_AWARD_POOL / NEW_STARTER_PACK_REWARD_POOL) * 100) / 100;
+
+  const tiers: PqvDistributionTier[] = MATRIX_5X7_LEVELS.map((spec, idx) => {
+    const rawPct = RAW_PERCENTAGES[idx];
+    const exactRate = spec.normalizedWeight * networkCommissionPool;
+    return {
+      level: spec.level,
+      label: spec.label,
+      positions: spec.positions,
+      percentageOfRewardPool: Number((rawPct * 100).toFixed(4)),
+      normalizedWeight: spec.normalizedWeight,
+      exactRate,
+      amount: Math.round(exactRate * 100) / 100,
+    };
+  });
+
+  return {
+    orderAmount: base,
+    totalRewardPool,
+    networkCommissionPool,
+    leadershipPoolAmount,
+    carAwardPoolAmount,
+    tiers,
+  };
+}
 
 // ── 4. ENTRY PRICING SELECTOR (PRE-CUTOVER VS POST-CUTOVER) ──
 export interface EntryPricingStructure {
