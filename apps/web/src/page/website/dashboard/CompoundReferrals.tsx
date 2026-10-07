@@ -574,10 +574,12 @@ const CompoundReferrals: React.FC = () => {
 
       const authId = user.id;
       setCurrentUserId(authId);
-      const rootToLoad = customRootUserId || authId;
+      const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+      const rootParam = urlParams?.get("rootId") || undefined;
+      const rootToLoad = customRootUserId || rootParam || authId;
 
       // Check In-Memory Cache first for instant 0ms render when switching tabs
-      if (!forceRefresh && !customRootUserId) {
+      if (!forceRefresh && !customRootUserId && !rootParam) {
         const cached = genealogyMemoryCache.get(authId);
         if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
           setCurrentUserProfile(cached.currentUserProfile);
@@ -597,7 +599,7 @@ const CompoundReferrals: React.FC = () => {
         }
       }
 
-      if (!customRootUserId) setLoading(true);
+      if (!customRootUserId && !rootParam) setLoading(true);
       else setRefreshing(true);
 
       // Fast, non-blocking telemetry from Express API with 2.5s timeout (prevents hanging)
@@ -2101,7 +2103,7 @@ const CompoundReferrals: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200/90 space-y-8">
+            <div id="organogram-section" className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200/90 space-y-8">
 
               {/* Header with Title, Level Range Selectors, and Quick Tree Inspector Form */}
               <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-gray-100">
@@ -2608,7 +2610,38 @@ const CompoundReferrals: React.FC = () => {
                     {visibleDirectory.map((m, idx) => (
                       <tr key={m.id} className="hover:bg-emerald-50/30 transition-colors">
                         <td className="py-2.5 px-2.5 text-gray-400 font-mono text-[11px]">{idx + 1}</td>
-                        <td className="py-2.5 px-3 font-bold text-gray-900 max-w-[130px] lg:max-w-[170px] truncate" title={m.fullName}>{m.fullName}</td>
+                        <td className="py-2.5 px-3 max-w-[140px] lg:max-w-[180px]">
+                          <div className="font-bold text-gray-900 truncate" title={m.fullName}>
+                            {m.fullName}
+                          </div>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                buildSubtree(m.id, false);
+                                const organogramElem = document.getElementById("organogram-section");
+                                if (organogramElem) {
+                                  organogramElem.scrollIntoView({ behavior: "smooth" });
+                                } else {
+                                  window.scrollTo({ top: 380, behavior: "smooth" });
+                                }
+                              }}
+                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer"
+                              title={`View ${m.fullName}'s organogram tree`}
+                            >
+                              <GitBranch className="w-2.5 h-2.5 text-emerald-600" />
+                              <span>View in Tree</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => window.open(`/dashboard/my-network?view=fullscreen&rootId=${m.id}`, "_blank")}
+                              className="text-gray-400 hover:text-emerald-700 p-0.5 rounded hover:bg-emerald-50 transition-colors cursor-pointer"
+                              title="Open Fullscreen Tree View"
+                            >
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                        </td>
                         <td className="py-2.5 px-2.5 font-mono font-semibold text-emerald-800 whitespace-nowrap text-[11px]">
                           {m.memberId}
                         </td>
