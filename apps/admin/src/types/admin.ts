@@ -13,10 +13,19 @@ export interface Member {
   referral_code: string;
   referred_by: string;
   raw_referred_by?: string;
+  sponsor_id?: string;
+  sponsor_name?: string;
   role?: string;
   created_at: string;
   has_green_card: boolean;
   green_card_expires_at?: string;
+  has_purchased_starter_pack?: boolean;
+  is_wealth_creation_active?: boolean;
+  placement_parent_id?: string | null;
+  placement_parent_name?: string | null;
+  matrix_depth?: number | null;
+  matrix_position?: number | null;
+  placement_status?: string | null;
   total_slots: number;
   slots_by_program: MemberSlotSummary[];
   country?: string;
@@ -30,6 +39,8 @@ export interface Member {
 
 export interface PaymentLog {
   id: string;
+  user_id?: string;
+  user_name?: string;
   user_email: string;
   amount: number;
   project_category: string;
@@ -40,6 +51,41 @@ export interface PaymentLog {
   reference?: string;
 }
 
+export interface FulfillmentOrder {
+  id: string;
+  userId: string;
+  transactionId?: number | string;
+  productCode: string;
+  productName: string;
+  quantity: number;
+  totalPrice: number;
+  status: string;
+  notes?: string;
+  createdAt: string;
+  buyer: {
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string;
+    memberId: string;
+    state: string;
+    lga: string;
+    country: string;
+  };
+  transactionRef?: string;
+}
+
+export interface StateFulfillmentGroup {
+  state: string;
+  count: number;
+  totalQuantity: number;
+  pendingCount: number;
+  shippedCount: number;
+  deliveredCount: number;
+  items: FulfillmentOrder[];
+}
+
 declare global {
   const __APP_BUILD_TIME__: string;
 }
+

@@ -25,6 +25,7 @@ import LeaderboardPage from "@/pages/LeaderboardPage";
 import CoursesAdminPage from "@/pages/CoursesAdminPage";
 import ContentManagementPage from "@/pages/ContentManagementPage";
 import AuditTrailPage from "@/pages/AuditTrailPage";
+import FulfillmentHubPage from "@/pages/FulfillmentHubPage";
 
 const router = createBrowserRouter([
   { path: "/signin", element: <LoginPage /> },
@@ -38,6 +39,7 @@ const router = createBrowserRouter([
           { index: true, element: <DashboardPage /> },
           { path: "members", element: <MembersPage /> },
           { path: "leaderboard", element: <LeaderboardPage /> },
+          { path: "fulfillment", element: <FulfillmentHubPage /> },
           { path: "farm-assignments", element: <FarmAssignmentsPage /> },
           { path: "core-drivers", element: <CoreDriversPage /> },
           { path: "payments", element: <PaymentsPage /> },

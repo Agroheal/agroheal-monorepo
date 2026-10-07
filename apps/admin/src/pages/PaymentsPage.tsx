@@ -6,7 +6,7 @@ import { AdminAuditLogTable } from "@/components/admin/AdminAuditLogTable";
 import { Button } from "@/components/ui/button";
 
 export default function PaymentsPage() {
-  const { paymentLogs, loading } = useAdminMembers();
+  const { paymentLogs, loading, refetch } = useAdminMembers();
   const [activeTab, setActiveTab] = useState<"logs" | "audit">("logs");
 
   if (loading && paymentLogs.length === 0) {
@@ -43,7 +43,7 @@ export default function PaymentsPage() {
       </div>
 
       {activeTab === "logs" ? (
-        <PaymentsLogTable logs={paymentLogs} />
+        <PaymentsLogTable logs={paymentLogs} onRefresh={refetch} />
       ) : (
         <AdminAuditLogTable />
       )}

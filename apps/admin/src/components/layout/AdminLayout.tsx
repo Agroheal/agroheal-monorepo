@@ -12,6 +12,7 @@ import {
   GraduationCap,
   FileText,
   ShieldCheck,
+  PackageCheck,
 } from "lucide-react";
 import {
   Sidebar,
@@ -62,8 +63,9 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
-    title: "Farm Operations",
+    title: "Operations & Logistics",
     items: [
+      { label: "Orders & Fulfillment", path: "/fulfillment", icon: PackageCheck, hideForCoordinator: true },
       { label: "Farm Management", path: "/farm-assignments", icon: Sprout },
     ],
   },

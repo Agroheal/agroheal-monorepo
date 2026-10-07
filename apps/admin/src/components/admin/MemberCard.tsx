@@ -1,4 +1,4 @@
-import { Edit3, KeyRound, Mail, Phone, MapPin, ShieldAlert } from "lucide-react";
+import { Edit3, KeyRound, Mail, Phone, MapPin, ShieldAlert, GitMerge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GreenCardBadge, ProgramPills, RoleBadge } from "@/components/admin/MemberBadges";
 import { memberInitial } from "@/lib/memberFilters";
@@ -14,6 +14,7 @@ interface Props {
   onResetPassword: (m: Member) => void;
   onToggleSuspend?: (m: Member) => void;
   onImpersonate?: (m: Member) => void;
+  onAutoPlaceMatrix?: (m: Member) => void;
   isSuperAdmin?: boolean;
 }
 
@@ -26,6 +27,7 @@ export function MemberCard({
   onResetPassword,
   onToggleSuspend,
   onImpersonate,
+  onAutoPlaceMatrix,
   isSuperAdmin,
 }: Props) {
   return (
@@ -114,21 +116,35 @@ export function MemberCard({
 
             {m.total_slots > 0 && <ProgramPills programs={m.slots_by_program} size="xs" />}
 
-            {m.referral_code && (
-              <div className="flex items-center justify-between border-t border-dashed border-border pt-1.5 text-[10px] text-muted-foreground">
+            <div className="flex items-center justify-between border-t border-dashed border-border pt-1.5 text-[10px] text-muted-foreground">
+              <span>
+                Sponsor: <strong className="text-foreground/80">{m.sponsor_name || m.referred_by || "Direct"}</strong>
+              </span>
+              {m.placement_parent_id ? (
                 <span>
-                  Ref: <strong className="text-foreground/80">{m.referral_code}</strong>
+                  Tree: <strong className="text-foreground/80">L{m.matrix_depth ?? "?"} (P{m.matrix_position ?? "?"})</strong>
                 </span>
-                <span>
-                  By: <strong className="text-foreground/80">{m.referred_by || "Direct"}</strong>
-                </span>
-              </div>
-            )}
+              ) : (m.has_purchased_starter_pack || m.is_wealth_creation_active) ? (
+                <span className="text-amber-500 font-semibold">⚠️ Unplaced in Matrix</span>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-1.5">
+        {onAutoPlaceMatrix && (m.has_purchased_starter_pack || m.is_wealth_creation_active) && !m.placement_parent_id && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1 px-2.5 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10 cursor-pointer font-semibold w-full"
+            onClick={() => onAutoPlaceMatrix(m)}
+            title="Place member into 5x7 matrix (BFS)"
+          >
+            <GitMerge className="h-3.5 w-3.5 text-amber-400" /> Place Matrix
+          </Button>
+        )}
         <Button type="button" size="sm" variant="outline" className="h-8 flex-1 gap-1.5 text-xs" onClick={() => onEdit(m)}>
           <Edit3 className="h-3.5 w-3.5" /> Edit
         </Button>

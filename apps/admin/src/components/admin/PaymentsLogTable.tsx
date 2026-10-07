@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
-import { Search, FileSpreadsheet, CreditCard, Landmark, Check, Copy } from "lucide-react";
+import { Search, FileSpreadsheet, CreditCard, Landmark, Check, Copy, ArrowLeftRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { exportToExcel } from "@shared/excelExport";
+import { RemediatePaymentDialog } from "@/components/admin/RemediatePaymentDialog";
+import { StatusBanner } from "@/components/admin/StatusBanner";
 import {
   Pagination,
   PaginationContent,
@@ -83,12 +85,15 @@ function statusBadge(status: string) {
   return "bg-muted text-muted-foreground border-border";
 }
 
-export function PaymentsLogTable({ logs }: { logs: PaymentLog[] }) {
+export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRefresh?: () => void }) {
   const [search, setSearch] = useState("");
   const [methodFilter, setMethodFilter] = useState<PaymentMethodFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<TransactionCategoryFilter>("all");
   const [page, setPage] = useState(1);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [remediatingTx, setRemediatingTx] = useState<PaymentLog | null>(null);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleCopy = (text: string, id: string) => {
     if (navigator.clipboard) {
@@ -186,6 +191,10 @@ export function PaymentsLogTable({ logs }: { logs: PaymentLog[] }) {
 
   return (
     <div className="flex flex-col gap-4 w-full">
+      {/* Status Notifications */}
+      <StatusBanner variant="success" message={successMessage} />
+      <StatusBanner variant="error" message={errorMessage} />
+
       {/* Smart Control & Filter Toolbar */}
       <div className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3">
         {/* Row 1: Spacious Search & Method / Category Dropdowns */}
@@ -297,7 +306,8 @@ export function PaymentsLogTable({ logs }: { logs: PaymentLog[] }) {
               <TableHead className="py-2.5 px-3 font-semibold">Method</TableHead>
               <TableHead className="py-2.5 px-3 font-semibold">Amount &amp; Units</TableHead>
               <TableHead className="py-2.5 px-3 font-semibold">Status</TableHead>
-              <TableHead className="py-2.5 px-3 font-semibold text-right">Date (WAT)</TableHead>
+              <TableHead className="py-2.5 px-3 font-semibold">Date (WAT)</TableHead>
+              <TableHead className="py-2.5 px-3 font-semibold text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="divide-y divide-border/60">
@@ -398,8 +408,24 @@ export function PaymentsLogTable({ logs }: { logs: PaymentLog[] }) {
                   </TableCell>
 
                   {/* Date (WAT) */}
-                  <TableCell className="py-2.5 px-3 text-right text-muted-foreground whitespace-nowrap text-[11px]">
+                  <TableCell className="py-2.5 px-3 text-muted-foreground whitespace-nowrap text-[11px]">
                     {formatWATDateTime(p.created_at)}
+                  </TableCell>
+
+                  {/* Actions */}
+                  <TableCell className="py-2.5 px-3 text-right">
+                    {(p.status === "paid" || p.status === "success" || p.status === "successful") && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setRemediatingTx(p)}
+                        className="h-6 px-2 text-[10px] gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                        title="Remediate payment purpose (e.g. Convert Slot to Starter Pack)"
+                      >
+                        <ArrowLeftRight className="w-2.5 h-2.5" /> Remediate
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               );
@@ -407,7 +433,7 @@ export function PaymentsLogTable({ logs }: { logs: PaymentLog[] }) {
 
             {pageItems.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="py-12 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={7} className="py-12 text-center text-sm text-muted-foreground">
                   No transaction records match the current filters.
                 </TableCell>
               </TableRow>
@@ -457,6 +483,22 @@ export function PaymentsLogTable({ logs }: { logs: PaymentLog[] }) {
           </PaginationContent>
         </Pagination>
       )}
+
+      {/* Remediate Payment Dialog */}
+      <RemediatePaymentDialog
+        transaction={remediatingTx}
+        open={Boolean(remediatingTx)}
+        onOpenChange={(open) => !open && setRemediatingTx(null)}
+        onSuccess={(msg) => {
+          setSuccessMessage(msg);
+          setTimeout(() => setSuccessMessage(""), 5000);
+        }}
+        onError={(err) => {
+          setErrorMessage(err);
+          setTimeout(() => setErrorMessage(""), 5000);
+        }}
+        onRefresh={() => onRefresh?.()}
+      />
     </div>
   );
 }

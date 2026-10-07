@@ -518,6 +518,42 @@ export default function MembersPage() {
     }
   };
 
+  const handleAutoPlaceMatrix = async (member: Member) => {
+    if (isReadOnly) {
+      flash(setErrorMessage, "Support role is Read-Only. Matrix placement requires Administrator privileges.");
+      return;
+    }
+
+    try {
+      setErrorMessage("");
+      const apiUrl = import.meta.env.VITE_API_URL || "https://api.agroheal.solutions";
+      const { data: session } = await supabase.auth.getSession();
+      const token = session?.session?.access_token;
+
+      if (!token) {
+        throw new Error("Authentication token required.");
+      }
+
+      const resp = await fetch(`${apiUrl}/api/v1/admin/members/${member.id}/place-matrix`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const json = await resp.json();
+      if (!resp.ok) {
+        throw new Error(json.error || "Matrix auto-placement failed.");
+      }
+
+      flash(setSuccessMessage, json.message || `${member.full_name} placed in 5x7 matrix successfully!`);
+      await refetch();
+    } catch (err: any) {
+      flash(setErrorMessage, err.message || "Failed to auto-place member into matrix.");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-5">
       <StatusBanner variant="success" message={successMessage} />
@@ -585,6 +621,7 @@ export default function MembersPage() {
               onResetPassword={handlePasswordReset}
               onToggleSuspend={handleToggleSuspend}
               onImpersonate={(m) => setImpersonatingMember(m)}
+              onAutoPlaceMatrix={handleAutoPlaceMatrix}
               isSuperAdmin={isSuperDeveloper}
             />
           )}
@@ -602,6 +639,7 @@ export default function MembersPage() {
                   onResetPassword={handlePasswordReset}
                   onToggleSuspend={handleToggleSuspend}
                   onImpersonate={(m) => setImpersonatingMember(m)}
+                  onAutoPlaceMatrix={handleAutoPlaceMatrix}
                   isSuperAdmin={isSuperDeveloper}
                 />
               ))}

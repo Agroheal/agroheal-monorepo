@@ -12,6 +12,13 @@ interface RawProfileRow {
   member_id?: string;
   referral_code?: string;
   referred_by?: string;
+  sponsor_id?: string;
+  has_purchased_starter_pack?: boolean;
+  is_wealth_creation_active?: boolean;
+  placement_parent_id?: string;
+  matrix_depth?: number;
+  matrix_position?: number;
+  placement_status?: string;
   role?: string;
   created_at?: string;
   is_green_card_holder?: boolean;
@@ -148,6 +155,13 @@ export function useAdminMembers() {
           referral_code: p.referral_code || "",
           referred_by: p.referred_by || "",
           raw_referred_by: p.referred_by || "",
+          sponsor_id: p.sponsor_id || undefined,
+          has_purchased_starter_pack: Boolean(p.has_purchased_starter_pack),
+          is_wealth_creation_active: Boolean(p.is_wealth_creation_active),
+          placement_parent_id: p.placement_parent_id || null,
+          matrix_depth: p.matrix_depth ?? null,
+          matrix_position: p.matrix_position ?? null,
+          placement_status: p.placement_status || null,
           role: p.role || "user",
           created_at: p.created_at ? formatWATDateTime(p.created_at) : "N/A",
           has_green_card: hasGreenCard,
@@ -165,17 +179,15 @@ export function useAdminMembers() {
       });
 
       const nameById = new Map(mappedMembers.map((m) => [m.id, m.full_name]));
-      const membersWithReferrerNames = mappedMembers.map((m) =>
-        m.referred_by
-          ? {
-              ...m,
-              raw_referred_by: m.raw_referred_by || m.referred_by,
-              referred_by: nameById.get(m.referred_by) || m.referred_by,
-            }
-          : m,
-      );
+      const membersWithResolvedNames = mappedMembers.map((m) => ({
+        ...m,
+        raw_referred_by: m.raw_referred_by || m.referred_by,
+        referred_by: nameById.get(m.referred_by) || m.referred_by,
+        sponsor_name: m.sponsor_id ? (nameById.get(m.sponsor_id) || m.sponsor_id) : undefined,
+        placement_parent_name: m.placement_parent_id ? (nameById.get(m.placement_parent_id) || m.placement_parent_id) : undefined,
+      }));
 
-      setMembers(membersWithReferrerNames);
+      setMembers(membersWithResolvedNames);
 
       const combinedLogs: PaymentLog[] = [];
       const seenLogKeys = new Set<string>();
@@ -194,7 +206,9 @@ export function useAdminMembers() {
 
         seenLogKeys.add(refKey);
         combinedLogs.push({
-          id: refKey,
+          id: String(tx.id || refKey),
+          user_id: tx.user_id || member?.id,
+          user_name: member?.full_name,
           user_email: member?.email || tx.email || "Unknown",
           amount: amt,
           project_category: tx.project_category || (amt === 2000 ? "Green Card Membership" : "Farm Operations"),

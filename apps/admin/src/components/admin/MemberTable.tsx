@@ -1,4 +1,4 @@
-import { Edit3, KeyRound, Phone, MapPin, ShieldAlert } from "lucide-react";
+import { Edit3, KeyRound, Phone, MapPin, ShieldAlert, GitMerge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { GreenCardBadge, ProgramPills, RoleBadge, TotalSlotsBadge } from "@/components/admin/MemberBadges";
@@ -15,6 +15,7 @@ interface Props {
   onResetPassword: (m: Member) => void;
   onToggleSuspend?: (m: Member) => void;
   onImpersonate?: (m: Member) => void;
+  onAutoPlaceMatrix?: (m: Member) => void;
   isSuperAdmin?: boolean;
 }
 
@@ -28,6 +29,7 @@ export function MemberTable({
   onResetPassword,
   onToggleSuspend,
   onImpersonate,
+  onAutoPlaceMatrix,
   isSuperAdmin,
 }: Props) {
   const allSelected = members.length > 0 && members.every((m) => selectedIds.has(m.id));
@@ -56,7 +58,7 @@ export function MemberTable({
             <TableHead>Role</TableHead>
             <TableHead>Subscribed Programs &amp; Slots</TableHead>
             <TableHead>Referral Code</TableHead>
-            <TableHead>Referred By</TableHead>
+            <TableHead>Sponsor &amp; Matrix</TableHead>
             <TableHead>Joined</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -129,10 +131,47 @@ export function MemberTable({
                   )}
                 </TableCell>
                 <TableCell className="font-mono text-xs">{m.referral_code || "N/A"}</TableCell>
-                <TableCell className="text-xs">{m.referred_by || "Direct"}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1 text-xs max-w-[200px]">
+                    <div className="flex items-center gap-1">
+                      <span className="text-[10px] uppercase font-semibold text-muted-foreground">Sponsor:</span>
+                      <span className="font-medium text-foreground truncate" title={m.sponsor_name || m.referred_by || "Direct"}>
+                        {m.sponsor_name || m.referred_by || "Direct"}
+                      </span>
+                    </div>
+
+                    {m.placement_parent_id ? (
+                      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <span className="text-[10px] uppercase font-semibold text-muted-foreground">Tree:</span>
+                        <span className="text-foreground truncate" title={`L${m.matrix_depth ?? "?"} under ${m.placement_parent_name || m.placement_parent_id}`}>
+                          L{m.matrix_depth ?? "?"} under {m.placement_parent_name || m.placement_parent_id.slice(0, 8)}
+                        </span>
+                        <span className="text-[10px] px-1 rounded bg-muted/70 text-muted-foreground font-mono shrink-0">
+                          Pos {m.matrix_position ?? "?"}
+                        </span>
+                      </div>
+                    ) : (m.has_purchased_starter_pack || m.is_wealth_creation_active) ? (
+                      <div className="text-[10px] text-amber-500 font-medium">
+                        ⚠️ Unplaced in Matrix
+                      </div>
+                    ) : null}
+                  </div>
+                </TableCell>
                 <TableCell className="text-xs text-muted-foreground">{m.created_at}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex flex-wrap justify-end gap-1.5">
+                    {onAutoPlaceMatrix && (m.has_purchased_starter_pack || m.is_wealth_creation_active) && !m.placement_parent_id && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 px-2 text-xs border-amber-500/40 text-amber-400 hover:bg-amber-500/10 cursor-pointer font-semibold"
+                        onClick={() => onAutoPlaceMatrix(m)}
+                        title="Place member into 5x7 matrix (BFS)"
+                      >
+                        <GitMerge className="h-3 w-3 text-amber-400" /> Place Matrix
+                      </Button>
+                    )}
                     <Button type="button" size="sm" variant="outline" className="h-7 gap-1 px-2 text-xs" onClick={() => onEdit(m)}>
                       <Edit3 className="h-3 w-3" /> Edit
                     </Button>
