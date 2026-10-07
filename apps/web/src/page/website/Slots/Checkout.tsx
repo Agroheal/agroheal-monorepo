@@ -1127,7 +1127,7 @@ const Checkout = () => {
                       paymentReference: String(flwTransactionId),
                       paymentMethod: "flutterwave",
                       amount: totalPrice,
-                      category: isCombo ? "Mushroom Village" : category,
+                      category: isCombo ? "Mushroom Village" : (isStarterPack ? "Mushroom Power 100g" : category),
                       slots: (isGreenCardOnly || isStarterPack) ? 0 : Math.max(1, slotQuantity),
                       isCombo,
                       isGreenCardOnly,
