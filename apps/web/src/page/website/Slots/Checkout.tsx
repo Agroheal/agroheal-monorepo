@@ -1044,6 +1044,10 @@ const Checkout = () => {
         ? "SP"
         : "SLOT";
       const txRef = `${txPrefix}_${order.id}_${Date.now()}`;
+      await supabase
+        .from("transactions")
+        .update({ transaction_ref: txRef })
+        .eq("id", order.id);
 
       window.FlutterwaveCheckout({
         public_key: flwKey,
