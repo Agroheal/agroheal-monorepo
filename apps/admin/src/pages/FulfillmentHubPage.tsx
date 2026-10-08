@@ -33,8 +33,7 @@ export default function FulfillmentHubPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedState, setSelectedState] = useState<string>("all");
-  const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [tierFilter, setTierFilter] = useState<"all" | "live" | "legacy">("all");
+  const [tierFilter, setTierFilter] = useState<"live" | "legacy" | "all">("live");
   const [viewMode, setViewMode] = useState<"groups" | "table">("groups");
   const [copiedText, setCopiedText] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -526,23 +525,78 @@ export default function FulfillmentHubPage() {
               </SelectContent>
             </Select>
 
-            {/* Ecosystem / Tier Filter */}
-            <Select value={tierFilter} onValueChange={(val) => setTierFilter(val as "all" | "live" | "legacy")}>
-              <SelectTrigger className="w-[160px] h-9 text-xs">
-                <SelectValue placeholder="All Ecosystems" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="text-xs">
-                  🌐 All Ecosystems ({orders.length})
-                </SelectItem>
-                <SelectItem value="live" className="text-xs">
-                  🟢 Live Platform ({liveOrdersCount})
-                </SelectItem>
-                <SelectItem value="legacy" className="text-xs">
-                  🟡 Legacy Founding ({legacyOrdersCount})
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            {/* 3-Way Segmented Toggle: Modern (Default) | Legacy | All */}
+            <div className="inline-flex items-center p-0.5 bg-muted/60 rounded-lg border border-border text-xs font-medium shrink-0">
+              <button
+                type="button"
+                onClick={() => setTierFilter("live")}
+                className={cn(
+                  "px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 text-xs",
+                  tierFilter === "live"
+                    ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                title="Modern Platform Orders (Default)"
+              >
+                <span>Modern</span>
+                <span
+                  className={cn(
+                    "px-1.5 py-0.2 rounded-full text-[10px] font-mono",
+                    tierFilter === "live"
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-muted-foreground/15 text-muted-foreground"
+                  )}
+                >
+                  {liveOrdersCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTierFilter("legacy")}
+                className={cn(
+                  "px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 text-xs",
+                  tierFilter === "legacy"
+                    ? "bg-amber-600 text-white shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                title="Legacy Founding Checkouts"
+              >
+                <span>Legacy</span>
+                <span
+                  className={cn(
+                    "px-1.5 py-0.2 rounded-full text-[10px] font-mono",
+                    tierFilter === "legacy" ? "bg-white/20 text-white" : "bg-muted-foreground/15 text-muted-foreground"
+                  )}
+                >
+                  {legacyOrdersCount}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setTierFilter("all")}
+                className={cn(
+                  "px-3 py-1.5 rounded-md transition-all cursor-pointer flex items-center gap-1.5 text-xs",
+                  tierFilter === "all"
+                    ? "bg-primary text-primary-foreground shadow-xs font-bold"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                title="All Orders Combined"
+              >
+                <span>All</span>
+                <span
+                  className={cn(
+                    "px-1.5 py-0.2 rounded-full text-[10px] font-mono",
+                    tierFilter === "all"
+                      ? "bg-primary-foreground/20 text-primary-foreground"
+                      : "bg-muted-foreground/15 text-muted-foreground"
+                  )}
+                >
+                  {orders.length}
+                </span>
+              </button>
+            </div>
 
             {/* View Mode Switcher */}
             <div className="flex items-center rounded-lg border border-border p-0.5 bg-muted/40">

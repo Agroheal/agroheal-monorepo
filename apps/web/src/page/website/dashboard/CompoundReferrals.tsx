@@ -2585,9 +2585,9 @@ const CompoundReferrals: React.FC = () => {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-gray-50/80 border-b border-gray-100 text-gray-500 uppercase font-semibold text-[10px] tracking-wider select-none">
                     <tr>
-                      <th className="py-2.5 px-2.5 w-8">#</th>
+                      <th className="py-2 px-1.5 w-7 text-center">#</th>
                       <th
-                        className="py-2.5 px-3 cursor-pointer hover:text-emerald-800 transition-colors"
+                        className="py-2 px-2 cursor-pointer hover:text-emerald-800 transition-colors"
                         onClick={() => setSortBy((prev) => (prev === "NAME_ASC" ? "DATE_DESC" : "NAME_ASC"))}
                       >
                         <span className="inline-flex items-center gap-1">
@@ -2595,9 +2595,9 @@ const CompoundReferrals: React.FC = () => {
                           <ArrowUpDown className="w-3 h-3 text-gray-400" />
                         </span>
                       </th>
-                      <th className="py-2.5 px-2.5">Member ID</th>
+                      <th className="py-2 px-2">Member ID</th>
                       <th
-                        className="py-2.5 px-2.5 cursor-pointer hover:text-emerald-800 transition-colors"
+                        className="py-2 px-2 cursor-pointer hover:text-emerald-800 transition-colors"
                         onClick={() => setSortBy((prev) => (prev === "GC_DATE_DESC" ? "GC_DATE_ASC" : "GC_DATE_DESC"))}
                       >
                         <span className="inline-flex items-center gap-1">
@@ -2605,10 +2605,10 @@ const CompoundReferrals: React.FC = () => {
                           <ArrowUpDown className="w-3 h-3 text-gray-400" />
                         </span>
                       </th>
-                      <th className="py-2.5 px-3">Contact Info</th>
-                      <th className="py-2.5 px-2.5">Source / Sponsor</th>
+                      <th className="py-2 px-2">Contact Info</th>
+                      <th className="py-2 px-2">Source</th>
                       <th
-                        className="py-2.5 px-2.5 cursor-pointer hover:text-emerald-800 transition-colors"
+                        className="py-2 px-2 cursor-pointer hover:text-emerald-800 transition-colors"
                         onClick={() => setSortBy((prev) => (prev === "SLOTS_DESC" ? "SLOTS_ASC" : "SLOTS_DESC"))}
                       >
                         <span className="inline-flex items-center gap-1">
@@ -2617,7 +2617,7 @@ const CompoundReferrals: React.FC = () => {
                         </span>
                       </th>
                       <th
-                        className="py-2.5 px-2.5 cursor-pointer hover:text-emerald-800 transition-colors"
+                        className="py-2 px-2 cursor-pointer hover:text-emerald-800 transition-colors"
                         onClick={() => setSortBy((prev) => (prev === "LEG_ASC" ? "SLOTS_DESC" : "LEG_ASC"))}
                       >
                         <span className="inline-flex items-center gap-1">
@@ -2630,12 +2630,12 @@ const CompoundReferrals: React.FC = () => {
                   <tbody className="divide-y divide-gray-100">
                     {visibleDirectory.map((m, idx) => (
                       <tr key={m.id} className="hover:bg-emerald-50/30 transition-colors">
-                        <td className="py-2.5 px-2.5 text-gray-400 font-mono text-[11px]">{idx + 1}</td>
-                        <td className="py-2.5 px-3 max-w-[140px] lg:max-w-[180px]">
+                        <td className="py-2 px-1.5 text-center text-gray-400 font-mono text-[10.5px]">{idx + 1}</td>
+                        <td className="py-2 px-2 max-w-[110px] sm:max-w-[130px] lg:max-w-[150px]">
                           <div className="font-bold text-gray-900 truncate" title={m.fullName}>
                             {m.fullName}
                           </div>
-                          <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className="flex items-center gap-1 mt-0.5">
                             <button
                               type="button"
                               onClick={() => {
@@ -2648,11 +2648,11 @@ const CompoundReferrals: React.FC = () => {
                                   window.scrollTo({ top: 380, behavior: "smooth" });
                                 }
                               }}
-                              className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer"
+                              className="inline-flex items-center gap-0.5 text-[9.5px] font-semibold text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer"
                               title={`Inspect ${m.fullName}'s organogram tree`}
                             >
-                              <GitBranch className="w-2.5 h-2.5 text-emerald-600" />
-                              <span>Inspect Tree</span>
+                              <GitBranch className="w-2.5 h-2.5 text-emerald-600 shrink-0" />
+                              <span>Inspect</span>
                             </button>
                             <button
                               type="button"
@@ -2664,10 +2664,10 @@ const CompoundReferrals: React.FC = () => {
                             </button>
                           </div>
                         </td>
-                        <td className="py-2.5 px-2.5 font-mono font-semibold text-emerald-800 whitespace-nowrap text-[11px]">
+                        <td className="py-2 px-2 font-mono font-semibold text-emerald-800 whitespace-nowrap text-[10.5px]">
                           {m.memberId}
                         </td>
-                        <td className="py-2.5 px-2.5 whitespace-nowrap">
+                        <td className="py-2 px-2 whitespace-nowrap">
                           {m.greenCardActivatedAt ? (
                             <div className="flex flex-col">
                               <span className="font-semibold text-gray-800 text-[10px]">
@@ -2677,7 +2677,7 @@ const CompoundReferrals: React.FC = () => {
                                   year: "numeric",
                                 })}
                               </span>
-                              <span className="text-[9px] text-gray-400">
+                              <span className="text-[8.5px] text-gray-400">
                                 {new Date(m.greenCardActivatedAt).toLocaleTimeString("en-GB", {
                                   hour: "2-digit",
                                   minute: "2-digit",
@@ -2688,9 +2688,9 @@ const CompoundReferrals: React.FC = () => {
                             <span className="text-gray-400 text-[10px] italic">Pending</span>
                           )}
                         </td>
-                        <td className="py-2.5 px-3 text-gray-600">
-                          <div className="flex items-center gap-1.5 group">
-                            <span className="truncate max-w-[110px] lg:max-w-[150px] text-[11px]" title={m.email}>{m.email}</span>
+                        <td className="py-2 px-2 text-gray-600">
+                          <div className="flex items-center gap-1 group">
+                            <span className="truncate max-w-[95px] sm:max-w-[115px] lg:max-w-[130px] text-[10.5px]" title={m.email}>{m.email}</span>
                             <button
                               type="button"
                               onClick={() => {
@@ -2704,8 +2704,8 @@ const CompoundReferrals: React.FC = () => {
                             </button>
                           </div>
                           {m.phone && (
-                            <div className="flex items-center gap-1.5 group text-[10px] text-gray-500 mt-0.5">
-                              <span className="truncate">{m.phone}</span>
+                            <div className="flex items-center gap-1 group text-[9.5px] text-gray-500 mt-0.5">
+                              <span className="truncate max-w-[85px] sm:max-w-[100px]">{m.phone}</span>
                               <button
                                 type="button"
                                 onClick={() => {
@@ -2725,48 +2725,48 @@ const CompoundReferrals: React.FC = () => {
                                     window.open(`https://wa.me/${cleanPhone}`, "_blank");
                                   }
                                 }}
-                                className="text-emerald-600 hover:text-emerald-800 p-0.5 rounded hover:bg-emerald-100 transition-colors shrink-0 cursor-pointer ml-0.5"
+                                className="text-emerald-600 hover:text-emerald-800 p-0.5 rounded hover:bg-emerald-100 transition-colors shrink-0 cursor-pointer"
                                 title="Chat on WhatsApp"
                               >
-                                <MessageCircle className="w-3.5 h-3.5" />
+                                <MessageCircle className="w-3 h-3" />
                               </button>
                             </div>
                           )}
                         </td>
-                        <td className="py-2.5 px-2.5 whitespace-nowrap">
+                        <td className="py-2 px-2 whitespace-nowrap">
                           {m.isSpillover ? (
-                            <span className="bg-blue-50 text-blue-800 px-2 py-0.5 rounded-md border border-blue-200/60 font-semibold inline-flex items-center gap-1 text-[10px]">
+                            <span className="bg-blue-50 text-blue-800 px-1.5 py-0.5 rounded-md border border-blue-200/60 font-semibold inline-flex items-center gap-1 text-[9.5px]">
                               🌊 Spillover
                             </span>
                           ) : (
-                            <span className="bg-amber-50 text-amber-900 px-2 py-0.5 rounded-md border border-amber-300 font-semibold inline-flex items-center gap-1 text-[10px]">
-                              ⭐ Direct Recruit
+                            <span className="bg-amber-50 text-amber-900 px-1.5 py-0.5 rounded-md border border-amber-300 font-semibold inline-flex items-center gap-1 text-[9.5px]">
+                              ⭐ Direct
                             </span>
                           )}
                         </td>
-                        <td className="py-2.5 px-2.5 font-bold text-gray-800 whitespace-nowrap">
+                        <td className="py-2 px-2 font-bold text-gray-800 whitespace-nowrap">
                           {m.slotsHeld > 0 ? (
-                            <span className="bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-md border border-emerald-200/60 font-semibold inline-flex items-center gap-1 text-[10px]">
+                            <span className="bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded-md border border-emerald-200/60 font-semibold inline-flex items-center gap-1 text-[9.5px]">
                               🟢 {m.slotsHeld} Slot{m.slotsHeld > 1 ? "s" : ""}
                             </span>
                           ) : (
-                            <span className="bg-amber-50 text-amber-700 px-2 py-0.5 rounded-md border border-amber-200/60 font-semibold inline-flex items-center gap-1 text-[10px]">
+                            <span className="bg-amber-50 text-amber-700 px-1.5 py-0.5 rounded-md border border-amber-200/60 font-semibold inline-flex items-center gap-1 text-[9.5px]">
                               🟡 0 Slots
                             </span>
                           )}
                         </td>
-                        <td className="py-2.5 px-2.5 whitespace-nowrap">
+                        <td className="py-2 px-2 whitespace-nowrap">
                           {m.position > 0 ? (
-                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md text-[10px] border border-emerald-100">
+                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded-md text-[9.5px] border border-emerald-100">
                               Leg #{m.position}
                             </span>
                           ) : m.placementParentId || m.placementStatus === "PLACED" ? (
-                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md text-[10px] border border-emerald-100">
-                              Placed in Tree
+                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded-md text-[9.5px] border border-emerald-100">
+                              Placed
                             </span>
                           ) : (
-                            <span className="font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded-md text-[10px] border border-amber-200">
-                              Holding Tank
+                            <span className="font-medium text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded-md text-[9.5px] border border-amber-200">
+                              Holding
                             </span>
                           )}
                         </td>
