@@ -73,7 +73,15 @@ export interface OrganogramNode {
   isSpillover?: boolean;
   sponsorName?: string;
   children: OrganogramNode[];
+  hasPurchasedStarterPack?: boolean;
 }
+
+export const isThreeStepQualified = (node: OrganogramNode): boolean => {
+  const hasGC = Boolean(node.hasGreenCard || node.memberId);
+  const hasSlots = (Number(node.slotsHeld) || 0) > 0;
+  const hasStarter = Boolean(node.hasPurchasedStarterPack);
+  return hasGC && hasSlots && hasStarter;
+};
 
 interface BreadcrumbItem {
   id: string;
@@ -751,7 +759,7 @@ const CompoundReferrals: React.FC = () => {
     const [rootProfileRes, rootSlotsRes, childrenProfilesRes] = await Promise.all([
       supabase
         .from("profiles")
-        .select("id, full_name, email, phone, member_id, referred_by, total_referrals, created_at")
+        .select("id, full_name, email, phone, member_id, referred_by, total_referrals, created_at, has_purchased_starter_pack")
         .eq("id", targetId)
         .maybeSingle(),
       supabase
@@ -760,7 +768,7 @@ const CompoundReferrals: React.FC = () => {
         .eq("user_id", targetId),
       supabase
         .from("profiles")
-        .select("id, full_name, email, phone, member_id, created_at, green_card_activated_at, referred_by, total_referrals, placement_parent_id, matrix_position, placement_status")
+        .select("id, full_name, email, phone, member_id, created_at, green_card_activated_at, referred_by, total_referrals, placement_parent_id, matrix_position, placement_status, has_purchased_starter_pack")
         .or(`placement_parent_id.eq.${targetId},referred_by.eq.${targetId}`)
         .order("created_at", { ascending: true })
         .limit(100),
@@ -838,6 +846,7 @@ const CompoundReferrals: React.FC = () => {
             hasGreenCard: Boolean(cp.member_id),
             greenCardActivatedAt: cp.green_card_activated_at || null,
             isSpillover: cp.referred_by !== targetId,
+            hasPurchasedStarterPack: Boolean(cp.has_purchased_starter_pack),
             children: [],
           };
           allRoster.push(memberItem);
@@ -868,6 +877,7 @@ const CompoundReferrals: React.FC = () => {
             hasGreenCard: Boolean(cp.member_id),
             greenCardActivatedAt: cp.green_card_activated_at || null,
             isSpillover: cp.referred_by !== targetId,
+            hasPurchasedStarterPack: Boolean(cp.has_purchased_starter_pack),
             children: [],
           });
         }
@@ -883,7 +893,7 @@ const CompoundReferrals: React.FC = () => {
         const uplineId = rootProfile.referred_by;
         const [uplineProfileRes, uplineChildrenRes] = await Promise.all([
           supabase.from("profiles").select("id, full_name, member_id").eq("id", uplineId).maybeSingle(),
-          supabase.from("profiles").select("id, full_name, email, phone, member_id, created_at").eq("referred_by", uplineId).order("created_at", { ascending: true }).limit(100),
+          supabase.from("profiles").select("id, full_name, email, phone, member_id, created_at, has_purchased_starter_pack").eq("referred_by", uplineId).order("created_at", { ascending: true }).limit(100),
         ]);
 
         const uplineProfile = uplineProfileRes.data;
@@ -954,6 +964,7 @@ const CompoundReferrals: React.FC = () => {
                 hasGreenCard: Boolean(spillCandidate.member_id),
                 isSpillover: true,
                 sponsorName: uplineProfile?.full_name || "Upline Sponsor",
+                hasPurchasedStarterPack: Boolean(spillCandidate.has_purchased_starter_pack),
                 children: [],
               };
               childrenNodes.push(spillNode);
@@ -974,7 +985,7 @@ const CompoundReferrals: React.FC = () => {
       while (currentDepth <= 7 && currentParentIds.length > 0) {
         const { data: nextLevelProfiles } = await supabase
           .from("profiles")
-          .select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals, placement_parent_id, matrix_position, placement_status")
+          .select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals, placement_parent_id, matrix_position, placement_status, has_purchased_starter_pack")
           .in("placement_parent_id", currentParentIds)
           .order("created_at", { ascending: true })
           .limit(200);
@@ -1009,6 +1020,7 @@ const CompoundReferrals: React.FC = () => {
               createdAt: np.created_at,
               hasGreenCard: Boolean(np.member_id),
               isSpillover: np.referred_by !== targetId,
+              hasPurchasedStarterPack: Boolean(np.has_purchased_starter_pack),
               children: [],
             });
           }
@@ -1035,6 +1047,7 @@ const CompoundReferrals: React.FC = () => {
       createdAt: rootProfile.created_at,
       hasGreenCard: Boolean(rootProfile.member_id),
       isSpillover: false,
+      hasPurchasedStarterPack: Boolean(rootProfile.has_purchased_starter_pack),
       children: childrenNodes,
     };
 
@@ -1310,7 +1323,7 @@ const CompoundReferrals: React.FC = () => {
       if (!matchSearch && q) return false;
 
       if (directoryFilter === "DIRECT") return !item.isSpillover;
-      if (directoryFilter === "TREE") return (item.position > 0 || Boolean(item.placementParentId) || item.placementStatus === "PLACED") && item.slotsHeld > 0;
+      if (directoryFilter === "TREE") return isThreeStepQualified(item);
       if (directoryFilter === "UNPAID") return item.slotsHeld === 0;
       if (directoryFilter === "SPILLOVER") return Boolean(item.isSpillover);
       return true;
@@ -2478,8 +2491,8 @@ const CompoundReferrals: React.FC = () => {
                 },
                 {
                   key: "TREE",
-                  label: "Active in Tree",
-                  count: downlineList.filter((d) => (d.position > 0 || Boolean(d.placementParentId) || d.placementStatus === "PLACED") && d.slotsHeld > 0).length,
+                  label: "Active in Network",
+                  count: downlineList.filter((d) => isThreeStepQualified(d)).length,
                   activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
                   badgeActive: "bg-emerald-800 text-emerald-200",
                   badgeInactive: "bg-gray-200 text-gray-700",
