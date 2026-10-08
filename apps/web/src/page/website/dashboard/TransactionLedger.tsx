@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Wallet,
   TrendingUp,
@@ -69,7 +69,23 @@ const MATRIX_TIERS = [
   { level: 7, members: 78125, percentage: 2.5, rewardPerSlot: 125, totalCeiling: 9765625, requiredDirects: 0 },
 ];
 
-export default function TransactionLedger() {
+export default function TransactionLedger({ defaultMode }: { defaultMode?: "live" | "legacy" } = {}) {
+  const location = useLocation();
+  const isLegacyPath = location.pathname.startsWith("/legacy");
+  const [walletMode, setWalletMode] = useState<"live" | "legacy">(
+    defaultMode || (isLegacyPath ? "legacy" : "live")
+  );
+
+  useEffect(() => {
+    if (defaultMode) {
+      setWalletMode(defaultMode);
+    } else if (location.pathname.startsWith("/legacy")) {
+      setWalletMode("legacy");
+    } else {
+      setWalletMode("live");
+    }
+  }, [location.pathname, defaultMode]);
+
   const [loading, setLoading] = useState<boolean>(true);
   const [memberId, setMemberId] = useState<string>("NO GREENCARD YET");
   const [userProfile, setUserProfile] = useState<{
@@ -175,10 +191,11 @@ export default function TransactionLedger() {
   const canSubscribeWithWallet = false;
   const hasGreenCard = Boolean(memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING"));
 
-  // Authoritative financial balances:
-  const ledgerBalance = userProfile?.is_legacy
-    ? Math.max(walletBalance, legacyEarnings)
-    : walletBalance;
+  // Authoritative financial balances: In live mode, balance is strictly the live liquid walletBalance
+  // In legacy mode, it is the legacy pre-migration total
+  const ledgerBalance = walletMode === "live"
+    ? walletBalance
+    : legacyEarnings;
 
   // Gatekeeper locked capital:
   // If user is not qualified for 5x7 matrix (5 directs + ₦10k 30d PQV), all matrix earnings are locked.
@@ -1019,7 +1036,7 @@ export default function TransactionLedger() {
     return ["COMBO_PACKAGE", "SUBSCRIPTION", "SLOT_PURCHASE", "RETAIL_PURCHASE", "FARM_CONTRIBUTION"].includes(cat);
   };
 
-  const activeBaseTransactions = transactions;
+  const activeBaseTransactions = walletMode === "live" ? liveTransactions : legacyTransactions;
   const walletLedgerCount = React.useMemo(
     () => activeBaseTransactions.filter((t) => !isPurchaseCategory(t.category)).length,
     [activeBaseTransactions]
@@ -1030,11 +1047,17 @@ export default function TransactionLedger() {
   );
 
   const filteredTransactions = transactions.filter((t) => {
-    // Filter by Active Ledger Tab:
+    const isLegacy = isItemLegacy(t);
+    if (walletMode === "live" && isLegacy) return false;
+    if (walletMode === "legacy" && !isLegacy) return false;
+
+    // Filter by Active Ledger Tab (Applies exclusively to Live Wallet):
     // "wallet_ledger" -> Pure internal earnings & disbursements (referrals, matrix commissions, driver bonuses, slot bonuses, withdrawals)
     // "purchase_history" -> Clear list of external orders and card receipts (combo bundles, starter packs, farm slots, subscriptions)
-    if (activeLedgerTab === "wallet_ledger" && isPurchaseCategory(t.category)) return false;
-    if (activeLedgerTab === "purchase_history" && !isPurchaseCategory(t.category)) return false;
+    if (walletMode === "live") {
+      if (activeLedgerTab === "wallet_ledger" && isPurchaseCategory(t.category)) return false;
+      if (activeLedgerTab === "purchase_history" && !isPurchaseCategory(t.category)) return false;
+    }
 
     if (filterType === "PENDING") {
       if (t.status !== "PENDING") return false;
@@ -1054,7 +1077,7 @@ export default function TransactionLedger() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterType, searchQuery, activeLedgerTab]);
+  }, [filterType, searchQuery, walletMode, activeLedgerTab]);
 
   const PAGE_SIZE = 10;
   const paginatedTransactions = React.useMemo(() => {
@@ -1204,9 +1227,15 @@ export default function TransactionLedger() {
         {/* ── CENTRALIZED EXECUTIVE MEMBER WALLET (CANONICAL CREDIT CARD ASPECT RATIO) ── */}
         <div className="w-full max-w-[470px] mx-auto">
 
-          <div className="flex flex-col justify-between bg-[#0c2415] border-emerald-700/50 border rounded-3xl p-5 sm:p-5.5 text-white shadow-xl relative overflow-hidden space-y-3 transition-colors duration-300">
+          <div className={`flex flex-col justify-between ${
+            walletMode === "legacy"
+              ? "bg-[#1f1707] border-amber-600/60"
+              : "bg-[#0c2415] border-emerald-700/50"
+          } border rounded-3xl p-5 sm:p-5.5 text-white shadow-xl relative overflow-hidden space-y-3 transition-colors duration-300`}>
             {/* Background Ambient Glows */}
-            <div className="absolute top-0 right-0 -mr-16 -mt-16 w-60 h-60 rounded-full bg-emerald-400/10 blur-3xl pointer-events-none" />
+            <div className={`absolute top-0 right-0 -mr-16 -mt-16 w-60 h-60 rounded-full ${
+              walletMode === "legacy" ? "bg-amber-400/15" : "bg-emerald-400/10"
+            } blur-3xl pointer-events-none`} />
             <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-60 h-60 rounded-full bg-amber-400/5 blur-3xl pointer-events-none" />
 
             {/* Top Row: Logo + Member Wallet Tag + Name & Green Card ID + Contactless Icon */}
@@ -1218,8 +1247,10 @@ export default function TransactionLedger() {
                   className="h-5 sm:h-6 object-contain brightness-0 invert opacity-95 shrink-0"
                 />
                 <div className="h-3.5 w-px bg-white/20 hidden sm:block" />
-                <span className="text-[10px] font-bold tracking-widest text-emerald-300 uppercase font-mono truncate">
-                  MEMBER WALLET
+                <span className={`text-[10px] font-bold tracking-widest ${
+                  walletMode === "legacy" ? "text-amber-300" : "text-emerald-300"
+                } uppercase font-mono truncate`}>
+                  {walletMode === "legacy" ? "LEGACY ARCHIVE" : "MEMBER WALLET"}
                 </span>
               </div>
 
@@ -1239,14 +1270,18 @@ export default function TransactionLedger() {
                         </p>
                       ) : null}
                       {hasGreenCard && memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING") ? (
-                        <span className="text-[10px] font-mono font-bold text-emerald-300 block">
+                        <span className={`text-[10px] font-mono font-bold ${
+                          walletMode === "legacy" ? "text-amber-300" : "text-emerald-300"
+                        } block`}>
                           {memberId}
                         </span>
                       ) : null}
                     </>
                   )}
                 </div>
-                <Wifi className="w-3.5 h-3.5 rotate-90 text-emerald-300/70 hidden sm:block shrink-0" />
+                <Wifi className={`w-3.5 h-3.5 rotate-90 ${
+                  walletMode === "legacy" ? "text-amber-300/70" : "text-emerald-300/70"
+                } hidden sm:block shrink-0`} />
               </div>
             </div>
 
@@ -1269,7 +1304,12 @@ export default function TransactionLedger() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {isDirectReferralWithdrawable ? (
+                  {walletMode === "legacy" ? (
+                    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-xs backdrop-blur-md bg-amber-500/25 text-amber-200 border-amber-400/40">
+                      <Landmark className="w-3 h-3 text-amber-300" />
+                      Preserved Record
+                    </span>
+                  ) : isDirectReferralWithdrawable ? (
                     <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide border shadow-xs backdrop-blur-md bg-emerald-500/20 text-emerald-200 border-emerald-400/35">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                       Withdrawable
@@ -1280,114 +1320,191 @@ export default function TransactionLedger() {
                       ₦10k Ready to Activate
                     </span>
                   ) : null}
-                  <span className="text-[9px] font-mono text-emerald-200/60 uppercase tracking-wider">
-                    DEBIT / DIGITAL LEDGER
+                  <span className={`text-[9px] font-mono ${
+                    walletMode === "legacy" ? "text-amber-200/70" : "text-emerald-200/60"
+                  } uppercase tracking-wider`}>
+                    {walletMode === "legacy" ? "PRE-MIGRATION RECORD" : "DEBIT / DIGITAL LEDGER"}
                   </span>
                 </div>
               </div>
 
-              {/* Balances Display */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-white/10 space-y-0.5">
-                  <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">
-                    Available Balance
-                  </span>
-                  {loading ? (
-                    <Skeleton className="h-7 w-28 bg-white/20 my-1" />
-                  ) : (
-                    <p className="text-xl sm:text-2xl font-black font-mono text-white tracking-tight">
-                      ₦{availableBalance.toLocaleString()}
-                    </p>
-                  )}
-                  <span className="text-[9px] text-emerald-200/70 block">
-                    Immediately Withdrawable
-                  </span>
-                </div>
+              {/* Balances Display: Conditional based on walletMode */}
+              {walletMode === "legacy" ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-amber-500/30 space-y-0.5">
+                    <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider block">
+                      Legacy Cumulative
+                    </span>
+                    {loading ? (
+                      <Skeleton className="h-7 w-28 bg-white/20 my-1" />
+                    ) : (
+                      <p className="text-xl sm:text-2xl font-black font-mono text-white tracking-tight">
+                        ₦{legacyEarnings.toLocaleString()}
+                      </p>
+                    )}
+                    <span className="text-[9px] text-amber-200/70 block">
+                      Preserved Offline Roster
+                    </span>
+                  </div>
 
-                <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-white/10 space-y-0.5">
-                  <span className="text-[10px] text-gray-300 font-bold uppercase tracking-wider block">
-                    Ledger Balance
-                  </span>
-                  {loading ? (
-                    <Skeleton className="h-7 w-28 bg-white/20 my-1" />
-                  ) : (
-                    <p className="text-xl sm:text-2xl font-black font-mono text-gray-200 tracking-tight">
-                      ₦{ledgerBalance.toLocaleString()}
-                    </p>
-                  )}
-                  <span className="text-[9px] text-gray-400 block">
-                    Total Cumulative Posted
-                  </span>
+                  <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-white/10 space-y-0.5">
+                    <span className="text-[10px] text-gray-300 font-bold uppercase tracking-wider block">
+                      Breakdown
+                    </span>
+                    {loading ? (
+                      <Skeleton className="h-7 w-28 bg-white/20 my-1" />
+                    ) : (
+                      <div className="text-xs font-mono text-gray-200 space-y-0.5 pt-0.5">
+                        <div className="flex justify-between">
+                          <span className="text-gray-400 text-[10px]">Referrals:</span>
+                          <span className="font-bold">₦{(Number(userProfile?.referral_earnings) || 0).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-400 text-[10px]">Slots:</span>
+                          <span className="font-bold">₦{(Number(userProfile?.slot_bonus) || 0).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    )}
+                    <span className="text-[9px] text-gray-400 block pt-0.5">
+                      {legacySlotsCount} Founding Slot{legacySlotsCount === 1 ? "" : "s"}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-white/10 space-y-0.5">
+                    <span className="text-[10px] text-emerald-300 font-bold uppercase tracking-wider block">
+                      Available Balance
+                    </span>
+                    {loading ? (
+                      <Skeleton className="h-7 w-28 bg-white/20 my-1" />
+                    ) : (
+                      <p className="text-xl sm:text-2xl font-black font-mono text-white tracking-tight">
+                        ₦{availableBalance.toLocaleString()}
+                      </p>
+                    )}
+                    <span className="text-[9px] text-emerald-200/70 block">
+                      Immediately Withdrawable
+                    </span>
+                  </div>
+
+                  <div className="bg-white/5 backdrop-blur-xs p-3 rounded-2xl border border-white/10 space-y-0.5">
+                    <span className="text-[10px] text-gray-300 font-bold uppercase tracking-wider block">
+                      Ledger Balance
+                    </span>
+                    {loading ? (
+                      <Skeleton className="h-7 w-28 bg-white/20 my-1" />
+                    ) : (
+                      <p className="text-xl sm:text-2xl font-black font-mono text-gray-200 tracking-tight">
+                        ₦{ledgerBalance.toLocaleString()}
+                      </p>
+                    )}
+                    <span className="text-[9px] text-gray-400 block">
+                      Total Cumulative Posted
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Bottom Actions Directly on Card */}
             <div className="relative z-10 pt-2 border-t border-white/10 space-y-2 mt-auto">
-              {canSubscribeWithWallet && (
-                <Button
-                  disabled={subscribingWithWallet}
-                  onClick={handleSubscribeWithWallet}
-                  className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs h-8.5 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <Sprout className="w-3.5 h-3.5 text-emerald-200" />
-                  {subscribingWithWallet ? "Activating..." : "Activate Project Subscription (₦10,000)"}
-                </Button>
-              )}
-
-              <Button
-                disabled={availableBalance < 2000}
-                onClick={() => {
-                  setIsWithdrawModalOpen(true);
-                }}
-                className={`w-full h-9 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
-                  availableBalance >= 2000
-                    ? "bg-emerald-700 hover:bg-emerald-600 text-white shadow-xs cursor-pointer"
-                    : "bg-white/10 text-gray-400 border border-white/10 cursor-not-allowed"
-                }`}
-              >
-                <ArrowUpRight className="w-3.5 h-3.5 mr-1" />
-                {availableBalance >= 2000
-                  ? `Withdraw Available Funds (₦${availableBalance.toLocaleString()})`
-                  : userProfile?.is_legacy && !userProfile?.has_purchased_starter_pack
-                  ? "Withdrawal Locked (₦5,000 Mushroom Power Required)"
-                  : !isProjectSubscribed
-                  ? "Withdrawal Locked (Starter Package Required)"
-                  : `Accumulate ₦${(2000 - rawClearedBalance).toLocaleString()} More to Withdraw (Min. ₦2,000)`}
-              </Button>
-
-              {totalLockedAmount > 0 && (
-                <div className="pt-1 flex items-center justify-between text-[11px] text-amber-200/80">
+              {walletMode === "legacy" ? (
+                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-100 flex items-center justify-between">
                   <span className="flex items-center gap-1.5">
-                    <Lock className="w-3 h-3 text-amber-400 shrink-0" />
-                    <span>₦{totalLockedAmount.toLocaleString()} held in reserve</span>
+                    <Landmark className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span>Preserved founding records prior to 2026 platform migration.</span>
                   </span>
                   <Link
-                    to="/how-it-works/locked-withdrawals"
-                    className="underline underline-offset-2 hover:text-white transition-colors"
+                    to="/dashboard/transactions"
+                    className="text-xs font-bold text-amber-300 hover:text-white underline underline-offset-2 shrink-0 ml-2"
                   >
-                    Release conditions →
+                    Modern Wallet →
                   </Link>
                 </div>
-              )}
+              ) : (
+                <>
+                  {canSubscribeWithWallet && (
+                    <Button
+                      disabled={subscribingWithWallet}
+                      onClick={handleSubscribeWithWallet}
+                      className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs h-8.5 rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Sprout className="w-3.5 h-3.5 text-emerald-200" />
+                      {subscribingWithWallet ? "Activating..." : "Activate Project Subscription (₦10,000)"}
+                    </Button>
+                  )}
 
-              {advanceDebt && advanceDebt.isIndebted && advanceDebt.balance > 0 && (
-                <div className="pt-2">
-                  <div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-200">
-                    <div className="flex items-center justify-between font-semibold mb-1">
-                      <span className="flex items-center gap-1.5 text-amber-300">
-                        <Clock className="w-3.5 h-3.5" />
-                        Corporate Advance Active
+                  <Button
+                    disabled={availableBalance < 2000}
+                    onClick={() => {
+                      setIsWithdrawModalOpen(true);
+                    }}
+                    className={`w-full h-9 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
+                      availableBalance >= 2000
+                        ? "bg-emerald-700 hover:bg-emerald-600 text-white shadow-xs cursor-pointer"
+                        : "bg-white/10 text-gray-400 border border-white/10 cursor-not-allowed"
+                    }`}
+                  >
+                    <ArrowUpRight className="w-3.5 h-3.5 mr-1" />
+                    {availableBalance >= 2000
+                      ? `Withdraw Available Funds (₦${availableBalance.toLocaleString()})`
+                      : userProfile?.is_legacy && !userProfile?.has_purchased_starter_pack
+                      ? "Withdrawal Locked (₦5,000 Mushroom Power Required)"
+                      : !isProjectSubscribed
+                      ? "Withdrawal Locked (Starter Package Required)"
+                      : `Accumulate ₦${(2000 - rawClearedBalance).toLocaleString()} More to Withdraw (Min. ₦2,000)`}
+                  </Button>
+
+                  {totalLockedAmount > 0 && (
+                    <div className="pt-1 flex items-center justify-between text-[11px] text-amber-200/80">
+                      <span className="flex items-center gap-1.5">
+                        <Lock className="w-3 h-3 text-amber-400 shrink-0" />
+                        <span>₦{totalLockedAmount.toLocaleString()} held in reserve</span>
                       </span>
-                      <span className="text-white font-mono">
-                        ₦{advanceDebt.balance.toLocaleString()} remaining
-                      </span>
+                      <Link
+                        to="/how-it-works/locked-withdrawals"
+                        className="underline underline-offset-2 hover:text-white transition-colors"
+                      >
+                        Release conditions →
+                      </Link>
                     </div>
-                    <p className="text-[11px] text-amber-200/70">
-                      100% of future earnings will automatically settle this advance (Repaid: ₦{advanceDebt.repaid.toLocaleString()} of ₦{advanceDebt.total.toLocaleString()}).
-                    </p>
-                  </div>
-                </div>
+                  )}
+
+                  {advanceDebt && advanceDebt.isIndebted && advanceDebt.balance > 0 && (
+                    <div className="pt-2">
+                      <div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-200">
+                        <div className="flex items-center justify-between font-semibold mb-1">
+                          <span className="flex items-center gap-1.5 text-amber-300">
+                            <Clock className="w-3.5 h-3.5" />
+                            Corporate Advance Active
+                          </span>
+                          <span className="text-white font-mono">
+                            ₦{advanceDebt.balance.toLocaleString()} remaining
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-amber-200/70">
+                          100% of future earnings will automatically settle this advance (Repaid: ₦{advanceDebt.repaid.toLocaleString()} of ₦{advanceDebt.total.toLocaleString()}).
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {userProfile?.is_legacy && (
+                    <div className="pt-1 flex items-center justify-between text-[11px] text-emerald-200/80">
+                      <span className="flex items-center gap-1.5">
+                        <Landmark className="w-3 h-3 text-amber-400 shrink-0" />
+                        <span>Have preserved founding earnings?</span>
+                      </span>
+                      <Link
+                        to="/legacy/dashboard/transactions"
+                        className="underline underline-offset-2 hover:text-white text-amber-300 transition-colors font-medium"
+                      >
+                        View Legacy Archive →
+                      </Link>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -1400,7 +1517,9 @@ export default function TransactionLedger() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2.5 flex-wrap">
                 <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0">
-                  {activeLedgerTab === "wallet_ledger" ? (
+                  {walletMode === "legacy" ? (
+                    <Landmark className="w-4 h-4 text-amber-700" />
+                  ) : activeLedgerTab === "wallet_ledger" ? (
                     <Wallet className="w-4 h-4 text-emerald-700" />
                   ) : (
                     <ShoppingBag className="w-4 h-4 text-amber-700" />
@@ -1408,12 +1527,16 @@ export default function TransactionLedger() {
                 </div>
                 <div>
                   <h2 className="text-base font-bold text-gray-900 leading-tight">
-                    {activeLedgerTab === "wallet_ledger"
+                    {walletMode === "legacy"
+                      ? "Preserved Founding Records (Pre-Migration)"
+                      : activeLedgerTab === "wallet_ledger"
                       ? "Member Wallet Ledger"
                       : "Orders & Purchase History"}
                   </h2>
                   <p className="text-[11px] text-gray-500">
-                    {activeLedgerTab === "wallet_ledger"
+                    {walletMode === "legacy"
+                      ? "Archival record of legacy commissions, founding slots, and historical referral credits"
+                      : activeLedgerTab === "wallet_ledger"
                       ? "Pure double-entry statement of referral rewards, matrix commissions, driver pool & withdrawals"
                       : "Official receipts of farm slots, starter packages, products & card checkout payments"}
                   </p>
@@ -1431,45 +1554,47 @@ export default function TransactionLedger() {
                 )}
               </div>
 
-              {/* Sub-Tabs: Wallet Ledger vs Purchase History */}
-              <div className="inline-flex p-1 bg-gray-100/90 border border-gray-200/70 rounded-2xl shadow-xs self-start sm:self-auto">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveLedgerTab("wallet_ledger");
-                    setFilterType("ALL");
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    activeLedgerTab === "wallet_ledger"
-                      ? "bg-white text-emerald-950 shadow-xs border border-gray-200/60"
-                      : "text-gray-500 hover:text-gray-900"
-                  }`}
-                >
-                  <Wallet className="w-3.5 h-3.5 text-emerald-700" />
-                  <span>Wallet Ledger</span>
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
-                    {walletLedgerCount}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveLedgerTab("purchase_history");
-                    setFilterType("ALL");
-                  }}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                    activeLedgerTab === "purchase_history"
-                      ? "bg-white text-emerald-950 shadow-xs border border-gray-200/60"
-                      : "text-gray-500 hover:text-gray-900"
-                  }`}
-                >
-                  <ShoppingBag className="w-3.5 h-3.5 text-amber-700" />
-                  <span>Orders & Receipts</span>
-                  <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-50 text-amber-900 font-bold border border-amber-200">
-                    {purchaseHistoryCount}
-                  </span>
-                </button>
-              </div>
+              {/* Sub-Tabs: Wallet Ledger vs Purchase History (Exclusively for Live Wallet) */}
+              {walletMode === "live" && (
+                <div className="inline-flex p-1 bg-gray-100/90 border border-gray-200/70 rounded-2xl shadow-xs self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveLedgerTab("wallet_ledger");
+                      setFilterType("ALL");
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeLedgerTab === "wallet_ledger"
+                        ? "bg-white text-emerald-950 shadow-xs border border-gray-200/60"
+                        : "text-gray-500 hover:text-gray-900"
+                    }`}
+                  >
+                    <Wallet className="w-3.5 h-3.5 text-emerald-700" />
+                    <span>Wallet Ledger</span>
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-800 font-bold border border-emerald-200">
+                      {walletLedgerCount}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveLedgerTab("purchase_history");
+                      setFilterType("ALL");
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeLedgerTab === "purchase_history"
+                        ? "bg-white text-emerald-950 shadow-xs border border-gray-200/60"
+                        : "text-gray-500 hover:text-gray-900"
+                    }`}
+                  >
+                    <ShoppingBag className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Orders & Receipts</span>
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-amber-50 text-amber-900 font-bold border border-amber-200">
+                      {purchaseHistoryCount}
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Filter Bar: Row 2 */}
@@ -1488,7 +1613,19 @@ export default function TransactionLedger() {
 
               <div className="flex items-center gap-2">
                 {/* Contextual Filter Pills */}
-                {activeLedgerTab === "wallet_ledger" ? (
+                {walletMode === "legacy" ? (
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value)}
+                    className="h-9 px-3 rounded-xl border border-gray-200 bg-gray-50/70 text-xs text-gray-700 font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
+                  >
+                    <option value="ALL">All Preserved Records</option>
+                    <option value="SLOT_BONUS">Slot Bonuses</option>
+                    <option value="REFERRAL_BONUS">Referral Earnings</option>
+                    <option value="SLOT_PURCHASE">Farm Slot Purchases</option>
+                    <option value="FARM_CONTRIBUTION">Farm Contributions</option>
+                  </select>
+                ) : activeLedgerTab === "wallet_ledger" ? (
                   <select
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}

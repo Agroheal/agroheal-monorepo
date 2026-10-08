@@ -167,6 +167,12 @@ const getLegacyNavGroups = (): NavGroup[] => [
     icon: BookOpen,
   },
   {
+    id: "legacy-wallet",
+    label: "Legacy Wallet & Ledger",
+    path: "/legacy/dashboard/transactions",
+    icon: Wallet,
+  },
+  {
     id: "return-modern",
     label: "Modern Dashboard",
     path: "/dashboard",
@@ -248,6 +254,13 @@ const getPageTitle = (currentPath: string): string => {
   }
   if (currentPath === "/legacy/roadmap-guide") {
     return "Legacy · Roadmap & Guide";
+  }
+  if (
+    currentPath === "/legacy/transactions" ||
+    currentPath === "/legacy/dashboard/transactions" ||
+    currentPath === "/legacy/wallet"
+  ) {
+    return "Legacy · Preserved Wallet & Ledger";
   }
 
   const allNavGroups = getNavGroups(true);
