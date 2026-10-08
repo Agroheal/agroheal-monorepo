@@ -26,6 +26,7 @@ interface RawProfileRow {
   country?: string;
   state?: string;
   lga?: string;
+  is_legacy?: boolean;
   advance_debt_balance?: number;
   is_suspended?: boolean;
   can_manage_system_configs?: boolean;
@@ -40,6 +41,7 @@ interface RawSlotRow {
   slots?: number;
   amount?: number;
   last_payment_date?: string;
+  is_legacy?: boolean;
 }
 
 interface RawPaymentRow {
@@ -50,6 +52,7 @@ interface RawPaymentRow {
   created_at?: string;
   slots?: number;
   status?: string;
+  is_legacy?: boolean;
 }
 
 interface RawSubscriptionRow {
@@ -68,6 +71,7 @@ interface RawTransactionRow {
   transaction_ref?: string;
   payment_reference?: string;
   email?: string;
+  is_legacy?: boolean;
 }
 
 export function useAdminMembers() {
@@ -171,6 +175,7 @@ export function useAdminMembers() {
           country: p.country || "Nigeria",
           state: p.state || "",
           lga: p.lga || "",
+          is_legacy: Boolean(p.is_legacy),
           advance_debt_balance: Number(p.advance_debt_balance) || 0,
           is_suspended: p.is_suspended === true,
           can_manage_system_configs: p.can_manage_system_configs === true,
@@ -217,6 +222,7 @@ export function useAdminMembers() {
           status: tx.status === "paid" || tx.status === "successful" ? "success" : tx.status || "pending",
           type: "transaction",
           reference: refKey,
+          is_legacy: Boolean(tx.is_legacy) || false,
         });
       });
 
@@ -235,6 +241,7 @@ export function useAdminMembers() {
             slots: s.slots || 0,
             status: s.status || "active",
             type: "slot_subscription",
+            is_legacy: Boolean(s.is_legacy) || false,
           });
         }
       });
@@ -254,6 +261,7 @@ export function useAdminMembers() {
             slots: p.slots || 0,
             status: p.status || "success",
             type: "other_payment",
+            is_legacy: true,
           });
         }
       });

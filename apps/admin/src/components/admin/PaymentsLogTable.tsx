@@ -23,6 +23,7 @@ const PAGE_SIZE = 25;
 
 export type PaymentMethodFilter = "all" | "online" | "bank_transfer";
 export type TransactionCategoryFilter = "all" | "green_card" | "slots" | "products" | "commissions";
+export type PaymentTierFilter = "all" | "live" | "legacy";
 
 function isOfflineMethod(p: PaymentLog): boolean {
   if (p.type === "other_payment") return true;
@@ -87,6 +88,7 @@ function statusBadge(status: string) {
 
 export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRefresh?: () => void }) {
   const [search, setSearch] = useState("");
+  const [tierFilter, setTierFilter] = useState<PaymentTierFilter>("all");
   const [methodFilter, setMethodFilter] = useState<PaymentMethodFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<TransactionCategoryFilter>("all");
   const [page, setPage] = useState(1);
@@ -118,12 +120,16 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
         }
       }
 
-      // 2. Method Filter (All, Online, Bank Transfer)
+      // 2. Data Tier Filter (All, Live Gateway, Legacy / Migrated)
+      if (tierFilter === "live" && p.is_legacy) return false;
+      if (tierFilter === "legacy" && !p.is_legacy) return false;
+
+      // 3. Method Filter (All, Online, Bank Transfer)
       const isOffline = isOfflineMethod(p);
       if (methodFilter === "online" && isOffline) return false;
       if (methodFilter === "bank_transfer" && !isOffline) return false;
 
-      // 3. Category Filter
+      // 4. Category Filter
       if (categoryFilter !== "all") {
         const resolved = resolveTransactionCategory(p);
         if (resolved !== categoryFilter) return false;
@@ -131,7 +137,7 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
 
       return true;
     });
-  }, [logs, search, methodFilter, categoryFilter]);
+  }, [logs, search, tierFilter, methodFilter, categoryFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -149,6 +155,7 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
       return {
         "S/N": idx + 1,
         "Customer Email": p.user_email || "",
+        "Data Tier": p.is_legacy ? "Legacy / Migrated" : "Live Gateway",
         "Payment Channel": isOffline ? "Bank Transfer / Offline" : "Online Checkout",
         "Category":
           cat === "green_card"
@@ -175,6 +182,7 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
       { Metric: "Total Transactions", Value: filtered.length },
       { Metric: "Total Amount (₦)", Value: totalAmount },
       { Metric: "Total Farm Slots", Value: totalSlots },
+      { Metric: "Data Tier Filter", Value: tierFilter },
       { Metric: "Channel Filter", Value: methodFilter },
       { Metric: "Category Filter", Value: categoryFilter },
       { Metric: "Search Query", Value: search || "None" },
@@ -213,8 +221,32 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
             />
           </div>
 
-          {/* Two-Tier Filters & Export */}
+          {/* Multi-Tier Filters & Export */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
+            {/* Filter 0: Data Tier */}
+            <Select
+              value={tierFilter}
+              onValueChange={(v) => {
+                setTierFilter(v as PaymentTierFilter);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[155px] h-9 text-xs">
+                <SelectValue placeholder="All Ecosystems" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs">
+                  🌐 All Ecosystems
+                </SelectItem>
+                <SelectItem value="live" className="text-xs">
+                  🟢 Live Gateway
+                </SelectItem>
+                <SelectItem value="legacy" className="text-xs">
+                  🟡 Legacy / Migrated
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
             {/* Filter 1: Channel */}
             <Select
               value={methodFilter}
@@ -321,8 +353,19 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
                 <TableRow key={p.id} className="hover:bg-muted/20 transition-colors">
                   {/* Customer / Email */}
                   <TableCell className="py-2.5 px-3 max-w-[200px]">
-                    <div className="font-medium text-foreground truncate" title={p.user_email}>
-                      {p.user_email}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-medium text-foreground truncate" title={p.user_email}>
+                        {p.user_email}
+                      </span>
+                      {p.is_legacy ? (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                          Legacy / Migrated
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                          Live Gateway
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground mt-0.5">
                       <span className="truncate max-w-[120px]">{ref}</span>

@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeftRight, CheckCircle2, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { adminApiClient } from "@/lib/apiClient";
 import type { PaymentLog } from "@/types/admin";
 
 interface Props {
@@ -54,30 +55,12 @@ export function RemediatePaymentDialog({
       if (match) cleanTxId = match[1];
 
       // Call API server or direct database remediation
-      const apiUrl = import.meta.env.VITE_API_URL || "https://api.agroheal.solutions";
-      const { data: session } = await supabase.auth.getSession();
-      const token = session?.session?.access_token;
-
       let apiSuccess = false;
-      if (token) {
-        try {
-          const resp = await fetch(`${apiUrl}/api/v1/admin/transactions/${cleanTxId}/remediate`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              targetPurpose,
-              reason: reason.trim(),
-            }),
-          });
-          if (resp.ok) {
-            apiSuccess = true;
-          }
-        } catch {
-          // Fallback to Supabase direct remediation if server endpoint is on different host
-        }
+      try {
+        await adminApiClient.transactions.remediate(cleanTxId, targetPurpose, reason.trim());
+        apiSuccess = true;
+      } catch (apiErr) {
+        console.warn("[RemediatePaymentDialog] API endpoint failed, trying direct Supabase fallback:", apiErr);
       }
 
       if (!apiSuccess) {

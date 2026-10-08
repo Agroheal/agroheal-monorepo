@@ -29,6 +29,7 @@ export function memberMatchesQuery(m: Member, queryStr: string) {
 export type GreenCardFilter = "all" | "active" | "unpaid";
 export type DebtorFilter = "all" | "debtors" | "debt_free";
 export type LocationStatusFilter = "all" | "configured" | "pending";
+export type DataTierFilter = "all" | "live" | "legacy";
 
 export function filterMemberPredicate(
   m: Member,
@@ -41,6 +42,7 @@ export function filterMemberPredicate(
     debtorFilter?: DebtorFilter;
     roleFilter?: string;
     locationStatusFilter?: LocationStatusFilter;
+    tierFilter?: DataTierFilter;
   },
 ) {
   if (!memberMatchesQuery(m, queryStr)) return false;
@@ -86,6 +88,10 @@ export function filterMemberPredicate(
   } else if (options?.locationStatusFilter === "pending") {
     if (m.state && m.lga) return false;
   }
+
+  // Tier filter (Live Modern vs Legacy)
+  if (options?.tierFilter === "live" && m.is_legacy) return false;
+  if (options?.tierFilter === "legacy" && !m.is_legacy) return false;
 
   return true;
 }

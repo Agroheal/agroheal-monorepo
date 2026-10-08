@@ -40,7 +40,11 @@ export default function DashboardPage() {
 
   const [serverStats, setServerStats] = useState<{
     totalMembers: number;
+    liveMembers?: number;
+    legacyMembers?: number;
     activeSlots: number;
+    liveSlots?: number;
+    legacySlots?: number;
     activeGreenCards: number;
     farmGroupsCount: number;
   } | null>(null);
@@ -132,7 +136,11 @@ export default function DashboardPage() {
         <StatCard
           label="Registered Members"
           value={serverStats ? serverStats.totalMembers : members.length}
-          footer="Total member profiles"
+          footer={
+            serverStats?.liveMembers !== undefined && serverStats?.legacyMembers !== undefined
+              ? `${serverStats.liveMembers.toLocaleString()} Live • ${serverStats.legacyMembers.toLocaleString()} Legacy`
+              : `${members.filter((m) => !m.is_legacy).length} Live • ${members.filter((m) => m.is_legacy).length} Legacy`
+          }
           icon={Users}
           loading={loading && !serverStats}
         />
@@ -146,14 +154,18 @@ export default function DashboardPage() {
         <StatCard
           label="Active Farm Slots"
           value={serverStats ? serverStats.activeSlots : activeSlots}
-          footer="Active community production farm slots"
+          footer={
+            serverStats?.liveSlots !== undefined && serverStats?.legacySlots !== undefined
+              ? `${serverStats.liveSlots.toLocaleString()} Live • ${serverStats.legacySlots.toLocaleString()} Legacy`
+              : "Active community production farm slots"
+          }
           icon={Sprout}
           loading={loading && !serverStats}
         />
         <StatCard
           label="Platform Operations"
           value={paymentLogs.length}
-          footer="Verified payments &amp; ledger transactions"
+          footer={`${paymentLogs.filter((p) => !p.is_legacy).length} Live • ${paymentLogs.filter((p) => p.is_legacy).length} Legacy`}
           icon={CreditCard}
           loading={loading}
         />

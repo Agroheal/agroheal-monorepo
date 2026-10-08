@@ -18,6 +18,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { adminApiClient } from "@/lib/apiClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -33,6 +34,7 @@ export default function FulfillmentHubPage() {
   const [search, setSearch] = useState("");
   const [selectedState, setSelectedState] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
+  const [tierFilter, setTierFilter] = useState<"all" | "live" | "legacy">("all");
   const [viewMode, setViewMode] = useState<"groups" | "table">("groups");
   const [copiedText, setCopiedText] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -41,50 +43,81 @@ export default function FulfillmentHubPage() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const { data: rawOrders, error } = await supabase
-        .from("orders")
-        .select(`
-          id,
-          user_id,
-          transaction_id,
-          product_code,
-          quantity,
-          unit_price,
-          total_price,
-          status,
-          notes,
-          created_at,
-          profiles:user_id (
+      // 1. Primary: fetch from adminApiClient.fulfillment.getManifest()
+      const manifestRes = await adminApiClient.fulfillment
+        .getManifest(tierFilter === "all" ? undefined : tierFilter)
+        .catch(() => null);
+
+      if (manifestRes && Array.isArray(manifestRes.manifest)) {
+        setOrders(manifestRes.manifest);
+        return;
+      }
+
+      // 2. Direct Supabase Fallback: fetch orders and lg_checkout
+      const [ordersRes, lgCheckoutRes] = await Promise.all([
+        supabase
+          .from("orders")
+          .select(`
             id,
-            full_name,
+            user_id,
+            transaction_id,
+            product_code,
+            quantity,
+            unit_price,
+            total_price,
+            status,
+            notes,
+            created_at,
+            profiles:user_id (
+              id,
+              full_name,
+              email,
+              phone,
+              member_id,
+              state,
+              lga,
+              country
+            ),
+            transactions:transaction_id (
+              id,
+              transaction_ref,
+              payment_channel,
+              created_at,
+              state,
+              lga
+            )
+          `)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("lg_checkout")
+          .select(`
+            id,
+            user_id,
+            created_at,
+            amount,
+            status,
+            first_name,
+            last_name,
             email,
             phone,
-            member_id,
-            state,
-            lga,
-            country
-          ),
-          transactions:transaction_id (
-            id,
+            payment_method,
             transaction_ref,
-            payment_channel,
-            created_at,
-            state,
-            lga
-          )
-        `)
-        .order("created_at", { ascending: false });
+            project_category
+          `)
+          .ilike("status", "%paid%")
+          .order("created_at", { ascending: false }),
+      ]);
 
-      if (error) throw error;
+      if (ordersRes.error) throw ordersRes.error;
 
-      const mapped: FulfillmentOrder[] = (rawOrders || []).map((o: any) => {
+      const liveMapped: FulfillmentOrder[] = (ordersRes.data || []).map((o: any) => {
         const prof = o.profiles || {};
         const tx = o.transactions || {};
         const state = prof.state || tx.state || "Unspecified";
         const lga = prof.lga || tx.lga || "Unspecified";
 
         return {
-          id: o.id,
+          id: String(o.id),
           userId: o.user_id,
           transactionId: o.transaction_id,
           productCode: o.product_code || "SP-MUSH-100G",
@@ -97,6 +130,8 @@ export default function FulfillmentHubPage() {
           status: (o.status || "PAID").toUpperCase(),
           notes: o.notes,
           createdAt: o.created_at,
+          is_legacy: false,
+          orderOrigin: "order" as const,
           buyer: {
             id: prof.id || o.user_id,
             fullName: prof.full_name || "Member",
@@ -107,11 +142,43 @@ export default function FulfillmentHubPage() {
             lga,
             country: prof.country || "Nigeria",
           },
-          transactionRef: tx.transaction_ref || (o.transaction_id ? `TX-${o.transaction_id}` : `ORD-${o.id.slice(0, 8)}`),
+          transactionRef: tx.transaction_ref || (o.transaction_id ? `TX-${o.transaction_id}` : `ORD-${String(o.id).slice(0, 8)}`),
         };
       });
 
-      setOrders(mapped);
+      const legacyMapped: FulfillmentOrder[] = (lgCheckoutRes.data || []).map((c: any) => {
+        const amt = Number(c.amount) || 0;
+        const inferredQty = amt >= 5000 ? Math.floor(amt / 5000) : 1;
+        const fullName = [c.first_name, c.last_name].filter(Boolean).join(" ") || "Legacy Member";
+
+        return {
+          id: String(c.id),
+          userId: c.user_id,
+          transactionId: c.id,
+          productCode: "LEGACY-CHECKOUT",
+          productName: c.project_category || "Legacy Allocation",
+          quantity: inferredQty,
+          totalPrice: amt,
+          status: (c.status || "PAID").toUpperCase(),
+          notes: `Legacy founding checkout #${c.id}`,
+          createdAt: c.created_at,
+          is_legacy: true,
+          orderOrigin: "legacy_checkout" as const,
+          buyer: {
+            id: c.user_id,
+            fullName,
+            email: c.email || "",
+            phone: c.phone || "",
+            memberId: "-",
+            state: "Unspecified",
+            lga: "Unspecified",
+            country: "Nigeria",
+          },
+          transactionRef: c.transaction_ref || `LG-${c.id}`,
+        };
+      });
+
+      setOrders([...liveMapped, ...legacyMapped]);
     } catch (err) {
       console.error("Failed to load fulfillment orders:", err);
     } finally {
@@ -121,20 +188,39 @@ export default function FulfillmentHubPage() {
 
   useEffect(() => {
     fetchOrders();
-  }, []);
+  }, [tierFilter]);
 
-  const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+  const handleUpdateStatus = async (
+    orderId: string,
+    newStatus: string,
+    origin: "order" | "legacy_checkout" | "transaction" = "order"
+  ) => {
     setUpdatingId(orderId);
+    const cleanOrigin: "order" | "legacy_checkout" = origin === "legacy_checkout" ? "legacy_checkout" : "order";
     try {
-      const { error } = await supabase
-        .from("orders")
-        .update({
-          status: newStatus.toUpperCase(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", orderId);
+      const apiOk = await adminApiClient.fulfillment
+        .updateOrderStatus(orderId, newStatus, undefined, cleanOrigin)
+        .then(() => true)
+        .catch(() => false);
 
-      if (error) throw error;
+      if (!apiOk) {
+        if (cleanOrigin === "legacy_checkout") {
+          const { error } = await supabase
+            .from("lg_checkout")
+            .update({ status: newStatus.toLowerCase() })
+            .eq("id", orderId);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("orders")
+            .update({
+              status: newStatus.toUpperCase(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", orderId);
+          if (error) throw error;
+        }
+      }
 
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, status: newStatus.toUpperCase() } : o))
@@ -161,6 +247,10 @@ export default function FulfillmentHubPage() {
   const filteredOrders = useMemo(() => {
     const q = search.toLowerCase().trim();
     return orders.filter((o) => {
+      // Tier Filter: all | live | legacy
+      if (tierFilter === "live" && o.is_legacy) return false;
+      if (tierFilter === "legacy" && !o.is_legacy) return false;
+
       if (q) {
         const nameMatch = o.buyer.fullName.toLowerCase().includes(q);
         const emailMatch = o.buyer.email.toLowerCase().includes(q);
@@ -187,7 +277,7 @@ export default function FulfillmentHubPage() {
 
       return true;
     });
-  }, [orders, search, selectedState, selectedStatus]);
+  }, [orders, search, selectedState, selectedStatus, tierFilter]);
 
   // Grouped by State for Logistics
   const stateGroups = useMemo(() => {
@@ -212,6 +302,8 @@ export default function FulfillmentHubPage() {
 
   // Overall KPIs
   const totalPackages = orders.reduce((sum, o) => sum + o.quantity, 0);
+  const liveOrdersCount = orders.filter((o) => !o.is_legacy).length;
+  const legacyOrdersCount = orders.filter((o) => o.is_legacy).length;
   const pendingPackages = orders.filter(
     (o) => !["dispatched", "shipped", "delivered"].includes(o.status.toLowerCase())
   ).length;
@@ -434,6 +526,24 @@ export default function FulfillmentHubPage() {
               </SelectContent>
             </Select>
 
+            {/* Ecosystem / Tier Filter */}
+            <Select value={tierFilter} onValueChange={(val) => setTierFilter(val as "all" | "live" | "legacy")}>
+              <SelectTrigger className="w-[160px] h-9 text-xs">
+                <SelectValue placeholder="All Ecosystems" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs">
+                  🌐 All Ecosystems ({orders.length})
+                </SelectItem>
+                <SelectItem value="live" className="text-xs">
+                  🟢 Live Platform ({liveOrdersCount})
+                </SelectItem>
+                <SelectItem value="legacy" className="text-xs">
+                  🟡 Legacy Founding ({legacyOrdersCount})
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
             {/* View Mode Switcher */}
             <div className="flex items-center rounded-lg border border-border p-0.5 bg-muted/40">
               <Button
@@ -521,6 +631,15 @@ export default function FulfillmentHubPage() {
                             <span className="font-mono text-xs text-muted-foreground">
                               ({order.buyer.memberId})
                             </span>
+                            {order.is_legacy ? (
+                              <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                                Legacy Founding
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                Live Platform
+                              </span>
+                            )}
                           </div>
 
                           <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
@@ -556,7 +675,13 @@ export default function FulfillmentHubPage() {
                         {/* Status Select */}
                         <Select
                           value={order.status.toLowerCase()}
-                          onValueChange={(val) => handleUpdateStatus(order.id, val)}
+                          onValueChange={(val) =>
+                            handleUpdateStatus(
+                              order.id,
+                              val,
+                              order.orderOrigin || (order.is_legacy ? "legacy_checkout" : "order")
+                            )
+                          }
                           disabled={updatingId === order.id}
                         >
                           <SelectTrigger className="h-7 w-[125px] text-[11px]">
@@ -629,7 +754,18 @@ export default function FulfillmentHubPage() {
                   <TableRow key={o.id} className="hover:bg-muted/20 transition-colors">
                     <TableCell className="py-2.5 px-3 font-mono text-muted-foreground">{idx + 1}</TableCell>
                     <TableCell className="py-2.5 px-3">
-                      <div className="font-semibold text-foreground">{o.buyer.fullName}</div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-semibold text-foreground">{o.buyer.fullName}</span>
+                        {o.is_legacy ? (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                            Legacy
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            Live
+                          </span>
+                        )}
+                      </div>
                       <div className="text-[11px] font-mono text-muted-foreground">{o.buyer.memberId}</div>
                       {o.buyer.phone && (
                         <div className="text-[11px] text-emerald-400 font-medium mt-0.5 flex items-center gap-1">
@@ -652,7 +788,13 @@ export default function FulfillmentHubPage() {
                     <TableCell className="py-2.5 px-3">
                       <Select
                         value={o.status.toLowerCase()}
-                        onValueChange={(val) => handleUpdateStatus(o.id, val)}
+                        onValueChange={(val) =>
+                          handleUpdateStatus(
+                            o.id,
+                            val,
+                            o.orderOrigin || (o.is_legacy ? "legacy_checkout" : "order")
+                          )
+                        }
                         disabled={updatingId === o.id}
                       >
                         <SelectTrigger className="h-7 w-[115px] text-[10px]">

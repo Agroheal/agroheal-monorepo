@@ -274,14 +274,23 @@ export function AdminAuditLogTable() {
     return (
       <div className="flex flex-col text-xs space-y-0.5">
         {target && (
-          <span className="font-medium text-foreground truncate max-w-[220px]" title={target}>
-            {target}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="font-medium text-foreground truncate max-w-[220px]" title={target}>
+              {target}
+            </span>
+            {p.is_legacy !== undefined && (
+              <span className={`inline-block px-1.5 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider ${
+                p.is_legacy ? "bg-amber-500/10 text-amber-400 border border-amber-500/30" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+              }`}>
+                {p.is_legacy ? "Legacy Provision" : "Live Platform"}
+              </span>
+            )}
             {p.target_email && p.target_name && p.target_name !== p.target_email && (
               <span className="text-[10px] text-muted-foreground block truncate">
                 {p.target_email}
               </span>
             )}
-          </span>
+          </div>
         )}
         {p.member_id && log.action === "MANUAL_GREEN_CARD_ACTIVATION" && (
           <span className="font-mono text-[10px] text-primary">

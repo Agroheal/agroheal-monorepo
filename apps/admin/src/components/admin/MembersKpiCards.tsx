@@ -12,17 +12,34 @@ interface Props {
 
 export function MembersKpiCards({ members, value, onChange, loading }: Props) {
   const total = members.length;
+  const liveTotal = members.filter((m) => !m.is_legacy).length;
+  const legacyTotal = members.filter((m) => m.is_legacy).length;
+
   const active = members.filter((m) => m.has_green_card).length;
+  const liveActive = members.filter((m) => !m.is_legacy && m.has_green_card).length;
+  const legacyActive = members.filter((m) => m.is_legacy && m.has_green_card).length;
+
   const pending = total - active;
+  const livePending = members.filter((m) => !m.is_legacy && !m.has_green_card).length;
+  const legacyPending = members.filter((m) => m.is_legacy && !m.has_green_card).length;
+
   const activePct = total > 0 ? Math.round((active / total) * 100) : 0;
 
-  const cards: { key: GreenCardFilter; icon: LucideIcon; iconClass: string; value: number; label: string }[] = [
+  const cards: {
+    key: GreenCardFilter;
+    icon: LucideIcon;
+    iconClass: string;
+    value: number;
+    label: string;
+    subtext: string;
+  }[] = [
     {
       key: "all",
       icon: Users,
       iconClass: "bg-primary/15 text-primary",
       value: total,
       label: "Total Registered Members",
+      subtext: `${liveTotal} Live • ${legacyTotal} Legacy`,
     },
     {
       key: "active",
@@ -30,6 +47,7 @@ export function MembersKpiCards({ members, value, onChange, loading }: Props) {
       iconClass: "bg-emerald-400/15 text-emerald-400",
       value: active,
       label: `Green Card Active (${activePct}%)`,
+      subtext: `${liveActive} Live • ${legacyActive} Legacy`,
     },
     {
       key: "unpaid",
@@ -37,6 +55,7 @@ export function MembersKpiCards({ members, value, onChange, loading }: Props) {
       iconClass: "bg-amber-400/15 text-amber-400",
       value: pending,
       label: "Pending / Needs Green Card",
+      subtext: `${livePending} Live • ${legacyPending} Legacy`,
     },
   ];
 
@@ -62,6 +81,7 @@ export function MembersKpiCards({ members, value, onChange, loading }: Props) {
               <span className="block text-xl font-semibold text-foreground">{c.value}</span>
             )}
             <span className="block text-xs text-muted-foreground">{c.label}</span>
+            <span className="block text-[11px] text-muted-foreground/80 mt-0.5 font-medium">{c.subtext}</span>
           </span>
         </button>
       ))}

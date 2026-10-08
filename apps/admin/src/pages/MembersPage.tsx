@@ -7,6 +7,7 @@ import {
   type GreenCardFilter,
   type DebtorFilter,
   type LocationStatusFilter,
+  type DataTierFilter,
 } from "@/lib/memberFilters";
 import { activateGreenCard, updateMember, recordAuditEvent, toggleSuspendMember } from "@/lib/adminActions";
 import { MembersKpiCards } from "@/components/admin/MembersKpiCards";
@@ -29,6 +30,7 @@ import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { exportToExcel } from "@shared/excelExport";
 import { formatWATDateTime, formatWATDate } from "@/lib/dateTimeFormat";
 import { supabase } from "@/lib/supabaseClient";
+import { adminApiClient } from "@/lib/apiClient";
 
 export default function MembersPage() {
   const { isReadOnly, isSuperDeveloper } = useAdminAuth();
@@ -39,6 +41,7 @@ export default function MembersPage() {
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
+  const [tierFilter, setTierFilter] = useState<DataTierFilter>("all");
   const [programFilter, setProgramFilter] = useState("all");
   const [greenCardFilter, setGreenCardFilter] = useState<GreenCardFilter>("all");
   const [stateFilter, setStateFilter] = useState("all");
@@ -72,6 +75,7 @@ export default function MembersPage() {
 
   const hasActiveFilters =
     Boolean(searchQuery.trim()) ||
+    tierFilter !== "all" ||
     programFilter !== "all" ||
     greenCardFilter !== "all" ||
     stateFilter !== "all" ||
@@ -81,6 +85,7 @@ export default function MembersPage() {
 
   const handleResetFilters = () => {
     setSearchQuery("");
+    setTierFilter("all");
     setProgramFilter("all");
     setGreenCardFilter("all");
     setStateFilter("all");
@@ -97,11 +102,13 @@ export default function MembersPage() {
           lgaFilter,
           debtorFilter,
           locationStatusFilter,
+          tierFilter,
         }),
       ),
     [
       members,
       searchQuery,
+      tierFilter,
       greenCardFilter,
       programFilter,
       stateFilter,
@@ -312,6 +319,7 @@ export default function MembersPage() {
         "S/N": idx + 1,
         "AGC Member ID": m.member_id || "-",
         "Full Name": m.full_name || "",
+        "Data Tier": m.is_legacy ? "Legacy Base" : "Live Platform",
         "Email": m.email || "",
         "Phone Number": m.phone || "",
         "Role": m.role || "Member",
@@ -336,6 +344,7 @@ export default function MembersPage() {
       { "Metric": "Total System Members", "Value": members.length },
       { "Metric": "Total Slots Held (Exported)", "Value": filteredMembers.reduce((sum, m) => sum + m.total_slots, 0) },
       { "Metric": "Active Green Card Holders (Exported)", "Value": filteredMembers.filter((m) => m.has_green_card).length },
+      { "Metric": "Active Tier Filter", "Value": tierFilter },
       { "Metric": "Active Program Filter", "Value": programFilter },
       { "Metric": "Active Green Card Filter", "Value": greenCardFilter },
       { "Metric": "Search Query", "Value": searchQuery || "None" },
@@ -366,6 +375,7 @@ export default function MembersPage() {
         "S/N": idx + 1,
         "AGC Member ID": m.member_id || "-",
         "Full Name": m.full_name || "",
+        "Data Tier": m.is_legacy ? "Legacy Base" : "Live Platform",
         "Email": m.email || "",
         "Phone Number": m.phone || "",
         "Role": m.role || "Member",
@@ -526,28 +536,8 @@ export default function MembersPage() {
 
     try {
       setErrorMessage("");
-      const apiUrl = import.meta.env.VITE_API_URL || "https://api.agroheal.solutions";
-      const { data: session } = await supabase.auth.getSession();
-      const token = session?.session?.access_token;
-
-      if (!token) {
-        throw new Error("Authentication token required.");
-      }
-
-      const resp = await fetch(`${apiUrl}/api/v1/admin/members/${member.id}/place-matrix`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const json = await resp.json();
-      if (!resp.ok) {
-        throw new Error(json.error || "Matrix auto-placement failed.");
-      }
-
-      flash(setSuccessMessage, json.message || `${member.full_name} placed in 5x7 matrix successfully!`);
+      const res = await adminApiClient.members.placeMatrix(member.id);
+      flash(setSuccessMessage, res?.message || `${member.full_name} placed in 5x7 matrix successfully!`);
       await refetch();
     } catch (err: any) {
       flash(setErrorMessage, err.message || "Failed to auto-place member into matrix.");
@@ -576,6 +566,8 @@ export default function MembersPage() {
         members={members}
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
+        tierFilter={tierFilter}
+        onTierFilterChange={setTierFilter}
         programFilter={programFilter}
         onProgramFilterChange={setProgramFilter}
         greenCardFilter={greenCardFilter}

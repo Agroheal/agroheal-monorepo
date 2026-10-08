@@ -97,7 +97,11 @@ export const adminApiClient = {
     getStats: () =>
       apiRequest<{
         totalMembers: number;
+        liveMembers?: number;
+        legacyMembers?: number;
         activeSlots: number;
+        liveSlots?: number;
+        legacySlots?: number;
         activeGreenCards: number;
         farmGroupsCount: number;
         timestamp: string;
@@ -114,6 +118,59 @@ export const adminApiClient = {
         method: "POST",
         body: JSON.stringify({ reason }),
       }),
+  },
+  fulfillment: {
+    getManifest: (tier?: string) =>
+      apiRequest<{
+        manifest: any[];
+        groupedByState: any[];
+        stats: {
+          totalOrders: number;
+          liveOrdersCount?: number;
+          legacyOrdersCount?: number;
+          totalQuantity: number;
+          pendingCount: number;
+          dispatchedCount: number;
+          deliveredCount: number;
+          topStates: Array<{ state: string; count: number }>;
+        };
+      }>(`admin/fulfillment/manifest${tier ? `?tier=${tier}` : ""}`),
+    updateOrderStatus: (id: string, status: string, notes?: string, origin: string = "order") =>
+      apiRequest<any>(`admin/fulfillment/orders/${id}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status, notes, origin }),
+      }),
+  },
+  transactions: {
+    remediate: (id: string | number, targetPurpose = "STARTER_PACK", reason?: string) =>
+      apiRequest<any>(`admin/transactions/${id}/remediate`, {
+        method: "POST",
+        body: JSON.stringify({ targetPurpose, reason }),
+      }),
+  },
+  members: {
+    placeMatrix: (id: string) =>
+      apiRequest<any>(`admin/members/${id}/place-matrix`, { method: "POST" }),
+    reassignSponsor: (id: string, newSponsorId: string, reason?: string) =>
+      apiRequest<any>(`admin/members/${id}/sponsor`, {
+        method: "PUT",
+        body: JSON.stringify({ newSponsorId, reason }),
+      }),
+    issueAdvance: (payload: { userId: string; amount: number; notes?: string }) =>
+      apiRequest<any>("admin/members/issue-advance", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    issueGift: (payload: { userId: string; amount: number; notes?: string }) =>
+      apiRequest<any>("admin/members/issue-gift", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+  },
+  crons: {
+    getStatus: () => apiRequest<any>("admin/crons/status"),
+    triggerReconciliation: () => apiRequest<any>("admin/crons/reconciliation", { method: "POST" }),
+    triggerPqvEvaluation: () => apiRequest<any>("admin/crons/pqv-evaluation", { method: "POST" }),
   },
   cycles: {
     draftHarvestYield: (payload: {

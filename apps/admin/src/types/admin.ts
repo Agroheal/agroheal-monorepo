@@ -31,6 +31,7 @@ export interface Member {
   country?: string;
   state?: string;
   lga?: string;
+  is_legacy?: boolean;
   advance_debt_balance?: number;
   is_suspended?: boolean;
   can_manage_system_configs?: boolean;
@@ -49,6 +50,7 @@ export interface PaymentLog {
   status: string;
   type: "slot_subscription" | "other_payment" | "transaction";
   reference?: string;
+  is_legacy?: boolean;
 }
 
 export interface FulfillmentOrder {
@@ -62,6 +64,8 @@ export interface FulfillmentOrder {
   status: string;
   notes?: string;
   createdAt: string;
+  is_legacy?: boolean;
+  orderOrigin?: "order" | "transaction" | "legacy_checkout";
   buyer: {
     id: string;
     fullName: string;

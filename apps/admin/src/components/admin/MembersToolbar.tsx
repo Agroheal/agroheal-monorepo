@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { Member } from "@/types/admin";
-import type { DebtorFilter, LocationStatusFilter, GreenCardFilter } from "@/lib/memberFilters";
+import type { DebtorFilter, LocationStatusFilter, GreenCardFilter, DataTierFilter } from "@/lib/memberFilters";
 import { NIGERIA_STATES, getLgasForState } from "@shared/nigeriaLocations";
 
 export type MemberViewMode = "auto" | "table" | "cards";
@@ -14,6 +14,8 @@ interface Props {
   members: Member[];
   searchQuery: string;
   onSearchQueryChange: (v: string) => void;
+  tierFilter?: DataTierFilter;
+  onTierFilterChange?: (v: DataTierFilter) => void;
   programFilter: string;
   onProgramFilterChange: (v: string) => void;
   greenCardFilter?: GreenCardFilter;
@@ -39,6 +41,8 @@ export function MembersToolbar({
   members,
   searchQuery,
   onSearchQueryChange,
+  tierFilter = "all",
+  onTierFilterChange,
   programFilter,
   onProgramFilterChange,
   greenCardFilter = "all",
@@ -59,6 +63,8 @@ export function MembersToolbar({
   onCreateMember,
   onExportExcel,
 }: Props) {
+  const liveCount = members.filter((m) => !m.is_legacy).length;
+  const legacyCount = members.filter((m) => m.is_legacy).length;
   const hasSlots = members.filter((m) => m.total_slots > 0).length;
   const noSlots = members.length - hasSlots;
   const debtorCount = members.filter((m) => Number(m.advance_debt_balance || 0) > 0).length;
@@ -131,6 +137,20 @@ export function MembersToolbar({
 
       {/* Row 2: Secondary Filters Strip */}
       <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-border/50">
+        {/* Data Tier Filter (Live vs Legacy) */}
+        {onTierFilterChange && (
+          <Select value={tierFilter} onValueChange={(val) => onTierFilterChange(val as DataTierFilter)}>
+            <SelectTrigger className="w-[155px] h-8 text-xs">
+              <SelectValue placeholder="All Ecosystems" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">🌐 All Ecosystems</SelectItem>
+              <SelectItem value="live">🟢 Live Platform ({liveCount})</SelectItem>
+              <SelectItem value="legacy">🟡 Legacy Base ({legacyCount})</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+
         {/* Green Card Status Filter */}
         {onGreenCardFilterChange && (
           <Select value={greenCardFilter} onValueChange={(val) => onGreenCardFilterChange(val as GreenCardFilter)}>

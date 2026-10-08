@@ -49,6 +49,15 @@ export function MemberCard({
             <div>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-sm font-semibold text-foreground">{m.full_name}</span>
+                {m.is_legacy ? (
+                  <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                    Legacy
+                  </span>
+                ) : (
+                  <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    Live
+                  </span>
+                )}
                 {m.is_suspended && (
                   <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-destructive/15 text-destructive border border-destructive/30">
                     Suspended

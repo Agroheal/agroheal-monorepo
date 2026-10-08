@@ -63,6 +63,8 @@ interface RealCluster {
   project_category: string;
   targetSlots: number;
   boughtSlots: number;
+  modernSlots: number;
+  legacySlots: number;
   totalBags: number;
 }
 
@@ -111,29 +113,55 @@ export default function FarmAssignmentsPage() {
 
       if (groupsErr) throw groupsErr;
 
-      // 2. Fetch slot counts per farm_id from farm_records
-      const { data: recordsData, error: recordsErr } = await supabase
-        .from("farm_records")
-        .select("farm_id, farm_slots");
+      // 2. Fetch both modern slot_subscriptions and legacy records
+      const [subsRes, recordsRes, lgRecordsRes] = await Promise.all([
+        supabase
+          .from("slot_subscriptions")
+          .select("farm_group_id, slots, is_legacy")
+          .not("farm_group_id", "is", null),
+        supabase
+          .from("farm_records")
+          .select("farm_id, farm_slots"),
+        supabase
+          .from("lg_farm_records")
+          .select("farm_id, farm_slots"),
+      ]);
 
-      if (recordsErr) throw recordsErr;
+      const modernSlotsByFarm: Record<string, number> = {};
+      (subsRes.data || []).forEach((s: any) => {
+        if (s.farm_group_id) {
+          modernSlotsByFarm[s.farm_group_id] =
+            (modernSlotsByFarm[s.farm_group_id] || 0) + (Number(s.slots) || 0);
+        }
+      });
 
-      const slotCountsByFarm: Record<string, number> = {};
-      (recordsData || []).forEach((r: any) => {
+      const legacySlotsByFarm: Record<string, number> = {};
+      (recordsRes.data || []).forEach((r: any) => {
         if (r.farm_id) {
-          slotCountsByFarm[r.farm_id] = (slotCountsByFarm[r.farm_id] || 0) + (Number(r.farm_slots) || 0);
+          legacySlotsByFarm[r.farm_id] =
+            (legacySlotsByFarm[r.farm_id] || 0) + (Number(r.farm_slots) || 0);
+        }
+      });
+      (lgRecordsRes.data || []).forEach((r: any) => {
+        if (r.farm_id) {
+          legacySlotsByFarm[r.farm_id] =
+            (legacySlotsByFarm[r.farm_id] || 0) + (Number(r.farm_slots) || 0);
         }
       });
 
       const loadedClusters: RealCluster[] = (groupsData || []).map((g: any) => {
-        const bought = slotCountsByFarm[g.id] || 0;
+        const modern = modernSlotsByFarm[g.id] || 0;
+        const legacy = legacySlotsByFarm[g.id] || 0;
+        const total = modern + legacy;
         return {
           id: g.id,
           name: g.name,
           project_category: g.project_category || "Mushroom Village",
           targetSlots: 1000,
-          boughtSlots: bought,
-          totalBags: bought * 2, // 2 bags per slot statutory translation
+          boughtSlots: total,
+          modernSlots: modern,
+          legacySlots: legacy,
+          totalBags: total * 2, // 2 bags per slot statutory translation
         };
       });
 
@@ -470,6 +498,9 @@ export default function FarmAssignmentsPage() {
                             <span className="text-xs font-normal text-muted-foreground">
                               / {cluster.targetSlots.toLocaleString()}
                             </span>
+                          </span>
+                          <span className="text-[10px] text-muted-foreground block mt-0.5">
+                            {cluster.modernSlots.toLocaleString()} Modern • {cluster.legacySlots.toLocaleString()} Legacy
                           </span>
                         </div>
 

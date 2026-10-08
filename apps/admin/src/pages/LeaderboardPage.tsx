@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAdminMembers } from "@/hooks/useAdminMembers";
 import { exportToExcel } from "@shared/excelExport";
 
@@ -22,6 +23,7 @@ export type RankingMetric = "referrals" | "slots" | "leadership_pool";
 export default function LeaderboardPage() {
   const { members, loading } = useAdminMembers();
   const [metric, setMetric] = useState<RankingMetric>("referrals");
+  const [tierFilter, setTierFilter] = useState<"all" | "live" | "legacy">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Compute direct referral counts for all members
@@ -70,6 +72,8 @@ export default function LeaderboardPage() {
         };
       })
       .filter((m) => {
+        if (tierFilter === "live" && m.is_legacy) return false;
+        if (tierFilter === "legacy" && !m.is_legacy) return false;
         if (!searchQuery) return true;
         const q = searchQuery.toLowerCase();
         return (
@@ -92,7 +96,7 @@ export default function LeaderboardPage() {
         }
         return 0;
       });
-  }, [members, referralCounts, metric, searchQuery]);
+  }, [members, referralCounts, metric, tierFilter, searchQuery]);
 
   // Aggregate stats
   const totalQualifiedLeaders = useMemo(
@@ -126,6 +130,7 @@ export default function LeaderboardPage() {
       Rank: idx + 1,
       "Member ID": m.member_id || "-",
       "Full Name": m.full_name || "",
+      "Data Tier": m.is_legacy ? "Legacy Base" : "Live Platform",
       Email: m.email || "",
       Phone: m.phone || "",
       "Direct Referrals": m.directRefs,
@@ -249,14 +254,27 @@ export default function LeaderboardPage() {
           </Button>
         </div>
 
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-          <Input
-            placeholder="Search leader..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8 h-8 text-xs bg-background"
-          />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Select value={tierFilter} onValueChange={(v) => setTierFilter(v as "all" | "live" | "legacy")}>
+            <SelectTrigger className="w-[145px] h-8 text-xs bg-background">
+              <SelectValue placeholder="All Ecosystems" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">🌐 All Ecosystems</SelectItem>
+              <SelectItem value="live">🟢 Live Platform</SelectItem>
+              <SelectItem value="legacy">🟡 Legacy Base</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search leader..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 h-8 text-xs bg-background"
+            />
+          </div>
         </div>
       </div>
 
@@ -314,7 +332,18 @@ export default function LeaderboardPage() {
                       {/* Member Info */}
                       <td className="py-3 px-4">
                         <div className="flex flex-col">
-                          <span className="font-semibold text-foreground">{m.full_name || "Unnamed Member"}</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-semibold text-foreground">{m.full_name || "Unnamed Member"}</span>
+                            {m.is_legacy ? (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                                Legacy
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                Live
+                              </span>
+                            )}
+                          </div>
                           <span className="text-[11px] text-muted-foreground">{m.email}</span>
                         </div>
                       </td>
