@@ -31,7 +31,7 @@
   - Whenever manually provisioning or editing member activations (Green Cards, Starter Packages, Farm Slots, Product Orders) directly in the database, NEVER stop at inserting records into `transactions`, `orders`, or `slot_subscriptions`.
   - ALWAYS execute the complete double-entry financial distributions into `wallet_ledger`:
     1. **Direct Sponsor Referral & Slot Commission**: Credit the direct sponsor with their statutory bonus (`REFERRAL_BONUS`, `SLOT_BONUS`, `MATRIX_COMMISSION`).
-    2. **Core Driver Growth Pool**: Credit all 6 Core Drivers (Elijah, Esther, Taiwo, David, Fortune, Tony) with their ₦50 bonus (`CORE_DRIVER_BONUS`).
+    2. **Core Driver Growth Pool**: Credit all 7 Core Drivers (Elijah, Esther, Taiwo, David, Fortune, Tony, Nathaniel) with their ₦50 bonus (`CORE_DRIVER_BONUS`).
     3. **Atomic Balance Updates**: Compute each recipient's `balance_after` dynamically (`current_available_balance + amount`) to maintain zero ledger leakage and strict solvency parity.
     4. **Historical Timestamp Invariant**: When catching or reconciling past transactions, ALWAYS stamp records with `created_at = tx.created_at` (never `NOW()`) so timestamps and receipts match when the member actually paid.
     5. **Deterministic Reference Standard & Idempotency Pre-Check**:

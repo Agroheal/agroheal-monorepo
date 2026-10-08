@@ -74,6 +74,12 @@ const STATIC_CORE_DRIVERS = [
     email: "tonyinyang118@gmail.com",
     sharePerCard: 50,
   },
+  {
+    id: "driver-7",
+    name: "Nathaniel Omokanye",
+    email: "gkygmr56@gmail.com",
+    sharePerCard: 50,
+  },
 ];
 
 const MIN_WITHDRAWAL_THRESHOLD = 2000;
