@@ -1068,6 +1068,14 @@ const CompoundReferrals: React.FC = () => {
       setBreadcrumbs((prev) => {
         const existsIndex = prev.findIndex((b) => b.id === builtRoot.id);
         if (existsIndex >= 0) return prev.slice(0, existsIndex + 1);
+        if (prev.length === 0 && currentUserId) {
+          const rootLabel = currentUserProfile?.full_name || "Root Organogram";
+          const rootMemberId = formatAgcId(currentUserProfile?.member_id);
+          return [
+            { id: currentUserId, name: rootLabel, memberId: rootMemberId },
+            { id: builtRoot.id, name: builtRoot.fullName, memberId: builtRoot.memberId },
+          ];
+        }
         return [...prev, { id: builtRoot.id, name: builtRoot.fullName, memberId: builtRoot.memberId }];
       });
     }
@@ -1181,10 +1189,10 @@ const CompoundReferrals: React.FC = () => {
     }
   };
 
-  // Matrix Depth Range Controls (From Level to To Level) - Default Level 1 to Level 1 in fullscreen as requested
+  // Matrix Depth Range Controls (From Level to To Level) - Default Level 1 to Level 2 for full tree connectivity
   const isFullscreen = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("view") === "fullscreen";
   const [fromLevel, setFromLevel] = useState<number>(1);
-  const [toLevel, setToLevel] = useState<number>(1);
+  const [toLevel, setToLevel] = useState<number>(2);
   const [aerialView, setAerialView] = useState<boolean>(false);
   const [aerialZoom, setAerialZoom] = useState<number>(1);
 
@@ -2619,6 +2627,7 @@ const CompoundReferrals: React.FC = () => {
                               type="button"
                               onClick={() => {
                                 buildSubtree(m.id, false);
+                                toast.success(`Inspecting organogram for ${m.fullName}`);
                                 const organogramElem = document.getElementById("organogram-section");
                                 if (organogramElem) {
                                   organogramElem.scrollIntoView({ behavior: "smooth" });
@@ -2627,16 +2636,16 @@ const CompoundReferrals: React.FC = () => {
                                 }
                               }}
                               className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 hover:text-emerald-900 hover:underline cursor-pointer"
-                              title={`View ${m.fullName}'s organogram tree`}
+                              title={`Inspect ${m.fullName}'s organogram tree`}
                             >
                               <GitBranch className="w-2.5 h-2.5 text-emerald-600" />
-                              <span>View in Tree</span>
+                              <span>Inspect Tree</span>
                             </button>
                             <button
                               type="button"
                               onClick={() => window.open(`/dashboard/my-network?view=fullscreen&rootId=${m.id}`, "_blank")}
                               className="text-gray-400 hover:text-emerald-700 p-0.5 rounded hover:bg-emerald-50 transition-colors cursor-pointer"
-                              title="Open Fullscreen Tree View"
+                              title="Inspect Fullscreen in New Window"
                             >
                               <ExternalLink className="w-2.5 h-2.5" />
                             </button>
