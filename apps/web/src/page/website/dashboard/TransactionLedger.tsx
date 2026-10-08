@@ -109,6 +109,7 @@ export default function TransactionLedger() {
   const [isProjectSubscribed, setIsProjectSubscribed] = useState<boolean>(false);
   const [subscribingWithWallet, setSubscribingWithWallet] = useState<boolean>(false);
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
+  const [copiedDesc, setCopiedDesc] = useState<string | null>(null);
   const [activeLedgerTab, setActiveLedgerTab] = useState<"wallet_ledger" | "purchase_history">("wallet_ledger");
   const [currentPage, setCurrentPage] = useState<number>(1);
 
@@ -174,11 +175,10 @@ export default function TransactionLedger() {
   const canSubscribeWithWallet = false;
   const hasGreenCard = Boolean(memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING"));
 
-  // Authoritative financial balances: In live mode, balance is strictly the live liquid walletBalance
-  // In legacy mode, it is the legacy pre-migration total
-  const ledgerBalance = walletMode === "live"
-    ? walletBalance
-    : legacyEarnings;
+  // Authoritative financial balances:
+  const ledgerBalance = userProfile?.is_legacy
+    ? Math.max(walletBalance, legacyEarnings)
+    : walletBalance;
 
   // Gatekeeper locked capital:
   // If user is not qualified for 5x7 matrix (5 directs + ₦10k 30d PQV), all matrix earnings are locked.
@@ -1019,7 +1019,7 @@ export default function TransactionLedger() {
     return ["COMBO_PACKAGE", "SUBSCRIPTION", "SLOT_PURCHASE", "RETAIL_PURCHASE", "FARM_CONTRIBUTION"].includes(cat);
   };
 
-  const activeBaseTransactions = walletMode === "live" ? liveTransactions : legacyTransactions;
+  const activeBaseTransactions = transactions;
   const walletLedgerCount = React.useMemo(
     () => activeBaseTransactions.filter((t) => !isPurchaseCategory(t.category)).length,
     [activeBaseTransactions]
@@ -1030,17 +1030,11 @@ export default function TransactionLedger() {
   );
 
   const filteredTransactions = transactions.filter((t) => {
-    const isLegacy = isItemLegacy(t);
-    if (walletMode === "live" && isLegacy) return false;
-    if (walletMode === "legacy" && !isLegacy) return false;
-
-    // Filter by Active Ledger Tab (Applies exclusively to Live Wallet):
+    // Filter by Active Ledger Tab:
     // "wallet_ledger" -> Pure internal earnings & disbursements (referrals, matrix commissions, driver bonuses, slot bonuses, withdrawals)
     // "purchase_history" -> Clear list of external orders and card receipts (combo bundles, starter packs, farm slots, subscriptions)
-    if (walletMode === "live") {
-      if (activeLedgerTab === "wallet_ledger" && isPurchaseCategory(t.category)) return false;
-      if (activeLedgerTab === "purchase_history" && !isPurchaseCategory(t.category)) return false;
-    }
+    if (activeLedgerTab === "wallet_ledger" && isPurchaseCategory(t.category)) return false;
+    if (activeLedgerTab === "purchase_history" && !isPurchaseCategory(t.category)) return false;
 
     if (filterType === "PENDING") {
       if (t.status !== "PENDING") return false;
@@ -1060,7 +1054,7 @@ export default function TransactionLedger() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterType, searchQuery, walletMode, activeLedgerTab]);
+  }, [filterType, searchQuery, activeLedgerTab]);
 
   const PAGE_SIZE = 10;
   const paginatedTransactions = React.useMemo(() => {
@@ -1352,55 +1346,48 @@ export default function TransactionLedger() {
                     : "bg-white/10 text-gray-400 border border-white/10 cursor-not-allowed"
                 }`}
               >
-                      availableBalance >= 2000
-                        ? "bg-emerald-700 hover:bg-emerald-600 text-white shadow-xs cursor-pointer"
-                        : "bg-white/10 text-gray-400 border border-white/10 cursor-not-allowed"
-                    }`}
+                <ArrowUpRight className="w-3.5 h-3.5 mr-1" />
+                {availableBalance >= 2000
+                  ? `Withdraw Available Funds (₦${availableBalance.toLocaleString()})`
+                  : userProfile?.is_legacy && !userProfile?.has_purchased_starter_pack
+                  ? "Withdrawal Locked (₦5,000 Mushroom Power Required)"
+                  : !isProjectSubscribed
+                  ? "Withdrawal Locked (Starter Package Required)"
+                  : `Accumulate ₦${(2000 - rawClearedBalance).toLocaleString()} More to Withdraw (Min. ₦2,000)`}
+              </Button>
+
+              {totalLockedAmount > 0 && (
+                <div className="pt-1 flex items-center justify-between text-[11px] text-amber-200/80">
+                  <span className="flex items-center gap-1.5">
+                    <Lock className="w-3 h-3 text-amber-400 shrink-0" />
+                    <span>₦{totalLockedAmount.toLocaleString()} held in reserve</span>
+                  </span>
+                  <Link
+                    to="/how-it-works/locked-withdrawals"
+                    className="underline underline-offset-2 hover:text-white transition-colors"
                   >
-                    <ArrowUpRight className="w-3.5 h-3.5 mr-1" />
-                    {availableBalance >= 2000
-                      ? `Withdraw Available Funds (₦${availableBalance.toLocaleString()})`
-                      : userProfile?.is_legacy && !userProfile?.has_purchased_starter_pack
-                      ? "Withdrawal Locked (₦5,000 Mushroom Power Required)"
-                      : !isProjectSubscribed
-                      ? "Withdrawal Locked (Starter Package Required)"
-                      : `Accumulate ₦${(2000 - rawClearedBalance).toLocaleString()} More to Withdraw (Min. ₦2,000)`}
-                  </Button>
+                    Release conditions →
+                  </Link>
+                </div>
+              )}
 
-                  {totalLockedAmount > 0 && (
-                    <div className="pt-1 flex items-center justify-between text-[11px] text-amber-200/80">
-                      <span className="flex items-center gap-1.5">
-                        <Lock className="w-3 h-3 text-amber-400 shrink-0" />
-                        <span>₦{totalLockedAmount.toLocaleString()} held in reserve</span>
+              {advanceDebt && advanceDebt.isIndebted && advanceDebt.balance > 0 && (
+                <div className="pt-2">
+                  <div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-200">
+                    <div className="flex items-center justify-between font-semibold mb-1">
+                      <span className="flex items-center gap-1.5 text-amber-300">
+                        <Clock className="w-3.5 h-3.5" />
+                        Corporate Advance Active
                       </span>
-                      <Link
-                        to="/how-it-works/locked-withdrawals"
-                        className="underline underline-offset-2 hover:text-white transition-colors"
-                      >
-                        Release conditions →
-                      </Link>
+                      <span className="text-white font-mono">
+                        ₦{advanceDebt.balance.toLocaleString()} remaining
+                      </span>
                     </div>
-                  )}
-
-                    {advanceDebt && advanceDebt.isIndebted && advanceDebt.balance > 0 && (
-                      <div className="pt-2">
-                        <div className="bg-amber-500/15 border border-amber-500/30 rounded-xl p-3 text-xs text-amber-200">
-                          <div className="flex items-center justify-between font-semibold mb-1">
-                            <span className="flex items-center gap-1.5 text-amber-300">
-                              <Clock className="w-3.5 h-3.5" />
-                              Corporate Advance Active
-                            </span>
-                            <span className="text-white font-mono">
-                              ₦{advanceDebt.balance.toLocaleString()} remaining
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-amber-200/70">
-                            100% of future earnings will automatically settle this advance (Repaid: ₦{advanceDebt.repaid.toLocaleString()} of ₦{advanceDebt.total.toLocaleString()}).
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                </>
+                    <p className="text-[11px] text-amber-200/70">
+                      100% of future earnings will automatically settle this advance (Repaid: ₦{advanceDebt.repaid.toLocaleString()} of ₦{advanceDebt.total.toLocaleString()}).
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
           </div>
@@ -1502,22 +1489,6 @@ export default function TransactionLedger() {
               <div className="flex items-center gap-2">
                 {/* Contextual Filter Pills */}
                 {activeLedgerTab === "wallet_ledger" ? (
-                  <select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    className="h-9 px-3 rounded-xl border border-gray-200 bg-gray-50/70 text-xs text-gray-700 font-medium focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer"
-                  >
-                    <option value="ALL">All Ledger Entries</option>
-                    <option value="PENDING">Pending Only</option>
-                    <option value="REFERRAL_BONUS">Direct Referral Bonuses</option>
-                    <option value="CORE_DRIVER_BONUS">Growth Driver Pool</option>
-                    <option value="SLOT_BONUS">Slot Bonuses</option>
-                    <option value="MATRIX_COMMISSION">Matrix Commissions</option>
-                    <option value="WITHDRAWAL">Bank Withdrawals</option>
-                    <option value="CREDIT">Credits Only</option>
-                    <option value="DEBIT">Debits Only</option>
-                  </select>
-                ) : (
                   <select
                     value={filterType}
                     onChange={(e) => setFilterType(e.target.value)}

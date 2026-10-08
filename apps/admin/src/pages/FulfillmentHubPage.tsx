@@ -33,6 +33,7 @@ export default function FulfillmentHubPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedState, setSelectedState] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [tierFilter, setTierFilter] = useState<"live" | "legacy" | "all">("live");
   const [viewMode, setViewMode] = useState<"groups" | "table">("groups");
   const [copiedText, setCopiedText] = useState(false);
