@@ -107,6 +107,11 @@ export const adminApiClient = {
         timestamp: string;
       }>("admin/stats"),
     getTreasuryAudit: () => apiRequest<any>("admin/treasury-audit"),
+    triggerCorporateSweep: (date?: string) =>
+      apiRequest<any>("admin/treasury/trigger-sweep", {
+        method: "POST",
+        body: JSON.stringify({ date }),
+      }),
     getTransactions: (limit = 200) => apiRequest<any[]>(`admin/transactions?limit=${limit}`),
     impersonateMember: (userId: string, reason?: string) =>
       apiRequest<{

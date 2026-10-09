@@ -7,6 +7,11 @@ import {
   CheckCircle2,
   Clock,
   Landmark,
+  Wallet,
+  Building2,
+  Trophy,
+  Send,
+  Boxes,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +41,14 @@ interface PendingWithdrawal {
   account_name?: string;
 }
 
+interface FlatWalletItem {
+  name: string;
+  statutoryRate: string;
+  totalInflows: number;
+  totalOutflows: number;
+  currentBalance: number;
+}
+
 interface TreasuryAuditData {
   totalInflows: number;
   totalWithdrawnDisbursals: number;
@@ -44,6 +57,13 @@ interface TreasuryAuditData {
   cooperativeReserves: number;
   isZeroLeakage: boolean;
   auditedAt: string;
+  flatWallets?: {
+    networkAndCoreDrivers?: FlatWalletItem;
+    lgaFarmProduction?: FlatWalletItem;
+    leadershipAndCarAwards?: FlatWalletItem;
+    starterPackProduction?: FlatWalletItem;
+    agrohealCorporateRevenue?: FlatWalletItem;
+  };
 }
 
 export default function TreasuryPage() {
@@ -87,6 +107,8 @@ export default function TreasuryPage() {
     profile?.email?.toLowerCase() === "estherbola888@gmail.com" ||
     profile?.role === "super_admin";
 
+  const [sweeping, setSweeping] = useState(false);
+
   const meetsMinimumRequirements = (w: PendingWithdrawal): boolean => {
     const amount = Number(w.net_amount || w.amount || 0);
     const hasMinAmount = amount >= 2000;
@@ -97,6 +119,30 @@ export default function TreasuryPage() {
   const flash = (fn: (v: string) => void, text: string) => {
     fn(text);
     setTimeout(() => fn(""), 4500);
+  };
+
+  const handleTriggerCorporateSweep = async () => {
+    if (!isAdmin && !isSuperDeveloper) {
+      flash(setErrorMessage, "Only Platform Admins and Super Developer can trigger the corporate revenue sweep.");
+      return;
+    }
+    const confirm = window.confirm("Execute AgroHeal daily corporate revenue sweep for today's accumulated margins?");
+    if (!confirm) return;
+
+    setSweeping(true);
+    setErrorMessage("");
+    try {
+      const res = await adminApiClient.admin.triggerCorporateSweep();
+      flash(
+        setSuccessMessage,
+        `Corporate revenue sweep completed for ${res?.sweepDate || "today"}: ₦${(res?.totalSweepAmount || 0).toLocaleString()} transferred to AgroHeal master ledger.`
+      );
+      await loadData();
+    } catch (err: any) {
+      flash(setErrorMessage, err.message || "Corporate revenue sweep failed.");
+    } finally {
+      setSweeping(false);
+    }
   };
 
   const loadData = async () => {
@@ -424,7 +470,203 @@ export default function TreasuryPage() {
         </Card>
       </div>
 
-      {/* ── SECTION 2: SOLVENCY SHIELD MONITOR ── */}
+      {/* ── SECTION 2: 4 COOPERATIVE FLAT WALLETS & CORPORATE REVENUE ── */}
+      <div className="space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Boxes className="w-4 h-4 text-primary" />
+              Cooperative Flat Wallets &amp; Corporate Margin Allocations
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Automated statutory inflows, dedicated reserves, and corporate sweeps with mathematical zero leakage.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleTriggerCorporateSweep}
+            disabled={sweeping}
+            className="h-8 gap-1.5 text-xs font-semibold border-primary/40 text-primary hover:bg-primary/10 cursor-pointer"
+          >
+            <Send className={`h-3.5 w-3.5 ${sweeping ? "animate-spin" : ""}`} />
+            {sweeping ? "Sweeping Margins..." : "Trigger Corporate Revenue Sweep"}
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Wallet 1: 5x7 Network & Core Drivers */}
+          <Card className="border-border/60 bg-card p-4 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+                  <Wallet className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground">5×7 Network &amp; Core Drivers</h4>
+                  <p className="text-[10px] text-muted-foreground font-mono">₦900 GC + ₦1,350 SP + ₦1,157 PQV</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Statutory Inflows:</span>
+                <span className="font-mono font-semibold text-foreground">
+                  ₦{(auditData?.flatWallets?.networkAndCoreDrivers?.totalInflows || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Payout Disbursals:</span>
+                <span className="font-mono text-destructive">
+                  -₦{(auditData?.flatWallets?.networkAndCoreDrivers?.totalOutflows || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="pt-1 border-t border-border/40 flex justify-between text-xs font-bold">
+                <span className="text-emerald-400">Net Balance:</span>
+                <span className="font-mono text-emerald-400">
+                  ₦{(auditData?.flatWallets?.networkAndCoreDrivers?.currentBalance || 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Wallet 2: LGA Farm Production */}
+          <Card className="border-border/60 bg-card p-4 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-400">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground">LGA Farm Production</h4>
+                  <p className="text-[10px] text-muted-foreground font-mono">₦3,500 per Farm Slot</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Farm Slot Funding:</span>
+                <span className="font-mono font-semibold text-foreground">
+                  ₦{(auditData?.flatWallets?.lgaFarmProduction?.totalInflows || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Farm Operations:</span>
+                <span className="font-mono text-destructive">
+                  -₦{(auditData?.flatWallets?.lgaFarmProduction?.totalOutflows || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="pt-1 border-t border-border/40 flex justify-between text-xs font-bold">
+                <span className="text-blue-400">Production Reserve:</span>
+                <span className="font-mono text-blue-400">
+                  ₦{(auditData?.flatWallets?.lgaFarmProduction?.currentBalance || 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Wallet 3: Leadership & Quarterly Car Awards */}
+          <Card className="border-border/60 bg-card p-4 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+                  <Trophy className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground">Leadership &amp; Car Awards</h4>
+                  <p className="text-[10px] text-muted-foreground font-mono">₦200 Lead + ₦200 Car + ₦171 PQV</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Award Inflows:</span>
+                <span className="font-mono font-semibold text-foreground">
+                  ₦{(auditData?.flatWallets?.leadershipAndCarAwards?.totalInflows || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Award Outflows:</span>
+                <span className="font-mono text-destructive">
+                  -₦{(auditData?.flatWallets?.leadershipAndCarAwards?.totalOutflows || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="pt-1 border-t border-border/40 flex justify-between text-xs font-bold">
+                <span className="text-amber-400">Award Pool:</span>
+                <span className="font-mono text-amber-400">
+                  ₦{(auditData?.flatWallets?.leadershipAndCarAwards?.currentBalance || 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </Card>
+
+          {/* Wallet 4: Starter Pack Production */}
+          <Card className="border-border/60 bg-card p-4 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-400">
+                  <Boxes className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground">Starter Pack Production</h4>
+                  <p className="text-[10px] text-muted-foreground font-mono">₦4,500 per Mushroom Pack</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Packaging Funding:</span>
+                <span className="font-mono font-semibold text-foreground">
+                  ₦{(auditData?.flatWallets?.starterPackProduction?.totalInflows || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Packaging &amp; Fulfillment:</span>
+                <span className="font-mono text-destructive">
+                  -₦{(auditData?.flatWallets?.starterPackProduction?.totalOutflows || 0).toLocaleString()}
+                </span>
+              </div>
+              <div className="pt-1 border-t border-border/40 flex justify-between text-xs font-bold">
+                <span className="text-purple-400">Packing Reserve:</span>
+                <span className="font-mono text-purple-400">
+                  ₦{(auditData?.flatWallets?.starterPackProduction?.currentBalance || 0).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Retained Corporate Margin Card */}
+        <Card className="border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-primary/10 text-primary">
+              <Landmark className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-foreground">AgroHeal Retained Corporate Revenue</h4>
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
+                  ₦1,850 per ₦15,000 Combo
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Inflow: ₦100 (GC) + ₦1,000 (Slot) + ₦750 (Starter Pack) • Accumulated today: ₦{(auditData?.flatWallets?.agrohealCorporateRevenue?.currentBalance || 0).toLocaleString()}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <span className="text-xs text-muted-foreground block">Net Unswept Margin</span>
+              <span className="font-mono text-lg font-bold text-primary">
+                ₦{(auditData?.flatWallets?.agrohealCorporateRevenue?.currentBalance || 0).toLocaleString()}
+              </span>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      {/* ── SECTION 3: SOLVENCY SHIELD MONITOR ── */}
       <Card className="border-border/60 bg-card p-5 sm:p-6">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-1.5 max-w-xl">
