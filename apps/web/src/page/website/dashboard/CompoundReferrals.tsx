@@ -653,7 +653,7 @@ const CompoundReferrals: React.FC = () => {
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", authId).maybeSingle(),
         supabase.from("slot_subscriptions").select("slots, amount, status").eq("user_id", authId),
-        supabase.from("profiles").select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals, is_green_card_holder, has_purchased_starter_pack").eq("referred_by", authId),
+        supabase.from("profiles").select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals, is_green_card_holder, has_greencard, has_purchased_starter_pack, is_wealth_creation_active, placement_status").or(`referred_by.eq.${authId},sponsor_id.eq.${authId}`),
         supabase.from("other_payments").select("amount, created_at").eq("user_id", authId),
         supabase.from("subscriptions").select("id").eq("user_id", authId).eq("status", "active").limit(1),
         supabase.from("transactions").select("id").eq("user_id", authId).eq("status", "paid").limit(1),
@@ -670,9 +670,36 @@ const CompoundReferrals: React.FC = () => {
       const totalSlots = (slotSubsRes.data || []).reduce((sum, s) => sum + (Number(s.slots) || 0), 0);
       setUserSlotsHeld(totalSlots);
 
-      const directCount = (directRefsRes.data || []).filter(
-        (r: any) => Boolean(r.is_green_card_holder || r.member_id || r.has_purchased_starter_pack)
-      ).length;
+      // Batch query slot subscriptions for direct referrals to verify 3 criteria
+      const directRecruits = directRefsRes.data || [];
+      const directRecruitIds = directRecruits.map((r: any) => r.id).filter(Boolean);
+      let directRecruitSlotIds = new Set<string>();
+      if (directRecruitIds.length > 0) {
+        try {
+          const { data: directSlots } = await supabase
+            .from("slot_subscriptions")
+            .select("user_id, slots")
+            .in("user_id", directRecruitIds);
+          (directSlots || []).forEach((s: any) => {
+            if (Number(s.slots) > 0) directRecruitSlotIds.add(s.user_id);
+          });
+        } catch {
+          // ignore fallback
+        }
+      }
+
+      // Strict 3-Criteria Direct Referral Validator (matching matrix qualification & GreenCardFirst5Card):
+      // 1. Green Card (member_id != null or is_green_card_holder or has_greencard)
+      // 2. Starter Pack / Mushroom Power (has_purchased_starter_pack or is_wealth_creation_active)
+      // 3. At least 1 Farm Slot (slots in slot_subscriptions > 0)
+      // Note: Any enrollee with placement_status === "LOCKED" has already satisfied all 3 criteria.
+      const directCount = directRecruits.filter((r: any) => {
+        if (r.placement_status === "LOCKED") return true;
+        const hasCard = Boolean(r.member_id || r.is_green_card_holder || r.has_greencard);
+        const hasPack = Boolean(r.has_purchased_starter_pack || r.is_wealth_creation_active);
+        const hasSlot = directRecruitSlotIds.has(r.id);
+        return hasCard && hasPack && hasSlot;
+      }).length;
       setDirectReferralsCount(directCount);
 
       // Compute 30-Day PQV

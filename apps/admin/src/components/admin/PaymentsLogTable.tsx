@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { exportToExcel } from "@shared/excelExport";
 import { RemediatePaymentDialog } from "@/components/admin/RemediatePaymentDialog";
+import { VerifyFlwPaymentModal } from "@/components/admin/VerifyFlwPaymentModal";
 import { StatusBanner } from "@/components/admin/StatusBanner";
 import {
   Pagination,
@@ -94,6 +95,7 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
   const [page, setPage] = useState(1);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [remediatingTx, setRemediatingTx] = useState<PaymentLog | null>(null);
+  const [verifyRef, setVerifyRef] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -306,6 +308,16 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
               type="button"
               variant="outline"
               size="sm"
+              onClick={() => setVerifyRef("")}
+              className="h-9 gap-1.5 whitespace-nowrap text-xs border-emerald-600/30 text-emerald-600 hover:bg-emerald-500/10 font-semibold"
+            >
+              <CreditCard className="h-3.5 w-3.5 text-emerald-600" /> Verify FLW
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
               onClick={handleExportExcel}
               className="h-9 gap-1.5 whitespace-nowrap text-xs border-emerald-600/30 text-emerald-600 hover:bg-emerald-500/10 font-semibold"
             >
@@ -457,18 +469,32 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
 
                   {/* Actions */}
                   <TableCell className="py-2.5 px-3 text-right">
-                    {(p.status === "paid" || p.status === "success" || p.status === "successful") && (
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setRemediatingTx(p)}
-                        className="h-6 px-2 text-[10px] gap-1 border-primary/30 text-primary hover:bg-primary/10"
-                        title="Remediate payment purpose (e.g. Convert Slot to Starter Pack)"
-                      >
-                        <ArrowLeftRight className="w-2.5 h-2.5" /> Remediate
-                      </Button>
-                    )}
+                    <div className="flex items-center justify-end gap-1.5">
+                      {!isOffline && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setVerifyRef(p.reference || p.id)}
+                          className="h-6 px-2 text-[10px] gap-1 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
+                          title="Verify this payment on Flutterwave"
+                        >
+                          <CreditCard className="w-2.5 h-2.5" /> Verify FLW
+                        </Button>
+                      )}
+                      {(p.status === "paid" || p.status === "success" || p.status === "successful") && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setRemediatingTx(p)}
+                          className="h-6 px-2 text-[10px] gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                          title="Remediate payment purpose (e.g. Convert Slot to Starter Pack)"
+                        >
+                          <ArrowLeftRight className="w-2.5 h-2.5" /> Remediate
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -541,6 +567,13 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
           setTimeout(() => setErrorMessage(""), 5000);
         }}
         onRefresh={() => onRefresh?.()}
+      />
+
+      {/* Verify Flutterwave Payment Modal */}
+      <VerifyFlwPaymentModal
+        open={verifyRef !== null}
+        onOpenChange={(open) => !open && setVerifyRef(null)}
+        initialReference={verifyRef || ""}
       />
     </div>
   );

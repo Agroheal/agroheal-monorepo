@@ -18,6 +18,7 @@ import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import { StatCard } from "@/components/admin/StatCard";
 import { SlotCreditorForm } from "@/components/admin/SlotCreditorForm";
 import { OfflineRegistrationForm } from "@/components/admin/OfflineRegistrationForm";
+import { VerifyFlwPaymentModal } from "@/components/admin/VerifyFlwPaymentModal";
 import { StatusBanner } from "@/components/admin/StatusBanner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -36,6 +37,7 @@ export default function DashboardPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [showCreditorModal, setShowCreditorModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showVerifyFlwModal, setShowVerifyFlwModal] = useState(false);
   const [showInlineForms, setShowInlineForms] = useState(false);
 
   const [serverStats, setServerStats] = useState<{
@@ -103,6 +105,16 @@ export default function DashboardPage() {
           >
             <UserPlus className="w-3.5 h-3.5" />
             Register Member
+          </Button>
+
+          <Button
+            size="sm"
+            onClick={() => setShowVerifyFlwModal(true)}
+            variant="outline"
+            className="text-xs gap-1.5 h-8 border-emerald-500/40 text-emerald-500 hover:bg-emerald-500/10"
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            Verify FLW Payment
           </Button>
 
           <Button
@@ -332,6 +344,12 @@ export default function DashboardPage() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Modal: Verify Flutterwave Payment */}
+      <VerifyFlwPaymentModal
+        open={showVerifyFlwModal}
+        onOpenChange={setShowVerifyFlwModal}
+      />
     </div>
   );
 }

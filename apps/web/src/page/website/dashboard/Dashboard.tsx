@@ -109,6 +109,7 @@ const Dashboard = () => {
   const [milestone3ActiveDate, setMilestone3ActiveDate] = useState<string | null>(null);
   const [enrichedDirects, setEnrichedDirects] = useState<DirectReferralInfo[]>([]);
   const [matrixLevels, setMatrixLevels] = useState<MatrixLevelsData | undefined>(undefined);
+  const [qualifiedDirectsCount, setQualifiedDirectsCount] = useState<number>(0);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -146,7 +147,7 @@ const Dashboard = () => {
           .maybeSingle(),
         supabase
           .from("profiles")
-          .select("id, full_name, phone, member_id, total_referrals, created_at")
+          .select("id, full_name, phone, member_id, total_referrals, created_at, is_green_card_holder, has_greencard, has_purchased_starter_pack, is_wealth_creation_active, placement_status")
           .or(`referred_by.eq.${user.id},sponsor_id.eq.${user.id}`),
         user.email
           ? supabase
@@ -209,6 +210,39 @@ const Dashboard = () => {
       );
       profileData.total_referrals = computedTotalReferrals;
       profileData.referrals = directReferralsList;
+
+      // Batch query slot subscriptions for direct referrals to verify 3 criteria
+      const directRecruitIds = directReferralsList.map((d: any) => d.id).filter(Boolean);
+      let directRecruitSlotIds = new Set<string>();
+      if (directRecruitIds.length > 0) {
+        try {
+          const { data: directSlots } = await supabase
+            .from("slot_subscriptions")
+            .select("user_id, slots")
+            .in("user_id", directRecruitIds);
+          (directSlots || []).forEach((s: any) => {
+            if (Number(s.slots) > 0) directRecruitSlotIds.add(s.user_id);
+          });
+        } catch {
+          // ignore fallback
+        }
+      }
+
+      // Strict 3-Criteria Direct Referral Validator (matching matrix qualification & GreenCardFirst5Card):
+      // 1. Green Card (member_id != null or is_green_card_holder or has_greencard)
+      // 2. Starter Pack / Mushroom Power (has_purchased_starter_pack or is_wealth_creation_active)
+      // 3. At least 1 Farm Slot (slots in slot_subscriptions > 0)
+      // Note: Any enrollee with placement_status === 'LOCKED' has already satisfied all 3 criteria.
+      const isQualifiedDirect = (r: any) => {
+        if (r.placement_status === "LOCKED") return true;
+        const hasCard = Boolean(r.member_id || r.is_green_card_holder || r.has_greencard);
+        const hasPack = Boolean(r.has_purchased_starter_pack || r.is_wealth_creation_active);
+        const hasSlot = directRecruitSlotIds.has(r.id);
+        return hasCard && hasPack && hasSlot;
+      };
+
+      const qualifiedDirects = directReferralsList.filter(isQualifiedDirect).length;
+      setQualifiedDirectsCount(qualifiedDirects);
 
       // Build enriched direct referrals with Tier 2 & Tier 3 downline enrollees
       let enrichedList: DirectReferralInfo[] = [];
@@ -804,7 +838,7 @@ const Dashboard = () => {
         ) : (
           hasGreenCard && (
             <GreenCardFirst5Card
-              directReferralsCount={profile?.total_referrals || 0}
+              directReferralsCount={qualifiedDirectsCount}
               referralCode={profile?.referral_code}
               hasGreenCard={hasGreenCard}
               referralsList={enrichedDirects}
@@ -819,7 +853,7 @@ const Dashboard = () => {
           hasGreenCard={hasGreenCard}
           memberId={profile?.member_id as string}
           totalSlots={totalSlotsPurchased}
-          directReferralsCount={profile?.total_referrals || 0}
+          directReferralsCount={qualifiedDirectsCount}
           referralCode={profile?.referral_code}
           walletBalance={Number(profile?.wallet_balance || profile?.referral_earnings || 0)}
           createdAt={profile?.created_at}
