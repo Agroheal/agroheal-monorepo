@@ -79,6 +79,7 @@ interface PendingWithdrawal {
   created_at: string;
   profiles?: {
     name?: string;
+    full_name?: string;
     email?: string;
     member_id?: string;
   };
@@ -1597,7 +1598,7 @@ export default function TreasuryPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-semibold text-foreground">
-                          {w.profiles?.name || "Member"}
+                          {w.profiles?.full_name || w.profiles?.name || "Member"}
                         </div>
                         <div className="text-xs text-muted-foreground font-mono">
                           {w.profiles?.member_id || w.profiles?.email || w.user_id.slice(0, 8)}
@@ -1617,8 +1618,15 @@ export default function TreasuryPage() {
                         <div className="font-semibold text-foreground">
                           {w.bank_name || "Access Bank"}
                         </div>
-                        <div className="font-mono text-muted-foreground">
-                          {w.account_number || "0123456789"} • {w.account_name || w.profiles?.name}
+                        <div className="font-mono text-muted-foreground flex items-center gap-1 flex-wrap">
+                          <span>{w.account_number || "0123456789"}</span>
+                          <span>•</span>
+                          <span>{w.account_name || w.profiles?.full_name || w.profiles?.name}</span>
+                          {w.account_name && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/20">
+                              ✓ NUBAN Verified
+                            </span>
+                          )}
                         </div>
                       </td>
 

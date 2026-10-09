@@ -641,6 +641,7 @@ export const ProfileComponent: React.FC = () => {
             bank_name: profile.bank_name || "",
             bank_account_number: profile.bank_account_number || "",
             bank_account_name: profile.bank_account_name || "",
+            bank_code: profile.bank_code || "",
           }}
           defaultOpenBankSection={openBankSectionDirectly}
           canDismiss={

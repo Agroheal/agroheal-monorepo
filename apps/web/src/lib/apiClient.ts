@@ -283,10 +283,32 @@ export const apiClient = {
    * POST /api/v1/withdrawals/request
    */
   withdrawals: {
+    getBanks: (options?: ApiRequestOptions) =>
+      apiRequest<Array<{ name: string; code: string }>>("withdrawals/banks", options),
+    resolveBank: (
+      payload: { accountNumber: string; bankCode: string },
+      options?: ApiRequestOptions
+    ) =>
+      apiRequest<{
+        accountNumber: string;
+        accountName: string;
+        bankCode: string;
+        profileName: string;
+        nameMatches: boolean;
+        matchedNames: string[];
+        matchCount: number;
+        requiredMatches: number;
+        reason?: string;
+      }>("withdrawals/resolve-bank", {
+        ...options,
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
     request: (payload: {
       walletType: "DIRECT_REFERRAL" | "MATRIX_SPILLOVER";
       amount: number;
       bankName: string;
+      bankCode?: string;
       accountNumber: string;
       accountName: string;
     }) =>

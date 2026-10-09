@@ -1975,6 +1975,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           savedBankName={userProfile?.bank_name}
           savedAccountNumber={userProfile?.bank_account_number}
           savedAccountName={userProfile?.bank_account_name}
+          savedBankCode={userProfile?.bank_code}
           userEmail={userProfile?.email}
           isLegacy={Boolean(userProfile?.is_legacy)}
           hasPurchasedStarterPack={Boolean(userProfile?.has_purchased_starter_pack)}

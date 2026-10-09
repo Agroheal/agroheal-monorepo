@@ -36,6 +36,7 @@ interface WithdrawalModalProps {
   savedBankName?: string;
   savedAccountNumber?: string;
   savedAccountName?: string;
+  savedBankCode?: string;
   userEmail?: string;
   isLegacy?: boolean;
   hasPurchasedStarterPack?: boolean;
@@ -59,6 +60,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
   savedBankName,
   savedAccountNumber,
   savedAccountName,
+  savedBankCode,
   userEmail,
   isLegacy = false,
   hasPurchasedStarterPack = false,
@@ -248,6 +250,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
           bank_name: savedBankName,
           account_number: savedAccountNumber,
           account_name: savedAccountName || "",
+          bank_code: savedBankCode || "",
           withdrawal_type: walletType,
           created_at: new Date().toISOString(),
         },

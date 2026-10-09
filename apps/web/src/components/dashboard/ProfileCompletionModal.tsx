@@ -18,6 +18,7 @@ import { cleanName, normalizePhoneNumber } from "@shared/dataSanitizers";
 import { NIGERIA_STATES, getLgasForState } from "@shared/nigeriaLocations";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUserStore } from "@/store/useUserStore";
+import { apiClient } from "@/lib/apiClient";
 
 export interface ProfileCompletionModalProps {
   userId: string;
@@ -34,6 +35,7 @@ export interface ProfileCompletionModalProps {
     bank_name?: string;
     bank_account_number?: string;
     bank_account_name?: string;
+    bank_code?: string;
   } | null;
   defaultOpenBankSection?: boolean;
   canDismiss?: boolean;
@@ -77,6 +79,7 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
     defaultOpenBankSection || Boolean(initialBank?.bank_name || initialBank?.bank_account_number)
   );
   const [bankName, setBankName] = useState(initialBank?.bank_name || "");
+  const [bankCode, setBankCode] = useState(initialBank?.bank_code || "");
   const [accountNumber, setAccountNumber] = useState(
     initialBank?.bank_account_number || "",
   );
@@ -84,7 +87,44 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
     initialBank?.bank_account_name || "",
   );
 
+  const [banksList, setBanksList] = useState<Array<{ name: string; code: string }>>([]);
+  const [loadingBanks, setLoadingBanks] = useState(false);
+  const [isResolvingBank, setIsResolvingBank] = useState(false);
+  const [bankVerification, setBankVerification] = useState<{
+    isMatch: boolean;
+    accountName: string;
+    reason?: string;
+  } | null>(null);
+
   const [loading, setLoading] = useState(false);
+
+  // Load banks list
+  useEffect(() => {
+    let mounted = true;
+    const loadBanks = async () => {
+      setLoadingBanks(true);
+      try {
+        const list = await apiClient.withdrawals.getBanks();
+        if (mounted && Array.isArray(list) && list.length > 0) {
+          setBanksList(list);
+          if (!initialBank?.bank_code && initialBank?.bank_name) {
+            const matched = list.find(
+              (b) => b.name.toLowerCase() === initialBank.bank_name?.toLowerCase()
+            );
+            if (matched) setBankCode(matched.code);
+          }
+        }
+      } catch (err) {
+        console.warn("[ProfileCompletionModal] Banks list fetch fallback:", err);
+      } finally {
+        if (mounted) setLoadingBanks(false);
+      }
+    };
+    loadBanks();
+    return () => {
+      mounted = false;
+    };
+  }, [initialBank]);
 
   useEffect(() => {
     if (initialPhone) setPhone(initialPhone);
@@ -97,10 +137,57 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
     }
     if (initialBank) {
       setBankName(initialBank.bank_name || "");
+      setBankCode(initialBank.bank_code || "");
       setAccountNumber(initialBank.bank_account_number || "");
       setAccountName(initialBank.bank_account_name || "");
     }
   }, [initialPhone, initialState, initialLga, initialKin, initialBank]);
+
+  const resolveBankAccountNumber = async (accNum: string, code: string) => {
+    if (accNum.length !== 10 || !code) return;
+    setIsResolvingBank(true);
+    try {
+      const res = await apiClient.withdrawals.resolveBank({
+        accountNumber: accNum,
+        bankCode: code,
+      });
+      if (res?.accountName) {
+        setAccountName(res.accountName);
+        setBankVerification({
+          isMatch: res.nameMatches,
+          accountName: res.accountName,
+          reason: res.reason,
+        });
+      }
+    } catch (err: any) {
+      setBankVerification({
+        isMatch: false,
+        accountName: "",
+        reason: err.message || "Unable to resolve account number with bank",
+      });
+    } finally {
+      setIsResolvingBank(false);
+    }
+  };
+
+  const handleBankSelect = (selectedCode: string) => {
+    const found = banksList.find((b) => b.code === selectedCode);
+    setBankCode(selectedCode);
+    setBankName(found?.name || selectedCode);
+    setBankVerification(null);
+    if (accountNumber.length === 10 && selectedCode) {
+      resolveBankAccountNumber(accountNumber, selectedCode);
+    }
+  };
+
+  const handleAccountChange = (val: string) => {
+    const clean = val.replace(/[^0-9]/g, "").slice(0, 10);
+    setAccountNumber(clean);
+    setBankVerification(null);
+    if (clean.length === 10 && bankCode) {
+      resolveBankAccountNumber(clean, bankCode);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,8 +242,27 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
         lga: lga.trim(),
       };
 
-      if (bankName.trim() && accountNumber.trim()) {
+      if (bankName.trim() || accountNumber.trim()) {
+        if (!bankName.trim() || !bankCode) {
+          toast.error("Please select your bank from the list");
+          setLoading(false);
+          return;
+        }
+        if (accountNumber.trim().length !== 10) {
+          toast.error("Please enter a valid 10-digit NUBAN account number");
+          setLoading(false);
+          return;
+        }
+        if (bankVerification && !bankVerification.isMatch) {
+          toast.error(
+            bankVerification.reason ||
+              "Bank account name does not match your profile name. At least two names must match in any order."
+          );
+          setLoading(false);
+          return;
+        }
         profileUpdates.bank_name = bankName.trim();
+        profileUpdates.bank_code = bankCode.trim();
         profileUpdates.bank_account_number = accountNumber.trim();
         if (accountName.trim()) {
           profileUpdates.bank_account_name = cleanName(accountName);
@@ -451,42 +557,92 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <span className="text-[11px] font-medium text-gray-600 block mb-1">
-                        Bank Name
+                        Select Bank
                       </span>
-                      <input
-                        type="text"
-                        value={bankName}
-                        onChange={(e) => setBankName(e.target.value)}
-                        placeholder="e.g. Zenith Bank, GTBank"
-                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all placeholder:text-gray-400"
-                      />
+                      <select
+                        value={bankCode}
+                        onChange={(e) => handleBankSelect(e.target.value)}
+                        className="w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all bg-white"
+                      >
+                        <option value="">
+                          {loadingBanks ? "Loading banks..." : "-- Choose your bank --"}
+                        </option>
+                        {banksList.map((b) => (
+                          <option key={b.code} value={b.code}>
+                            {b.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
+
                     <div>
                       <span className="text-[11px] font-medium text-gray-600 block mb-1">
-                        10-Digit Account Number
+                        10-Digit NUBAN Account Number
                       </span>
                       <input
                         type="text"
                         value={accountNumber}
-                        onChange={(e) =>
-                          setAccountNumber(e.target.value.replace(/[^0-9]/g, ""))
-                        }
+                        onChange={(e) => handleAccountChange(e.target.value)}
                         placeholder="e.g. 0123456789"
                         maxLength={10}
-                        className="w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all placeholder:text-gray-400"
+                        className="w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all placeholder:text-gray-400 font-mono"
                       />
                     </div>
                   </div>
+
+                  {/* Live Bank Resolution & Name Match Indicator */}
+                  {isResolvingBank && (
+                    <div className="flex items-center gap-2 p-2 rounded-xl bg-emerald-50/60 border border-emerald-200 text-xs text-emerald-800 font-medium">
+                      <LoaderCircle className="w-3.5 h-3.5 animate-spin text-emerald-700" />
+                      <span>Verifying account details with bank...</span>
+                    </div>
+                  )}
+
+                  {bankVerification && !isResolvingBank && (
+                    <>
+                      {bankVerification.isMatch ? (
+                        <div className="rounded-xl border border-emerald-300 bg-emerald-50/80 p-3 text-xs flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0" />
+                            <div>
+                              <span className="font-black text-emerald-950 block text-xs sm:text-sm">
+                                {bankVerification.accountName}
+                              </span>
+                              <span className="text-[10px] text-emerald-800 font-medium">
+                                ✓ Verified Account Name (Matches your registered profile)
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="rounded-xl border border-rose-300 bg-rose-50/90 p-3 text-xs flex items-start gap-2.5">
+                          <AlertCircle className="w-4 h-4 text-rose-700 shrink-0 mt-0.5" />
+                          <div>
+                            {bankVerification.accountName && (
+                              <span className="font-bold text-rose-950 block">
+                                Bank Account Name: {bankVerification.accountName}
+                              </span>
+                            )}
+                            <span className="text-[11px] text-rose-800 leading-tight block mt-0.5">
+                              {bankVerification.reason ||
+                                "Name mismatch: At least two names must match your registered profile in any order."}
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
                   <div>
                     <span className="text-[11px] font-medium text-gray-600 block mb-1">
-                      Account Name
+                      Registered Account Name
                     </span>
                     <input
                       type="text"
                       value={accountName}
                       onChange={(e) => setAccountName(e.target.value)}
-                      placeholder="Account holder name"
-                      className="w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all placeholder:text-gray-400"
+                      placeholder="Auto-populated upon bank verification"
+                      className="w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all placeholder:text-gray-400 bg-gray-50/70"
                     />
                   </div>
                 </motion.div>
