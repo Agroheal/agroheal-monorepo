@@ -107,6 +107,23 @@ export const adminApiClient = {
         timestamp: string;
       }>("admin/stats"),
     getTreasuryAudit: () => apiRequest<any>("admin/treasury-audit"),
+    getWalletHistory: (walletKey: string, params?: { startDate?: string; endDate?: string; search?: string }) => {
+      const query = new URLSearchParams();
+      if (params?.startDate) query.append("startDate", params.startDate);
+      if (params?.endDate) query.append("endDate", params.endDate);
+      if (params?.search) query.append("search", params.search);
+      const qs = query.toString() ? `?${query.toString()}` : "";
+      return apiRequest<any>(`admin/treasury/wallet-history/${walletKey}${qs}`);
+    },
+    getGroupFarms: () => apiRequest<any[]>("admin/treasury/group-farms"),
+    getGroupFarmHistory: (farmId: string, params?: { startDate?: string; endDate?: string; search?: string }) => {
+      const query = new URLSearchParams();
+      if (params?.startDate) query.append("startDate", params.startDate);
+      if (params?.endDate) query.append("endDate", params.endDate);
+      if (params?.search) query.append("search", params.search);
+      const qs = query.toString() ? `?${query.toString()}` : "";
+      return apiRequest<any>(`admin/treasury/group-farms/${farmId}/history${qs}`);
+    },
     triggerCorporateSweep: (date?: string) =>
       apiRequest<any>("admin/treasury/trigger-sweep", {
         method: "POST",

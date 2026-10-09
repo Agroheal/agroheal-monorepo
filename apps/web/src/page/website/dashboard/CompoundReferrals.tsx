@@ -2462,7 +2462,7 @@ const CompoundReferrals: React.FC = () => {
         )}
 
         {/* ── DOWNLINE MEMBERS DIRECTORY ── */}
-        <div id="downline-directory" className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-200 space-y-6">
+        <div id="downline-directory" className="bg-white rounded-3xl p-4 sm:p-6 lg:p-7 shadow-sm border border-gray-200 space-y-5">
           {/* Directory Title Row */}
           <div>
             <div className="flex items-center gap-2">
@@ -2587,7 +2587,7 @@ const CompoundReferrals: React.FC = () => {
                     <tr>
                       <th className="py-2 px-1 w-6 text-center">#</th>
                       <th
-                        className="py-2 px-1.5 cursor-pointer hover:text-emerald-800 transition-colors"
+                        className="py-2 px-1 cursor-pointer hover:text-emerald-800 transition-colors w-[105px] sm:w-[120px]"
                         onClick={() => setSortBy((prev) => (prev === "NAME_ASC" ? "DATE_DESC" : "NAME_ASC"))}
                       >
                         <span className="inline-flex items-center gap-0.5">
@@ -2595,9 +2595,9 @@ const CompoundReferrals: React.FC = () => {
                           <ArrowUpDown className="w-2.5 h-2.5 text-gray-400" />
                         </span>
                       </th>
-                      <th className="py-2 px-1.5">Member ID</th>
+                      <th className="py-2 px-1 w-[75px]">Member ID</th>
                       <th
-                        className="py-2 px-1.5 cursor-pointer hover:text-emerald-800 transition-colors"
+                        className="py-2 px-1 cursor-pointer hover:text-emerald-800 transition-colors w-[75px]"
                         onClick={() => setSortBy((prev) => (prev === "GC_DATE_DESC" ? "GC_DATE_ASC" : "GC_DATE_DESC"))}
                       >
                         <span className="inline-flex items-center gap-0.5">
@@ -2605,10 +2605,10 @@ const CompoundReferrals: React.FC = () => {
                           <ArrowUpDown className="w-2.5 h-2.5 text-gray-400" />
                         </span>
                       </th>
-                      <th className="py-2 px-1.5">Contact</th>
-                      <th className="py-2 px-1.5 text-center">Source</th>
+                      <th className="py-2 px-1 w-[115px]">Contact</th>
+                      <th className="py-2 px-1 text-center w-[50px]">Source</th>
                       <th
-                        className="py-2 px-1.5 text-center cursor-pointer hover:text-emerald-800 transition-colors"
+                        className="py-2 px-1 text-center cursor-pointer hover:text-emerald-800 transition-colors w-[45px]"
                         onClick={() => setSortBy((prev) => (prev === "SLOTS_DESC" ? "SLOTS_ASC" : "SLOTS_DESC"))}
                       >
                         <span className="inline-flex items-center gap-0.5">
@@ -2617,7 +2617,7 @@ const CompoundReferrals: React.FC = () => {
                         </span>
                       </th>
                       <th
-                        className="py-2 px-1.5 text-center cursor-pointer hover:text-emerald-800 transition-colors"
+                        className="py-2 px-1 text-center cursor-pointer hover:text-emerald-800 transition-colors w-[55px]"
                         onClick={() => setSortBy((prev) => (prev === "LEG_ASC" ? "SLOTS_DESC" : "LEG_ASC"))}
                       >
                         <span className="inline-flex items-center gap-0.5">
@@ -2630,9 +2630,9 @@ const CompoundReferrals: React.FC = () => {
                   <tbody className="divide-y divide-gray-100">
                     {visibleDirectory.map((m, idx) => (
                       <tr key={m.id} className="hover:bg-emerald-50/30 transition-colors">
-                        <td className="py-1.5 px-1 text-center text-gray-400 font-mono text-[10px]">{idx + 1}</td>
-                        <td className="py-1.5 px-1.5 max-w-[110px] sm:max-w-[125px]">
-                          <div className="font-bold text-gray-900 truncate text-[11px]" title={m.fullName}>
+                        <td className="py-1.5 px-1 text-center text-gray-400 font-mono text-[9.5px]">{idx + 1}</td>
+                        <td className="py-1.5 px-1 max-w-[105px] sm:max-w-[120px]">
+                          <div className="font-bold text-gray-900 truncate text-[10.5px]" title={m.fullName}>
                             {m.fullName}
                           </div>
                           <div className="flex items-center gap-1 mt-0.5">
@@ -2664,13 +2664,13 @@ const CompoundReferrals: React.FC = () => {
                             </button>
                           </div>
                         </td>
-                        <td className="py-1.5 px-1.5 font-mono font-semibold text-emerald-800 whitespace-nowrap text-[10px]">
+                        <td className="py-1.5 px-1 font-mono font-semibold text-emerald-800 whitespace-nowrap text-[9.5px]">
                           {m.memberId}
                         </td>
-                        <td className="py-1.5 px-1.5 whitespace-nowrap">
+                        <td className="py-1.5 px-1 whitespace-nowrap">
                           {m.greenCardActivatedAt ? (
                             <div className="flex flex-col">
-                              <span className="font-semibold text-gray-800 text-[9.5px]">
+                              <span className="font-semibold text-gray-800 text-[9px]">
                                 {new Date(m.greenCardActivatedAt).toLocaleDateString("en-GB", {
                                   day: "2-digit",
                                   month: "short",
@@ -2685,12 +2685,12 @@ const CompoundReferrals: React.FC = () => {
                               </span>
                             </div>
                           ) : (
-                            <span className="text-gray-400 text-[9.5px] italic">Pending</span>
+                            <span className="text-gray-400 text-[9px] italic">Pending</span>
                           )}
                         </td>
-                        <td className="py-1.5 px-1.5 text-gray-600">
+                        <td className="py-1.5 px-1 text-gray-600">
                           <div className="flex items-center gap-1 group">
-                            <span className="truncate max-w-[85px] sm:max-w-[100px] text-[10px]" title={m.email}>{m.email}</span>
+                            <span className="truncate max-w-[80px] sm:max-w-[95px] text-[9.5px]" title={m.email}>{m.email}</span>
                             <button
                               type="button"
                               onClick={() => {
@@ -2704,8 +2704,8 @@ const CompoundReferrals: React.FC = () => {
                             </button>
                           </div>
                           {m.phone && (
-                            <div className="flex items-center gap-1 group text-[9px] text-gray-500 mt-0.5">
-                              <span className="truncate max-w-[75px] sm:max-w-[90px]">{m.phone}</span>
+                            <div className="flex items-center gap-1 group text-[8.5px] text-gray-500 mt-0.5">
+                              <span className="truncate max-w-[70px] sm:max-w-[85px]">{m.phone}</span>
                               <button
                                 type="button"
                                 onClick={() => {
@@ -2733,39 +2733,39 @@ const CompoundReferrals: React.FC = () => {
                             </div>
                           )}
                         </td>
-                        <td className="py-1.5 px-1.5 whitespace-nowrap text-center">
+                        <td className="py-1.5 px-1 whitespace-nowrap text-center">
                           {m.isSpillover ? (
-                            <span className="bg-blue-50 text-blue-800 px-1 py-0.5 rounded-md border border-blue-200/60 font-semibold inline-flex items-center gap-0.5 text-[9px]">
+                            <span className="bg-blue-50 text-blue-800 px-1 py-0.5 rounded-md border border-blue-200/60 font-semibold inline-flex items-center gap-0.5 text-[8.5px]">
                               🌊 Spill
                             </span>
                           ) : (
-                            <span className="bg-amber-50 text-amber-900 px-1 py-0.5 rounded-md border border-amber-300 font-semibold inline-flex items-center gap-0.5 text-[9px]">
+                            <span className="bg-amber-50 text-amber-900 px-1 py-0.5 rounded-md border border-amber-300 font-semibold inline-flex items-center gap-0.5 text-[8.5px]">
                               ⭐ Direct
                             </span>
                           )}
                         </td>
-                        <td className="py-1.5 px-1.5 font-bold text-gray-800 whitespace-nowrap text-center">
+                        <td className="py-1.5 px-1 font-bold text-gray-800 whitespace-nowrap text-center">
                           {m.slotsHeld > 0 ? (
-                            <span className="bg-emerald-50 text-emerald-700 px-1 py-0.5 rounded-md border border-emerald-200/60 font-semibold inline-flex items-center gap-0.5 text-[9px]">
+                            <span className="bg-emerald-50 text-emerald-700 px-1 py-0.5 rounded-md border border-emerald-200/60 font-semibold inline-flex items-center gap-0.5 text-[8.5px]">
                               🟢 {m.slotsHeld}
                             </span>
                           ) : (
-                            <span className="bg-amber-50 text-amber-700 px-1 py-0.5 rounded-md border border-amber-200/60 font-semibold inline-flex items-center gap-0.5 text-[9px]">
+                            <span className="bg-amber-50 text-amber-700 px-1 py-0.5 rounded-md border border-amber-200/60 font-semibold inline-flex items-center gap-0.5 text-[8.5px]">
                               🟡 0
                             </span>
                           )}
                         </td>
-                        <td className="py-1.5 px-1.5 whitespace-nowrap text-center">
+                        <td className="py-1.5 px-1 whitespace-nowrap text-center">
                           {m.position > 0 ? (
-                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-1 py-0.5 rounded-md text-[9px] border border-emerald-100">
+                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-1 py-0.5 rounded-md text-[8.5px] border border-emerald-100">
                               Leg #{m.position}
                             </span>
                           ) : m.placementParentId || m.placementStatus === "PLACED" ? (
-                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-1 py-0.5 rounded-md text-[9px] border border-emerald-100">
+                            <span className="font-semibold text-emerald-800 bg-emerald-50 px-1 py-0.5 rounded-md text-[8.5px] border border-emerald-100">
                               Placed
                             </span>
                           ) : (
-                            <span className="font-medium text-amber-800 bg-amber-50 px-1 py-0.5 rounded-md text-[9px] border border-amber-200">
+                            <span className="font-medium text-amber-800 bg-amber-50 px-1 py-0.5 rounded-md text-[8.5px] border border-amber-200">
                               Holding
                             </span>
                           )}
