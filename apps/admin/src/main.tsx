@@ -27,6 +27,8 @@ import ContentManagementPage from "@/pages/ContentManagementPage";
 import AuditTrailPage from "@/pages/AuditTrailPage";
 import FulfillmentHubPage from "@/pages/FulfillmentHubPage";
 
+import { AdminTierProvider } from "@/context/AdminTierContext";
+
 const router = createBrowserRouter([
   { path: "/signin", element: <LoginPage /> },
   {
@@ -34,7 +36,11 @@ const router = createBrowserRouter([
     errorElement: <AdminError />,
     children: [
       {
-        element: <AdminLayout />,
+        element: (
+          <AdminTierProvider>
+            <AdminLayout />
+          </AdminTierProvider>
+        ),
         children: [
           { index: true, element: <DashboardPage /> },
           { path: "members", element: <MembersPage /> },

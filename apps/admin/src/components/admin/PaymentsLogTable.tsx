@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useAdminTierFilter } from "@/context/AdminTierContext";
 import { Search, FileSpreadsheet, CreditCard, Landmark, Check, Copy, ArrowLeftRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -88,8 +89,9 @@ function statusBadge(status: string) {
 }
 
 export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRefresh?: () => void }) {
+  const { tier } = useAdminTierFilter();
+  const tierFilter = tier;
   const [search, setSearch] = useState("");
-  const [tierFilter, setTierFilter] = useState<PaymentTierFilter>("all");
   const [methodFilter, setMethodFilter] = useState<PaymentMethodFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<TransactionCategoryFilter>("all");
   const [page, setPage] = useState(1);
@@ -225,29 +227,6 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
 
           {/* Multi-Tier Filters & Export */}
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
-            {/* Filter 0: Data Tier */}
-            <Select
-              value={tierFilter}
-              onValueChange={(v) => {
-                setTierFilter(v as PaymentTierFilter);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="w-[155px] h-9 text-xs">
-                <SelectValue placeholder="All Ecosystems" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all" className="text-xs">
-                  🌐 All Ecosystems
-                </SelectItem>
-                <SelectItem value="live" className="text-xs">
-                  🟢 Live Gateway
-                </SelectItem>
-                <SelectItem value="legacy" className="text-xs">
-                  🟡 Legacy / Migrated
-                </SelectItem>
-              </SelectContent>
-            </Select>
 
             {/* Filter 1: Channel */}
             <Select

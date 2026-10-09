@@ -14,16 +14,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAdminMembers } from "@/hooks/useAdminMembers";
+import { useAdminTierFilter } from "@/context/AdminTierContext";
 import { exportToExcel } from "@shared/excelExport";
 
 export type RankingMetric = "referrals" | "slots" | "leadership_pool";
 
 export default function LeaderboardPage() {
   const { members, loading } = useAdminMembers();
+  const { tier } = useAdminTierFilter();
+  const tierFilter = tier;
   const [metric, setMetric] = useState<RankingMetric>("referrals");
-  const [tierFilter, setTierFilter] = useState<"all" | "live" | "legacy">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   // Compute direct referral counts for all members
@@ -254,27 +255,14 @@ export default function LeaderboardPage() {
           </Button>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Select value={tierFilter} onValueChange={(v) => setTierFilter(v as "all" | "live" | "legacy")}>
-            <SelectTrigger className="w-[145px] h-8 text-xs bg-background">
-              <SelectValue placeholder="All Ecosystems" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">🌐 All Ecosystems</SelectItem>
-              <SelectItem value="live">🟢 Live Platform</SelectItem>
-              <SelectItem value="legacy">🟡 Legacy Base</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <div className="relative flex-1 sm:w-64">
-            <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search leader..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 h-8 text-xs bg-background"
-            />
-          </div>
+        <div className="relative flex-1 sm:w-64">
+          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search leader..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-8 h-8 text-xs bg-background"
+          />
         </div>
       </div>
 

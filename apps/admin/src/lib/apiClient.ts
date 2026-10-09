@@ -140,6 +140,26 @@ export const adminApiClient = {
         method: "POST",
         body: JSON.stringify({ reason }),
       }),
+    verifyFlwPayment: (reference: string) =>
+      apiRequest<{
+        gateway: {
+          verified: boolean;
+          status: "paid" | "failed" | "pending";
+          amount?: number;
+          gatewayRef?: string;
+          provider: "flutterwave";
+          customerEmail?: string;
+          raw?: any;
+        };
+        localMatch?: {
+          transaction?: any;
+          order?: any;
+          slotSubscription?: any;
+        };
+      }>("admin/payments/verify-flw", {
+        method: "POST",
+        body: JSON.stringify({ reference }),
+      }),
   },
   fulfillment: {
     getManifest: (tier?: string) =>

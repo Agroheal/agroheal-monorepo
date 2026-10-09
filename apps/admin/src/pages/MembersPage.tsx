@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useAdminMembers } from "@/hooks/useAdminMembers";
+import { useAdminTierFilter } from "@/context/AdminTierContext";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import {
   filterMemberPredicate,
@@ -35,13 +36,14 @@ import { adminApiClient } from "@/lib/apiClient";
 export default function MembersPage() {
   const { isReadOnly, isSuperDeveloper } = useAdminAuth();
   const { members, loading, refetch } = useAdminMembers();
+  const { tier } = useAdminTierFilter();
+  const tierFilter: DataTierFilter = tier;
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   const [impersonatingMember, setImpersonatingMember] = useState<Member | null>(null);
 
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
-  const [tierFilter, setTierFilter] = useState<DataTierFilter>("all");
   const [programFilter, setProgramFilter] = useState("all");
   const [greenCardFilter, setGreenCardFilter] = useState<GreenCardFilter>("all");
   const [stateFilter, setStateFilter] = useState("all");
@@ -75,7 +77,6 @@ export default function MembersPage() {
 
   const hasActiveFilters =
     Boolean(searchQuery.trim()) ||
-    tierFilter !== "all" ||
     programFilter !== "all" ||
     greenCardFilter !== "all" ||
     stateFilter !== "all" ||
@@ -85,7 +86,6 @@ export default function MembersPage() {
 
   const handleResetFilters = () => {
     setSearchQuery("");
-    setTierFilter("all");
     setProgramFilter("all");
     setGreenCardFilter("all");
     setStateFilter("all");
@@ -566,8 +566,6 @@ export default function MembersPage() {
         members={members}
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
-        tierFilter={tierFilter}
-        onTierFilterChange={setTierFilter}
         programFilter={programFilter}
         onProgramFilterChange={setProgramFilter}
         greenCardFilter={greenCardFilter}

@@ -32,6 +32,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { supabase } from "@/lib/supabaseClient";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { AdminTierToggle } from "@/components/admin/AdminTierToggle";
 
 interface NavItem {
   label: string;
@@ -191,14 +192,20 @@ export default function AdminLayout() {
       </Sidebar>
 
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-border px-4 bg-background">
-          <SidebarTrigger />
-          <h1 className="text-sm font-medium text-foreground">{currentTitle}</h1>
-          <div className="ml-auto flex items-center gap-3">
-            <span className="hidden text-sm text-muted-foreground sm:inline">{profile?.full_name}</span>
-            <Avatar className="h-7 w-7">
-              <AvatarFallback className="bg-primary/15 text-xs text-primary">{initials}</AvatarFallback>
-            </Avatar>
+        <header className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-border px-4 bg-background">
+          <div className="flex items-center gap-3 min-w-0">
+            <SidebarTrigger />
+            <h1 className="text-sm font-medium text-foreground truncate">{currentTitle}</h1>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <AdminTierToggle />
+            <div className="flex items-center gap-2 pl-2 border-l border-border/60">
+              <span className="hidden text-sm text-muted-foreground sm:inline">{profile?.full_name}</span>
+              <Avatar className="h-7 w-7">
+                <AvatarFallback className="bg-primary/15 text-xs text-primary">{initials}</AvatarFallback>
+              </Avatar>
+            </div>
           </div>
         </header>
 

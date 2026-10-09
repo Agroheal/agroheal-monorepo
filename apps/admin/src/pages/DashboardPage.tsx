@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   CreditCard,
@@ -14,6 +14,7 @@ import {
   Layers,
 } from "lucide-react";
 import { useAdminMembers } from "@/hooks/useAdminMembers";
+import { useAdminTierFilter } from "@/context/AdminTierContext";
 import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import { StatCard } from "@/components/admin/StatCard";
 import { SlotCreditorForm } from "@/components/admin/SlotCreditorForm";
@@ -33,6 +34,7 @@ import { adminApiClient } from "@/lib/apiClient";
 
 export default function DashboardPage() {
   const { members, paymentLogs, loading, refetch } = useAdminMembers();
+  const { tier } = useAdminTierFilter();
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [showCreditorModal, setShowCreditorModal] = useState(false);
@@ -68,11 +70,50 @@ export default function DashboardPage() {
     setTimeout(() => fn(""), 4000);
   };
 
-  const activeSlots = paymentLogs
-    .filter((p) => p.type === "slot_subscription" && p.status === "active")
-    .reduce((sum, p) => sum + p.slots, 0);
+  // Dynamically adapt records to active global tier
+  const displayedMembers = useMemo(() => {
+    return members.filter((m) => {
+      if (tier === "live") return !m.is_legacy;
+      if (tier === "legacy") return Boolean(m.is_legacy);
+      return true;
+    });
+  }, [members, tier]);
 
-  const recentMembers = members.slice(0, 6);
+  const displayedLogs = useMemo(() => {
+    return paymentLogs.filter((p) => {
+      if (tier === "live") return !p.is_legacy;
+      if (tier === "legacy") return Boolean(p.is_legacy);
+      return true;
+    });
+  }, [paymentLogs, tier]);
+
+  const registeredMembersCount = useMemo(() => {
+    if (serverStats) {
+      if (tier === "live") return serverStats.liveMembers ?? displayedMembers.length;
+      if (tier === "legacy") return serverStats.legacyMembers ?? displayedMembers.length;
+      return serverStats.totalMembers;
+    }
+    return displayedMembers.length;
+  }, [serverStats, displayedMembers.length, tier]);
+
+  const displayedActiveSlots = useMemo(() => {
+    if (serverStats) {
+      if (tier === "live") return serverStats.liveSlots ?? 0;
+      if (tier === "legacy") return serverStats.legacySlots ?? 0;
+      return serverStats.activeSlots;
+    }
+    return displayedLogs
+      .filter((p) => p.type === "slot_subscription" && p.status === "active")
+      .reduce((sum, p) => sum + p.slots, 0);
+  }, [serverStats, displayedLogs, tier]);
+
+  const displayedGreenCards = useMemo(() => {
+    return displayedMembers.filter((m) => m.has_green_card).length;
+  }, [displayedMembers]);
+
+  const recentMembers = useMemo(() => {
+    return displayedMembers.slice(0, 6);
+  }, [displayedMembers]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -147,28 +188,36 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Registered Members"
-          value={serverStats ? serverStats.totalMembers : members.length}
+          value={registeredMembersCount}
           footer={
-            serverStats?.liveMembers !== undefined && serverStats?.legacyMembers !== undefined
-              ? `${serverStats.liveMembers.toLocaleString()} Live • ${serverStats.legacyMembers.toLocaleString()} Legacy`
-              : `${members.filter((m) => !m.is_legacy).length} Live • ${members.filter((m) => m.is_legacy).length} Legacy`
+            tier === "live"
+              ? "Modern platform registered members"
+              : tier === "legacy"
+              ? "Migrated legacy pre-launch members"
+              : serverStats?.liveMembers !== undefined && serverStats?.legacyMembers !== undefined
+              ? `${serverStats.liveMembers.toLocaleString()} Modern • ${serverStats.legacyMembers.toLocaleString()} Legacy`
+              : `${members.filter((m) => !m.is_legacy).length} Modern • ${members.filter((m) => m.is_legacy).length} Legacy`
           }
           icon={Users}
           loading={loading && !serverStats}
         />
         <StatCard
           label="Green Card Holders"
-          value={serverStats ? serverStats.activeGreenCards : members.filter((m) => m.has_green_card).length}
-          footer={`${(serverStats ? serverStats.totalMembers : members.length) - (serverStats ? serverStats.activeGreenCards : members.filter((m) => m.has_green_card).length)} pending activation`}
+          value={displayedGreenCards}
+          footer={`${Math.max(0, registeredMembersCount - displayedGreenCards)} pending activation`}
           icon={ShieldCheck}
           loading={loading && !serverStats}
         />
         <StatCard
           label="Active Farm Slots"
-          value={serverStats ? serverStats.activeSlots : activeSlots}
+          value={displayedActiveSlots}
           footer={
-            serverStats?.liveSlots !== undefined && serverStats?.legacySlots !== undefined
-              ? `${serverStats.liveSlots.toLocaleString()} Live • ${serverStats.legacySlots.toLocaleString()} Legacy`
+            tier === "live"
+              ? "Modern platform active slots"
+              : tier === "legacy"
+              ? "Legacy migrated active slots"
+              : serverStats?.liveSlots !== undefined && serverStats?.legacySlots !== undefined
+              ? `${serverStats.liveSlots.toLocaleString()} Modern • ${serverStats.legacySlots.toLocaleString()} Legacy`
               : "Active community production farm slots"
           }
           icon={Sprout}
@@ -176,8 +225,14 @@ export default function DashboardPage() {
         />
         <StatCard
           label="Platform Operations"
-          value={paymentLogs.length}
-          footer={`${paymentLogs.filter((p) => !p.is_legacy).length} Live • ${paymentLogs.filter((p) => p.is_legacy).length} Legacy`}
+          value={displayedLogs.length}
+          footer={
+            tier === "live"
+              ? "Modern platform operations"
+              : tier === "legacy"
+              ? "Legacy migrated operations"
+              : `${paymentLogs.filter((p) => !p.is_legacy).length} Modern • ${paymentLogs.filter((p) => p.is_legacy).length} Legacy`
+          }
           icon={CreditCard}
           loading={loading}
         />

@@ -11,7 +11,6 @@ import {
   ChevronDown,
   ChevronUp,
   Database,
-  ExternalLink,
 } from "lucide-react";
 import {
   Dialog,
@@ -104,7 +103,6 @@ export function VerifyFlwPaymentModal({
   const rawData = gateway?.raw?.data || gateway?.raw;
   const isPaid = gateway?.status === "paid";
   const isFailed = gateway?.status === "failed";
-  const isPending = gateway?.status === "pending";
 
   const localTx = result?.localMatch?.transaction;
   const localOrder = result?.localMatch?.order;
