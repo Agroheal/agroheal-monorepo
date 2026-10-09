@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAdminTierFilter } from "@/context/AdminTierContext";
-import { Search, FileSpreadsheet, CreditCard, Landmark, Check, Copy, ArrowLeftRight } from "lucide-react";
+import { Search, FileSpreadsheet, CreditCard, Landmark, Check, Copy, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -25,6 +25,7 @@ const PAGE_SIZE = 25;
 
 export type PaymentMethodFilter = "all" | "online" | "bank_transfer";
 export type TransactionCategoryFilter = "all" | "green_card" | "slots" | "products" | "commissions";
+export type PaymentStatusFilter = "all" | "pending" | "paid" | "failed";
 export type PaymentTierFilter = "all" | "live" | "legacy";
 
 function isOfflineMethod(p: PaymentLog): boolean {
@@ -94,6 +95,7 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
   const [search, setSearch] = useState("");
   const [methodFilter, setMethodFilter] = useState<PaymentMethodFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<TransactionCategoryFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<PaymentStatusFilter>("all");
   const [page, setPage] = useState(1);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [remediatingTx, setRemediatingTx] = useState<PaymentLog | null>(null);
@@ -139,9 +141,21 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
         if (resolved !== categoryFilter) return false;
       }
 
+      // 5. Status Filter
+      if (statusFilter !== "all") {
+        const s = (p.status || "").toLowerCase();
+        if (statusFilter === "paid") {
+          if (s !== "paid" && s !== "success" && s !== "successful" && s !== "active") return false;
+        } else if (statusFilter === "pending") {
+          if (s !== "pending") return false;
+        } else if (statusFilter === "failed") {
+          if (s !== "failed" && s !== "cancelled" && s !== "suspended") return false;
+        }
+      }
+
       return true;
     });
-  }, [logs, search, tierFilter, methodFilter, categoryFilter]);
+  }, [logs, search, tierFilter, methodFilter, categoryFilter, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -189,6 +203,7 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
       { Metric: "Data Tier Filter", Value: tierFilter },
       { Metric: "Channel Filter", Value: methodFilter },
       { Metric: "Category Filter", Value: categoryFilter },
+      { Metric: "Status Filter", Value: statusFilter },
       { Metric: "Search Query", Value: search || "None" },
     ];
 
@@ -278,6 +293,33 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
                 </SelectItem>
                 <SelectItem value="commissions" className="text-xs">
                   💰 Commissions &amp; Bonuses
+                </SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Filter 3: Status */}
+            <Select
+              value={statusFilter}
+              onValueChange={(v) => {
+                setStatusFilter(v as PaymentStatusFilter);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="w-[160px] h-9 text-xs">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all" className="text-xs">
+                  ⚡ All Statuses
+                </SelectItem>
+                <SelectItem value="pending" className="text-xs">
+                  ⏳ Pending / Unsettled
+                </SelectItem>
+                <SelectItem value="paid" className="text-xs">
+                  ✅ Paid / Settled
+                </SelectItem>
+                <SelectItem value="failed" className="text-xs">
+                  ❌ Failed
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -461,18 +503,16 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
                           <CreditCard className="w-2.5 h-2.5" /> Verify FLW
                         </Button>
                       )}
-                      {(p.status === "paid" || p.status === "success" || p.status === "successful") && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setRemediatingTx(p)}
-                          className="h-6 px-2 text-[10px] gap-1 border-primary/30 text-primary hover:bg-primary/10"
-                          title="Remediate payment purpose (e.g. Convert Slot to Starter Pack)"
-                        >
-                          <ArrowLeftRight className="w-2.5 h-2.5" /> Remediate
-                        </Button>
-                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setRemediatingTx(p)}
+                        className="h-6 px-2 text-[10px] gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                        title="Force settle and allot transaction with double-confirmation preview"
+                      >
+                        <Zap className="w-2.5 h-2.5" /> Force Settle
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -553,6 +593,7 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
         open={verifyRef !== null}
         onOpenChange={(open) => !open && setVerifyRef(null)}
         initialReference={verifyRef || ""}
+        onForceSettle={(tx) => setRemediatingTx(tx)}
       />
     </div>
   );

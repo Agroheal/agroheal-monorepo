@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { showToast } from "@/components/ui/ToastComponent";
 import { supabase } from "@/lib/supabaseClient";
+import { apiClient } from "@/lib/apiClient";
 
 interface WithdrawalModalProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ interface WithdrawalModalProps {
   savedAccountNumber?: string;
   savedAccountName?: string;
   savedBankCode?: string;
+  isBankVerified?: boolean;
   userEmail?: string;
   isLegacy?: boolean;
   hasPurchasedStarterPack?: boolean;
@@ -61,6 +63,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
   savedAccountNumber,
   savedAccountName,
   savedBankCode,
+  isBankVerified,
   userEmail,
   isLegacy = false,
   hasPurchasedStarterPack = false,
@@ -121,6 +124,11 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
 
     if (!hasLinkedBank) {
       setErrorMsg("Please link your verified bank account in your Profile Settings first.");
+      return;
+    }
+
+    if (isBankVerified === false) {
+      setErrorMsg("Your linked bank account requires NIBSS verification before requesting a withdrawal. Please go to your Profile to verify your bank details.");
       return;
     }
 
@@ -229,52 +237,14 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
     const parsedAmount = Number(amount);
 
     try {
-      const { data: authData } = await supabase.auth.getUser();
-      const currentUserId = authData?.user?.id;
-
-      if (!currentUserId) {
-        throw new Error("User session expired. Please sign in again.");
-      }
-
-      const reference = `WDR_${Date.now()}_${currentUserId.slice(0, 8).toUpperCase()}`;
-
-      // Insert into withdrawals table
-      const { error: insertErr } = await supabase.from("withdrawals").insert([
-        {
-          user_id: currentUserId,
-          amount: parsedAmount,
-          fee: 0,
-          net_amount: parsedAmount,
-          reference: reference,
-          status: "pending",
-          bank_name: savedBankName,
-          account_number: savedAccountNumber,
-          account_name: savedAccountName || "",
-          bank_code: savedBankCode || "",
-          withdrawal_type: walletType,
-          created_at: new Date().toISOString(),
-        },
-      ]);
-
-      if (insertErr) {
-        console.warn("[WithdrawalModal] DB insert warning:", insertErr.message);
-      }
-
-      // If withdrawing from direct referrals, decrement profile referral_earnings
-      if (walletType === "DIRECT_REFERRAL") {
-        try {
-          const newBal = Math.max(0, directReferralBalance - parsedAmount);
-          await supabase
-            .from("profiles")
-            .update({
-              referral_earnings: newBal,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", currentUserId);
-        } catch (balErr) {
-          console.warn("[WithdrawalModal] Profile balance update:", balErr);
-        }
-      }
+      await apiClient.withdrawals.request({
+        walletType,
+        amount: parsedAmount,
+        bankName: savedBankName || "",
+        bankCode: savedBankCode || "",
+        accountNumber: savedAccountNumber || "",
+        accountName: savedAccountName || "",
+      });
 
       showToast({
         variant: "success",

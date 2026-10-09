@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,8 +10,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeftRight, CheckCircle2, Loader2 } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
+import {
+  Zap,
+  CheckCircle2,
+  Loader2,
+  CreditCard,
+  Package,
+  Sprout,
+  Users,
+  Award,
+  GitBranch,
+  AlertCircle,
+} from "lucide-react";
 import { adminApiClient } from "@/lib/apiClient";
 import type { PaymentLog } from "@/types/admin";
 
@@ -32,231 +42,305 @@ export function RemediatePaymentDialog({
   onError,
   onRefresh,
 }: Props) {
-  const [targetPurpose, setTargetPurpose] = useState<"STARTER_PACK" | "FARM_SLOT">("STARTER_PACK");
-  const [reason, setReason] = useState(
-    "Customer intended Mushroom Power Starter Pack activation; payment misallocated to Farm Slot"
+  const [loadingPreview, setLoadingPreview] = useState(false);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [notes, setNotes] = useState(
+    "Confirmed valid payment via Flutterwave / Bank statement; manually force settled and allotted."
   );
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (open && transaction?.id) {
+      setPreviewData(null);
+      setPreviewError(null);
+      setLoadingPreview(true);
+
+      // Extract transaction ID
+      const cleanTxId = transaction.id;
+
+      adminApiClient.transactions
+        .getAllotmentPreview(cleanTxId)
+        .then((res) => {
+          setPreviewData(res);
+        })
+        .catch((err) => {
+          console.error("[AllotmentPreview] Failed to compute preview:", err);
+          setPreviewError(err.message || "Failed to calculate allotment preview");
+        })
+        .finally(() => {
+          setLoadingPreview(false);
+        });
+    }
+  }, [open, transaction]);
 
   if (!transaction) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reason.trim()) {
-      onError("Please provide a reason for the audit trail.");
+    if (!notes.trim()) {
+      onError("Please provide an audit note describing the reason for force settlement.");
       return;
     }
 
-    setLoading(true);
+    setSubmitting(true);
     try {
-      // Extract numeric transaction id if reference is in format SP_563_... or TX-563 or 563
-      let cleanTxId = transaction.id;
-      const match = (transaction.reference || transaction.id).match(/(\d+)/);
-      if (match) cleanTxId = match[1];
+      const cleanTxId = transaction.id;
+      const res = await adminApiClient.transactions.forceSettle(cleanTxId, notes.trim());
 
-      // Call API server or direct database remediation
-      let apiSuccess = false;
-      try {
-        await adminApiClient.transactions.remediate(cleanTxId, targetPurpose, reason.trim());
-        apiSuccess = true;
-      } catch (apiErr) {
-        console.warn("[RemediatePaymentDialog] API endpoint failed, trying direct Supabase fallback:", apiErr);
-      }
-
-      if (!apiSuccess) {
-        // Direct Supabase fallback
-        // 1. Fetch transaction record
-        const { data: tx } = await supabase
-          .from("transactions")
-          .select("id, user_id, amount, status, project_category")
-          .eq("id", cleanTxId)
-          .maybeSingle();
-
-        const userId = tx?.user_id || transaction.user_id;
-
-        if (userId) {
-          // 2. Mark profile starter pack active
-          await supabase
-            .from("profiles")
-            .update({
-              has_purchased_starter_pack: true,
-              is_wealth_creation_active: true,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", userId);
-
-          // 3. Create or update orders row
-          await supabase.from("orders").insert({
-            user_id: userId,
-            transaction_id: cleanTxId,
-            product_id: "11111111-1111-1111-1111-111111111101",
-            product_code: "SP-MUSH-100G",
-            quantity: 1,
-            unit_price: 5000,
-            total_price: 5000,
-            pv_earned: 5000,
-            status: "PAID",
-            notes: `Admin Remediated from Tx #${cleanTxId}: ${reason}`,
-          });
-
-          // 4. Update transaction
-          await supabase
-            .from("transactions")
-            .update({
-              project_category: "Mushroom Power 100g",
-              notes: `[Remediated to Starter Pack: ${reason}]`,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", cleanTxId);
-
-          // 5. Remove accidental slot subscription
-          const { data: slots } = await supabase
-            .from("slot_subscriptions")
-            .select("id, slots")
-            .eq("user_id", userId)
-            .ilike("project_category", "%Mushroom%")
-            .maybeSingle();
-
-          if (slots) {
-            if (slots.slots <= 1) {
-              await supabase.from("slot_subscriptions").delete().eq("id", slots.id);
-            } else {
-              await supabase
-                .from("slot_subscriptions")
-                .update({ slots: slots.slots - 1, updated_at: new Date().toISOString() })
-                .eq("id", slots.id);
-            }
-          }
-        }
-      }
-
-      onSuccess(
-        `Transaction #${cleanTxId} converted to Mushroom Power 100g Starter Pack! Product order created and wealth creation active.`
-      );
+      onSuccess(res.message || `Transaction #${cleanTxId} force settled and all statutory benefits provisioned!`);
       onRefresh();
       onOpenChange(false);
     } catch (err: any) {
-      onError(err.message || "Failed to remediate transaction.");
+      onError(err.message || "Failed to force settle transaction.");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
+  const plan = previewData?.allotment;
+  const member = previewData?.member;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <ArrowLeftRight className="h-4 w-4" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20">
+              <Zap className="h-4 w-4" />
             </div>
-            <DialogTitle className="text-base font-semibold">Remediate Payment Purpose</DialogTitle>
+            <div>
+              <DialogTitle className="text-base font-bold">
+                Force Settle &amp; Allotment Preview
+              </DialogTitle>
+              <DialogDescription className="text-xs">
+                Double-check statutory asset allocations before committing to database &amp; financial ledger.
+              </DialogDescription>
+            </div>
           </div>
-          <DialogDescription className="text-xs text-muted-foreground">
-            Correct misallocated member payments (e.g., website checkout created a Farm Slot instead of a
-            Mushroom Power Starter Pack).
-          </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          {/* Transaction Summary Card */}
-          <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-1.5 text-xs">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Reference / ID:</span>
-              <span className="font-mono font-medium text-foreground">
-                {transaction.reference || transaction.id}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Customer Email:</span>
-              <span className="font-medium text-foreground truncate max-w-[200px]">
-                {transaction.user_email}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Amount Paid:</span>
-              <span className="font-mono font-bold text-foreground">
-                ₦{transaction.amount.toLocaleString()}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Current Allocation:</span>
-              <span className="font-medium text-amber-500">
-                {transaction.project_category} ({transaction.slots} slot{transaction.slots !== 1 ? "s" : ""})
-              </span>
-            </div>
+        {loadingPreview ? (
+          <div className="py-12 flex flex-col items-center justify-center gap-3 text-muted-foreground text-sm">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <span>Computing statutory allotments preview...</span>
           </div>
+        ) : previewError ? (
+          <div className="p-4 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive text-xs space-y-2">
+            <div className="flex items-center gap-2 font-bold">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>Could not compute allotment preview</span>
+            </div>
+            <p>{previewError}</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+            {/* Transaction & Member Overview */}
+            <div className="p-3 rounded-xl border border-border bg-muted/40 grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <span className="text-muted-foreground text-[10px] uppercase font-bold block">
+                  Transaction
+                </span>
+                <span className="font-bold text-foreground block">
+                  #{transaction.id} — ₦{Number(transaction.amount).toLocaleString()}
+                </span>
+                <span className="text-[11px] font-mono text-muted-foreground truncate block">
+                  {transaction.reference || "N/A"}
+                </span>
+              </div>
+              <div>
+                <span className="text-muted-foreground text-[10px] uppercase font-bold block">
+                  Member
+                </span>
+                <span className="font-bold text-foreground block">
+                  {member?.fullName || transaction.user_email || "Member"}
+                </span>
+                <span className="text-[11px] text-muted-foreground block truncate">
+                  {member?.email || transaction.user_email}
+                </span>
+                {member?.sponsorName && (
+                  <span className="text-[10px] text-primary block mt-0.5">
+                    Sponsor: {member.sponsorName}
+                  </span>
+                )}
+              </div>
+            </div>
 
-          {/* Remediation Choice */}
-          <div className="space-y-2">
-            <Label className="text-xs font-semibold text-foreground">Remediate To:</Label>
-            <div className="grid grid-cols-1 gap-2">
-              <div
-                className={`flex items-start gap-2.5 rounded-lg border p-3 cursor-pointer transition-colors ${
-                  targetPurpose === "STARTER_PACK"
-                    ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                    : "border-border hover:bg-muted/30"
-                }`}
-                onClick={() => setTargetPurpose("STARTER_PACK")}
-              >
-                <input
-                  type="radio"
-                  name="targetPurpose"
-                  id="purpose-sp"
-                  checked={targetPurpose === "STARTER_PACK"}
-                  onChange={() => setTargetPurpose("STARTER_PACK")}
-                  className="mt-0.5 h-4 w-4 border-gray-300 text-primary focus:ring-primary cursor-pointer"
-                />
-                <div>
-                  <Label htmlFor="purpose-sp" className="text-xs font-semibold cursor-pointer">
-                    📦 Mushroom Power 100g Starter Pack
-                  </Label>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
-                    Creates compulsory product order, activates member's wealth creation status, adds them to
-                    the 5x7 matrix, and removes the accidental farm slot.
-                  </p>
+            {/* Itemized Allotment Checklist */}
+            <div className="space-y-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground block">
+                Statutory Allotment Checklist (Double Confirmation)
+              </span>
+
+              <div className="space-y-2 text-xs">
+                {/* 1. Green Card */}
+                <div className="p-2.5 rounded-xl border border-border bg-card flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <CreditCard className="w-4 h-4 text-emerald-500 shrink-0" />
+                    <div>
+                      <span className="font-bold text-foreground block">
+                        Green Card Membership
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {plan?.greenCard?.plan || "Annual Membership Pass"}
+                      </span>
+                    </div>
+                  </div>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase ${
+                      plan?.greenCard?.action === "ACTIVATE"
+                        ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/25"
+                        : "bg-muted text-muted-foreground border-border"
+                    }`}
+                  >
+                    {plan?.greenCard?.action === "ACTIVATE" ? "Will Activate" : "Already Active"}
+                  </span>
+                </div>
+
+                {/* 2. Wealth Creation / Starter Pack */}
+                <div className="p-2.5 rounded-xl border border-border bg-card flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <Package className="w-4 h-4 text-primary shrink-0" />
+                    <div>
+                      <span className="font-bold text-foreground block">
+                        Wealth Creation (Starter Pack)
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {plan?.wealthCreation?.productName || "Mushroom Power 100g (SP-MUSH-100G)"} — 5,000 PV
+                      </span>
+                    </div>
+                  </div>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase ${
+                      plan?.wealthCreation?.action === "ACTIVATE"
+                        ? "bg-primary/10 text-primary border-primary/25"
+                        : "bg-muted text-muted-foreground border-border"
+                    }`}
+                  >
+                    {plan?.wealthCreation?.action === "ACTIVATE" ? "Will Order & Activate" : "Already Active"}
+                  </span>
+                </div>
+
+                {/* 3. Farm Slots */}
+                <div className="p-2.5 rounded-xl border border-border bg-card flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <Sprout className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div>
+                      <span className="font-bold text-foreground block">
+                        Practical Farm Slots
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {plan?.farmSlots?.count || 0} Slot(s) in {plan?.farmSlots?.farmGroup || "Mushroom Village"}
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold font-mono text-foreground">
+                    ₦{(plan?.farmSlots?.totalSlotValue || 0).toLocaleString()}
+                  </span>
+                </div>
+
+                {/* 4. Sponsor Commission */}
+                <div className="p-2.5 rounded-xl border border-border bg-card flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <Users className="w-4 h-4 text-amber-500 shrink-0" />
+                    <div>
+                      <span className="font-bold text-foreground block">
+                        Direct Sponsor Referral Bonus
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        {member?.sponsorName ? `Credited to ${member.sponsorName}` : "No Sponsor Linked"} ({plan?.sponsorCommission?.bonusCategory || "NONE"})
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold font-mono text-emerald-500">
+                    +₦{(plan?.sponsorCommission?.amount || 0).toLocaleString()}
+                  </span>
+                </div>
+
+                {/* 5. Core Drivers Pool */}
+                <div className="p-2.5 rounded-xl border border-border bg-card flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <Award className="w-4 h-4 text-indigo-400 shrink-0" />
+                    <div>
+                      <span className="font-bold text-foreground block">
+                        Core Driver Growth Pool
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        7 Core Drivers credited ₦{plan?.coreDriversBonus?.amountPerDriver || 0} each
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold font-mono text-indigo-400">
+                    ₦{(plan?.coreDriversBonus?.totalPool || 0).toLocaleString()} pool
+                  </span>
+                </div>
+
+                {/* 6. Matrix Placement */}
+                <div className="p-2.5 rounded-xl border border-border bg-card flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <GitBranch className="w-4 h-4 text-purple-400 shrink-0" />
+                    <div>
+                      <span className="font-bold text-foreground block">
+                        Universal FIFO Matrix
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        Placement queue in 3×2 Spillover Matrix
+                      </span>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-purple-500/10 text-purple-400 border-purple-500/25 uppercase">
+                    Queue Enqueued
+                  </span>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Audit Reason Input */}
-          <div className="space-y-1.5">
-            <Label htmlFor="audit-reason" className="text-xs font-semibold text-foreground">
-              Audit Justification / Note <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="audit-reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="e.g. Member intended to purchase Mushroom Power pack..."
-              className="text-xs h-9"
-              required
-            />
-          </div>
+            {/* Audit Trail Notes */}
+            <div className="space-y-1.5">
+              <Label htmlFor="audit-notes" className="text-xs font-semibold">
+                Admin Audit Notes <span className="text-rose-500">*</span>
+              </Label>
+              <Input
+                id="audit-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="e.g. Confirmed payment on Flutterwave statement; manual force settlement"
+                className="text-xs h-9"
+                required
+              />
+            </div>
 
-          <DialogFooter className="gap-2 sm:gap-0 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-              className="text-xs"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              disabled={loading}
-              className="text-xs gap-1.5 bg-primary text-primary-foreground font-semibold"
-            >
-              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-              Execute Remediation
-            </Button>
-          </DialogFooter>
-        </form>
+            <DialogFooter className="gap-2 sm:gap-0 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={submitting}
+                className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Settling &amp; Allotting...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Confirm &amp; Allot Everything</span>
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -189,6 +189,70 @@ export const adminApiClient = {
         method: "POST",
         body: JSON.stringify({ targetPurpose, reason }),
       }),
+    getAllotmentPreview: (txId: string | number) =>
+      apiRequest<{
+        transaction: {
+          id: string | number;
+          amount: number;
+          reference: string;
+          status: string;
+          createdAt: string;
+          projectCategory?: string;
+          notes?: string;
+        };
+        member: {
+          id: string;
+          fullName: string;
+          email: string;
+          memberId?: string;
+          sponsorId?: string;
+          sponsorName?: string;
+        };
+        allotment: {
+          isCombo: boolean;
+          isStarterPackOnly: boolean;
+          isGreenCardOnly: boolean;
+          isSlotsOnly: boolean;
+          greenCard: {
+            action: "ACTIVATE" | "ALREADY_ACTIVE";
+            plan: string;
+            cost: number;
+          };
+          wealthCreation: {
+            action: "ACTIVATE" | "ALREADY_ACTIVE";
+            productCode: string;
+            productName: string;
+            orderPrice: number;
+          };
+          farmSlots: {
+            count: number;
+            farmGroup: string;
+            unitPrice: number;
+            totalSlotValue: number;
+          };
+          sponsorCommission: {
+            amount: number;
+            sponsorId?: string;
+            sponsorName?: string;
+            bonusCategory: string;
+          };
+          coreDriversBonus: {
+            amountPerDriver: number;
+            totalDrivers: number;
+            totalPool: number;
+          };
+          matrixPlacement: boolean;
+        };
+      }>(`admin/transactions/${encodeURIComponent(String(txId))}/allotment-preview`),
+    forceSettle: (txId: string | number, notes?: string) =>
+      apiRequest<{
+        success: boolean;
+        message: string;
+        allotments: any;
+      }>(`admin/transactions/${encodeURIComponent(String(txId))}/force-settle`, {
+        method: "POST",
+        body: JSON.stringify({ notes }),
+      }),
   },
   members: {
     placeMatrix: (id: string) =>
@@ -207,6 +271,10 @@ export const adminApiClient = {
       apiRequest<any>("admin/members/issue-gift", {
         method: "POST",
         body: JSON.stringify(payload),
+      }),
+    resetBankLock: (memberId: string) =>
+      apiRequest<{ memberId: string }>(`admin/members/${encodeURIComponent(memberId)}/reset-bank-lock`, {
+        method: "POST",
       }),
     verifyFlwPayment: (reference: string) =>
       apiRequest<{

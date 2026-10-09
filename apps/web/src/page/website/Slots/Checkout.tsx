@@ -1064,6 +1064,11 @@ const Checkout = () => {
         },
         meta: {
           user_id: order.user_id,
+          tx_id: order.id,
+          transaction_id: order.id,
+          amount: totalPrice,
+          email: order.email,
+          phone: order.phone,
           state: formData.state,
           lga: formData.lga,
           country: "Nigeria",
@@ -1083,6 +1088,7 @@ const Checkout = () => {
             : category,
           has_combo: isCombo,
           isCombo: isCombo,
+          slot_quantity: slotQuantity,
         },
         customizations: {
           title: isStarterPack

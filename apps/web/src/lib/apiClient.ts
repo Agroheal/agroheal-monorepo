@@ -321,6 +321,27 @@ export const apiClient = {
         method: "POST",
         body: JSON.stringify(payload),
       }),
+    saveBank: (
+      payload: {
+        bankName: string;
+        bankCode: string;
+        accountNumber: string;
+        accountName?: string;
+      },
+      options?: ApiRequestOptions
+    ) =>
+      apiRequest<{
+        bankName: string;
+        bankCode: string;
+        accountNumber: string;
+        accountName: string;
+        bankVerified: boolean;
+        bankUpdatedAt: string;
+      }>("withdrawals/save-bank", {
+        ...options,
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
   },
 
   /**
@@ -515,6 +536,19 @@ export const apiClient = {
       }>(`checkout/verify/${encodeURIComponent(String(txId))}`, {
         method: "GET",
         timeout: 20000,
+      }),
+    verifyPending: (options?: ApiRequestOptions) =>
+      apiRequest<{
+        settledCount: number;
+        settledTransactions: Array<{
+          txId: string | number;
+          amount: number;
+          plan?: string;
+          details?: any;
+        }>;
+      }>("checkout/verify-pending", {
+        ...options,
+        method: "POST",
       }),
   },
 };

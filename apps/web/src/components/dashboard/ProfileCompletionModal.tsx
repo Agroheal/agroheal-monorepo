@@ -11,6 +11,7 @@ import {
   ChevronUp,
   AlertCircle,
   MapPin,
+  Lock,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabaseClient";
@@ -36,6 +37,8 @@ export interface ProfileCompletionModalProps {
     bank_account_number?: string;
     bank_account_name?: string;
     bank_code?: string;
+    bank_updated_at?: string;
+    bank_verified?: boolean;
   } | null;
   defaultOpenBankSection?: boolean;
   canDismiss?: boolean;
@@ -86,6 +89,16 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
   const [accountName, setAccountName] = useState(
     initialBank?.bank_account_name || "",
   );
+
+  const isBankLocked = Boolean(
+    initialBank?.bank_account_number &&
+    initialBank?.bank_updated_at &&
+    (Date.now() - new Date(initialBank.bank_updated_at).getTime()) / (1000 * 60 * 60 * 24) < 30
+  );
+
+  const bankDaysRemaining = isBankLocked
+    ? Math.max(1, Math.ceil(30 - (Date.now() - new Date(initialBank!.bank_updated_at!).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
   const [banksList, setBanksList] = useState<Array<{ name: string; code: string }>>([]);
   const [loadingBanks, setLoadingBanks] = useState(false);
@@ -243,6 +256,18 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
       };
 
       if (bankName.trim() || accountNumber.trim()) {
+        const isChangingBank =
+          bankName.trim() !== (initialBank?.bank_name || "").trim() ||
+          accountNumber.trim() !== (initialBank?.bank_account_number || "").trim();
+
+        if (isBankLocked && isChangingBank) {
+          toast.error(
+            `Withdrawal bank account is locked for 30 days after update (${bankDaysRemaining} days remaining). Contact admin to change details.`
+          );
+          setLoading(false);
+          return;
+        }
+
         if (!bankName.trim() || !bankCode) {
           toast.error("Please select your bank from the list");
           setLoading(false);
@@ -261,11 +286,19 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
           setLoading(false);
           return;
         }
-        profileUpdates.bank_name = bankName.trim();
-        profileUpdates.bank_code = bankCode.trim();
-        profileUpdates.bank_account_number = accountNumber.trim();
-        if (accountName.trim()) {
-          profileUpdates.bank_account_name = cleanName(accountName);
+
+        // Save and verify bank through authoritative backend route
+        try {
+          await apiClient.withdrawals.saveBank({
+            bankName: bankName.trim(),
+            bankCode: bankCode.trim(),
+            accountNumber: accountNumber.trim(),
+            accountName: accountName.trim(),
+          });
+        } catch (bankErr: any) {
+          toast.error(bankErr.message || "Failed to verify and link bank account with NIBSS");
+          setLoading(false);
+          return;
         }
       }
 
@@ -554,6 +587,20 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
                   exit={{ opacity: 0, height: 0 }}
                   className="space-y-3 pt-3 overflow-hidden"
                 >
+                  {isBankLocked && (
+                    <div className="p-3 rounded-xl border border-amber-300 bg-amber-50/90 text-xs flex items-start gap-2.5 text-amber-900">
+                      <Lock className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-bold block">
+                          30-Day Withdrawal Bank Account Lock Active
+                        </span>
+                        <p className="text-[11px] text-amber-800 leading-tight mt-0.5">
+                          Bank details cannot be changed until 30 days after last update ({bankDaysRemaining} day{bankDaysRemaining > 1 ? "s" : ""} remaining) to protect funds against unauthorized changes. Contact AgroHeal Admin for emergency assistance.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <span className="text-[11px] font-medium text-gray-600 block mb-1">
@@ -562,7 +609,10 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
                       <select
                         value={bankCode}
                         onChange={(e) => handleBankSelect(e.target.value)}
-                        className="w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all bg-white"
+                        disabled={isBankLocked}
+                        className={`w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all ${
+                          isBankLocked ? "bg-gray-100 text-gray-500 cursor-not-allowed" : "bg-white"
+                        }`}
                       >
                         <option value="">
                           {loadingBanks ? "Loading banks..." : "-- Choose your bank --"}
@@ -583,9 +633,12 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
                         type="text"
                         value={accountNumber}
                         onChange={(e) => handleAccountChange(e.target.value)}
+                        disabled={isBankLocked}
                         placeholder="e.g. 0123456789"
                         maxLength={10}
-                        className="w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all placeholder:text-gray-400 font-mono"
+                        className={`w-full px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-200 text-base sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent transition-all placeholder:text-gray-400 font-mono ${
+                          isBankLocked ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""
+                        }`}
                       />
                     </div>
                   </div>

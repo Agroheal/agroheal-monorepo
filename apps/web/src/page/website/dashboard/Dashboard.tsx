@@ -30,6 +30,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { apiClient } from "@/lib/apiClient";
 import { SITE_URL } from "@/config/Index";
 import { Toaster, toast } from "react-hot-toast";
 import FarmingInitiativePopup from "./TelegramPopup";
@@ -122,6 +123,16 @@ const Dashboard = () => {
       if (user.user_metadata?.force_password_change) {
         navigate("/reset-password?forced=true");
         return;
+      }
+
+      // Layer 3 Safety Net: Auto-sweep recent pending transactions on dashboard entry
+      try {
+        const sweepResult = await apiClient.checkout.verifyPending();
+        if (sweepResult?.settledCount && sweepResult.settledCount > 0) {
+          toast.success(`Payment verified! ${sweepResult.settledCount} pending transaction(s) confirmed and activated.`);
+        }
+      } catch (sweepErr) {
+        // Non-blocking background safety check
       }
 
       // Fetch all dashboard data in a single parallel round-trip

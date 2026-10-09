@@ -95,6 +95,8 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
     bank_account_number?: string;
     bank_account_name?: string;
     bank_code?: string;
+    bank_verified?: boolean;
+    bank_updated_at?: string;
     is_legacy?: boolean;
     has_purchased_starter_pack?: boolean;
     created_at?: string;
@@ -279,7 +281,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
       try {
         const { data: pData, error: pErr } = await supabase
           .from("profiles")
-          .select("member_id, full_name, email, referral_earnings, slot_bonus, wallet_balance, total_referrals, created_at, bank_name, bank_account_number, bank_account_name, bank_code, is_legacy, is_green_card_holder, has_greencard, greencard_status, has_purchased_starter_pack, advance_debt_balance, advance_debt_total")
+          .select("member_id, full_name, email, referral_earnings, slot_bonus, wallet_balance, total_referrals, created_at, bank_name, bank_account_number, bank_account_name, bank_code, bank_verified, bank_updated_at, is_legacy, is_green_card_holder, has_greencard, greencard_status, has_purchased_starter_pack, advance_debt_balance, advance_debt_total")
           .eq("id", user.id)
           .maybeSingle();
 
@@ -384,6 +386,8 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           bank_account_number: profile.bank_account_number,
           bank_account_name: profile.bank_account_name,
           bank_code: profile.bank_code,
+          bank_verified: Boolean(profile.bank_verified),
+          bank_updated_at: profile.bank_updated_at,
           is_legacy: isLegacy,
           has_purchased_starter_pack: Boolean(profile?.has_purchased_starter_pack),
           created_at: profile.created_at,
@@ -1976,6 +1980,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           savedAccountNumber={userProfile?.bank_account_number}
           savedAccountName={userProfile?.bank_account_name}
           savedBankCode={userProfile?.bank_code}
+          isBankVerified={Boolean(userProfile?.bank_verified)}
           userEmail={userProfile?.email}
           isLegacy={Boolean(userProfile?.is_legacy)}
           hasPurchasedStarterPack={Boolean(userProfile?.has_purchased_starter_pack)}

@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
   Database,
+  Zap,
 } from "lucide-react";
 import {
   Dialog,
@@ -28,12 +29,14 @@ interface VerifyFlwPaymentModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialReference?: string;
+  onForceSettle?: (tx: any) => void;
 }
 
 export function VerifyFlwPaymentModal({
   open,
   onOpenChange,
   initialReference = "",
+  onForceSettle,
 }: VerifyFlwPaymentModalProps) {
   const [reference, setReference] = useState(initialReference);
   const [loading, setLoading] = useState(false);
@@ -400,6 +403,42 @@ export function VerifyFlwPaymentModal({
                   </p>
                 )}
               </div>
+
+              {/* 1-Click Force Settle & Allot Action */}
+              {isPaid && onForceSettle && (
+                <div className="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <div className="space-y-0.5 text-left">
+                    <span className="font-bold text-xs text-foreground flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500" />
+                      Ready for Statutory Allotment
+                    </span>
+                    <p className="text-[11px] text-muted-foreground">
+                      Authoritatively confirmed payment on Flutterwave. Launch allotment preview to credit Green Card, Starter Pack, Farm Slots, or bonuses.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      onOpenChange(false);
+                      onForceSettle(
+                        localTx || {
+                          id: String(localTx?.id || gateway.gatewayRef || reference),
+                          reference: gateway.gatewayRef || reference,
+                          amount: Number(gateway.amount || rawData?.amount || 0),
+                          user_email: gateway.customerEmail || rawData?.customer?.email || "",
+                          status: "pending",
+                          project_category: "Farm Slots",
+                          created_at: rawData?.created_at || new Date().toISOString(),
+                        }
+                      );
+                    }}
+                    className="w-full sm:w-auto shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-9 text-xs gap-1.5 shadow-sm"
+                  >
+                    <Zap className="w-3.5 h-3.5 fill-white" />
+                    Force Settle &amp; Allot Now
+                  </Button>
+                </div>
+              )}
 
               {/* Raw JSON Toggle */}
               <div className="pt-1">

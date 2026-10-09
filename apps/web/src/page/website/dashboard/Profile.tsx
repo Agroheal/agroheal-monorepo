@@ -49,6 +49,8 @@ interface UserProfile {
   bank_account_number?: string | null;
   bank_account_name?: string | null;
   bank_code?: string | null;
+  bank_updated_at?: string | null;
+  bank_verified?: boolean | null;
   country?: string | null;
   state?: string | null;
   lga?: string | null;
@@ -216,6 +218,16 @@ export const ProfileComponent: React.FC = () => {
     profile?.bank_account_number &&
     profile.bank_account_number.trim().length >= 10
   );
+
+  const isBankLocked = Boolean(
+    profile?.bank_account_number &&
+    profile?.bank_updated_at &&
+    (Date.now() - new Date(profile.bank_updated_at).getTime()) / (1000 * 60 * 60 * 24) < 30
+  );
+
+  const bankDaysRemaining = isBankLocked
+    ? Math.max(1, Math.ceil(30 - (Date.now() - new Date(profile!.bank_updated_at!).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8 pb-16 font-sans">
@@ -424,19 +436,41 @@ export const ProfileComponent: React.FC = () => {
                   <p className="text-[11px] text-gray-500">Destination for wallet withdrawals</p>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  setOpenBankSectionDirectly(true);
-                  setShowCompletionModal(true);
-                }}
-                className={`text-xs font-bold ${
-                  hasLinkedBank
-                    ? "text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
-                    : "text-amber-900 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 border-amber-300"
-                } px-3 py-1.5 rounded-xl border transition-colors cursor-pointer`}
-              >
-                {hasLinkedBank ? "Edit Bank" : "Add Bank"}
-              </button>
+              {isBankLocked ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100 border border-amber-300 px-2.5 py-1 rounded-xl">
+                    <Lock className="w-3 h-3 text-amber-700" />
+                    Locked ({bankDaysRemaining}d left)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toast("Withdrawal bank account is locked for 30 days after each update to protect funds against unauthorized changes. Please contact AgroHeal Admin to change your bank details.", {
+                        icon: "🔒",
+                        duration: 6000,
+                      });
+                    }}
+                    className="text-[11px] text-muted-foreground hover:text-foreground underline cursor-pointer"
+                    title="30-Day Security Lock Information"
+                  >
+                    Help
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setOpenBankSectionDirectly(true);
+                    setShowCompletionModal(true);
+                  }}
+                  className={`text-xs font-bold ${
+                    hasLinkedBank
+                      ? "text-emerald-800 hover:text-emerald-950 bg-emerald-50 hover:bg-emerald-100 border-emerald-200"
+                      : "text-amber-900 hover:text-amber-950 bg-amber-100 hover:bg-amber-200 border-amber-300"
+                  } px-3 py-1.5 rounded-xl border transition-colors cursor-pointer`}
+                >
+                  {hasLinkedBank ? "Edit Bank" : "Add Bank"}
+                </button>
+              )}
             </div>
 
             {hasLinkedBank ? (
@@ -457,9 +491,34 @@ export const ProfileComponent: React.FC = () => {
                     {profile?.bank_account_name || profile?.full_name}
                   </span>
                 </div>
-                <div className="pt-2 flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>Verified NUBAN linked for instant automated bank withdrawals</span>
+                <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-gray-100 mt-2">
+                  <div className="flex items-center gap-1.5 text-[11px] font-medium">
+                    {profile?.bank_verified ? (
+                      <>
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                        <span className="text-emerald-700 font-semibold">NIBSS Verified Account</span>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <span className="text-amber-800 font-semibold">Verification Pending (Re-verify to withdraw)</span>
+                      </>
+                    )}
+                  </div>
+
+                  {!profile?.bank_verified && (
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setOpenBankSectionDirectly(true);
+                        setShowCompletionModal(true);
+                      }}
+                      className="h-7 text-[10px] font-bold px-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg gap-1"
+                    >
+                      <ShieldCheck className="w-3 h-3" />
+                      Verify Bank Now
+                    </Button>
+                  )}
                 </div>
               </div>
             ) : (
@@ -642,6 +701,8 @@ export const ProfileComponent: React.FC = () => {
             bank_account_number: profile.bank_account_number || "",
             bank_account_name: profile.bank_account_name || "",
             bank_code: profile.bank_code || "",
+            bank_updated_at: profile.bank_updated_at || undefined,
+            bank_verified: Boolean(profile.bank_verified),
           }}
           defaultOpenBankSection={openBankSectionDirectly}
           canDismiss={

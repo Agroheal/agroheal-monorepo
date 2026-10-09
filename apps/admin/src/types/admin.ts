@@ -36,6 +36,11 @@ export interface Member {
   is_suspended?: boolean;
   can_manage_system_configs?: boolean;
   custom_permissions?: Record<string, boolean>;
+  bank_name?: string | null;
+  bank_account_number?: string | null;
+  bank_account_name?: string | null;
+  bank_verified?: boolean | null;
+  bank_updated_at?: string | null;
 }
 
 export interface PaymentLog {

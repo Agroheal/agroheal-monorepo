@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { AlertCircle, CreditCard, Lock, Save, Shield, ShieldCheck, UserCog } from "lucide-react";
+import { AlertCircle, CreditCard, Lock, Save, Shield, ShieldCheck, UserCog, Building2, Unlock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -14,6 +14,8 @@ import { cn } from "@/lib/utils";
 import type { Member } from "@/types/admin";
 import { cleanName, cleanEmail, normalizePhoneNumber, cleanMemberId, cleanReferralCode } from "@shared/dataSanitizers";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { adminApiClient } from "@/lib/apiClient";
+import { useState } from "react";
 
 const editMemberSchema = z.object({
   full_name: z.string().trim().min(1, "Full Name cannot be empty."),
@@ -49,6 +51,23 @@ export function EditMemberDialog({
   onRequestIssueGreenCard,
 }: Props) {
   const { isSuperDeveloper, canAssignRoles, allowedAssignableRoles } = useAdminAuth();
+  const [resettingBankLock, setResettingBankLock] = useState(false);
+  const [bankLockResetSuccess, setBankLockResetSuccess] = useState(false);
+
+  useEffect(() => {
+    setBankLockResetSuccess(false);
+  }, [member?.id]);
+
+  const hasBank = Boolean(member?.bank_account_number && member.bank_account_number.trim().length >= 10);
+  const isBankLocked = Boolean(
+    !bankLockResetSuccess &&
+    member?.bank_account_number &&
+    member?.bank_updated_at &&
+    (Date.now() - new Date(member.bank_updated_at).getTime()) / (1000 * 60 * 60 * 24) < 30
+  );
+  const daysRemaining = isBankLocked
+    ? Math.max(1, Math.ceil(30 - (Date.now() - new Date(member!.bank_updated_at!).getTime()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
   const form = useForm<EditMemberValues>({
     resolver: zodResolver(editMemberSchema),
@@ -343,6 +362,94 @@ export function EditMemberDialog({
                 </FormItem>
               )}
             />
+
+            {/* Banking & 30-Day Withdrawal Lock */}
+            <div className="rounded-lg border border-border bg-background/50 p-3.5 space-y-3">
+              <div className="flex items-center justify-between border-b border-border/60 pb-2">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                  <Building2 className="h-4 w-4 text-emerald-500" />
+                  Banking &amp; 30-Day Withdrawal Lock
+                </div>
+                {hasBank && (
+                  <span
+                    className={cn(
+                      "text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase",
+                      member?.bank_verified
+                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                        : "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                    )}
+                  >
+                    {member?.bank_verified ? "NIBSS Verified" : "Verification Pending"}
+                  </span>
+                )}
+              </div>
+
+              {hasBank ? (
+                <div className="space-y-2 text-xs">
+                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                    <div className="p-2 rounded bg-muted/40">
+                      <span className="text-muted-foreground block text-[10px] font-sans">Bank:</span>
+                      <span className="font-semibold text-foreground truncate block">{member?.bank_name}</span>
+                    </div>
+                    <div className="p-2 rounded bg-muted/40">
+                      <span className="text-muted-foreground block text-[10px] font-sans">Account Number:</span>
+                      <span className="font-semibold text-foreground truncate block">{member?.bank_account_number}</span>
+                    </div>
+                  </div>
+                  {member?.bank_account_name && (
+                    <div className="p-2 rounded bg-muted/40 text-[11px]">
+                      <span className="text-muted-foreground block text-[10px]">Account Name:</span>
+                      <span className="font-semibold text-foreground">{member.bank_account_name}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-1">
+                    <div>
+                      {isBankLocked ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-400">
+                          <Lock className="w-3 h-3 text-amber-400" />
+                          Locked ({daysRemaining} day{daysRemaining > 1 ? "s" : ""} remaining)
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
+                          <ShieldCheck className="w-3 h-3 text-emerald-400" />
+                          {bankLockResetSuccess ? "Lock Reset by Admin" : "Unlocked for Updates"}
+                        </span>
+                      )}
+                    </div>
+
+                    {isBankLocked && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={resettingBankLock}
+                        onClick={async () => {
+                          if (!member?.id) return;
+                          setResettingBankLock(true);
+                          try {
+                            await adminApiClient.members.resetBankLock(member.id);
+                            setBankLockResetSuccess(true);
+                          } catch (err: any) {
+                            alert(err.message || "Failed to reset bank lock");
+                          } finally {
+                            setResettingBankLock(false);
+                          }
+                        }}
+                        className="h-7 text-[11px] gap-1 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
+                      >
+                        <Unlock className="w-3 h-3" />
+                        {resettingBankLock ? "Resetting..." : "Reset 30-Day Lock"}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">
+                  Member has not linked a payout bank account.
+                </p>
+              )}
+            </div>
 
             {/* Granular Permission Overrides */}
             <div className="rounded-lg border border-border bg-background/50 p-3.5 space-y-3">
