@@ -34,7 +34,7 @@ interface Props {
   onRefresh: () => void;
 }
 
-export function RemediatePaymentDialog({
+export function ForceSettleDialog({
   transaction,
   open,
   onOpenChange,
@@ -56,7 +56,6 @@ export function RemediatePaymentDialog({
       setPreviewError(null);
       setLoadingPreview(true);
 
-      // Extract transaction ID
       const cleanTxId = transaction.id;
 
       adminApiClient.transactions
@@ -245,7 +244,7 @@ export function RemediatePaymentDialog({
                     <Users className="w-4 h-4 text-amber-500 shrink-0" />
                     <div>
                       <span className="font-bold text-foreground block">
-                        Direct Sponsor Referral Bonus
+                        Direct Sponsor Bonus
                       </span>
                       <span className="text-[11px] text-muted-foreground">
                         {member?.sponsorName ? `Credited to ${member.sponsorName}` : "No Sponsor Linked"} ({plan?.sponsorCommission?.bonusCategory || "NONE"})
@@ -298,19 +297,19 @@ export function RemediatePaymentDialog({
             {/* Audit Trail Notes */}
             <div className="space-y-1.5">
               <Label htmlFor="audit-notes" className="text-xs font-semibold">
-                Admin Audit Notes <span className="text-rose-500">*</span>
+                Reason / Audit Trail Note <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="audit-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="e.g. Confirmed payment on Flutterwave statement; manual force settlement"
-                className="text-xs h-9"
+                placeholder="Audit explanation for this manual force settlement..."
+                className="text-xs"
                 required
               />
             </div>
 
-            <DialogFooter className="gap-2 sm:gap-0 pt-2">
+            <DialogFooter className="gap-2 sm:gap-0 pt-2 border-t border-border">
               <Button
                 type="button"
                 variant="outline"
@@ -323,18 +322,18 @@ export function RemediatePaymentDialog({
               <Button
                 type="submit"
                 size="sm"
-                disabled={submitting}
-                className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
+                className="bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+                disabled={submitting || loadingPreview || Boolean(previewError)}
               >
                 {submitting ? (
                   <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Settling &amp; Allotting...</span>
+                    <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                    Force Settling...
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Confirm &amp; Allot Everything</span>
+                    <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                    Confirm &amp; Force Settle Allotments
                   </>
                 )}
               </Button>
@@ -345,3 +344,5 @@ export function RemediatePaymentDialog({
     </Dialog>
   );
 }
+
+export default ForceSettleDialog;

@@ -184,11 +184,6 @@ export const adminApiClient = {
       }),
   },
   transactions: {
-    remediate: (id: string | number, targetPurpose = "STARTER_PACK", reason?: string) =>
-      apiRequest<any>(`admin/transactions/${id}/remediate`, {
-        method: "POST",
-        body: JSON.stringify({ targetPurpose, reason }),
-      }),
     getAllotmentPreview: (txId: string | number) =>
       apiRequest<{
         transaction: {

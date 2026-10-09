@@ -399,7 +399,7 @@ export function VerifyFlwPaymentModal({
                   </div>
                 ) : (
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    No corresponding record found in platform transactions, store orders, or slot subscriptions matching this reference. If this payment succeeded on Flutterwave, you can manually remediate or credit the member.
+                    No corresponding record found in platform transactions, store orders, or slot subscriptions matching this reference. If this payment succeeded on Flutterwave, you can manually force settle or credit the member.
                   </p>
                 )}
               </div>

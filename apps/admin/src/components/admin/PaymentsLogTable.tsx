@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { exportToExcel } from "@shared/excelExport";
-import { RemediatePaymentDialog } from "@/components/admin/RemediatePaymentDialog";
+import { ForceSettleDialog } from "@/components/admin/ForceSettleDialog";
 import { VerifyFlwPaymentModal } from "@/components/admin/VerifyFlwPaymentModal";
 import { StatusBanner } from "@/components/admin/StatusBanner";
 import {
@@ -572,8 +572,8 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
         </Pagination>
       )}
 
-      {/* Remediate Payment Dialog */}
-      <RemediatePaymentDialog
+      {/* Force Settle & Allotment Dialog */}
+      <ForceSettleDialog
         transaction={remediatingTx}
         open={Boolean(remediatingTx)}
         onOpenChange={(open) => !open && setRemediatingTx(null)}
