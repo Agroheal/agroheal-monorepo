@@ -3,7 +3,7 @@ import { supabase } from "./supabaseClient";
 const SERVER_API_URL =
   (import.meta.env.VITE_API_URL as string) ||
   (import.meta.env.MODE === "production"
-    ? "https://agroheal-server-prod.up.railway.app"
+    ? "https://agroheal-server.onrender.com"
     : "https://agroheal-server-dev.up.railway.app");
 
 export const API_BASE_URL = `${SERVER_API_URL.replace(/\/+$/, "")}/api/v1`;

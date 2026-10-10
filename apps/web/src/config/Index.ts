@@ -1,5 +1,9 @@
 // env exports into index.ts in config folder
-export const supabaseURL = import.meta.env.VITE_SUPABASE_URL as string;
+export const supabaseURL =
+  (import.meta.env.VITE_SUPABASE_URL as string) ||
+  (import.meta.env.MODE === "production"
+    ? "https://ptowfacejneezksyhntk.supabase.co"
+    : "https://exzomqrswbcuqeipatfo.supabase.co");
 export const supabaseANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 // Canonical production domain — used for links (referrals, etc.) that are
@@ -13,13 +17,13 @@ export const PAYSTACK_KEY =
   import.meta.env.VITE_PAYSTACK_KEYS;
 export const FLUTTERWAVE_KEYS = import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY;
 
-// Express Server API URLs (Railway)
-// Production: https://agroheal-server-prod.up.railway.app
+// Express Server API URLs (Render)
+// Production: https://agroheal-server.onrender.com
 // Dev / Staging: https://agroheal-server-dev.up.railway.app
 export const SERVER_API_URL =
   (import.meta.env.VITE_API_URL as string) ||
   (import.meta.env.MODE === "production"
-    ? "https://agroheal-server-prod.up.railway.app"
+    ? "https://agroheal-server.onrender.com"
     : "https://agroheal-server-dev.up.railway.app");
 
 // API v1 Base URL — all Express routes use the /api/v1 prefix
