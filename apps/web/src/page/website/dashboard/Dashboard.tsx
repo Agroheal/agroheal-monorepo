@@ -49,6 +49,7 @@ import {
   type DirectReferralInfo,
   type MatrixLevelsData,
 } from "@/components/common/GreenCardFirst5Card";
+import { GreenCardPointsCard } from "@/components/dashboard/GreenCardPointsCard";
 import { isLegacyMember, getGreenCardFee, formatNaira } from "@shared/businessRules";
 
 interface ReferralProps {
@@ -857,6 +858,16 @@ const Dashboard = () => {
               className="mb-6"
             />
           )
+        )}
+
+        {/* ── GREEN CARD POINTS: MORE POWER TO THE REVOLUTION! ── */}
+        {hasGreenCard && (
+          <GreenCardPointsCard
+            points={Number(profile?.green_card_points || 0)}
+            hasGreenCard={hasGreenCard}
+            directAlliesCount={qualifiedDirectsCount}
+            className="mb-6"
+          />
         )}
 
         {/* ── 3-STEP JOURNEY PROGRESSION ACCORDION (LEAP PATHWAY) ── */}

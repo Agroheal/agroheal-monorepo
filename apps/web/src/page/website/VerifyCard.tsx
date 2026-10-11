@@ -28,6 +28,7 @@ interface VerificationData {
   tier: string;
   verifiedAt: string;
   avatarUrl?: string;
+  points?: number;
 }
 
 export const VerifyCard: React.FC = () => {
@@ -98,6 +99,7 @@ export const VerifyCard: React.FC = () => {
               status: apiData.isVerified ? "active" : "inactive",
               tier: "AgroHeal Green Card Founding Member",
               verifiedAt: new Date().toISOString(),
+              points: Number(apiData.points || 0),
             });
             setLoading(false);
             return;
@@ -109,7 +111,7 @@ export const VerifyCard: React.FC = () => {
         // 3. Fallback: Database Direct Query (if authenticated user viewing)
         let query = supabase
           .from("profiles")
-          .select("id, full_name, member_id, created_at, avatar_url, is_green_card_holder");
+          .select("id, full_name, member_id, created_at, avatar_url, is_green_card_holder, green_card_points");
 
         const cleanRawId = memberId.replace(/[^a-zA-Z0-9]/g, "");
         query = query.or(`member_id.ilike.%${memberId}%,member_id.ilike.%${formattedId}%,member_id.ilike.%${cleanRawId}%`);
@@ -160,6 +162,7 @@ export const VerifyCard: React.FC = () => {
           tier: "AgroHeal Green Card Founding Member",
           verifiedAt: new Date().toISOString(),
           avatarUrl: profile.avatar_url || undefined,
+          points: Number(profile.green_card_points || 0),
         });
       } catch (err) {
         console.error("Verification lookup error", err);
@@ -310,6 +313,7 @@ export const VerifyCard: React.FC = () => {
                   memberSince={data.memberSince}
                   avatarUrl={data.avatarUrl}
                   isActive={data.valid}
+                  points={data.points}
                   showControls={true}
                 />
               </div>

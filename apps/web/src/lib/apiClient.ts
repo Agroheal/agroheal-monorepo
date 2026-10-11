@@ -155,6 +155,7 @@ export const apiClient = {
         role: string;
         memberId: string;
         isVerified: boolean;
+        points?: number;
         issueDate: string;
         verificationUrl: string;
       }>(`member/verify-card/${encodeURIComponent(memberId)}`),

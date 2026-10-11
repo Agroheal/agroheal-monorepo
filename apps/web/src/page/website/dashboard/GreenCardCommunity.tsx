@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import DigitalGreenCard, { formatAgcId } from "@/components/greencard/DigitalGreenCard";
+import { GreenCardPointsCard } from "@/components/dashboard/GreenCardPointsCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import GreenCardSkeleton from "@/components/dashboard/GreenCardSkeleton";
 
@@ -31,6 +32,8 @@ export const GreenCardCommunity: React.FC = () => {
   const [memberId, setMemberId] = useState<string>("");
   const [memberSince, setMemberSince] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [points, setPoints] = useState<number>(0);
+  const [directAlliesCount, setDirectAlliesCount] = useState<number>(0);
 
   useEffect(() => {
     const load = async () => {
@@ -58,7 +61,7 @@ export const GreenCardCommunity: React.FC = () => {
             .maybeSingle(),
           supabase
             .from("profiles")
-            .select("referral_code, member_id, full_name, created_at, avatar_url")
+            .select("referral_code, member_id, full_name, created_at, avatar_url, green_card_points")
             .eq("id", user.id)
             .maybeSingle()
         ]);
@@ -96,9 +99,39 @@ export const GreenCardCommunity: React.FC = () => {
 
         setFullName(profile?.full_name ?? "");
         setAvatarUrl(profile?.avatar_url || null);
-        if (profile?.referral_code) {
-          setReferralCode(profile.referral_code);
+        setPoints(Number(profile?.green_card_points || 0));
+
+        // Calculate 3-point qualified directs count for milestone progress
+        try {
+          const { data: directs } = await supabase
+            .from("profiles")
+            .select("id, member_id, is_green_card_holder, has_greencard, has_purchased_starter_pack, is_wealth_creation_active, placement_status")
+            .or(`referred_by.eq.${user.id},sponsor_id.eq.${user.id}`);
+
+          if (directs && directs.length > 0) {
+            const directIds = directs.map((d: any) => d.id).filter(Boolean);
+            const { data: slotSubs } = await supabase
+              .from("slot_subscriptions")
+              .select("user_id")
+              .in("user_id", directIds)
+              .eq("status", "active");
+
+            const slotUsers = new Set((slotSubs || []).map((s: any) => s.user_id));
+            let qualifiedCount = 0;
+            for (const d of directs) {
+              const hasCard = Boolean(d.member_id || d.is_green_card_holder || d.has_greencard);
+              const hasPack = Boolean(d.has_purchased_starter_pack || d.is_wealth_creation_active);
+              const hasSlot = slotUsers.has(d.id) || d.placement_status === "LOCKED";
+              if ((hasCard && hasPack && hasSlot) || d.placement_status === "LOCKED") {
+                qualifiedCount++;
+              }
+            }
+            setDirectAlliesCount(qualifiedCount);
+          }
+        } catch (directsErr) {
+          console.warn("[GreenCardCommunity] Directs fetch error:", directsErr);
         }
+
         if (profile?.member_id) {
           setMemberId(profile.member_id);
         } else {
@@ -241,8 +274,17 @@ export const GreenCardCommunity: React.FC = () => {
           referralCode={referralCode}
           avatarUrl={avatarUrl || undefined}
           isActive={hasGreenCard}
+          points={points}
         />
       </div>
+
+      {/* ── GREEN CARD REVOLUTION POINTS MILESTONES ── */}
+      {hasGreenCard && (
+        <GreenCardPointsCard
+          points={points}
+          directAlliesCount={directAlliesCount}
+        />
+      )}
 
       {/* ── QUICK ACTION TILES ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -17,6 +17,7 @@ import {
   Radio,
   Wifi,
   User,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
@@ -31,6 +32,7 @@ export interface DigitalGreenCardProps {
   className?: string;
   showControls?: boolean;
   avatarUrl?: string;
+  points?: number;
 }
 
 export function formatAgcId(id?: string): string {
@@ -51,6 +53,7 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
   isActive = true,
   className = "",
   showControls = true,
+  points = 0,
 }) => {
   const navigate = useNavigate();
   const [isFlipped, setIsFlipped] = useState(false);
@@ -213,6 +216,16 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
               <Copy className="w-3.5 h-3.5 text-gray-500" />
             )}
           </button>
+
+          {typeof points === "number" && points > 0 && (
+            <div
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-amber-50 text-amber-900 border border-amber-300 shadow-2xs"
+              title="Green Card Points"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              <span>{points.toLocaleString()} PTS</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -367,6 +380,15 @@ export const DigitalGreenCard: React.FC<DigitalGreenCardProps> = ({
                         VERIFIED SECURE
                       </span>
                     </div>
+
+                    {typeof points === "number" && points > 0 && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-amber-500/25 via-emerald-950/60 to-amber-600/30 border border-amber-300/60 backdrop-blur-xs shadow-inner shrink-0">
+                        <Sparkles className="w-3 h-3 text-amber-300 shrink-0" />
+                        <span className="text-[9px] sm:text-[10px] font-black tracking-wider font-mono text-amber-200">
+                          {points.toLocaleString()} PTS
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Embossed Member ID Code */}
