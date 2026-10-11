@@ -310,69 +310,65 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-gradient-to-br from-[#062115] via-[#04170e] to-[#020e07] text-white shadow-md p-3.5 sm:p-4.5 ${className}`}
+      className={`relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-gradient-to-br from-[#062115] via-[#04170e] to-[#020e07] text-white shadow-md p-3 sm:p-3.5 flex flex-col justify-between ${className}`}
     >
       {/* ── HEADER ROW WITH COMPACT NAVIGATION & VIEW FULL NETWORK LINK ── */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 mb-3 pb-2.5 border-b border-white/10">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0">
-            <Flame className="w-3.5 h-3.5 text-emerald-400" />
+      <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-white/10">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <div className="w-5 h-5 rounded-md bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0">
+            <Flame className="w-3 h-3 text-emerald-400" />
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight">
+          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+            <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight truncate">
               GREEN CARD FIRST 5™
             </h3>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              Level {viewingLevel}
+            <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              L{viewingLevel}
             </span>
             {viewingLevel === activelyFillingLevel && (
-              <span className="text-[9px] font-semibold uppercase px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                Actively Filling
+              <span className="text-[8.5px] font-semibold uppercase px-1 py-0.2 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                Filling
               </span>
             )}
           </div>
         </div>
 
         {/* Strategic Link: View Full Network & Level Controls */}
-        <div className="flex items-center gap-2 ml-auto">
-          {/* Neat, small View Full Network link */}
+        <div className="flex items-center gap-1.5 shrink-0">
           <Link
             to="/dashboard/my-network"
-            className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-300 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-1 rounded-lg border border-white/10 transition-all cursor-pointer"
+            className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-300 hover:text-white bg-white/5 hover:bg-white/10 px-2 py-0.5 rounded-md border border-white/10 transition-all cursor-pointer"
             title="View complete interactive network organogram"
           >
-            <Users className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden sm:inline">View Full Network</span>
-            <span className="sm:hidden">Network</span>
-            <ArrowUpRight className="w-3 h-3 text-white/50" />
+            <Users className="w-3 h-3 text-emerald-400" />
+            <span className="hidden sm:inline">Network</span>
+            <ArrowUpRight className="w-2.5 h-2.5 text-white/50" />
           </Link>
 
           {/* Level Switcher (< Back / Next >) */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <button
               type="button"
               onClick={() => setViewingLevel((prev) => Math.max(1, prev - 1))}
               disabled={viewingLevel <= 1}
-              className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-0.5 text-[11px] font-semibold"
+              className="px-1.5 py-0.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center text-[10px] font-semibold"
               title="Go back to previous level"
             >
-              <ChevronLeft className="w-3.5 h-3.5" />
-              <span>Back</span>
+              <ChevronLeft className="w-3 h-3" />
             </button>
 
-            <div className="px-2 py-0.5 rounded-md bg-black/40 border border-white/10 text-[11px] font-mono font-bold text-emerald-300">
-              {currentTier.current} / {currentTier.capacity}
+            <div className="px-1.5 py-0.5 rounded bg-black/40 border border-white/10 text-[10px] font-mono font-bold text-emerald-300">
+              {currentTier.current}/{currentTier.capacity}
             </div>
 
             <button
               type="button"
               onClick={() => setViewingLevel((prev) => Math.min(maxViewableLevel, prev + 1))}
               disabled={viewingLevel >= maxViewableLevel}
-              className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center gap-0.5 text-[11px] font-semibold"
+              className="px-1.5 py-0.5 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all cursor-pointer flex items-center text-[10px] font-semibold"
               title="Go to next level"
             >
-              <span>Next</span>
-              <ChevronRight className="w-3.5 h-3.5" />
+              <ChevronRight className="w-3 h-3" />
             </button>
           </div>
         </div>
@@ -384,30 +380,22 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
         const remainingSlots = Math.max(0, currentTier.capacity - currentTier.current);
 
         return (
-          <div className="mb-3 bg-black/35 rounded-xl px-3.5 py-2.5 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-white uppercase tracking-wide">
-                  Level {viewingLevel}
-                </span>
-                <span className="text-xs font-mono font-bold text-emerald-300">
-                  {currentTier.current} / {currentTier.capacity} Enrollees
-                </span>
-                {currentTier.isDone && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-400/15 px-1.5 py-0.2 rounded border border-amber-400/30">
-                    <CheckCircle2 className="w-3 h-3 text-amber-400" />
-                    Completed
-                  </span>
-                )}
-              </div>
-              <span className="hidden sm:inline text-white/30 text-xs">•</span>
-              <span className="text-[11px] text-emerald-200/80">
-                {recruitsWith5} of {currentTier.current} recruits have recruited their first direct 5
-                {remainingSlots > 0 && ` (${remainingSlots} to go for this level)`}
+          <div className="mb-2 bg-black/35 rounded-lg px-2.5 py-1.5 border border-white/5 flex items-center justify-between gap-2 text-[10px]">
+            <div className="flex items-center gap-1.5 truncate">
+              <span className="font-bold text-white uppercase">
+                L{viewingLevel}:
+              </span>
+              <span className="font-mono font-bold text-emerald-300">
+                {currentTier.current}/{currentTier.capacity}
+              </span>
+              <span className="text-white/30 hidden sm:inline">•</span>
+              <span className="text-emerald-200/80 truncate hidden sm:inline">
+                {recruitsWith5} of {currentTier.current} recruited direct 5
+                {remainingSlots > 0 && ` (${remainingSlots} to go)`}
               </span>
             </div>
 
-            <div className="w-full sm:w-44 bg-white/10 rounded-full h-1.5 overflow-hidden shrink-0">
+            <div className="w-24 sm:w-36 bg-white/10 rounded-full h-1 overflow-hidden shrink-0">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(100, (currentTier.current / currentTier.capacity) * 100)}%` }}
@@ -419,8 +407,8 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
         );
       })()}
 
-      {/* ── MEMBER CARDS (HORIZONTAL SCROLL TRACK WHEN OVERFLOWING) ── */}
-      <div className="flex gap-2.5 overflow-x-auto pb-2.5 mb-2.5 scroll-smooth scrollbar-thin scrollbar-thumb-emerald-700/60 scrollbar-track-white/5">
+      {/* ── MEMBER CARDS (HORIZONTAL SCROLL TRACK) ── */}
+      <div className="flex gap-2 overflow-x-auto pb-1.5 mb-1.5 scroll-smooth scrollbar-thin scrollbar-thumb-emerald-700/60 scrollbar-track-white/5">
         {displayedMembers.map((member, idx) => {
           const directs = member.directsCount || 0;
           const isFull5 = directs >= 5;
@@ -428,7 +416,7 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
           return (
             <div
               key={member.id || idx}
-              className={`p-2.5 rounded-xl transition-all border flex flex-col justify-between min-h-[66px] min-w-[190px] w-[210px] shrink-0 ${
+              className={`p-1.5 sm:p-2 rounded-lg transition-all border flex flex-col justify-between min-h-[46px] min-w-[150px] w-[165px] shrink-0 ${
                 isFull5
                   ? "bg-emerald-500/15 border-emerald-400/50 text-white"
                   : directs > 0
@@ -436,24 +424,16 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
                   : "bg-white/5 border-white/10 text-emerald-200/80"
               }`}
             >
-              <div className="flex items-start justify-between gap-1.5">
-                <div className="min-w-0 flex-1">
-                  <span
-                    className="text-xs font-semibold text-white block truncate"
-                    title={member.fullName}
-                  >
-                    {member.fullName}
-                  </span>
-                  {member.memberId && (
-                    <span className="text-[10px] text-emerald-300/70 font-mono block truncate">
-                      {member.memberId}
-                    </span>
-                  )}
-                </div>
-
-                {/* Direct recruits summary badge: x/5 */}
+              <div className="flex items-center justify-between gap-1">
                 <span
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold shrink-0 ${
+                  className="text-[11px] font-semibold text-white truncate flex-1"
+                  title={member.fullName}
+                >
+                  {member.fullName}
+                </span>
+
+                <span
+                  className={`px-1 py-0.2 rounded text-[9px] font-mono font-bold shrink-0 ${
                     isFull5
                       ? "bg-emerald-400 text-emerald-950 font-black"
                       : directs > 0
@@ -466,7 +446,7 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
               </div>
 
               {/* Mini progress bar on card */}
-              <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden mt-1.5">
+              <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden mt-1">
                 <div
                   className={`h-full rounded-full transition-all ${
                     isFull5 ? "bg-emerald-300" : "bg-emerald-400/80"
@@ -478,29 +458,29 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
           );
         })}
 
-        {/* Level 1 Open Slot Placeholders (Always show up to 5 on Level 1) */}
+        {/* Level 1 Open Slot Placeholders */}
         {viewingLevel === 1 &&
           Array.from({ length: Math.max(0, 5 - displayedMembers.length) }).map((_, idx) => (
             <div
               key={`open-l1-${idx}`}
-              className="p-2.5 rounded-xl border border-dashed border-white/15 bg-white/[0.02] flex flex-col justify-between min-h-[66px] min-w-[190px] w-[210px] shrink-0 text-white/30"
+              className="p-1.5 sm:p-2 rounded-lg border border-dashed border-white/15 bg-white/[0.02] flex flex-col justify-between min-h-[46px] min-w-[150px] w-[165px] shrink-0 text-white/30"
             >
-              <div className="flex items-start justify-between gap-1">
-                <span className="text-xs font-medium truncate">
+              <div className="flex items-center justify-between gap-1">
+                <span className="text-[10px] font-medium truncate">
                   Open Slot #{displayedMembers.length + idx + 1}
                 </span>
-                <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-white/5 text-white/40">
+                <span className="text-[9px] font-mono font-bold px-1 py-0.2 rounded bg-white/5 text-white/40">
                   0/5
                 </span>
               </div>
-              <span className="text-[9px] text-white/30 italic">Awaiting recruit</span>
+              <span className="text-[8.5px] text-white/30 italic">Awaiting recruit</span>
             </div>
           ))}
 
         {/* Unfilled Level Empty State */}
         {viewingLevel > 1 && displayedMembers.length === 0 && (
-          <div className="w-full py-4 px-3 rounded-xl bg-white/[0.03] border border-dashed border-white/10 text-center">
-            <p className="text-xs text-emerald-200/70">
+          <div className="w-full py-2.5 px-3 rounded-lg bg-white/[0.03] border border-dashed border-white/10 text-center">
+            <p className="text-[10px] text-emerald-200/70">
               Level {viewingLevel} slots will unlock as Level {viewingLevel - 1} partners recruit their direct 5.
             </p>
           </div>
@@ -508,34 +488,34 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
       </div>
 
       {/* ── STATUTORY QUALIFICATION FOOTNOTE ── */}
-      <p className="text-[10px] text-emerald-300/80 italic mb-3 leading-relaxed">
-        * Note: Only direct recruits with active Green Card, Starter Pack (100g), and 1 Farm Slot count toward First 5 progression (spillovers excluded).
+      <p className="text-[9px] text-emerald-300/70 italic mb-2 leading-tight line-clamp-1">
+        * Note: Direct recruits with active Green Card, Starter Pack (100g), and 1 Farm Slot count toward First 5 progression.
       </p>
 
       {/* ── COMPACT ACTION ROW (WHATSAPP SHARE & COPY LINK) ── */}
-      <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+      <div className="flex items-center gap-1.5 pt-1.5 border-t border-white/10">
         <button
           type="button"
           onClick={handleShareWhatsApp}
-          className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-bold transition-all cursor-pointer"
+          className="flex-1 inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md bg-green-600 hover:bg-green-700 text-white text-[11px] font-bold transition-all cursor-pointer"
         >
-          <MessageCircle className="w-3.5 h-3.5" />
-          <span>Share on WhatsApp</span>
+          <MessageCircle className="w-3 h-3" />
+          <span>WhatsApp</span>
         </button>
 
         <button
           type="button"
           onClick={handleCopyLink}
-          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/20 text-white text-xs font-semibold transition-all cursor-pointer"
+          className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-md bg-white/10 hover:bg-white/15 border border-white/20 text-white text-[11px] font-semibold transition-all cursor-pointer"
         >
           {copiedLink ? (
             <>
-              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <Check className="w-3 h-3 text-emerald-400" />
               <span>Copied!</span>
             </>
           ) : (
             <>
-              <Copy className="w-3.5 h-3.5 text-emerald-300" />
+              <Copy className="w-3 h-3 text-emerald-300" />
               <span>Copy Link</span>
             </>
           )}
