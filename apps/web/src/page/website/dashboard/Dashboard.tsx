@@ -840,34 +840,42 @@ const Dashboard = () => {
       </div>
 
       <div className="px-4 md:px-8 -mt-8 pb-12 max-w-[96%] mx-auto">
-        {/* ── HANDOVER: BANNER (BEFORE MILESTONE 2) vs GREEN CARD FIRST 5™ (AFTER MILESTONE 2) ── */}
+        {/* ── HANDOVER: BANNER (BEFORE MILESTONE 2) vs GREEN CARD FIRST 5™ & POINTS SIDE-BY-SIDE (AFTER MILESTONE 2) ── */}
         {!profile?.has_purchased_starter_pack ? (
-          <CutoverCountdownBanner
-            className="mb-6"
-            hasPurchasedStarterPack={false}
-            hasSlots={totalSlotsPurchased > 0}
-          />
+          <>
+            <CutoverCountdownBanner
+              className="mb-6"
+              hasPurchasedStarterPack={false}
+              hasSlots={totalSlotsPurchased > 0}
+            />
+            {hasGreenCard && (
+              <GreenCardPointsCard
+                points={Number(profile?.green_card_points || 0)}
+                hasGreenCard={hasGreenCard}
+                directAlliesCount={qualifiedDirectsCount}
+                className="mb-6"
+              />
+            )}
+          </>
         ) : (
           hasGreenCard && (
-            <GreenCardFirst5Card
-              directReferralsCount={qualifiedDirectsCount}
-              referralCode={profile?.referral_code}
-              hasGreenCard={hasGreenCard}
-              referralsList={enrichedDirects}
-              matrixLevels={matrixLevels}
-              className="mb-6"
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 items-stretch">
+              <GreenCardFirst5Card
+                directReferralsCount={qualifiedDirectsCount}
+                referralCode={profile?.referral_code}
+                hasGreenCard={hasGreenCard}
+                referralsList={enrichedDirects}
+                matrixLevels={matrixLevels}
+                className="h-full"
+              />
+              <GreenCardPointsCard
+                points={Number(profile?.green_card_points || 0)}
+                hasGreenCard={hasGreenCard}
+                directAlliesCount={qualifiedDirectsCount}
+                className="h-full"
+              />
+            </div>
           )
-        )}
-
-        {/* ── GREEN CARD POINTS: MORE POWER TO THE REVOLUTION! ── */}
-        {hasGreenCard && (
-          <GreenCardPointsCard
-            points={Number(profile?.green_card_points || 0)}
-            hasGreenCard={hasGreenCard}
-            directAlliesCount={qualifiedDirectsCount}
-            className="mb-6"
-          />
         )}
 
         {/* ── 3-STEP JOURNEY PROGRESSION ACCORDION (LEAP PATHWAY) ── */}

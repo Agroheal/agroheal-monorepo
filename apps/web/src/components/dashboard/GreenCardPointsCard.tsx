@@ -26,7 +26,7 @@ export const GreenCardPointsCard: React.FC<GreenCardPointsCardProps> = ({
 
   return (
     <div
-      className={`relative rounded-3xl overflow-hidden border border-emerald-500/30 bg-gradient-to-br from-[#041a0d] via-[#062c16] to-[#03150a] shadow-xl p-5 sm:p-7 text-white ${className}`}
+      className={`relative rounded-3xl overflow-hidden border border-emerald-500/30 bg-gradient-to-br from-[#041a0d] via-[#062c16] to-[#03150a] shadow-xl p-5 sm:p-7 text-white flex flex-col justify-between ${className}`}
     >
       {/* Decorative ambient background glows */}
       <div className="absolute -top-24 -right-24 w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
@@ -80,7 +80,7 @@ export const GreenCardPointsCard: React.FC<GreenCardPointsCardProps> = ({
       </div>
 
       {/* 2 Milestone Cards */}
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="relative z-10 grid grid-cols-1 xl:grid-cols-2 gap-3.5 flex-1">
         {/* Milestone 1: WHEN YOU JOIN */}
         <div
           className={`relative rounded-2xl p-4 sm:p-5 border transition-all ${
