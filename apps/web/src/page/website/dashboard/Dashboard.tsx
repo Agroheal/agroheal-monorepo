@@ -972,7 +972,7 @@ const Dashboard = () => {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            window.open("https://wa.link/5ff5ww", "_blank", "noreferrer");
+                            window.open("https://chat.whatsapp.com/JNekCCmjxVq28tnhIz5vyy?s=cl&p=a&mlu=4&ilr=4", "_blank", "noreferrer");
                           }}
                           className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20b858] text-white shadow-xs hover:shadow-sm transition-all cursor-pointer"
                         >
