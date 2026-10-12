@@ -310,10 +310,10 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-gradient-to-br from-[#062115] via-[#04170e] to-[#020e07] text-white shadow-md p-3 sm:p-3.5 flex flex-col justify-between ${className}`}
+      className={`relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-[#02180e] via-[#052615] to-[#011108] shadow-lg p-3.5 sm:p-4 text-white flex flex-col justify-between ${className}`}
     >
       {/* ── HEADER ROW WITH COMPACT NAVIGATION & VIEW FULL NETWORK LINK ── */}
-      <div className="flex items-center justify-between gap-2 mb-2 pb-2 border-b border-white/10">
+      <div className="flex items-center justify-between gap-2 mb-2.5 pb-2.5 border-b border-white/10">
         <div className="flex items-center gap-1.5 min-w-0">
           <div className="w-5 h-5 rounded-md bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center shrink-0">
             <Flame className="w-3 h-3 text-emerald-400" />
@@ -357,7 +357,7 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
               <ChevronLeft className="w-3 h-3" />
             </button>
 
-            <div className="px-1.5 py-0.5 rounded bg-black/40 border border-white/10 text-[10px] font-mono font-bold text-emerald-300">
+            <div className="px-1.5 py-0.5 rounded bg-black/50 border border-white/15 text-[10px] font-mono font-bold text-emerald-300 shadow-inner">
               {currentTier.current}/{currentTier.capacity}
             </div>
 
@@ -380,7 +380,7 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
         const remainingSlots = Math.max(0, currentTier.capacity - currentTier.current);
 
         return (
-          <div className="mb-2 bg-black/35 rounded-lg px-2.5 py-1.5 border border-white/5 flex items-center justify-between gap-2 text-[10px]">
+          <div className="mb-2.5 bg-black/45 rounded-xl px-3 py-2 border border-white/10 flex items-center justify-between gap-2 text-[10px]">
             <div className="flex items-center gap-1.5 truncate">
               <span className="font-bold text-white uppercase">
                 L{viewingLevel}:
@@ -395,7 +395,7 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
               </span>
             </div>
 
-            <div className="w-24 sm:w-36 bg-white/10 rounded-full h-1 overflow-hidden shrink-0">
+            <div className="w-24 sm:w-36 bg-white/10 rounded-full h-1.5 overflow-hidden shrink-0">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${Math.min(100, (currentTier.current / currentTier.capacity) * 100)}%` }}
@@ -408,7 +408,7 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
       })()}
 
       {/* ── MEMBER CARDS (HORIZONTAL SCROLL TRACK) ── */}
-      <div className="flex gap-2 overflow-x-auto pb-1.5 mb-1.5 scroll-smooth scrollbar-thin scrollbar-thumb-emerald-700/60 scrollbar-track-white/5">
+      <div className="flex gap-2 overflow-x-auto pb-2 mb-2 scroll-smooth scrollbar-thin scrollbar-thumb-emerald-700/60 scrollbar-track-white/5">
         {displayedMembers.map((member, idx) => {
           const directs = member.directsCount || 0;
           const isFull5 = directs >= 5;
@@ -416,9 +416,9 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
           return (
             <div
               key={member.id || idx}
-              className={`p-1.5 sm:p-2 rounded-lg transition-all border flex flex-col justify-between min-h-[46px] min-w-[150px] w-[165px] shrink-0 ${
+              className={`p-2 rounded-xl transition-all border flex flex-col justify-between min-h-[48px] min-w-[155px] w-[170px] shrink-0 ${
                 isFull5
-                  ? "bg-emerald-500/15 border-emerald-400/50 text-white"
+                  ? "bg-emerald-500/20 border-emerald-400/50 text-white shadow-sm"
                   : directs > 0
                   ? "bg-white/10 border-emerald-500/30 text-white"
                   : "bg-white/5 border-white/10 text-emerald-200/80"

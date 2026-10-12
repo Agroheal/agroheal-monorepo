@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import type { Member, PaymentLog } from "@/types/admin";
 
 interface RawProfileRow {
@@ -26,6 +25,7 @@ interface RawProfileRow {
   country?: string;
   state?: string;
   lga?: string;
+  address?: string;
   is_legacy?: boolean;
   advance_debt_balance?: number;
   is_suspended?: boolean;
@@ -41,6 +41,7 @@ interface RawSlotRow {
   slots?: number;
   amount?: number;
   last_payment_date?: string;
+  created_at?: string;
   is_legacy?: boolean;
 }
 
@@ -138,11 +139,18 @@ export function useAdminMembers() {
 
         const programMap: Record<string, { category: string; slots: number; status: string }> = {};
         let totalSlots = 0;
+        let liveSlots = 0;
+        let legacySlots = 0;
 
         userSlots.forEach((s) => {
           const category = s.project_category || "Mushroom Village";
           const slotCount = Number(s.slots) || 0;
           totalSlots += slotCount;
+          if (s.is_legacy) {
+            legacySlots += slotCount;
+          } else {
+            liveSlots += slotCount;
+          }
 
           if (!programMap[category]) {
             programMap[category] = { category, slots: 0, status: s.status || "active" };
@@ -167,14 +175,17 @@ export function useAdminMembers() {
           matrix_position: p.matrix_position ?? null,
           placement_status: p.placement_status || null,
           role: p.role || "user",
-          created_at: p.created_at ? formatWATDateTime(p.created_at) : "N/A",
+          created_at: p.created_at || "",
           has_green_card: hasGreenCard,
           green_card_expires_at: userGreenCard?.expires_at,
           total_slots: totalSlots,
+          live_slots: liveSlots,
+          legacy_slots: legacySlots,
           slots_by_program: Object.values(programMap),
           country: p.country || "Nigeria",
           state: p.state || "",
           lga: p.lga || "",
+          address: p.address || "",
           is_legacy: Boolean(p.is_legacy),
           advance_debt_balance: Number(p.advance_debt_balance) || 0,
           is_suspended: p.is_suspended === true,
@@ -232,7 +243,7 @@ export function useAdminMembers() {
           user_email: member?.email || tx.email || "Unknown",
           amount: amt,
           project_category: resolvedCategory,
-          created_at: tx.created_at ? new Date(tx.created_at).toLocaleString() : "N/A",
+          created_at: tx.created_at || "",
           slots: inferredSlots,
           status: tx.status === "paid" || tx.status === "successful" ? "success" : tx.status || "pending",
           type: "transaction",
@@ -252,7 +263,7 @@ export function useAdminMembers() {
             user_email: member?.email || "Unknown",
             amount: s.amount || 0,
             project_category: s.project_category || "Mushroom Village",
-            created_at: s.last_payment_date ? new Date(s.last_payment_date).toLocaleString() : "N/A",
+            created_at: s.last_payment_date || s.created_at || "",
             slots: s.slots || 0,
             status: s.status || "active",
             type: "slot_subscription",
@@ -272,7 +283,7 @@ export function useAdminMembers() {
             user_email: member?.email || "Unknown",
             amount: p.amount || 0,
             project_category: p.project_category || "Mushroom Village",
-            created_at: p.created_at ? new Date(p.created_at).toLocaleString() : "N/A",
+            created_at: p.created_at || "",
             slots: p.slots || 0,
             status: p.status || "success",
             type: "other_payment",

@@ -27,7 +27,11 @@ export default function LeaderboardPage() {
   const [metric, setMetric] = useState<RankingMetric>("referrals");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Compute direct referral counts for all members
+  // Compute direct referral counts for all members enforcing the 3-Tier Qualification Rule:
+  // A direct referral only counts toward leadership ranking if they have activated at least 1 tier:
+  // 1. Green Card Active OR
+  // 2. Starter Pack Active OR
+  // 3. Farm Slots Active (or Wealth Creation active)
   const referralCounts = useMemo(() => {
     const counts = new Map<string, number>();
 
@@ -41,6 +45,18 @@ export default function LeaderboardPage() {
     });
 
     members.forEach((m) => {
+      // 3-Tier direct qualification check
+      const is3TierQualified = Boolean(
+        m.has_green_card ||
+        m.has_purchased_starter_pack ||
+        m.is_wealth_creation_active ||
+        (m.total_slots && m.total_slots > 0) ||
+        (m.live_slots && m.live_slots > 0)
+      );
+
+      // If the referred member has not activated any of the 3 tiers, they do not count towards leadership rank
+      if (!is3TierQualified) return;
+
       const ref = (m.raw_referred_by || m.referred_by || "").trim();
       if (!ref) return;
 
@@ -57,18 +73,29 @@ export default function LeaderboardPage() {
     return counts;
   }, [members]);
 
-  // Enriched & ranked members
+  // Enriched & ranked members respecting active tier filter
   const rankedMembers = useMemo(() => {
     return members
       .map((m) => {
         const directRefs = referralCounts.get(m.id) || 0;
-        const totalSlots = m.total_slots || 0;
-        const isLeadershipQualified = directRefs >= 5;
+        // Tier-aware slots: live LGA slots vs legacy slots vs total
+        const activeSlots =
+          tierFilter === "live"
+            ? (m.live_slots ?? (m.is_legacy ? 0 : m.total_slots ?? 0))
+            : tierFilter === "legacy"
+            ? (m.legacy_slots ?? (m.is_legacy ? m.total_slots ?? 0 : 0))
+            : (m.total_slots ?? 0);
+
+        // Leadership pool qualification rule
+        const isLeadershipQualified =
+          tierFilter === "legacy"
+            ? directRefs >= 5 || activeSlots >= 50
+            : directRefs >= 5;
 
         return {
           ...m,
           directRefs,
-          totalSlots,
+          totalSlots: activeSlots,
           isLeadershipQualified,
         };
       })
@@ -101,30 +128,30 @@ export default function LeaderboardPage() {
 
   // Aggregate stats
   const totalQualifiedLeaders = useMemo(
-    () => members.filter((m) => (referralCounts.get(m.id) || 0) >= 5).length,
-    [members, referralCounts]
+    () =>
+      rankedMembers.filter((m) => m.isLeadershipQualified).length,
+    [rankedMembers]
   );
 
   const topReferrer = useMemo(() => {
     let top = { name: "None", count: 0 };
-    members.forEach((m) => {
-      const c = referralCounts.get(m.id) || 0;
-      if (c > top.count) {
-        top = { name: m.full_name || m.email || "Unknown", count: c };
+    rankedMembers.forEach((m) => {
+      if (m.directRefs > top.count) {
+        top = { name: m.full_name || m.email || "Unknown", count: m.directRefs };
       }
     });
     return top;
-  }, [members, referralCounts]);
+  }, [rankedMembers]);
 
   const topSlotHolder = useMemo(() => {
     let top = { name: "None", count: 0 };
-    members.forEach((m) => {
-      if ((m.total_slots || 0) > top.count) {
-        top = { name: m.full_name || m.email || "Unknown", count: m.total_slots };
+    rankedMembers.forEach((m) => {
+      if (m.totalSlots > top.count) {
+        top = { name: m.full_name || m.email || "Unknown", count: m.totalSlots };
       }
     });
     return top;
-  }, [members]);
+  }, [rankedMembers]);
 
   const handleExport = () => {
     const rows = rankedMembers.map((m, idx) => ({
@@ -275,7 +302,7 @@ export default function LeaderboardPage() {
                 <th className="py-3 px-4 w-14 text-center">Rank</th>
                 <th className="py-3 px-4">Member</th>
                 <th className="py-3 px-4">Member ID</th>
-                <th className="py-3 px-4 text-center">Direct Referrals</th>
+                <th className="py-3 px-4 text-center">Qualified Directs (3-Tier)</th>
                 <th className="py-3 px-4 text-center">Active Slots</th>
                 <th className="py-3 px-4 text-center">Green Card</th>
                 <th className="py-3 px-4 text-right">Leadership Status</th>

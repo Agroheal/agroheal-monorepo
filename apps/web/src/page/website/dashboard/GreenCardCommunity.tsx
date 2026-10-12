@@ -18,7 +18,6 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import DigitalGreenCard, { formatAgcId } from "@/components/greencard/DigitalGreenCard";
-import { GreenCardPointsCard } from "@/components/dashboard/GreenCardPointsCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import GreenCardSkeleton from "@/components/dashboard/GreenCardSkeleton";
 
@@ -278,13 +277,6 @@ export const GreenCardCommunity: React.FC = () => {
         />
       </div>
 
-      {/* ── GREEN CARD REVOLUTION POINTS MILESTONES ── */}
-      {hasGreenCard && (
-        <GreenCardPointsCard
-          points={points}
-          directAlliesCount={directAlliesCount}
-        />
-      )}
 
       {/* ── QUICK ACTION TILES ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

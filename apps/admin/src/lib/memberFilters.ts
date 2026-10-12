@@ -50,10 +50,17 @@ export function filterMemberPredicate(
   if (greenCardFilter === "active" && !m.has_green_card) return false;
   if (greenCardFilter === "unpaid" && m.has_green_card) return false;
 
+  const effectiveSlots =
+    options?.tierFilter === "live"
+      ? (m.live_slots ?? (!m.is_legacy ? m.total_slots : 0))
+      : options?.tierFilter === "legacy"
+      ? (m.legacy_slots ?? (m.is_legacy ? m.total_slots : 0))
+      : m.total_slots;
+
   if (programFilter === "has_slots") {
-    if (m.total_slots <= 0) return false;
+    if (effectiveSlots <= 0) return false;
   } else if (programFilter === "no_slots") {
-    if (m.total_slots !== 0) return false;
+    if (effectiveSlots !== 0) return false;
   } else if (programFilter !== "all") {
     if (!m.slots_by_program.some((prog) => prog.category.toLowerCase().includes(programFilter.toLowerCase()))) {
       return false;

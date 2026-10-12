@@ -2,6 +2,7 @@ import { Edit3, KeyRound, Phone, MapPin, ShieldAlert, GitMerge } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { GreenCardBadge, ProgramPills, RoleBadge, TotalSlotsBadge } from "@/components/admin/MemberBadges";
+import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import { cn } from "@/lib/utils";
 import type { Member } from "@/types/admin";
 
@@ -166,7 +167,9 @@ export function MemberTable({
                     ) : null}
                   </div>
                 </TableCell>
-                <TableCell className="text-xs text-muted-foreground">{m.created_at}</TableCell>
+                <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                  {m.created_at ? formatWATDateTime(m.created_at) : "-"}
+                </TableCell>
                 <TableCell className="text-right">
                   <div className="flex flex-wrap justify-end gap-1.5">
                     {onAutoPlaceMatrix && (m.has_purchased_starter_pack || m.is_wealth_creation_active) && !m.placement_parent_id && (

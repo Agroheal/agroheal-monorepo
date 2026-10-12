@@ -36,7 +36,7 @@ import { adminApiClient } from "@/lib/apiClient";
 export default function MembersPage() {
   const { isReadOnly, isSuperDeveloper } = useAdminAuth();
   const { members, loading, refetch } = useAdminMembers();
-  const { tier } = useAdminTierFilter();
+  const { tier, setTier } = useAdminTierFilter();
   const tierFilter: DataTierFilter = tier;
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
@@ -475,6 +475,10 @@ export default function MembersPage() {
         full_name: values.full_name,
         email: values.email || undefined,
         phone: values.phone,
+        country: values.country,
+        state: values.state,
+        lga: values.lga,
+        address: values.address,
         member_id: values.member_id || undefined,
         referral_code: values.referral_code || undefined,
         role: values.role,
@@ -566,6 +570,8 @@ export default function MembersPage() {
         members={members}
         searchQuery={searchQuery}
         onSearchQueryChange={setSearchQuery}
+        tierFilter={tier}
+        onTierFilterChange={setTier}
         programFilter={programFilter}
         onProgramFilterChange={setProgramFilter}
         greenCardFilter={greenCardFilter}
@@ -596,7 +602,17 @@ export default function MembersPage() {
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>
               Directory Records ({filteredMembers.length}) &middot; Active Community Farm Slots:{" "}
-              <strong className="text-foreground">{members.reduce((sum, m) => sum + m.total_slots, 0)}</strong>
+              <strong className="text-foreground">
+                {filteredMembers.reduce((sum, m) => {
+                  const slots =
+                    tierFilter === "live"
+                      ? (m.live_slots ?? (!m.is_legacy ? m.total_slots : 0))
+                      : tierFilter === "legacy"
+                      ? (m.legacy_slots ?? (m.is_legacy ? m.total_slots : 0))
+                      : m.total_slots;
+                  return sum + slots;
+                }, 0)}
+              </strong>
             </span>
           </div>
 

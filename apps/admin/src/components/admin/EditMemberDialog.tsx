@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { AlertCircle, CreditCard, Lock, Save, Shield, ShieldCheck, UserCog, Building2, Unlock } from "lucide-react";
+import { AlertCircle, CreditCard, Lock, Save, Shield, ShieldCheck, UserCog, Building2, Unlock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,6 +13,7 @@ import { getProgramEmoji, getProgramPillClass } from "@/lib/memberFilters";
 import { cn } from "@/lib/utils";
 import type { Member } from "@/types/admin";
 import { cleanName, cleanEmail, normalizePhoneNumber, cleanMemberId, cleanReferralCode } from "@shared/dataSanitizers";
+import { NIGERIA_STATES, getLgasForState } from "@shared/nigeriaLocations";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { adminApiClient } from "@/lib/apiClient";
 import { useState } from "react";
@@ -21,6 +22,10 @@ const editMemberSchema = z.object({
   full_name: z.string().trim().min(1, "Full Name cannot be empty."),
   email: z.union([z.string().trim().email("Enter a valid email"), z.literal("")]),
   phone: z.string().trim(),
+  country: z.string().trim().optional(),
+  state: z.string().trim().optional(),
+  lga: z.string().trim().optional(),
+  address: z.string().trim().optional(),
   member_id: z.string().trim(),
   referral_code: z.string().trim(),
   role: z.string(),
@@ -75,6 +80,10 @@ export function EditMemberDialog({
       full_name: "",
       email: "",
       phone: "",
+      country: "Nigeria",
+      state: "",
+      lga: "",
+      address: "",
       member_id: "",
       referral_code: "",
       role: "user",
@@ -94,6 +103,10 @@ export function EditMemberDialog({
         full_name: member.full_name || "",
         email: member.email === "No Email" ? "" : member.email,
         phone: member.phone || "",
+        country: member.country || "Nigeria",
+        state: member.state || "",
+        lga: member.lga || "",
+        address: member.address || "",
         member_id: member.member_id === "No ID Assigned" ? "" : member.member_id,
         referral_code: member.referral_code || "",
         role: member.role || "user",
@@ -144,6 +157,9 @@ export function EditMemberDialog({
         ...availableRoleOptions,
       ];
 
+  const selectedState = form.watch("state");
+  const availableLgas = selectedState ? getLgasForState(selectedState as any) : [];
+
   return (
     <Dialog open={Boolean(member)} onOpenChange={onOpenChange}>
       <DialogContent className="w-[95vw] sm:max-w-lg max-h-[90vh] overflow-y-auto p-4 sm:p-6">
@@ -160,6 +176,10 @@ export function EditMemberDialog({
                 full_name: cleanName(values.full_name),
                 email: cleanEmail(values.email),
                 phone: normalizePhoneNumber(values.phone),
+                country: values.country?.trim() || "Nigeria",
+                state: values.state?.trim() || "",
+                lga: values.lga?.trim() || "",
+                address: values.address?.trim() || "",
                 member_id: cleanMemberId(values.member_id),
                 referral_code: cleanReferralCode(values.referral_code),
                 role: values.role,
@@ -273,6 +293,122 @@ export function EditMemberDialog({
                 </FormItem>
               )}
             />
+
+            {/* Bio-Data & Geographic Location */}
+            <div className="rounded-lg border border-border bg-background/50 p-3.5 space-y-3">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground border-b border-border/60 pb-2">
+                <MapPin className="h-4 w-4 text-emerald-500" />
+                Geographic Bio-Data &amp; Address
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="country"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-xs">Country</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Nigeria" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="state"
+                  render={({ field }) => {
+                    const stateOptions = field.value && !(NIGERIA_STATES as readonly string[]).includes(field.value)
+                      ? [field.value, ...NIGERIA_STATES]
+                      : NIGERIA_STATES;
+                    return (
+                      <FormItem>
+                        <FormLabel className="text-xs">State</FormLabel>
+                        <Select
+                          value={field.value || undefined}
+                          onValueChange={(val) => {
+                            field.onChange(val);
+                            form.setValue("lga", "");
+                          }}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="text-xs">
+                              <SelectValue placeholder="Select State" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="max-h-[250px]">
+                            {stateOptions.map((st) => (
+                              <SelectItem key={st} value={st} textValue={st}>
+                                {st}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="lga"
+                render={({ field }) => {
+                  const lgaOptions = field.value && !availableLgas.includes(field.value)
+                    ? [field.value, ...availableLgas]
+                    : availableLgas;
+                  return (
+                    <FormItem>
+                      <FormLabel className="text-xs">Local Government Area (LGA)</FormLabel>
+                      <Select
+                        value={field.value || undefined}
+                        onValueChange={field.onChange}
+                        disabled={!selectedState || lgaOptions.length === 0}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="text-xs disabled:opacity-50">
+                            <SelectValue
+                              placeholder={
+                                !selectedState
+                                  ? "Select State First"
+                                  : lgaOptions.length === 0
+                                  ? "No LGAs available"
+                                  : "Select LGA"
+                              }
+                            />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="max-h-[250px]">
+                          {lgaOptions.map((lgaName) => (
+                            <SelectItem key={lgaName} value={lgaName} textValue={lgaName}>
+                              {lgaName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
+
+              <FormField
+                control={form.control}
+                name="address"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-xs">Residential / Delivery Address</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter street address, landmark or farm location" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField

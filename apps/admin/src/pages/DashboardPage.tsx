@@ -11,7 +11,7 @@ import {
   UserPlus,
   ArrowRight,
   Clock,
-  Layers,
+  Banknote,
 } from "lucide-react";
 import { useAdminMembers } from "@/hooks/useAdminMembers";
 import { useAdminTierFilter } from "@/context/AdminTierContext";
@@ -40,7 +40,6 @@ export default function DashboardPage() {
   const [showCreditorModal, setShowCreditorModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [showVerifyFlwModal, setShowVerifyFlwModal] = useState(false);
-  const [showInlineForms, setShowInlineForms] = useState(false);
 
   const [serverStats, setServerStats] = useState<{
     totalMembers: number;
@@ -185,7 +184,7 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard
           label="Registered Members"
           value={registeredMembersCount}
@@ -224,6 +223,13 @@ export default function DashboardPage() {
           loading={loading && !serverStats}
         />
         <StatCard
+          label="Total Slot Capital"
+          value={`₦${(displayedActiveSlots * 5000).toLocaleString()}`}
+          footer="₦3,500 Setup • ₦1,000 Sub • ₦500 Support"
+          icon={Banknote}
+          loading={loading && !serverStats}
+        />
+        <StatCard
           label="Platform Operations"
           value={displayedLogs.length}
           footer={
@@ -238,35 +244,45 @@ export default function DashboardPage() {
         />
       </div>
 
-      {/* Operations Quick Toggle & Inline Forms (Collapsible) */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
-        <span className="font-medium text-foreground">Operational Workflows</span>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setShowInlineForms(!showInlineForms)}
-          className="text-xs h-7 text-muted-foreground hover:text-foreground gap-1.5"
-        >
-          <Layers className="w-3.5 h-3.5" />
-          {showInlineForms ? "Hide Manual Forms" : "Show Manual Forms"}
-        </Button>
-      </div>
+      {/* Financial Structure Summary Card */}
+      <Card className="p-4 border-border bg-card/60">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 shrink-0">
+              <Banknote className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-bold text-foreground">Standard Farm Slot Financial Architecture</span>
+                <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 text-[10px] font-mono font-bold text-emerald-400">
+                  ₦5,000 / Slot
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Statutory capital distribution applied across all modern community production units and programs.
+              </p>
+            </div>
+          </div>
 
-      {showInlineForms && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <SlotCreditorForm
-            members={members}
-            onCredited={refetch}
-            onSuccess={(msg) => flash(setSuccessMessage, msg)}
-            onError={(msg) => flash(setErrorMessage, msg)}
-          />
-          <OfflineRegistrationForm
-            onRegistered={refetch}
-            onSuccess={(msg) => flash(setSuccessMessage, msg)}
-            onError={(msg) => flash(setErrorMessage, msg)}
-          />
+          <div className="grid grid-cols-3 gap-2 sm:gap-4 text-xs font-mono">
+            <div className="rounded-lg bg-background/60 border border-border/60 p-2.5 text-center">
+              <span className="block text-[10px] font-sans text-muted-foreground uppercase font-semibold">Farm Setup / Capital</span>
+              <span className="font-bold text-foreground text-xs sm:text-sm">₦3,500</span>
+              <span className="block text-[10px] font-sans text-emerald-400 font-medium">70% Allocation</span>
+            </div>
+            <div className="rounded-lg bg-background/60 border border-border/60 p-2.5 text-center">
+              <span className="block text-[10px] font-sans text-muted-foreground uppercase font-semibold">Slot Subscription</span>
+              <span className="font-bold text-foreground text-xs sm:text-sm">₦1,000</span>
+              <span className="block text-[10px] font-sans text-blue-400 font-medium">20% Allocation</span>
+            </div>
+            <div className="rounded-lg bg-background/60 border border-border/60 p-2.5 text-center">
+              <span className="block text-[10px] font-sans text-muted-foreground uppercase font-semibold">Support &amp; Commission</span>
+              <span className="font-bold text-foreground text-xs sm:text-sm">₦500</span>
+              <span className="block text-[10px] font-sans text-amber-400 font-medium">10% Allocation</span>
+            </div>
+          </div>
         </div>
-      )}
+      </Card>
 
       {/* Recent Enrolled Members Table */}
       <Card className="p-4 border-border">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Loader2,
   AlertTriangle,
@@ -10,14 +10,21 @@ import {
   RefreshCw,
   ShieldCheck,
   UserCheck,
+  Search,
+  ArrowUpDown,
+  Filter,
+  MapPin,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBanner } from "@/components/admin/StatusBanner";
 import { useFarmAssignmentGaps, type FarmAssignmentGap } from "@/hooks/useFarmAssignmentGaps";
 import { type FarmGroup } from "@/lib/farmAssignment";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { useAdminTierFilter } from "@/context/AdminTierContext";
 import { exportToExcel } from "@shared/excelExport";
 import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import { adminApiClient } from "@/lib/apiClient";
@@ -66,10 +73,14 @@ interface RealCluster {
   modernSlots: number;
   legacySlots: number;
   totalBags: number;
+  isLgaCluster?: boolean;
+  state?: string;
+  lga?: string;
 }
 
 export default function FarmAssignmentsPage() {
   const { profile, isReadOnly, isAdmin, isSuperDeveloper, isCoordinator } = useAdminAuth();
+  const { tier } = useAdminTierFilter();
 
   // Active Tab
   const [activeTab, setActiveTab] = useState<"cycles" | "gaps">("cycles");
@@ -84,7 +95,8 @@ export default function FarmAssignmentsPage() {
   };
 
   // ── TAB 1: REAL FARM CLUSTERS & PRODUCTION CYCLES ──
-  const [clusters, setClusters] = useState<RealCluster[]>([]);
+  const [modernClusters, setModernClusters] = useState<RealCluster[]>([]);
+  const [legacyClusters, setLegacyClusters] = useState<RealCluster[]>([]);
   const [clustersLoading, setClustersLoading] = useState(false);
   const [cyclesLoading, setCyclesLoading] = useState(false);
   const [cyclesByFarm, setCyclesByFarm] = useState<Record<string, LiveCycle>>({});
@@ -102,23 +114,79 @@ export default function FarmAssignmentsPage() {
   const [farmGroups, setFarmGroups] = useState<FarmGroup[]>([]);
   const [assignModalGap, setAssignModalGap] = useState<FarmAssignmentGap | null>(null);
 
+  // Gap Filtering & Intelligent Sorting
+  const [gapSearch, setGapSearch] = useState("");
+  const [gapStateFilter, setGapStateFilter] = useState("all");
+  const [gapSortBy, setGapSortBy] = useState<
+    "shortfall_desc" | "shortfall_asc" | "state_asc" | "state_desc" | "name_asc" | "name_desc" | "purchased_desc"
+  >("shortfall_desc");
+
+  // Dynamically select clusters based on the active admin tier
+  const displayedClusters = useMemo(() => {
+    if (tier === "live") return modernClusters;
+    if (tier === "legacy") return legacyClusters;
+    return [...modernClusters, ...legacyClusters];
+  }, [tier, modernClusters, legacyClusters]);
+
+  // Extract unique states for gap filtering
+  const availableGapStates = useMemo(() => {
+    const set = new Set<string>();
+    gaps.forEach((g) => {
+      if (g.state && g.state.trim() && g.state !== "Unassigned") {
+        set.add(g.state.trim());
+      }
+    });
+    return Array.from(set).sort();
+  }, [gaps]);
+
+  // Filter and sort gaps
+  const filteredGaps = useMemo(() => {
+    return gaps
+      .filter((g) => {
+        const term = gapSearch.toLowerCase().trim();
+        const matchesSearch =
+          !term ||
+          g.fullName?.toLowerCase().includes(term) ||
+          g.email?.toLowerCase().includes(term) ||
+          g.phone?.toLowerCase().includes(term) ||
+          g.category?.toLowerCase().includes(term) ||
+          g.state?.toLowerCase().includes(term) ||
+          g.lga?.toLowerCase().includes(term);
+
+        const matchesState =
+          gapStateFilter === "all" ||
+          (g.state && g.state.toLowerCase() === gapStateFilter.toLowerCase());
+
+        return matchesSearch && matchesState;
+      })
+      .sort((a, b) => {
+        if (gapSortBy === "shortfall_desc") return b.shortfall - a.shortfall;
+        if (gapSortBy === "shortfall_asc") return a.shortfall - b.shortfall;
+        if (gapSortBy === "state_asc") return (a.state || "").localeCompare(b.state || "");
+        if (gapSortBy === "state_desc") return (b.state || "").localeCompare(a.state || "");
+        if (gapSortBy === "name_asc") return (a.fullName || "").localeCompare(b.fullName || "");
+        if (gapSortBy === "name_desc") return (b.fullName || "").localeCompare(a.fullName || "");
+        if (gapSortBy === "purchased_desc") return b.slotsPurchased - a.slotsPurchased;
+        return 0;
+      });
+  }, [gaps, gapSearch, gapStateFilter, gapSortBy]);
+
   const loadFarmData = async () => {
     setClustersLoading(true);
     try {
-      // 1. Fetch real farm groups
-      const { data: groupsData, error: groupsErr } = await supabase
-        .from("farm_groups")
-        .select("id, name, project_category")
-        .order("name");
-
-      if (groupsErr) throw groupsErr;
-
-      // 2. Fetch both modern slot_subscriptions and legacy records
-      const [subsRes, recordsRes, lgRecordsRes] = await Promise.all([
+      // 1. Fetch real farm groups, active subscriptions, profiles, and legacy records
+      const [groupsRes, subsRes, profRes, recordsRes, lgRecordsRes] = await Promise.all([
+        supabase
+          .from("farm_groups")
+          .select("id, name, project_category")
+          .order("name"),
         supabase
           .from("slot_subscriptions")
-          .select("farm_group_id, slots, is_legacy")
-          .not("farm_group_id", "is", null),
+          .select("id, user_id, farm_group_id, slots, is_legacy, project_category, state, lga, status")
+          .eq("status", "active"),
+        supabase
+          .from("profiles")
+          .select("id, full_name, email, state, lga"),
         supabase
           .from("farm_records")
           .select("farm_id, farm_slots"),
@@ -127,11 +195,48 @@ export default function FarmAssignmentsPage() {
           .select("farm_id, farm_slots"),
       ]);
 
+      if (groupsRes.error) throw groupsRes.error;
+
+      const profMap = new Map((profRes.data || []).map((p: any) => [p.id, p]));
       const modernSlotsByFarm: Record<string, number> = {};
+      const lgaClustersMap = new Map<
+        string,
+        {
+          name: string;
+          project_category: string;
+          state: string;
+          lga: string;
+          slots: number;
+        }
+      >();
+
       (subsRes.data || []).forEach((s: any) => {
-        if (s.farm_group_id) {
-          modernSlotsByFarm[s.farm_group_id] =
-            (modernSlotsByFarm[s.farm_group_id] || 0) + (Number(s.slots) || 0);
+        const slotCount = Number(s.slots) || 0;
+        if (s.is_legacy) {
+          if (s.farm_group_id) {
+            modernSlotsByFarm[s.farm_group_id] =
+              (modernSlotsByFarm[s.farm_group_id] || 0) + slotCount;
+          }
+        } else {
+          // Modern slot: authoritative grouping by LGA and State
+          const prof = profMap.get(s.user_id);
+          const rawState = (s.state || prof?.state || "Unassigned").trim();
+          const rawLga = (s.lga || prof?.lga || "General Unit").trim();
+          const state = rawState ? rawState.charAt(0).toUpperCase() + rawState.slice(1) : "Unassigned";
+          const lga = rawLga ? rawLga.charAt(0).toUpperCase() + rawLga.slice(1) : "General Unit";
+          const key = `${state}::${lga}`;
+
+          if (!lgaClustersMap.has(key)) {
+            lgaClustersMap.set(key, {
+              name: `${lga} Community Unit [${state}]`,
+              project_category: s.project_category || "Mushroom Village",
+              state,
+              lga,
+              slots: 0,
+            });
+          }
+          const item = lgaClustersMap.get(key)!;
+          item.slots += slotCount;
         }
       });
 
@@ -149,7 +254,8 @@ export default function FarmAssignmentsPage() {
         }
       });
 
-      const loadedClusters: RealCluster[] = (groupsData || []).map((g: any) => {
+      // Build Legacy Commercial Clusters
+      const loadedLegacyClusters: RealCluster[] = (groupsRes.data || []).map((g: any) => {
         const modern = modernSlotsByFarm[g.id] || 0;
         const legacy = legacySlotsByFarm[g.id] || 0;
         const total = modern + legacy;
@@ -162,11 +268,28 @@ export default function FarmAssignmentsPage() {
           modernSlots: modern,
           legacySlots: legacy,
           totalBags: total * 2, // 2 bags per slot statutory translation
+          isLgaCluster: false,
         };
       });
 
-      setClusters(loadedClusters);
-      setFarmGroups(groupsData || []);
+      // Build Modern Local Government (LGA) Community Production Units
+      const loadedModernClusters: RealCluster[] = Array.from(lgaClustersMap.entries()).map(([key, item]) => ({
+        id: `LGA-${key}`,
+        name: item.name,
+        project_category: item.project_category,
+        targetSlots: 1000,
+        boughtSlots: item.slots,
+        modernSlots: item.slots,
+        legacySlots: 0,
+        totalBags: item.slots * 2,
+        isLgaCluster: true,
+        state: item.state,
+        lga: item.lga,
+      })).sort((a, b) => b.boughtSlots - a.boughtSlots);
+
+      setModernClusters(loadedModernClusters);
+      setLegacyClusters(loadedLegacyClusters);
+      setFarmGroups(groupsRes.data || []);
     } catch (err: any) {
       console.warn("Could not load real farm clusters:", err);
     } finally {
@@ -323,26 +446,29 @@ export default function FarmAssignmentsPage() {
     const dateStamp = new Date().toISOString().split("T")[0];
     const filename = `Agroheal_Farm_Assignment_Gaps_${dateStamp}.xlsx`;
 
-    const gapRows = gaps.map((gap, idx) => ({
+    const gapRows = filteredGaps.map((gap, idx) => ({
       "S/N": idx + 1,
       "Member Name": gap.fullName,
       "Email": gap.email,
       "Phone": gap.phone,
+      "State": gap.state || "Unassigned",
+      "LGA": gap.lga || "Unassigned",
       "Project Category": gap.category,
       "Slots Purchased": gap.slotsPurchased,
       "Slots Assigned": gap.slotsAssigned,
       "Shortfall (Unassigned)": gap.shortfall,
     }));
 
-    const totalPurchased = gaps.reduce((sum, g) => sum + g.slotsPurchased, 0);
-    const totalAssigned = gaps.reduce((sum, g) => sum + g.slotsAssigned, 0);
-    const totalShortfall = gaps.reduce((sum, g) => sum + g.shortfall, 0);
+    const totalPurchased = filteredGaps.reduce((sum, g) => sum + g.slotsPurchased, 0);
+    const totalAssigned = filteredGaps.reduce((sum, g) => sum + g.slotsAssigned, 0);
+    const totalShortfall = filteredGaps.reduce((sum, g) => sum + g.shortfall, 0);
 
     const summaryRows = [
-      { Metric: "Total Members with Gaps", Value: gaps.length },
+      { Metric: "Total Members with Gaps", Value: filteredGaps.length },
       { Metric: "Total Purchased Slots", Value: totalPurchased },
       { Metric: "Total Assigned Slots", Value: totalAssigned },
       { Metric: "Total Unassigned Shortfall", Value: totalShortfall },
+      { Metric: "Active Tier Filter", Value: tier.toUpperCase() },
       { Metric: "Generated Date", Value: formatWATDateTime(new Date()) },
     ];
 
@@ -354,7 +480,7 @@ export default function FarmAssignmentsPage() {
       ],
     });
 
-    flash(setSuccessMessage, `Exported ${gaps.length} gap records to ${filename}`);
+    flash(setSuccessMessage, `Exported ${filteredGaps.length} gap records to ${filename}`);
   };
 
   return (
@@ -386,7 +512,7 @@ export default function FarmAssignmentsPage() {
             }`}
           >
             <Sprout className="w-3.5 h-3.5 text-primary" />
-            Commercial Clusters &amp; Cycles ({clusters.length})
+            Commercial Clusters &amp; Cycles ({displayedClusters.length})
           </button>
 
           <button
@@ -411,7 +537,11 @@ export default function FarmAssignmentsPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">
-              {clusters.length} Authoritative Commercial Clusters (Target: 1,000 slots/cluster • 2 bags/slot)
+              {tier === "live"
+                ? `${displayedClusters.length} Modern LGA Community Production Units (Target: 1,000 slots/unit • 2 bags/slot)`
+                : tier === "legacy"
+                ? `${displayedClusters.length} Legacy Commercial Farm Clusters (Target: 1,000 slots/cluster • 2 bags/slot)`
+                : `${displayedClusters.length} Authoritative Farm Production Units & Clusters`}
             </span>
             <Button
               type="button"
@@ -429,17 +559,17 @@ export default function FarmAssignmentsPage() {
             </Button>
           </div>
 
-          {clustersLoading && clusters.length === 0 ? (
+          {clustersLoading && displayedClusters.length === 0 ? (
             <div className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card py-16 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Loading commercial clusters...
             </div>
-          ) : clusters.length === 0 ? (
+          ) : displayedClusters.length === 0 ? (
             <div className="rounded-xl border border-border bg-card py-12 text-center text-sm text-muted-foreground">
               No farm clusters configured yet in the database.
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {clusters.map((cluster) => {
+              {displayedClusters.map((cluster) => {
                 const cycle = cyclesByFarm[cluster.id];
                 const cycleNum = cycle?.cycle_number || 1;
                 const status = cycle?.status || "PLANNING";
@@ -461,9 +591,20 @@ export default function FarmAssignmentsPage() {
                       {/* Top Row: Cluster Title & Status */}
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <span className="font-mono text-[10px] text-muted-foreground tracking-wider uppercase block">
-                            {cluster.project_category}
-                          </span>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="font-mono text-[10px] text-muted-foreground tracking-wider uppercase">
+                              {cluster.project_category}
+                            </span>
+                            {cluster.isLgaCluster ? (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 text-[9px] rounded font-semibold bg-primary/10 text-primary border border-primary/20">
+                                <MapPin className="w-2.5 h-2.5" /> LGA Unit
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 text-[9px] rounded font-semibold bg-muted text-muted-foreground border border-border">
+                                <Building2 className="w-2.5 h-2.5" /> Legacy Group
+                              </span>
+                            )}
+                          </div>
                           <h3 className="font-bold text-foreground text-sm">
                             {cluster.name}
                           </h3>
@@ -500,7 +641,9 @@ export default function FarmAssignmentsPage() {
                             </span>
                           </span>
                           <span className="text-[10px] text-muted-foreground block mt-0.5">
-                            {cluster.modernSlots.toLocaleString()} Modern • {cluster.legacySlots.toLocaleString()} Legacy
+                            {cluster.isLgaCluster
+                              ? `${cluster.modernSlots.toLocaleString()} Modern LGA Slots`
+                              : `${cluster.modernSlots.toLocaleString()} Modern • ${cluster.legacySlots.toLocaleString()} Legacy`}
                           </span>
                         </div>
 
@@ -687,6 +830,96 @@ export default function FarmAssignmentsPage() {
             )}
           </div>
 
+          {/* Search, Filter & Sort Toolbar */}
+          <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between p-3 rounded-xl bg-card border border-border">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search member, email, phone, category, state, LGA..."
+                value={gapSearch}
+                onChange={(e) => setGapSearch(e.target.value)}
+                className="pl-9 h-8 text-xs bg-muted/40 border-border"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* State Filter Dropdown */}
+              <div className="w-44">
+                <Select value={gapStateFilter} onValueChange={setGapStateFilter}>
+                  <SelectTrigger className="h-8 text-xs bg-muted/40 border-border">
+                    <Filter className="h-3 w-3 mr-1 text-muted-foreground" />
+                    <SelectValue placeholder="Filter by State" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all" className="text-xs">
+                      All States ({gaps.length})
+                    </SelectItem>
+                    {availableGapStates.map((st) => {
+                      const count = gaps.filter((g) => g.state?.toLowerCase() === st.toLowerCase()).length;
+                      return (
+                        <SelectItem key={st} value={st} className="text-xs">
+                          {st} ({count})
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sort By Dropdown */}
+              <div className="w-52">
+                <Select value={gapSortBy} onValueChange={(val: any) => setGapSortBy(val)}>
+                  <SelectTrigger className="h-8 text-xs bg-muted/40 border-border">
+                    <ArrowUpDown className="h-3 w-3 mr-1 text-muted-foreground" />
+                    <SelectValue placeholder="Sort gaps" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="shortfall_desc" className="text-xs">
+                      Shortfall (Highest first)
+                    </SelectItem>
+                    <SelectItem value="shortfall_asc" className="text-xs">
+                      Shortfall (Lowest first)
+                    </SelectItem>
+                    <SelectItem value="state_asc" className="text-xs">
+                      State (A → Z)
+                    </SelectItem>
+                    <SelectItem value="state_desc" className="text-xs">
+                      State (Z → A)
+                    </SelectItem>
+                    <SelectItem value="name_asc" className="text-xs">
+                      Member Name (A → Z)
+                    </SelectItem>
+                    <SelectItem value="name_desc" className="text-xs">
+                      Member Name (Z → A)
+                    </SelectItem>
+                    <SelectItem value="purchased_desc" className="text-xs">
+                      Purchased Slots (Highest first)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+            <span>
+              Showing <span className="font-semibold text-foreground">{filteredGaps.length}</span> of{" "}
+              <span className="font-semibold text-foreground">{gaps.length}</span> recorded gaps
+            </span>
+            {(gapSearch || gapStateFilter !== "all") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setGapSearch("");
+                  setGapStateFilter("all");
+                }}
+                className="text-primary hover:underline font-medium text-xs"
+              >
+                Reset filters
+              </button>
+            )}
+          </div>
+
           {gapsLoading && gaps.length === 0 ? (
             <div className="flex items-center justify-center gap-2 rounded-xl border border-border bg-card py-16 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Checking farm assignments...
@@ -695,17 +928,26 @@ export default function FarmAssignmentsPage() {
             <div className="rounded-xl border border-destructive/30 bg-destructive/5 py-10 text-center text-sm text-destructive">
               {gapsError}
             </div>
-          ) : gaps.length === 0 ? (
+          ) : filteredGaps.length === 0 ? (
             <div className="flex flex-col items-center gap-2 rounded-xl border border-border bg-card py-16 text-sm text-muted-foreground">
-              <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-              Every purchased slot is accounted for on a farm record.
+              {gaps.length === 0 ? (
+                <>
+                  <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+                  Every purchased slot is accounted for on a farm record.
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="h-6 w-6 text-amber-500" />
+                  No gap records match the selected search or state filter.
+                </>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-border bg-card">
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-border bg-muted/40 text-xs uppercase text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Member</th>
+                    <th className="px-4 py-3 font-medium">Member &amp; Location</th>
                     <th className="px-4 py-3 font-medium">Category</th>
                     <th className="px-4 py-3 font-medium">Purchased</th>
                     <th className="px-4 py-3 font-medium">Assigned</th>
@@ -714,13 +956,20 @@ export default function FarmAssignmentsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {gaps.map((gap) => {
+                  {filteredGaps.map((gap) => {
                     const key = gapKey(gap);
                     return (
                       <tr key={key} className="hover:bg-muted/20">
                         <td className="px-4 py-3">
                           <div className="font-medium text-foreground">{gap.fullName}</div>
                           <div className="text-xs text-muted-foreground">{gap.email}</div>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-muted text-muted-foreground border border-border/60 font-medium">
+                              <MapPin className="w-2.5 h-2.5 text-primary" />
+                              {gap.state || "Unassigned"}
+                              {gap.lga ? ` • ${gap.lga}` : ""}
+                            </span>
+                          </div>
                         </td>
                         <td className="px-4 py-3 font-medium text-foreground">{gap.category}</td>
                         <td className="px-4 py-3 font-mono">{gap.slotsPurchased}</td>

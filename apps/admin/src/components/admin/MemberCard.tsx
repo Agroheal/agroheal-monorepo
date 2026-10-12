@@ -1,6 +1,7 @@
 import { Edit3, KeyRound, Mail, Phone, MapPin, ShieldAlert, GitMerge } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GreenCardBadge, ProgramPills, RoleBadge } from "@/components/admin/MemberBadges";
+import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import { memberInitial } from "@/lib/memberFilters";
 import { cn } from "@/lib/utils";
 import type { Member } from "@/types/admin";
@@ -64,7 +65,7 @@ export function MemberCard({
                   </span>
                 )}
               </div>
-              <div className="text-[11px] text-muted-foreground">Joined {m.created_at}</div>
+              <div className="text-[11px] text-muted-foreground">Joined {m.created_at ? formatWATDateTime(m.created_at, { dateOnly: true }) : "-"}</div>
             </div>
           </div>
           <RoleBadge role={m.role} />

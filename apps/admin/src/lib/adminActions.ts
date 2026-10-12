@@ -435,6 +435,10 @@ export async function updateMember(input: {
   full_name: string;
   email?: string;
   phone: string;
+  state?: string;
+  lga?: string;
+  country?: string;
+  address?: string;
   member_id?: string;
   referral_code?: string;
   role: string;
@@ -447,6 +451,10 @@ export async function updateMember(input: {
     full_name: cleanName(input.full_name),
     email: input.email ? cleanEmail(input.email) : undefined,
     phone: normalizePhoneNumber(input.phone),
+    state: input.state ? input.state.trim() : undefined,
+    lga: input.lga ? input.lga.trim() : undefined,
+    country: input.country ? input.country.trim() : undefined,
+    address: input.address ? input.address.trim() : undefined,
     member_id: input.member_id ? cleanMemberId(input.member_id) : undefined,
     referral_code: input.referral_code ? cleanReferralCode(input.referral_code) : undefined,
     role: input.role,
@@ -459,7 +467,7 @@ export async function updateMember(input: {
   try {
     const { data } = await supabase
       .from("profiles")
-      .select("full_name, email, phone, member_id, referral_code, role, can_manage_system_configs, custom_permissions")
+      .select("full_name, email, phone, state, lga, country, address, member_id, referral_code, role, can_manage_system_configs, custom_permissions")
       .eq("id", input.user_id)
       .maybeSingle();
     priorProfile = data;
@@ -481,6 +489,18 @@ export async function updateMember(input: {
       role: sanitizedInput.role,
       updated_at: new Date().toISOString(),
     };
+    if (typeof sanitizedInput.state !== "undefined") {
+      updatePayload.state = sanitizedInput.state || null;
+    }
+    if (typeof sanitizedInput.lga !== "undefined") {
+      updatePayload.lga = sanitizedInput.lga || null;
+    }
+    if (typeof sanitizedInput.country !== "undefined") {
+      updatePayload.country = sanitizedInput.country || null;
+    }
+    if (typeof sanitizedInput.address !== "undefined") {
+      updatePayload.address = sanitizedInput.address || null;
+    }
     if (typeof sanitizedInput.can_manage_system_configs === "boolean") {
       updatePayload.can_manage_system_configs = sanitizedInput.can_manage_system_configs;
     }
@@ -508,6 +528,10 @@ export async function updateMember(input: {
         full_name: sanitizedInput.full_name,
         email: sanitizedInput.email,
         phone: sanitizedInput.phone,
+        state: sanitizedInput.state,
+        lga: sanitizedInput.lga,
+        country: sanitizedInput.country,
+        address: sanitizedInput.address,
         member_id: sanitizedInput.member_id,
         referral_code: sanitizedInput.referral_code,
         role: sanitizedInput.role,

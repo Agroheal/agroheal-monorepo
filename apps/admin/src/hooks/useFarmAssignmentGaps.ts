@@ -12,6 +12,8 @@ export interface FarmAssignmentGap {
   slotsAssigned: number;
   shortfall: number;
   is_legacy?: boolean;
+  state?: string;
+  lga?: string;
 }
 
 interface RawFarmRecordRow {
@@ -109,6 +111,8 @@ export function useFarmAssignmentGaps() {
           slotsAssigned: assigned,
           shortfall,
           is_legacy: Boolean(member.is_legacy),
+          state: member.state || "",
+          lga: member.lga || "",
         };
       })
       .filter((gap): gap is FarmAssignmentGap => gap !== null);

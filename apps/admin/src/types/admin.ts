@@ -27,10 +27,13 @@ export interface Member {
   matrix_position?: number | null;
   placement_status?: string | null;
   total_slots: number;
+  live_slots?: number;
+  legacy_slots?: number;
   slots_by_program: MemberSlotSummary[];
   country?: string;
   state?: string;
   lga?: string;
+  address?: string;
   is_legacy?: boolean;
   advance_debt_balance?: number;
   is_suspended?: boolean;

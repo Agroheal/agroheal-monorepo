@@ -192,6 +192,13 @@ export default function FulfillmentHubPage() {
     fetchOrders();
   }, [tierFilter]);
 
+  const getSelectStatusValue = (rawStatus: string): string => {
+    const s = (rawStatus || "").toLowerCase();
+    if (["dispatched", "shipped", "in_transit"].includes(s)) return "dispatched";
+    if (["delivered", "completed"].includes(s)) return "delivered";
+    return "paid";
+  };
+
   const handleUpdateStatus = async (
     orderId: string,
     newStatus: string,
@@ -653,10 +660,13 @@ export default function FulfillmentHubPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2.5 self-end sm:self-center shrink-0">
+                      <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+                        {updatingId === order.id && (
+                          <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
+                        )}
                         {/* Status Select */}
                         <Select
-                          value={order.status.toLowerCase()}
+                          value={getSelectStatusValue(order.status)}
                           onValueChange={(val) =>
                             handleUpdateStatus(
                               order.id,
@@ -768,32 +778,37 @@ export default function FulfillmentHubPage() {
                       <div className="text-muted-foreground">{o.createdAt ? formatWATDateTime(o.createdAt) : ""}</div>
                     </TableCell>
                     <TableCell className="py-2.5 px-3">
-                      <Select
-                        value={o.status.toLowerCase()}
-                        onValueChange={(val) =>
-                          handleUpdateStatus(
-                            o.id,
-                            val,
-                            o.orderOrigin || (o.is_legacy ? "legacy_checkout" : "order")
-                          )
-                        }
-                        disabled={updatingId === o.id}
-                      >
-                        <SelectTrigger className="h-7 w-[115px] text-[10px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="paid" className="text-xs">
-                            ⏳ Pending
-                          </SelectItem>
-                          <SelectItem value="dispatched" className="text-xs">
-                            🚚 Dispatched
-                          </SelectItem>
-                          <SelectItem value="delivered" className="text-xs">
-                            ✅ Delivered
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="flex items-center gap-1.5">
+                        {updatingId === o.id && (
+                          <Loader2 className="h-3 w-3 animate-spin text-primary shrink-0" />
+                        )}
+                        <Select
+                          value={getSelectStatusValue(o.status)}
+                          onValueChange={(val) =>
+                            handleUpdateStatus(
+                              o.id,
+                              val,
+                              o.orderOrigin || (o.is_legacy ? "legacy_checkout" : "order")
+                            )
+                          }
+                          disabled={updatingId === o.id}
+                        >
+                          <SelectTrigger className="h-7 w-[115px] text-[10px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="paid" className="text-xs">
+                              ⏳ Pending
+                            </SelectItem>
+                            <SelectItem value="dispatched" className="text-xs">
+                              🚚 Dispatched
+                            </SelectItem>
+                            <SelectItem value="delivered" className="text-xs">
+                              ✅ Delivered
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </TableCell>
                     <TableCell className="py-2.5 px-3 text-right">
                       {waLink && (

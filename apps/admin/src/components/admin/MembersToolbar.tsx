@@ -63,13 +63,24 @@ export function MembersToolbar({
   onCreateMember,
   onExportExcel,
 }: Props) {
+  const scopeMembers =
+    tierFilter === "live"
+      ? members.filter((m) => !m.is_legacy)
+      : tierFilter === "legacy"
+      ? members.filter((m) => m.is_legacy)
+      : members;
+
   const liveCount = members.filter((m) => !m.is_legacy).length;
   const legacyCount = members.filter((m) => m.is_legacy).length;
-  const hasSlots = members.filter((m) => m.total_slots > 0).length;
-  const noSlots = members.length - hasSlots;
-  const debtorCount = members.filter((m) => Number(m.advance_debt_balance || 0) > 0).length;
-  const greenCardActiveCount = members.filter((m) => m.has_green_card).length;
-  const greenCardUnpaidCount = members.length - greenCardActiveCount;
+  const hasSlots = scopeMembers.filter((m) => {
+    if (tierFilter === "live") return (m.live_slots ?? (!m.is_legacy ? m.total_slots : 0)) > 0;
+    if (tierFilter === "legacy") return (m.legacy_slots ?? (m.is_legacy ? m.total_slots : 0)) > 0;
+    return m.total_slots > 0;
+  }).length;
+  const noSlots = scopeMembers.length - hasSlots;
+  const debtorCount = scopeMembers.filter((m) => Number(m.advance_debt_balance || 0) > 0).length;
+  const greenCardActiveCount = scopeMembers.filter((m) => m.has_green_card).length;
+  const greenCardUnpaidCount = scopeMembers.length - greenCardActiveCount;
 
   const availableLgas = stateFilter && stateFilter !== "all" ? getLgasForState(stateFilter) : [];
 
