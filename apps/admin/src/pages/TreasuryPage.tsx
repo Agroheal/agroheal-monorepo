@@ -18,8 +18,6 @@ import {
   Layers,
   FileSpreadsheet,
   Search,
-  Filter,
-  Calendar,
   ArrowUpRight,
   X,
 } from "lucide-react";
@@ -39,6 +37,7 @@ import { StatusBanner } from "@/components/admin/StatusBanner";
 import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import { adminApiClient } from "@/lib/apiClient";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { DateRangeFilter } from "@/components/common/DateRangeFilter";
 
 export interface WalletRecord {
   id: string;
@@ -142,6 +141,8 @@ export default function TreasuryPage() {
   // Treasury Audit State
   const [auditData, setAuditData] = useState<TreasuryAuditData | null>(null);
   const [walletCategoryTab, setWalletCategoryTab] = useState<"all" | "inflows" | "commissions" | "reserves">("all");
+  const [treasuryStartDate, setTreasuryStartDate] = useState("");
+  const [treasuryEndDate, setTreasuryEndDate] = useState("");
 
   // Solvency Shield State
   const [liquidBankBalance, setLiquidBankBalance] = useState<number>(0);
@@ -227,12 +228,12 @@ export default function TreasuryPage() {
     }
   };
 
-  const loadData = async () => {
+  const loadData = async (sDate = treasuryStartDate, eDate = treasuryEndDate) => {
     setRefreshing(true);
     try {
       // 1. Load Executive Treasury Audit, Pending Withdrawals, and Group Farms in parallel
       const [audit, queue, farms] = await Promise.all([
-        adminApiClient.admin.getTreasuryAudit().catch(() => null),
+        adminApiClient.admin.getTreasuryAudit({ startDate: sDate, endDate: eDate }).catch(() => null),
         adminApiClient.withdrawals.listWithdrawals().catch(() => []),
         adminApiClient.admin.getGroupFarms().catch(() => []),
       ]);
@@ -252,6 +253,18 @@ export default function TreasuryPage() {
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const handleTreasuryDateRangeChange = (start: string, end: string) => {
+    setTreasuryStartDate(start);
+    setTreasuryEndDate(end);
+    loadData(start, end);
+  };
+
+  const handleTreasuryDateRangeClear = () => {
+    setTreasuryStartDate("");
+    setTreasuryEndDate("");
+    loadData("", "");
   };
 
   useEffect(() => {
@@ -584,8 +597,8 @@ export default function TreasuryPage() {
       <StatusBanner variant="success" message={successMessage} />
       <StatusBanner variant="error" message={errorMessage} />
 
-      {/* Header & Refresh */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Header & Controls */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
           <h2 className="text-base font-bold text-foreground flex items-center gap-2">
             <Landmark className="w-5 h-5 text-primary" />
@@ -596,17 +609,25 @@ export default function TreasuryPage() {
           </p>
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={loadData}
-          disabled={refreshing}
-          className="gap-1.5 text-xs font-semibold self-start sm:self-auto"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-          Refresh Treasury
-        </Button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <DateRangeFilter
+            startDate={treasuryStartDate}
+            endDate={treasuryEndDate}
+            onChange={handleTreasuryDateRangeChange}
+            onClear={handleTreasuryDateRangeClear}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => loadData(treasuryStartDate, treasuryEndDate)}
+            disabled={refreshing}
+            className="gap-1.5 text-xs font-semibold shrink-0 cursor-pointer"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* ── SECTION 1: EXECUTIVE BALANCE SHEET ── */}
@@ -1727,53 +1748,52 @@ export default function TreasuryPage() {
           </DialogHeader>
 
           {/* Filter Bar: Date Range + Search */}
-          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2 pt-3 pb-2 items-end">
-            <div className="sm:col-span-3 space-y-1">
-              <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <Calendar className="w-3 h-3" /> From Date
-              </Label>
-              <Input
-                type="date"
-                value={modalStartDate}
-                onChange={(e) => setModalStartDate(e.target.value)}
-                className="h-8 text-xs bg-muted/30"
-              />
-            </div>
-            <div className="sm:col-span-3 space-y-1">
-              <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <Calendar className="w-3 h-3" /> To Date
-              </Label>
-              <Input
-                type="date"
-                value={modalEndDate}
-                onChange={(e) => setModalEndDate(e.target.value)}
-                className="h-8 text-xs bg-muted/30"
-              />
-            </div>
-            <div className="sm:col-span-4 space-y-1">
-              <Label className="text-[11px] text-muted-foreground flex items-center gap-1">
-                <Search className="w-3 h-3" /> Search Member / Ref / Category
-              </Label>
-              <Input
-                type="text"
-                placeholder="Name, ref, email, ID..."
-                value={modalSearch}
-                onChange={(e) => setModalSearch(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleApplyModalFilters();
-                }}
-                className="h-8 text-xs bg-muted/30"
-              />
-            </div>
-            <div className="sm:col-span-2 flex items-center gap-1">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 pb-2 border-b border-border/40">
+            <DateRangeFilter
+              startDate={modalStartDate}
+              endDate={modalEndDate}
+              onChange={(start, end) => {
+                setModalStartDate(start);
+                setModalEndDate(end);
+                if (modalWalletKey) {
+                  fetchModalHistory("wallet", modalWalletKey, start, end, modalSearch);
+                } else if (modalFarmId) {
+                  fetchModalHistory("farm", modalFarmId, start, end, modalSearch);
+                }
+              }}
+              onClear={() => {
+                setModalStartDate("");
+                setModalEndDate("");
+                if (modalWalletKey) {
+                  fetchModalHistory("wallet", modalWalletKey, "", "", modalSearch);
+                } else if (modalFarmId) {
+                  fetchModalHistory("farm", modalFarmId, "", "", modalSearch);
+                }
+              }}
+            />
+            <div className="flex items-center gap-2 flex-1 max-w-sm">
+              <div className="relative flex-1">
+                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search name, ref, email..."
+                  value={modalSearch}
+                  onChange={(e) => setModalSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleApplyModalFilters();
+                  }}
+                  className="h-8 pl-8 text-xs bg-muted/30"
+                />
+              </div>
               <Button
                 type="button"
                 size="sm"
+                variant="outline"
                 onClick={handleApplyModalFilters}
                 disabled={modalLoading}
-                className="h-8 text-xs font-semibold flex-1 gap-1"
+                className="h-8 text-xs font-semibold gap-1 cursor-pointer shrink-0"
               >
-                <Filter className="w-3 h-3" /> Filter
+                Search
               </Button>
               {(modalStartDate || modalEndDate || modalSearch) && (
                 <Button
@@ -1782,7 +1802,8 @@ export default function TreasuryPage() {
                   size="sm"
                   onClick={handleClearModalFilters}
                   disabled={modalLoading}
-                  className="h-8 text-xs px-2 text-muted-foreground hover:text-foreground"
+                  className="h-8 text-xs px-2 text-muted-foreground hover:text-foreground cursor-pointer shrink-0"
+                  title="Clear all filters"
                 >
                   <X className="w-3.5 h-3.5" />
                 </Button>

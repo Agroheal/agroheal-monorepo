@@ -46,5 +46,8 @@
   - NEVER introduce unrequested text, marketing copy, speculative claims, promotional blurbs, or unauthorized headings, rules, or tier requirements that the user did not explicitly ask for.
   - NEVER write marketing copy or invent explanatory text on your own.
   - Implement only the exact labels, headings, and business logic instructed by the user without editorial embellishment.
-  - If a label or message is needed, use minimal functional wording or ask the user for preferred copy.
+## 6. Admin Dashboard Synchronization Protocol
+- Whenever updates or new entities/roles/tiers are introduced across the system (e.g., new partners, core roles, commission structures), ALWAYS check and update corresponding views, lists, metrics, and actions in the Admin Dashboard to reflect them accurately.
 
+## 7. Component & Logic Reusability Protocol
+- Always prioritize building and reusing shared components, utilities, and queries across the frontend and backend. Avoid ad-hoc duplicates; reuse existing abstractions whenever possible.

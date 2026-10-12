@@ -26,7 +26,9 @@ export interface CoreDriver {
   name: string;
   email: string;
   roleTitle?: string;
+  driverType: "operational" | "finance_partner";
   sharePerCard: number;
+  termNotice?: string;
   profileId?: string;
   memberId?: string;
   totalCardsAttributed: number;
@@ -35,50 +37,74 @@ export interface CoreDriver {
   availableBalance: number;
   isEligibleForWithdrawal: boolean;
   portalAccessEnabled: boolean;
+  role?: string;
 }
 
-const STATIC_CORE_DRIVERS = [
+const STATIC_CORE_PARTICIPANTS = [
   {
     id: "driver-1",
     name: "Elijah Ajibade",
     email: "developerelijah360@gmail.com",
+    roleTitle: "Co-Founder & Lead Developer",
+    driverType: "operational" as const,
     sharePerCard: 50,
   },
   {
     id: "driver-2",
     name: "Esther Adetayo",
     email: "estherbola888@gmail.com",
+    roleTitle: "Core Operations Driver",
+    driverType: "operational" as const,
     sharePerCard: 50,
   },
   {
     id: "driver-3",
     name: "Taiwo Oluwadahunsola",
     email: "ifoodeconomy@gmail.com",
+    roleTitle: "Core Operations Driver",
+    driverType: "operational" as const,
     sharePerCard: 50,
   },
   {
     id: "driver-4",
     name: "David Omokanye",
     email: "davidomokanye141@gmail.com",
+    roleTitle: "Core Operations Driver",
+    driverType: "operational" as const,
     sharePerCard: 50,
   },
   {
     id: "driver-5",
     name: "Fortune Etuk",
     email: "efortunefb@gmail.com",
+    roleTitle: "Core Operations Driver",
+    driverType: "operational" as const,
     sharePerCard: 50,
   },
   {
     id: "driver-6",
     name: "Tony Inyang",
     email: "tonyinyang118@gmail.com",
+    roleTitle: "Core Operations Driver",
+    driverType: "operational" as const,
     sharePerCard: 50,
   },
   {
     id: "driver-7",
     name: "Nathaniel Omokanye",
     email: "gkygmr56@gmail.com",
+    roleTitle: "Core Operations Driver",
+    driverType: "operational" as const,
     sharePerCard: 50,
+  },
+  {
+    id: "driver-8",
+    name: "Oluwafemi Olaleye",
+    email: "femmaleye@gmail.com",
+    roleTitle: "Core Partner (Finance)",
+    driverType: "finance_partner" as const,
+    sharePerCard: 100,
+    termNotice: "3-Year Statutory Term (July 22, 2026 - July 22, 2029)",
   },
 ];
 
@@ -132,16 +158,17 @@ export default function CoreDriversPage() {
         .maybeSingle();
 
       const configVal = configRow?.value || {};
+      // Portal access defaults only to explicit admin accounts; NEVER auto-enabled for all regular core drivers
       const allowedEmails: string[] = Array.isArray(configVal?.enabled_emails)
-        ? configVal.enabled_emails
-        : STATIC_CORE_DRIVERS.map((d) => d.email.toLowerCase());
+        ? configVal.enabled_emails.map((e: string) => e.toLowerCase())
+        : ["developerelijah360@gmail.com", "estherbola888@gmail.com", "davidomokanye141@gmail.com"];
       setEnabledEmails(allowedEmails);
 
-      // 3. Fetch profiles for these emails to get actual IDs & member IDs
-      const emails = STATIC_CORE_DRIVERS.map((d) => d.email.toLowerCase());
+      // 3. Fetch profiles for these emails to get actual IDs, member IDs & roles
+      const emails = STATIC_CORE_PARTICIPANTS.map((d) => d.email.toLowerCase());
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, email, member_id, wallet_balance")
+        .select("id, email, member_id, wallet_balance, role")
         .in("email", emails);
 
       const profileMap = new Map((profiles || []).map((p) => [p.email?.toLowerCase(), p]));
@@ -179,7 +206,7 @@ export default function CoreDriversPage() {
       }
 
       // 6. Build enriched driver list
-      const enrichedDrivers: CoreDriver[] = STATIC_CORE_DRIVERS.map((driver) => {
+      const enrichedDrivers: CoreDriver[] = STATIC_CORE_PARTICIPANTS.map((driver) => {
         const prof = profileMap.get(driver.email.toLowerCase());
         const totalEarned = (prof?.id && ledgerMap.has(prof.id))
           ? (ledgerMap.get(prof.id) || 0)
@@ -189,10 +216,12 @@ export default function CoreDriversPage() {
           : 0;
         const availableBalance = Number(prof?.wallet_balance ?? Math.max(0, totalEarned - totalWithdrawn));
         const isEligible = availableBalance >= MIN_WITHDRAWAL_THRESHOLD;
-        const portalAccess = allowedEmails.includes(driver.email.toLowerCase());
+        const isPlatformAdminUser = prof?.role === "admin" || prof?.role === "super_admin";
+        const portalAccess = allowedEmails.includes(driver.email.toLowerCase()) || isPlatformAdminUser;
 
         return {
           ...driver,
+          role: prof?.role,
           profileId: prof?.id,
           memberId: prof?.member_id || "Pending Sync",
           totalCardsAttributed: totalCards,
@@ -317,7 +346,8 @@ export default function CoreDriversPage() {
     }
   };
 
-  const totalPoolAccrued = activeGreenCardsCount * 350; // ₦350 pool (7 seats × ₦50)
+  const totalOperationalAccrued = activeGreenCardsCount * 350; // ₦350 pool (7 seats × ₦50)
+  const totalFinancePartnerAccrued = activeGreenCardsCount * 100; // ₦100 pool (1 finance partner)
 
   const filteredDrivers = drivers.filter(
     (d) =>
@@ -332,14 +362,14 @@ export default function CoreDriversPage() {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Core Drivers Growth Hub
+              Core Drivers &amp; Growth Hub
             </h1>
             <Badge variant="outline" className="bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30">
               Super Admin View
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Real-time tracking and allocation of the Green Card Growth Pool (₦350/card: ₦50 uniform share across all 7 core driver seats).
+            Real-time tracking of the Green Card Growth Pool (7 Operational Drivers @ ₦50/card + 1 Core Finance Partner @ ₦100/card).
           </p>
         </div>
 
@@ -363,21 +393,21 @@ export default function CoreDriversPage() {
           icon={ShieldCheck}
         />
         <StatCard
-          label="Total Growth Pool Accrued"
-          value={`₦${totalPoolAccrued.toLocaleString()}`}
-          footer="₦350/card statutory pool (17.5%)"
+          label="Operational Growth Pool"
+          value={`₦${totalOperationalAccrued.toLocaleString()}`}
+          footer="₦350/card statutory pool (7 × ₦50)"
           icon={TrendingUp}
         />
         <StatCard
-          label="Growth Pool Distribution"
-          value="₦50 / Seat"
-          footer="₦50 uniform across all 7 driver seats"
+          label="Finance Partner Allocation"
+          value={`₦${totalFinancePartnerAccrued.toLocaleString()}`}
+          footer="₦100/card (3-year statutory term)"
           icon={Award}
         />
         <StatCard
-          label="Core Driver Seats"
-          value={`${drivers.length} Active`}
-          footer="Elijah, Esther, Taiwo, David, Fortune, Tony, Nathaniel"
+          label="Active Participants"
+          value={`${drivers.length} Total`}
+          footer="7 Operational Drivers + 1 Finance Partner"
           icon={Users}
         />
       </div>
@@ -386,16 +416,16 @@ export default function CoreDriversPage() {
       <div className="rounded-xl border border-border bg-card shadow-xs overflow-hidden">
         <div className="p-4 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/20">
           <div>
-            <h2 className="text-base font-semibold text-foreground">7 Core Drivers Roster & Balances</h2>
+            <h2 className="text-base font-semibold text-foreground">Core Drivers &amp; Financial Partners Roster</h2>
             <p className="text-xs text-muted-foreground">
-              Minimum withdrawal threshold is ₦{MIN_WITHDRAWAL_THRESHOLD.toLocaleString()}. Toggle portal view to allow individual driver visibility.
+              Minimum withdrawal threshold is ₦{MIN_WITHDRAWAL_THRESHOLD.toLocaleString()}. Portal access is restricted to authorized administrative seats.
             </p>
           </div>
 
           <div className="relative w-full sm:w-64">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search driver by name..."
+              placeholder="Search driver by name or email..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-8 text-xs h-9"
@@ -407,7 +437,7 @@ export default function CoreDriversPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-muted/40 text-xs font-semibold text-muted-foreground uppercase tracking-wider border-b border-border">
               <tr>
-                <th className="px-4 py-3">Core Driver</th>
+                <th className="px-4 py-3">Participant</th>
                 <th className="px-4 py-3 text-right">Share / Card</th>
                 <th className="px-4 py-3 text-right">Total Accrued</th>
                 <th className="px-4 py-3 text-right">Available Balance</th>
@@ -420,8 +450,24 @@ export default function CoreDriversPage() {
               {filteredDrivers.map((driver) => (
                 <tr key={driver.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3.5">
-                    <div className="font-medium text-foreground">{driver.name}</div>
-                    <div className="text-xs text-muted-foreground font-mono">{driver.email}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-foreground">{driver.name}</span>
+                      {driver.driverType === "finance_partner" ? (
+                        <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-400 border-purple-500/30">
+                          Core Partner (Finance)
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                          Operational
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-mono mt-0.5">{driver.email}</div>
+                    {driver.termNotice && (
+                      <div className="text-[10px] text-amber-500/90 font-medium mt-0.5">
+                        {driver.termNotice}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3.5 text-right font-mono text-xs">
                     ₦{driver.sharePerCard}
@@ -446,17 +492,23 @@ export default function CoreDriversPage() {
                     )}
                   </td>
                   <td className="px-4 py-3.5 text-center">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleAccess(driver.email, driver.portalAccessEnabled)}
-                      className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md transition-colors ${
-                        driver.portalAccessEnabled
-                          ? "bg-primary/15 text-primary hover:bg-primary/25"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80"
-                      }`}
-                    >
-                      {driver.portalAccessEnabled ? "Enabled" : "Disabled"}
-                    </button>
+                    {driver.role === "admin" || driver.role === "super_admin" ? (
+                      <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-md bg-primary/15 text-primary">
+                        Admin Active
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleAccess(driver.email, driver.portalAccessEnabled)}
+                        className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md transition-colors ${
+                          driver.portalAccessEnabled
+                            ? "bg-primary/15 text-primary hover:bg-primary/25"
+                            : "bg-muted text-muted-foreground hover:bg-muted/80"
+                        }`}
+                      >
+                        {driver.portalAccessEnabled ? "Enabled" : "Disabled"}
+                      </button>
+                    )}
                   </td>
                   <td className="px-4 py-3.5 text-right">
                     <div className="flex items-center justify-end gap-1.5">

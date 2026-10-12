@@ -106,7 +106,13 @@ export const adminApiClient = {
         farmGroupsCount: number;
         timestamp: string;
       }>("admin/stats"),
-    getTreasuryAudit: () => apiRequest<any>("admin/treasury-audit"),
+    getTreasuryAudit: (params?: { startDate?: string; endDate?: string }) => {
+      const query = new URLSearchParams();
+      if (params?.startDate) query.append("startDate", params.startDate);
+      if (params?.endDate) query.append("endDate", params.endDate);
+      const qs = query.toString() ? `?${query.toString()}` : "";
+      return apiRequest<any>(`admin/treasury-audit${qs}`);
+    },
     getWalletHistory: (walletKey: string, params?: { startDate?: string; endDate?: string; search?: string }) => {
       const query = new URLSearchParams();
       if (params?.startDate) query.append("startDate", params.startDate);

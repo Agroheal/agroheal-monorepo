@@ -57,7 +57,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       ] = await Promise.all([
         supabase
           .from("profiles")
-          .select("wallet_balance, referral_earnings, slot_bonus")
+          .select("wallet_balance, referral_earnings, slot_bonus, role")
           .eq("id", userId)
           .maybeSingle(),
         supabase
@@ -83,6 +83,8 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       const directEarnings = Number(profileData?.referral_earnings) || (referralData?.length ? referralData.length * 1000 : 0);
       const matrixEarnings = Number(profileData?.slot_bonus) || 0;
 
+      const isAdmin = profileData?.role === "admin" || profileData?.role === "super_admin";
+
       // Build unified transaction ledger
       const items: LedgerItem[] = [];
 
@@ -91,13 +93,17 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         // Pending loan commissions should not show in UI at all, should only show when not pending
         if ((entry.status || "").toUpperCase() === "PENDING") return;
         const isDebit = entry.entry_type === "DEBIT";
+        let desc = entry.description || "Wallet Ledger Transaction";
+        if (!isAdmin && (entry.category === "CORE_DRIVER_BONUS" || desc.includes("Growth") || desc.includes("Core Partner"))) {
+          desc = desc.replace(/from\s+[^()]+\s*\(((?:AGC|GC)[^)]+)\)/gi, "from $1");
+        }
         items.push({
           id: entry.id || `ledger-${entry.reference_id || Math.random()}`,
           date: entry.created_at || new Date().toISOString(),
           type: isDebit ? "DEBIT" : "CREDIT",
           category: (entry.category === "CORE_DRIVER_BONUS" ? "CORE_DRIVER_BONUS" : (entry.category || "REFERRAL_BONUS")) as any,
           amount: Math.abs(Number(entry.amount) || 0),
-          description: entry.description || "Wallet Ledger Transaction",
+          description: desc,
           status: entry.status === "FAILED" ? "FAILED" : "COMPLETED",
           reference: entry.reference_id || entry.id?.slice(0, 8) || "N/A",
         });

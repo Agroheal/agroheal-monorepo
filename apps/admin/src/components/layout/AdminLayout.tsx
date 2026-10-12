@@ -74,7 +74,7 @@ const navGroups: NavGroup[] = [
     title: "Finance & Treasury",
     items: [
       { label: "Treasury & Solvency", path: "/treasury", icon: Landmark, requireTreasury: true, hideForSupport: true, hideForCoordinator: true },
-      { label: "Transactions & Inflows", path: "/payments", icon: CreditCard, hideForCoordinator: true },
+      { label: "Transactions & Payments", path: "/payments", icon: CreditCard, hideForCoordinator: true },
       { label: "Audit Trail", path: "/audit", icon: ShieldCheck, hideForCoordinator: true },
       { label: "Core Drivers Pool", path: "/core-drivers", icon: Award, superAdminOnly: true, hideForSupport: true, hideForCoordinator: true },
     ],

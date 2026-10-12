@@ -28,6 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { exportToExcel } from "@shared/excelExport";
+import { DateRangeFilter } from "@/components/common/DateRangeFilter";
 import {
   Pagination,
   PaginationContent,
@@ -81,7 +82,9 @@ export function AdminAuditLogTable() {
   const [logs, setLogs] = useState<AuditEventRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<"all" | "green_card" | "slots" | "members" | "operations">("all");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | "green_card" | "slots" | "financial" | "members" | "operations">("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [page, setPage] = useState(1);
   const [selectedReceiptUrl, setSelectedReceiptUrl] = useState<string | null>(null);
 
@@ -118,14 +121,39 @@ export function AdminAuditLogTable() {
       result = result.filter((l) => l.action === "MANUAL_GREEN_CARD_ACTIVATION");
     } else if (categoryFilter === "slots") {
       result = result.filter((l) => l.action === "MANUAL_SLOT_CREDIT");
+    } else if (categoryFilter === "financial") {
+      result = result.filter((l) =>
+        [
+          "MANUAL_TX_FORCE_SETTLE",
+          "FLW_PAYMENT_VERIFY_SETTLE",
+          "TREASURY_CORPORATE_SWEEP",
+          "ADMIN_WALLET_ADJUSTMENT",
+        ].includes(l.action),
+      );
     } else if (categoryFilter === "members") {
       result = result.filter((l) =>
-        ["ADMIN_CREATE_MEMBER", "ADMIN_UPDATE_MEMBER", "ADMIN_RESET_PASSWORD"].includes(l.action),
+        [
+          "ADMIN_CREATE_MEMBER",
+          "ADMIN_UPDATE_MEMBER",
+          "ADMIN_RESET_PASSWORD",
+          "RESET_MEMBER_BANK_LOCK",
+          "SUPER_ADMIN_IMPERSONATION",
+        ].includes(l.action),
       );
     } else if (categoryFilter === "operations") {
       result = result.filter((l) =>
-        ["FARM_GROUP_ASSIGNMENT", "ADMIN_UPDATE_CONFIG"].includes(l.action),
+        ["FARM_GROUP_ASSIGNMENT", "ADMIN_UPDATE_CONFIG", "PQV_ROLLOVER"].includes(l.action),
       );
+    }
+
+    // Filter by date range
+    if (startDate) {
+      const sMs = new Date(startDate).getTime();
+      result = result.filter((l) => new Date(l.created_at).getTime() >= sMs);
+    }
+    if (endDate) {
+      const eMs = new Date(endDate).getTime() + 24 * 60 * 60 * 1000;
+      result = result.filter((l) => new Date(l.created_at).getTime() <= eMs);
     }
 
     const q = search.toLowerCase().trim();
@@ -147,7 +175,7 @@ export function AdminAuditLogTable() {
         (p.notes && p.notes.toLowerCase().includes(q))
       );
     });
-  }, [logs, categoryFilter, search]);
+  }, [logs, categoryFilter, startDate, endDate, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -159,6 +187,18 @@ export function AdminAuditLogTable() {
         return "Green Card Activation";
       case "MANUAL_SLOT_CREDIT":
         return "Manual Slot Credit";
+      case "MANUAL_TX_FORCE_SETTLE":
+        return "Transaction Force Settlement";
+      case "FLW_PAYMENT_VERIFY_SETTLE":
+        return "FLW Payment Verified & Settled";
+      case "TREASURY_CORPORATE_SWEEP":
+        return "Corporate Revenue Sweep";
+      case "RESET_MEMBER_BANK_LOCK":
+        return "Bank Account Lock Reset";
+      case "SUPER_ADMIN_IMPERSONATION":
+        return "Member Impersonation";
+      case "PQV_ROLLOVER":
+        return "Monthly PQV Rollover";
       case "ADMIN_CREATE_MEMBER":
         return "Member Registered";
       case "ADMIN_UPDATE_MEMBER":
@@ -226,6 +266,36 @@ export function AdminAuditLogTable() {
         return (
           <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px] font-semibold">
             🌱 Slot Credit ({p.slots || 0})
+          </Badge>
+        );
+      case "MANUAL_TX_FORCE_SETTLE":
+        return (
+          <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-[10px] font-semibold">
+            ⚖️ Force Settled
+          </Badge>
+        );
+      case "FLW_PAYMENT_VERIFY_SETTLE":
+        return (
+          <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px] font-semibold">
+            💳 FLW Verified
+          </Badge>
+        );
+      case "TREASURY_CORPORATE_SWEEP":
+        return (
+          <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 text-[10px] font-semibold">
+            🏦 Treasury Sweep
+          </Badge>
+        );
+      case "RESET_MEMBER_BANK_LOCK":
+        return (
+          <Badge className="bg-amber-500/10 text-amber-400 border-amber-500/20 text-[10px] font-semibold">
+            🔓 Bank Lock Reset
+          </Badge>
+        );
+      case "SUPER_ADMIN_IMPERSONATION":
+        return (
+          <Badge className="bg-rose-500/10 text-rose-400 border-rose-500/20 text-[10px] font-semibold">
+            👤 Impersonated
           </Badge>
         );
       case "ADMIN_CREATE_MEMBER":
@@ -329,8 +399,22 @@ export function AdminAuditLogTable() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 sm:max-w-md w-full sm:w-auto">
-          <div className="relative flex-1 sm:w-64">
+        <div className="flex flex-wrap items-center gap-2 sm:max-w-xl w-full sm:w-auto">
+          <DateRangeFilter
+            startDate={startDate}
+            endDate={endDate}
+            onChange={(s, e) => {
+              setStartDate(s);
+              setEndDate(e);
+              setPage(1);
+            }}
+            onClear={() => {
+              setStartDate("");
+              setEndDate("");
+              setPage(1);
+            }}
+          />
+          <div className="relative flex-1 sm:w-56">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={search}
@@ -338,7 +422,7 @@ export function AdminAuditLogTable() {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              placeholder="Search ref, admin, or member..."
+              placeholder="Search ref, admin, member..."
               className="pl-9 h-9 text-xs"
             />
           </div>
@@ -347,7 +431,7 @@ export function AdminAuditLogTable() {
             variant="outline"
             size="sm"
             onClick={handleExportExcel}
-            className="gap-1.5 shrink-0 text-xs h-9"
+            className="gap-1.5 shrink-0 text-xs h-9 cursor-pointer"
           >
             <FileSpreadsheet className="h-4 w-4 text-emerald-400" /> Export Excel
           </Button>
@@ -357,7 +441,7 @@ export function AdminAuditLogTable() {
             size="sm"
             onClick={fetchAuditLogs}
             disabled={loading}
-            className="h-9 px-2.5"
+            className="h-9 px-2.5 cursor-pointer"
             title="Refresh logs"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Refresh"}
@@ -373,7 +457,7 @@ export function AdminAuditLogTable() {
           size="sm"
           variant={categoryFilter === "all" ? "default" : "outline"}
           onClick={() => { setCategoryFilter("all"); setPage(1); }}
-          className="h-7 text-xs px-2.5"
+          className="h-7 text-xs px-2.5 cursor-pointer"
         >
           All Events ({logs.length})
         </Button>
@@ -382,7 +466,7 @@ export function AdminAuditLogTable() {
           size="sm"
           variant={categoryFilter === "green_card" ? "default" : "outline"}
           onClick={() => { setCategoryFilter("green_card"); setPage(1); }}
-          className="h-7 text-xs px-2.5"
+          className="h-7 text-xs px-2.5 cursor-pointer"
         >
           💳 Green Cards
         </Button>
@@ -391,9 +475,18 @@ export function AdminAuditLogTable() {
           size="sm"
           variant={categoryFilter === "slots" ? "default" : "outline"}
           onClick={() => { setCategoryFilter("slots"); setPage(1); }}
-          className="h-7 text-xs px-2.5"
+          className="h-7 text-xs px-2.5 cursor-pointer"
         >
           🌱 Slot Credits
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={categoryFilter === "financial" ? "default" : "outline"}
+          onClick={() => { setCategoryFilter("financial"); setPage(1); }}
+          className="h-7 text-xs px-2.5 cursor-pointer"
+        >
+          ⚖️ Financial &amp; Settlements
         </Button>
         <Button
           type="button"

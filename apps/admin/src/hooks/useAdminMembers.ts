@@ -205,9 +205,24 @@ export function useAdminMembers() {
             (tx.email && m.email.toLowerCase() === tx.email.toLowerCase())
         );
         const amt = Number(tx.amount) || 0;
-        const isSlot = (tx.project_category && tx.project_category.toLowerCase().includes("slot")) || amt % 5000 === 0;
-        const inferredSlots = isSlot ? Math.floor(amt / 5000) : 0;
+        const cat = (tx.project_category || "").toLowerCase();
+        const ref = (tx.transaction_ref || tx.payment_reference || "").toLowerCase();
+        const isCombo = cat.includes("combo") || ref.includes("combo") || amt === 15000 || amt === 12000 || amt === 10000;
+        const isStarterPack = cat.includes("mushroom power") || ref.includes("sp_") || cat.includes("starter pack");
+        const isSlot = !isCombo && !isStarterPack && (cat.includes("slot") || (amt % 5000 === 0 && amt !== 8000));
+        const inferredSlots = isCombo ? 1 : isSlot ? Math.floor(amt / 5000) : 0;
         const refKey = tx.transaction_ref || tx.payment_reference || `TX-${tx.id}`;
+
+        let resolvedCategory = tx.project_category;
+        if (isCombo) {
+          resolvedCategory = amt === 15000
+            ? "Green Card (₦2k) + Slot (₦5k) + Mushroom Power (₦8k)"
+            : amt === 12000
+            ? "Green Card (₦2k) + Slot (₦5k) + Mushroom Power (₦5k)"
+            : (tx.project_category || "Starter Combo Bundle");
+        } else if (!resolvedCategory) {
+          resolvedCategory = amt === 2000 ? "Green Card Membership" : "Farm Operations";
+        }
 
         seenLogKeys.add(refKey);
         combinedLogs.push({
@@ -216,7 +231,7 @@ export function useAdminMembers() {
           user_name: member?.full_name,
           user_email: member?.email || tx.email || "Unknown",
           amount: amt,
-          project_category: tx.project_category || (amt === 2000 ? "Green Card Membership" : "Farm Operations"),
+          project_category: resolvedCategory,
           created_at: tx.created_at ? new Date(tx.created_at).toLocaleString() : "N/A",
           slots: inferredSlots,
           status: tx.status === "paid" || tx.status === "successful" ? "success" : tx.status || "pending",

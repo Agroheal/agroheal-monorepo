@@ -20,11 +20,12 @@ import {
 import { cn } from "@/lib/utils";
 import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import type { PaymentLog } from "@/types/admin";
+import { DateRangeFilter } from "@/components/common/DateRangeFilter";
 
 const PAGE_SIZE = 25;
 
 export type PaymentMethodFilter = "all" | "online" | "bank_transfer";
-export type TransactionCategoryFilter = "all" | "green_card" | "slots" | "products" | "commissions";
+export type TransactionCategoryFilter = "all" | "combo" | "green_card" | "slots" | "products" | "commissions";
 export type PaymentStatusFilter = "all" | "pending" | "paid" | "failed";
 export type PaymentTierFilter = "all" | "live" | "legacy";
 
@@ -48,30 +49,58 @@ function isOfflineMethod(p: PaymentLog): boolean {
   return false;
 }
 
-function resolveTransactionCategory(p: PaymentLog): "green_card" | "slots" | "products" | "commissions" | "other" {
+function resolveTransactionCategory(p: PaymentLog): "combo" | "green_card" | "slots" | "products" | "commissions" | "other" {
   const cat = (p.project_category || "").toLowerCase();
   const amt = Number(p.amount) || 0;
   const ref = (p.reference || p.id || "").toLowerCase();
 
-  if (cat.includes("green card") || cat.includes("membership") || amt === 2000 || ref.includes("gc-") || ref.includes("gc_")) {
+  // 1. Combo packages (₦15k / ₦12k / ₦10k starter combo packages)
+  if (
+    cat.includes("combo") ||
+    ref.includes("combo") ||
+    amt === 15000 ||
+    amt === 12000 ||
+    (amt === 10000 && !cat.includes("slot"))
+  ) {
+    return "combo";
+  }
+
+  // 2. Retail products and starter packs (Mushroom Power 100g)
+  if (
+    cat.includes("mushroom power") ||
+    cat.includes("starter pack") ||
+    cat.includes("product") ||
+    cat.includes("store") ||
+    ref.startsWith("sp_") ||
+    ref.startsWith("sp-") ||
+    ref.includes("ord-") ||
+    ref.includes("ord_") ||
+    (amt === 8000 && !cat.includes("slot"))
+  ) {
+    return "products";
+  }
+
+  // 3. Green Card membership passes
+  if (cat.includes("green card") || cat.includes("membership") || amt === 2000 || ref.startsWith("gc-") || ref.startsWith("gc_")) {
     return "green_card";
   }
+
+  // 4. Dedicated farm slots (Mushroom Village, Gingertown)
   if (
     cat.includes("slot") ||
-    cat.includes("mushroom") ||
-    cat.includes("ginger") ||
-    cat.includes("foodnation") ||
+    cat.includes("gingertown") ||
+    (cat.includes("mushroom") && !cat.includes("power")) ||
     p.type === "slot_subscription" ||
     (p.slots && p.slots > 0)
   ) {
     return "slots";
   }
-  if (cat.includes("product") || cat.includes("starter") || cat.includes("store") || ref.includes("ord-") || ref.includes("ord_")) {
-    return "products";
-  }
+
+  // 5. Commissions and bonus disbursements
   if (cat.includes("commission") || cat.includes("bonus") || cat.includes("driver") || ref.includes("comm") || ref.includes("bonus")) {
     return "commissions";
   }
+
   return "other";
 }
 
@@ -96,6 +125,8 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
   const [methodFilter, setMethodFilter] = useState<PaymentMethodFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<TransactionCategoryFilter>("all");
   const [statusFilter, setStatusFilter] = useState<PaymentStatusFilter>("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [page, setPage] = useState(1);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [remediatingTx, setRemediatingTx] = useState<PaymentLog | null>(null);
@@ -153,9 +184,26 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
         }
       }
 
+      // 6. Date Range Filter
+      if (startDate || endDate) {
+        const itemDate = new Date(p.created_at);
+        if (!isNaN(itemDate.getTime())) {
+          if (startDate) {
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            if (itemDate < start) return false;
+          }
+          if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            if (itemDate > end) return false;
+          }
+        }
+      }
+
       return true;
     });
-  }, [logs, search, tierFilter, methodFilter, categoryFilter, statusFilter]);
+  }, [logs, search, tierFilter, methodFilter, categoryFilter, statusFilter, startDate, endDate]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -176,7 +224,9 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
         "Data Tier": p.is_legacy ? "Legacy / Migrated" : "Live Gateway",
         "Payment Channel": isOffline ? "Bank Transfer / Offline" : "Online Checkout",
         "Category":
-          cat === "green_card"
+          cat === "combo"
+            ? "Starter Combo Package"
+            : cat === "green_card"
             ? "Green Card Membership"
             : cat === "slots"
             ? "Farm Slots"
@@ -275,12 +325,15 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-[175px] h-9 text-xs">
+              <SelectTrigger className="w-[185px] h-9 text-xs">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all" className="text-xs">
                   📁 All Categories
+                </SelectItem>
+                <SelectItem value="combo" className="text-xs">
+                  🎁 Starter Combos (₦15k/₦12k/₦10k)
                 </SelectItem>
                 <SelectItem value="green_card" className="text-xs">
                   🪪 Green Card Membership
@@ -289,7 +342,7 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
                   🌱 Farm Slot Purchases
                 </SelectItem>
                 <SelectItem value="products" className="text-xs">
-                  📦 Product Purchases
+                  📦 Product / Starter Pack
                 </SelectItem>
                 <SelectItem value="commissions" className="text-xs">
                   💰 Commissions &amp; Bonuses
@@ -319,10 +372,26 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
                   ✅ Paid / Settled
                 </SelectItem>
                 <SelectItem value="failed" className="text-xs">
-                  ❌ Failed
+                  ❌ Failed / Cancelled
                 </SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Date Range Filter (Reusable Component) */}
+            <DateRangeFilter
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(s, e) => {
+                setStartDate(s);
+                setEndDate(e);
+                setPage(1);
+              }}
+              onClear={() => {
+                setStartDate("");
+                setEndDate("");
+                setPage(1);
+              }}
+            />
 
             {/* Export Excel Button */}
             <Button
@@ -381,6 +450,8 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
               const cat = resolveTransactionCategory(p);
               const ref = p.reference || p.id;
               const isCopied = copiedId === p.id;
+              const isSettled = ["paid", "success", "successful", "completed", "settled", "active"].includes((p.status || "").toLowerCase());
+              const isPending = (p.status || "").toLowerCase() === "pending";
 
               return (
                 <TableRow key={p.id} className="hover:bg-muted/20 transition-colors">
@@ -418,28 +489,32 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
                     <span
                       className={cn(
                         "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border",
-                        cat === "green_card"
+                        cat === "combo"
+                          ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                          : cat === "green_card"
                           ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                           : cat === "slots"
                           ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
                           : cat === "products"
-                          ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                          ? "bg-teal-500/10 text-teal-400 border-teal-500/20"
                           : cat === "commissions"
                           ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
                           : "bg-muted text-muted-foreground border-border",
                       )}
                     >
-                      {cat === "green_card"
+                      {cat === "combo"
+                        ? "Starter Combo"
+                        : cat === "green_card"
                         ? "Green Card"
                         : cat === "slots"
                         ? "Farm Slot"
                         : cat === "products"
-                        ? "Product"
+                        ? "Product / Starter Pack"
                         : cat === "commissions"
                         ? "Commission"
                         : p.project_category}
                     </span>
-                    <div className="text-[11px] text-muted-foreground truncate max-w-[180px] mt-0.5">
+                    <div className="text-[11px] text-muted-foreground truncate max-w-[200px] mt-0.5" title={p.project_category}>
                       {p.project_category}
                     </div>
                   </TableCell>
@@ -464,7 +539,7 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
                   {/* Amount & Units */}
                   <TableCell className="py-2.5 px-3 font-mono">
                     <div className="font-bold text-foreground">₦{p.amount.toLocaleString()}</div>
-                    {p.slots > 0 && (
+                    {p.slots > 0 && cat !== "products" && (
                       <div className="text-[10px] text-emerald-400 font-medium">
                         {p.slots} slot{p.slots > 1 ? "s" : ""} ({p.slots * 2} bags)
                       </div>
@@ -491,28 +566,33 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
                   {/* Actions */}
                   <TableCell className="py-2.5 px-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      {!isOffline && (
+                      {/* Verify FLW: ONLY for PENDING online transactions */}
+                      {!isOffline && isPending && (
                         <Button
                           type="button"
                           size="sm"
                           variant="outline"
                           onClick={() => setVerifyRef(p.reference || p.id)}
                           className="h-6 px-2 text-[10px] gap-1 border-emerald-500/30 text-emerald-500 hover:bg-emerald-500/10"
-                          title="Verify this payment on Flutterwave"
+                          title="Verify pending transaction on Flutterwave"
                         >
                           <CreditCard className="w-2.5 h-2.5" /> Verify FLW
                         </Button>
                       )}
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setRemediatingTx(p)}
-                        className="h-6 px-2 text-[10px] gap-1 border-primary/30 text-primary hover:bg-primary/10"
-                        title="Force settle and allot transaction with double-confirmation preview"
-                      >
-                        <Zap className="w-2.5 h-2.5" /> Force Settle
-                      </Button>
+
+                      {/* Force Settle: ONLY for UNSETTLED / UNPAID transactions */}
+                      {!isSettled && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setRemediatingTx(p)}
+                          className="h-6 px-2 text-[10px] gap-1 border-primary/30 text-primary hover:bg-primary/10"
+                          title="Force settle and allot transaction with double-confirmation preview"
+                        >
+                          <Zap className="w-2.5 h-2.5" /> Force Settle
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

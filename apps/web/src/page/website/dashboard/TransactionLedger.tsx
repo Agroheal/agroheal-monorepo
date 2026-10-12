@@ -846,19 +846,25 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
         }
       });
 
+      const isUserAdmin = profile?.role === "admin" || profile?.role === "super_admin";
+
       // 8. Official wallet_ledger entries (CORE_DRIVER_BONUS, wallet debits/credits)
       (dbWalletLedger || []).forEach((entry: any) => {
         if ((entry.status || "").toUpperCase() === "PENDING") return; // Pending loan commissions should not show in UI at all
         const ref = entry.reference_id || entry.id?.slice(0, 8) || "N/A";
         if (!items.some((it) => it.id === entry.id || (entry.category === "CORE_DRIVER_BONUS" && it.reference === ref))) {
           const isDebit = entry.entry_type === "DEBIT";
+          let desc = entry.description || "Core Driver Growth Pool Share";
+          if (!isUserAdmin && (entry.category === "CORE_DRIVER_BONUS" || desc.includes("Growth") || desc.includes("Core Partner"))) {
+            desc = desc.replace(/from\s+[^()]+\s*\(((?:AGC|GC)[^)]+)\)/gi, "from $1");
+          }
           items.push({
             id: entry.id || `ledger-${ref}`,
             date: entry.created_at || new Date().toISOString(),
             type: isDebit ? "DEBIT" : "CREDIT",
             category: entry.category || "CORE_DRIVER_BONUS",
             amount: Math.abs(Number(entry.amount) || 0),
-            description: entry.description || "Core Driver Growth Pool Share",
+            description: desc,
             status: entry.status === "FAILED" ? "FAILED" : "COMPLETED",
             reference: ref,
             is_legacy: entry.category === "CORE_DRIVER_BONUS" ? false : Boolean(entry.is_legacy || isLegacyMember(entry.created_at)),
