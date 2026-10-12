@@ -19,6 +19,7 @@ import MembersPage from "@/pages/MembersPage";
 import PaymentsPage from "@/pages/PaymentsPage";
 import FarmAssignmentsPage from "@/pages/FarmAssignmentsPage";
 import TreasuryPage from "@/pages/TreasuryPage";
+import CorporateRevenuePage from "@/pages/CorporateRevenuePage";
 import SettingsPage from "@/pages/SettingsPage";
 import CoreDriversPage from "@/pages/CoreDriversPage";
 import LeaderboardPage from "@/pages/LeaderboardPage";
@@ -51,6 +52,7 @@ const router = createBrowserRouter([
           { path: "payments", element: <PaymentsPage /> },
           { path: "audit", element: <AuditTrailPage /> },
           { path: "treasury", element: <TreasuryPage /> },
+          { path: "treasury/corporate-revenue", element: <CorporateRevenuePage /> },
           { path: "content", element: <ContentManagementPage /> },
           { path: "courses", element: <CoursesAdminPage /> },
           { path: "settings", element: <SettingsPage /> },

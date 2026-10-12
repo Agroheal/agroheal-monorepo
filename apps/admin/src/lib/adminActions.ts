@@ -508,6 +508,32 @@ export async function updateMember(input: {
       updatePayload.custom_permissions = sanitizedInput.custom_permissions;
     }
 
+    // Webmaster referral code change with uniqueness check and alias preservation
+    if (sanitizedInput.referral_code && sanitizedInput.referral_code !== priorProfile?.referral_code) {
+      const { data: dup } = await supabase
+        .from("profiles")
+        .select("id")
+        .ilike("referral_code", sanitizedInput.referral_code)
+        .neq("id", sanitizedInput.user_id)
+        .maybeSingle();
+
+      if (dup) {
+        throw new Error(`Referral code '${sanitizedInput.referral_code}' is already claimed by another member.`);
+      }
+
+      updatePayload.referral_code = sanitizedInput.referral_code.toUpperCase();
+
+      const oldCode = priorProfile?.referral_code as string | undefined;
+      const currentPerms = (updatePayload.custom_permissions || priorProfile?.custom_permissions || {}) as Record<string, any>;
+      const aliases: string[] = Array.isArray(currentPerms.referral_aliases) ? [...currentPerms.referral_aliases] : [];
+
+      if (oldCode && !aliases.includes(oldCode.toUpperCase()) && oldCode.toUpperCase() !== sanitizedInput.referral_code.toUpperCase()) {
+        aliases.push(oldCode.toUpperCase());
+      }
+      currentPerms.referral_aliases = aliases;
+      updatePayload.custom_permissions = currentPerms;
+    }
+
     const { error } = await supabase
       .from("profiles")
       .update(updatePayload)

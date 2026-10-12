@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   ShieldCheck,
   Coins,
@@ -37,7 +38,9 @@ import { StatusBanner } from "@/components/admin/StatusBanner";
 import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import { adminApiClient } from "@/lib/apiClient";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import { useAdminTierFilter } from "@/context/AdminTierContext";
 import { DateRangeFilter } from "@/components/common/DateRangeFilter";
+import { cn } from "@/lib/utils";
 
 export interface WalletRecord {
   id: string;
@@ -133,10 +136,56 @@ interface TreasuryAuditData {
 
 export default function TreasuryPage() {
   const { isSuperDeveloper, isAdmin, profile } = useAdminAuth();
+  const { tier } = useAdminTierFilter();
+  const currentTier = tier === "live" ? "modern" : tier;
 
   const [refreshing, setRefreshing] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+
+  // Live Gateway Balance State
+  const [liveGatewayBalance, setLiveGatewayBalance] = useState<{
+    availableBalance: number;
+    ledgerBalance: number;
+    currency: string;
+    queriedAt: string;
+    source: string;
+  } | null>(null);
+  const [fetchingLiveBalance, setFetchingLiveBalance] = useState(false);
+  const [useManualBalance, setUseManualBalance] = useState(false);
+
+  // Main 3-Tab Architecture & Deep Linking
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const [activeMainTab, setActiveMainTab] = useState<"payouts" | "reserves" | "revenue" | "all">(() => {
+    if (tabParam === "reserves" || tabParam === "revenue" || tabParam === "all") {
+      return tabParam;
+    }
+    return "payouts";
+  });
+
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t === "payouts" || t === "reserves" || t === "revenue" || t === "all") {
+      setActiveMainTab(t);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (tab: "payouts" | "reserves" | "revenue" | "all") => {
+    setActiveMainTab(tab);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", tab);
+      return next;
+    });
+  };
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   // Treasury Audit State
   const [auditData, setAuditData] = useState<TreasuryAuditData | null>(null);
@@ -154,6 +203,7 @@ export default function TreasuryPage() {
     shortfall: number;
     pendingWithdrawalsCount: number;
     recommendedAction: string;
+    balanceSource?: "manual" | "flutterwave";
   } | null>(null);
   const [evaluatingShield, setEvaluatingShield] = useState(false);
 
@@ -180,6 +230,20 @@ export default function TreasuryPage() {
   // Group Farms state
   const [groupFarms, setGroupFarms] = useState<GroupFarmSummary[]>([]);
 
+  // Filter Group Farms by active tier
+  const filteredGroupFarms = useMemo(() => {
+    return groupFarms.filter((farm) => {
+      const isLegacy =
+        farm.slug.toLowerCase().includes("gingertown") ||
+        farm.slug.toLowerCase().includes("mushroom-village") ||
+        farm.name.toLowerCase().includes("gingertown") ||
+        farm.name.toLowerCase().includes("mushroom village");
+      if (currentTier === "modern") return !isLegacy;
+      if (currentTier === "legacy") return isLegacy;
+      return true;
+    });
+  }, [groupFarms, currentTier]);
+
   // Drill-down Modal State
   const [modalOpen, setModalOpen] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
@@ -202,6 +266,23 @@ export default function TreasuryPage() {
   const flash = (fn: (v: string) => void, text: string) => {
     fn(text);
     setTimeout(() => fn(""), 4500);
+  };
+
+  const fetchLiveGatewayBalance = async () => {
+    setFetchingLiveBalance(true);
+    try {
+      const res = await adminApiClient.withdrawals.getLiveBalance();
+      if (res?.success) {
+        setLiveGatewayBalance(res);
+        if (!useManualBalance) {
+          setLiquidBankBalance(res.availableBalance);
+        }
+      }
+    } catch (err: any) {
+      console.warn("Failed to fetch live gateway balance:", err);
+    } finally {
+      setFetchingLiveBalance(false);
+    }
   };
 
   const handleTriggerCorporateSweep = async () => {
@@ -231,22 +312,30 @@ export default function TreasuryPage() {
   const loadData = async (sDate = treasuryStartDate, eDate = treasuryEndDate) => {
     setRefreshing(true);
     try {
-      // 1. Load Executive Treasury Audit, Pending Withdrawals, and Group Farms in parallel
-      const [audit, queue, farms] = await Promise.all([
-        adminApiClient.admin.getTreasuryAudit({ startDate: sDate, endDate: eDate }).catch(() => null),
+      // 1. Load Executive Treasury Audit, Pending Withdrawals, Group Farms, and Live Flutterwave Balance in parallel
+      const [audit, queue, farms, liveBal] = await Promise.all([
+        adminApiClient.admin.getTreasuryAudit({ startDate: sDate, endDate: eDate, tier: currentTier }).catch(() => null),
         adminApiClient.withdrawals.listWithdrawals().catch(() => []),
         adminApiClient.admin.getGroupFarms().catch(() => []),
+        adminApiClient.withdrawals.getLiveBalance().catch(() => null),
       ]);
       if (audit) setAuditData(audit);
       setWithdrawals(queue || []);
       if (Array.isArray(farms)) setGroupFarms(farms);
+      if (liveBal?.success) {
+        setLiveGatewayBalance(liveBal);
+        if (!useManualBalance) {
+          setLiquidBankBalance(liveBal.availableBalance);
+        }
+      }
 
-      // 2. Initial Solvency Shield Evaluation
-      if (liquidBankBalance > 0 || (queue && queue.length > 0)) {
-        const shield = await adminApiClient.withdrawals
-          .evaluateSolvencyShield({ liquidBankBalance })
-          .catch(() => null);
-        if (shield) setSolvencyShield(shield);
+      // 2. Initial Solvency Shield Evaluation using live Flutterwave or manual balance
+      const shield = await adminApiClient.withdrawals
+        .evaluateSolvencyShield(useManualBalance && liquidBankBalance > 0 ? { liquidBankBalance } : {})
+        .catch(() => null);
+      if (shield) {
+        setSolvencyShield(shield);
+        if (!useManualBalance) setLiquidBankBalance(shield.liquidBankBalance);
       }
     } catch (err: any) {
       flash(setErrorMessage, err.message || "Failed to load treasury data");
@@ -269,7 +358,7 @@ export default function TreasuryPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [currentTier]);
 
   const fetchModalHistory = async (
     type: "wallet" | "farm",
@@ -386,13 +475,17 @@ export default function TreasuryPage() {
     setEvaluatingShield(true);
     setErrorMessage("");
     try {
-      const shield = await adminApiClient.withdrawals.evaluateSolvencyShield({
-        liquidBankBalance: Number(liquidBankBalance) || 0,
-      });
+      const payload = useManualBalance && Number(liquidBankBalance) > 0
+        ? { liquidBankBalance: Number(liquidBankBalance) }
+        : {};
+      const shield = await adminApiClient.withdrawals.evaluateSolvencyShield(payload);
       setSolvencyShield(shield);
+      if (!useManualBalance) {
+        setLiquidBankBalance(shield.liquidBankBalance);
+      }
       flash(
         setSuccessMessage,
-        `Solvency Shield evaluated: LCR is ${shield.liquidityCoverageRatio}% (${shield.isSolvent ? "SECURED" : "DEFICIT LOCKED"})`
+        `Solvency Shield evaluated (${shield.balanceSource === "flutterwave" ? "Live Flutterwave Gateway" : "Manual Balance"}): LCR is ${shield.liquidityCoverageRatio}% (${shield.isSolvent ? "SECURED" : "DEFICIT LOCKED"})`
       );
     } catch (err: any) {
       flash(setErrorMessage, err.message || "Failed to evaluate solvency shield");
@@ -630,139 +723,276 @@ export default function TreasuryPage() {
         </div>
       </div>
 
-      {/* ── SECTION 1: EXECUTIVE BALANCE SHEET ── */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Card className="border-border/60 bg-card p-4">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Gross Platform Inflows</span>
-            <Coins className="w-4 h-4 text-emerald-400" />
-          </div>
-          <div className="mt-2 text-xl font-bold font-mono text-foreground">
-            ₦{(auditData?.totalInflows || 0).toLocaleString()}
-          </div>
-          <div className="mt-1 text-[11px] text-emerald-400/80">
-            Green Cards + Farm Slots + Activations
-          </div>
-        </Card>
+      {/* ── QUICK NAVIGATION & TAB SELECTOR ── */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3.5 rounded-xl border border-border/70 bg-card/60 backdrop-blur-sm">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Button
+            type="button"
+            variant={activeMainTab === "payouts" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleTabChange("payouts")}
+            className="text-xs font-semibold gap-1.5 h-8 cursor-pointer"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Liquidity &amp; Payouts ({withdrawals.length})
+          </Button>
+          <Button
+            type="button"
+            variant={activeMainTab === "reserves" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleTabChange("reserves")}
+            className="text-xs font-semibold gap-1.5 h-8 cursor-pointer"
+          >
+            <Landmark className="w-3.5 h-3.5" />
+            Statutory Reserves &amp; Farms
+          </Button>
+          <Button
+            type="button"
+            variant={activeMainTab === "revenue" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleTabChange("revenue")}
+            className="text-xs font-semibold gap-1.5 h-8 cursor-pointer"
+          >
+            <Coins className="w-3.5 h-3.5" />
+            Revenue Streams &amp; Inflows
+          </Button>
+          <Button
+            type="button"
+            variant={activeMainTab === "all" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleTabChange("all")}
+            className="text-xs font-semibold gap-1.5 h-8 cursor-pointer"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            All Sections
+          </Button>
+        </div>
 
-        <Card className="border-border/60 bg-card p-4">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Pending Member Liabilities</span>
-            <Clock className="w-4 h-4 text-amber-400" />
-          </div>
-          <div className="mt-2 text-xl font-bold font-mono text-amber-300">
-            ₦{(solvencyShield?.totalPendingLiability || 0).toLocaleString()}
-          </div>
-          <div className="mt-1 text-[11px] text-muted-foreground">
-            {withdrawals.length} pending bank payout request(s)
-          </div>
-        </Card>
-
-        <Card className="border-border/60 bg-card p-4">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Total Historical Payouts</span>
-            <ArrowDownToLine className="w-4 h-4 text-blue-400" />
-          </div>
-          <div className="mt-2 text-xl font-bold font-mono text-foreground">
-            ₦{(auditData?.totalWithdrawnDisbursals || 0).toLocaleString()}
-          </div>
-          <div className="mt-1 text-[11px] text-muted-foreground">
-            Cleared bank transfers to date
-          </div>
-        </Card>
-
-        <Card className="border-border/60 bg-card p-4">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Audit Reconciliation</span>
-            <ShieldCheck className="w-4 h-4 text-primary" />
-          </div>
-          <div className="mt-2 flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-sm font-bold text-foreground">ZERO LEAKAGE</span>
-          </div>
-          <div className="mt-1 text-[11px] text-emerald-400/80">
-            Inflows = Liabilities + Margin + Reserves
-          </div>
-        </Card>
-      </div>
-
-      {/* ── SECTION 2: PLATFORM WALLETS & PAYMENT BREAKDOWN ── */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Boxes className="w-4 h-4 text-primary" />
-              Platform Wallets &amp; Payment Breakdown
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Automated category balances, statutory reserves, and corporate sweeps with zero mathematical leakage.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Category Filter Buttons */}
-            <div className="flex items-center rounded-lg border border-border/60 bg-muted/30 p-0.5 text-xs">
-              <button
+        <div className="flex flex-wrap items-center gap-2">
+          {activeMainTab === "payouts" ? (
+            <>
+              <Button
                 type="button"
-                onClick={() => setWalletCategoryTab("all")}
-                className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
-                  walletCategoryTab === "all"
-                    ? "bg-background text-foreground shadow-xs font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                variant="outline"
+                size="sm"
+                onClick={() => scrollToSection("solvency-shield")}
+                className="text-xs h-8 gap-1 border-primary/30 text-primary hover:bg-primary/10 cursor-pointer"
               >
-                All Wallets
-              </button>
-              <button
+                <ShieldCheck className="w-3 h-3" />
+                Solvency Shield
+              </Button>
+              <Button
                 type="button"
-                onClick={() => setWalletCategoryTab("inflows")}
-                className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
-                  walletCategoryTab === "inflows"
-                    ? "bg-background text-foreground shadow-xs font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                variant="outline"
+                size="sm"
+                onClick={() => scrollToSection("payout-queue")}
+                className="text-xs h-8 gap-1 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 cursor-pointer"
               >
-                Payment Categories
-              </button>
-              <button
-                type="button"
-                onClick={() => setWalletCategoryTab("commissions")}
-                className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
-                  walletCategoryTab === "commissions"
-                    ? "bg-background text-foreground shadow-xs font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Commissions
-              </button>
-              <button
-                type="button"
-                onClick={() => setWalletCategoryTab("reserves")}
-                className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
-                  walletCategoryTab === "reserves"
-                    ? "bg-background text-foreground shadow-xs font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Statutory Reserves
-              </button>
-            </div>
+                <Coins className="w-3 h-3" />
+                Payout Queue
+              </Button>
+            </>
+          ) : (
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={handleTriggerCorporateSweep}
-              disabled={sweeping}
-              className="h-8 gap-1.5 text-xs font-semibold border-primary/40 text-primary hover:bg-primary/10 cursor-pointer"
+              onClick={() => {
+                handleTabChange("payouts");
+                setTimeout(() => scrollToSection("payout-queue"), 50);
+              }}
+              className="text-xs h-8 gap-1 border-amber-500/30 text-amber-400 hover:bg-amber-500/10 cursor-pointer"
             >
-              <Send className={`h-3.5 w-3.5 ${sweeping ? "animate-spin" : ""}`} />
-              {sweeping ? "Sweeping Margins..." : "Trigger Corporate Revenue Sweep"}
+              <Coins className="w-3 h-3" />
+              ⚡ Payout Queue ({withdrawals.length})
             </Button>
-          </div>
+          )}
+          <Link to="/treasury/corporate-revenue">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs h-8 gap-1.5 border-primary/40 text-primary hover:bg-primary/10 cursor-pointer"
+            >
+              <Landmark className="w-3.5 h-3.5" />
+              Corporate Revenue Trail <ArrowUpRight className="w-3 h-3" />
+            </Button>
+          </Link>
+          <Link to="/payments?tab=ledger">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs h-8 gap-1.5 border-border/80 text-foreground hover:bg-muted/40 cursor-pointer"
+            >
+              <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+              Master Financial Ledger <ArrowUpRight className="w-3 h-3" />
+            </Button>
+          </Link>
         </div>
+      </div>
 
-        {/* 2A. PAYMENT CATEGORY WALLETS (INFLOWS) */}
-        {(walletCategoryTab === "all" || walletCategoryTab === "inflows") && (
-          <div className="space-y-2">
+      {/* ── SECTION 1: EXECUTIVE BALANCE SHEET ── */}
+      {(activeMainTab === "reserves" || activeMainTab === "revenue" || activeMainTab === "all") && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="border-border/60 bg-card p-4">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Gross Platform Inflows</span>
+              <Coins className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div className="mt-2 text-xl font-bold font-mono text-foreground">
+              ₦{(auditData?.totalInflows || 0).toLocaleString()}
+            </div>
+            <div className="mt-1 text-[11px] text-emerald-400/80">
+              Green Cards + Farm Slots + Activations
+            </div>
+          </Card>
+
+          <Card className="border-border/60 bg-card p-4">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Pending Member Liabilities</span>
+              <Clock className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="mt-2 text-xl font-bold font-mono text-amber-300">
+              ₦{(solvencyShield?.totalPendingLiability || 0).toLocaleString()}
+            </div>
+            <div className="mt-1 text-[11px] text-muted-foreground">
+              {withdrawals.length} pending bank payout request(s)
+            </div>
+          </Card>
+
+          <Card className="border-border/60 bg-card p-4">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Total Historical Payouts</span>
+              <ArrowDownToLine className="w-4 h-4 text-blue-400" />
+            </div>
+            <div className="mt-2 text-xl font-bold font-mono text-foreground">
+              ₦{(auditData?.totalWithdrawnDisbursals || 0).toLocaleString()}
+            </div>
+            <div className="mt-1 text-[11px] text-muted-foreground">
+              Cleared bank transfers to date
+            </div>
+          </Card>
+
+          <Card className="border-border/60 bg-card p-4">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Audit Reconciliation</span>
+              <ShieldCheck className="w-4 h-4 text-primary" />
+            </div>
+            <div className="mt-2 flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-sm font-bold text-foreground">ZERO LEAKAGE</span>
+            </div>
+            <div className="mt-1 text-[11px] text-emerald-400/80">
+              Inflows = Liabilities + Margin + Reserves
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ── SECTION 2: PLATFORM WALLETS & PAYMENT BREAKDOWN ── */}
+      {(activeMainTab === "reserves" || activeMainTab === "revenue" || activeMainTab === "all") && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Boxes className="w-4 h-4 text-primary" />
+                {activeMainTab === "revenue"
+                  ? "Revenue Streams & Network Commissions"
+                  : activeMainTab === "reserves"
+                  ? "Statutory Production & Operational Reserves"
+                  : "Platform Wallets & Payment Breakdown"}
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                {activeMainTab === "revenue"
+                  ? "Automated payment categories, generational commissions, and corporate sweep."
+                  : activeMainTab === "reserves"
+                  ? "Ring-fenced statutory platform pools, corporate margin accrual, and group farm hubs."
+                  : "Automated category balances, statutory reserves, and corporate sweeps with zero mathematical leakage."}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Category Filter Buttons (Only in All Sections mode) */}
+              {activeMainTab === "all" && (
+                <div className="flex items-center rounded-lg border border-border/60 bg-muted/30 p-0.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setWalletCategoryTab("all")}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+                      walletCategoryTab === "all"
+                        ? "bg-background text-foreground shadow-xs font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    All Wallets
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWalletCategoryTab("inflows")}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+                      walletCategoryTab === "inflows"
+                        ? "bg-background text-foreground shadow-xs font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Payment Categories
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWalletCategoryTab("commissions")}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+                      walletCategoryTab === "commissions"
+                        ? "bg-background text-foreground shadow-xs font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Commissions
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWalletCategoryTab("reserves")}
+                    className={`px-2.5 py-1 rounded-md font-medium transition-colors cursor-pointer ${
+                      walletCategoryTab === "reserves"
+                        ? "bg-background text-foreground shadow-xs font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Statutory Reserves
+                  </button>
+                </div>
+              )}
+              {(activeMainTab === "revenue" || activeMainTab === "all") && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleTriggerCorporateSweep}
+                  disabled={sweeping}
+                  className="h-8 gap-1.5 text-xs font-semibold border-primary/40 text-primary hover:bg-primary/10 cursor-pointer"
+                >
+                  <Send className={`h-3.5 w-3.5 ${sweeping ? "animate-spin" : ""}`} />
+                  {sweeping ? "Sweeping Margins..." : "Trigger Corporate Revenue Sweep"}
+                </Button>
+              )}
+              {activeMainTab === "reserves" && (
+                <Link to="/treasury/corporate-revenue">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1.5 text-xs font-semibold border-primary/40 text-primary hover:bg-primary/10 cursor-pointer"
+                  >
+                    <Landmark className="w-3.5 h-3.5" />
+                    Corporate Revenue Audit Trail <ArrowUpRight className="w-3 h-3" />
+                  </Button>
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* 2A. PAYMENT CATEGORY WALLETS (INFLOWS) */}
+          {(activeMainTab === "revenue" || (activeMainTab === "all" && (walletCategoryTab === "all" || walletCategoryTab === "inflows"))) && (
+            <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-muted-foreground tracking-wider uppercase flex items-center gap-1.5">
                 <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
@@ -921,7 +1151,7 @@ export default function TreasuryPage() {
         )}
 
         {/* 2B. COMMISSION & MEMBER EARNING CATEGORIES (WALLET LEDGER) */}
-        {(walletCategoryTab === "all" || walletCategoryTab === "commissions") && (
+        {(activeMainTab === "revenue" || (activeMainTab === "all" && (walletCategoryTab === "all" || walletCategoryTab === "commissions"))) && (
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-muted-foreground tracking-wider uppercase flex items-center gap-1.5">
@@ -1053,7 +1283,7 @@ export default function TreasuryPage() {
         )}
 
         {/* 2C. STATUTORY PRODUCTION & OPERATIONAL RESERVES */}
-        {(walletCategoryTab === "all" || walletCategoryTab === "reserves") && (
+        {(activeMainTab === "reserves" || (activeMainTab === "all" && (walletCategoryTab === "all" || walletCategoryTab === "reserves"))) && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-muted-foreground tracking-wider uppercase flex items-center gap-1.5">
@@ -1253,8 +1483,7 @@ export default function TreasuryPage() {
 
             {/* Retained Corporate Margin Card */}
             <Card
-              onClick={() => handleOpenWalletHistory("agrohealCorporateRevenue", "AgroHeal Retained Corporate Revenue")}
-              className="border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl hover:border-primary/60 hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
+              className="border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl hover:border-primary/60 hover:shadow-md transition-all"
             >
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-primary/10 text-primary">
@@ -1262,7 +1491,7 @@ export default function TreasuryPage() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-bold text-foreground group-hover:text-primary transition-colors">
+                    <h4 className="text-sm font-bold text-foreground">
                       AgroHeal Retained Corporate Revenue
                     </h4>
                     <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
@@ -1274,15 +1503,27 @@ export default function TreasuryPage() {
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <div className="text-right">
                   <span className="text-xs text-muted-foreground block">Net Unswept Margin</span>
                   <span className="font-mono text-lg font-bold text-primary">
                     ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.agrohealCorporateRevenue?.currentBalance || 0).toLocaleString()}
                   </span>
                 </div>
-                <div className="pl-2 border-l border-border/40 text-primary">
-                  <ArrowUpRight className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleOpenWalletHistory("agrohealCorporateRevenue", "AgroHeal Retained Corporate Revenue")}
+                    className="h-8 text-xs cursor-pointer"
+                  >
+                    Quick Audit Modal
+                  </Button>
+                  <Link to="/treasury/corporate-revenue">
+                    <Button size="sm" className="h-8 text-xs gap-1 cursor-pointer">
+                      Row-by-Row Page <ArrowUpRight className="w-3.5 h-3.5" />
+                    </Button>
+                  </Link>
                 </div>
               </div>
             </Card>
@@ -1301,18 +1542,18 @@ export default function TreasuryPage() {
                 </div>
                 <div className="flex items-center gap-2 text-xs">
                   <Badge variant="outline" className="font-mono text-emerald-400 border-emerald-500/30">
-                    {groupFarms.length} Chartered Farms
+                    {filteredGroupFarms.length} Chartered Farms
                   </Badge>
                 </div>
               </div>
 
-              {groupFarms.length === 0 ? (
+              {filteredGroupFarms.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border/60 p-6 text-center text-xs text-muted-foreground">
-                  Loading chartered group farms...
+                  No chartered group farms match the selected tier ({currentTier}).
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {groupFarms.map((farm) => {
+                  {filteredGroupFarms.map((farm) => {
                     const isPositive = farm.netBalance >= 0;
                     return (
                       <Card
@@ -1397,47 +1638,96 @@ export default function TreasuryPage() {
           </div>
         )}
       </div>
+      )}
 
-      {/* ── SECTION 3: SOLVENCY SHIELD MONITOR ── */}
-      <Card className="border-border/60 bg-card p-5 sm:p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-1.5 max-w-xl">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-primary" />
-              <h3 className="text-sm font-bold text-foreground">
-                Pre-Payout Solvency Shield (Item 4.2)
-              </h3>
-              {solvencyShield && (
-                <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                    solvencyShield.isSolvent
-                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
-                      : "bg-destructive/10 text-destructive border border-destructive/30"
-                  }`}
-                >
-                  {solvencyShield.isSolvent ? "SHIELD SECURED" : "DEFICIT LOCKED"}
-                </span>
-              )}
-            </div>
+      {/* ── SECTION 3: SOLVENCY SHIELD MONITOR & SECTION 4: WITHDRAWALS QUEUE ── */}
+      {(activeMainTab === "payouts" || activeMainTab === "all") && (
+        <>
+          <Card id="solvency-shield" className="border-border/60 bg-card p-5 sm:p-6 scroll-mt-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+              <div className="space-y-1.5 max-w-xl">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <ShieldCheck className="w-5 h-5 text-primary" />
+                  <h3 className="text-sm font-bold text-foreground">
+                    Pre-Payout Solvency Shield (Item 4.2)
+                  </h3>
+                  {solvencyShield && (
+                    <span
+                      className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                        solvencyShield.isSolvent
+                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30"
+                          : "bg-destructive/10 text-destructive border border-destructive/30"
+                      }`}
+                    >
+                      {solvencyShield.isSolvent ? "SHIELD SECURED" : "DEFICIT LOCKED"}
+                    </span>
+                  )}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => scrollToSection("payout-queue")}
+                    className="h-6 text-[11px] font-semibold gap-1 text-muted-foreground hover:text-foreground cursor-pointer ml-auto sm:ml-2"
+                  >
+                    <Coins className="w-3 h-3 text-amber-400" />
+                    Jump to Queue ({withdrawals.length})
+                  </Button>
+              </div>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Verifies the company’s liquid bank balance covers 100% of pending liabilities before releasing any batch NUBAN bank transfers.
+              Verifies the company’s liquid gateway or bank balance covers 100% of pending liabilities before releasing any batch NUBAN bank transfers.
               Locks disbursal automatically if Liquidity Coverage Ratio (LCR) falls below 100%.
             </p>
+
+            {liveGatewayBalance && (
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground pt-1 flex-wrap">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>
+                  Live Flutterwave NGN: <strong className="text-foreground font-mono">₦{liveGatewayBalance.availableBalance.toLocaleString()}</strong>
+                </span>
+                <span className="text-muted-foreground/50">•</span>
+                <span>Queried: {formatWATDateTime(liveGatewayBalance.queriedAt)}</span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={fetchLiveGatewayBalance}
+                  disabled={fetchingLiveBalance}
+                  className="h-5 w-5 text-muted-foreground hover:text-foreground cursor-pointer"
+                  title="Refresh live gateway balance"
+                >
+                  <RefreshCw className={cn("w-3 h-3", fetchingLiveBalance && "animate-spin")} />
+                </Button>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
             <div className="space-y-1">
-              <Label htmlFor="liquidBalance" className="text-xs text-muted-foreground">
-                Live Liquid Bank Balance (₦)
-              </Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="liquidBalance" className="text-xs text-muted-foreground">
+                  {useManualBalance ? "Manual Override (₦)" : "Liquid Bank Balance (₦)"}
+                </Label>
+                <label className="text-[10px] text-muted-foreground flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={useManualBalance}
+                    onChange={(e) => setUseManualBalance(e.target.checked)}
+                    className="h-3 w-3 rounded text-primary"
+                  />
+                  Manual
+                </label>
+              </div>
               <Input
                 id="liquidBalance"
                 type="number"
                 min="0"
                 step="1000"
-                placeholder="e.g. 5000000"
+                placeholder={useManualBalance ? "e.g. 5000000" : String(liveGatewayBalance?.availableBalance || 0)}
                 value={liquidBankBalance || ""}
-                onChange={(e) => setLiquidBankBalance(Number(e.target.value) || 0)}
+                onChange={(e) => {
+                  setLiquidBankBalance(Number(e.target.value) || 0);
+                  setUseManualBalance(true);
+                }}
                 className="w-full sm:w-48 font-mono text-sm"
               />
             </div>
@@ -1446,7 +1736,7 @@ export default function TreasuryPage() {
               type="button"
               onClick={handleEvaluateSolvency}
               disabled={evaluatingShield}
-              className="text-xs font-semibold gap-1.5"
+              className="text-xs font-semibold gap-1.5 cursor-pointer"
             >
               {evaluatingShield ? "Evaluating..." : "Check Solvency"}
             </Button>
@@ -1456,7 +1746,7 @@ export default function TreasuryPage() {
               variant="outline"
               onClick={handleBatchDisburse}
               disabled={batchProcessing || !solvencyShield?.isSolvent || withdrawals.length === 0}
-              className="text-xs font-semibold gap-1.5 border-emerald-600/40 text-emerald-400 hover:bg-emerald-500/10"
+              className="text-xs font-semibold gap-1.5 border-emerald-600/40 text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
               title={
                 !solvencyShield?.isSolvent
                   ? "Solvency Shield locked: LCR must be >= 100%"
@@ -1472,7 +1762,9 @@ export default function TreasuryPage() {
         {solvencyShield && (
           <div className="mt-5 pt-4 border-t border-border/40 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div>
-              <span className="text-muted-foreground block">Liquid Bank Balance</span>
+              <span className="text-muted-foreground block">
+                Liquid Balance ({solvencyShield.balanceSource === "flutterwave" ? "Live Gateway" : "Manual Override"})
+              </span>
               <span className="font-mono font-bold text-foreground text-sm">
                 ₦{solvencyShield.liquidBankBalance.toLocaleString()}
               </span>
@@ -1510,16 +1802,28 @@ export default function TreasuryPage() {
       </Card>
 
       {/* ── SECTION 3: WITHDRAWALS DISBURSAL QUEUE ── */}
-      <div className="space-y-3">
+      <div id="payout-queue" className="space-y-3 scroll-mt-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Coins className="w-4 h-4 text-primary" />
-              Pending Withdrawal Settlement Queue ({withdrawals.length})
-            </h3>
-            <span className="text-xs text-muted-foreground">
-              Disburse to verified NUBAN accounts or refund to wallet ledger.
-            </span>
+          <div className="flex items-center gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Coins className="w-4 h-4 text-primary" />
+                Pending Withdrawal Settlement Queue ({withdrawals.length})
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                Disburse to verified NUBAN accounts or refund to wallet ledger.
+              </span>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => scrollToSection("solvency-shield")}
+              className="h-7 text-xs font-semibold gap-1 border-primary/30 text-primary hover:bg-primary/10 cursor-pointer hidden sm:inline-flex"
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Shield Status: {solvencyShield?.isSolvent ? "Secured" : "Locked"}
+            </Button>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -1694,6 +1998,8 @@ export default function TreasuryPage() {
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* ── SECTION 4: DRILL-DOWN AUDIT TRAIL MODAL ── */}
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>

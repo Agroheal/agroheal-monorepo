@@ -20,6 +20,7 @@ import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { LEGACY_CUTOFF_DATE } from "@shared/businessRules";
 
 export interface CoreDriver {
   id: string;
@@ -133,19 +134,19 @@ export default function CoreDriversPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      // 1. Get active green cards count cut off from September 3, 2026
+      // 1. Get active green cards count cut off from LEGACY_CUTOFF_DATE
       const { count: greenCardsCount } = await supabase
         .from("subscriptions")
         .select("id", { count: "exact", head: true })
         .eq("plan", "green_card")
         .eq("status", "active")
-        .gte("created_at", "2026-09-03T00:00:00.000Z");
+        .gte("created_at", LEGACY_CUTOFF_DATE);
 
       const { count: profGreenCardCount } = await supabase
         .from("profiles")
         .select("id", { count: "exact", head: true })
         .or("is_green_card_holder.eq.true,has_greencard.eq.true")
-        .gte("created_at", "2026-09-03T00:00:00.000Z");
+        .gte("created_at", LEGACY_CUTOFF_DATE);
 
       const totalCards = Math.max(greenCardsCount || 0, profGreenCardCount || 0);
       setActiveGreenCardsCount(totalCards);

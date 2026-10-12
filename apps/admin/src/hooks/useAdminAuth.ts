@@ -12,22 +12,32 @@ import {
   getAllowedAssignableRoles,
 } from "@shared";
 
+export interface AdminCustomPermissions {
+  access_treasury?: boolean;
+  manage_members?: boolean;
+  process_withdrawals?: boolean;
+  export_data?: boolean;
+  manage_farms?: boolean;
+  [key: string]: any;
+}
+
 export interface AdminProfile {
   id: string;
   email: string;
   full_name: string;
   role: string;
+  custom_permissions?: AdminCustomPermissions;
 }
 
 /**
- * Single place that fetches the profiles.role/full_name row used to decide
+ * Single place that fetches the profiles.role/full_name/custom_permissions row used to decide
  * admin access — shared by useAdminAuth (route guard) and LoginPage (blocks
  * unauthorized sign-ins immediately) so the check only lives in one place.
  */
 export async function fetchAdminProfile(userId: string) {
   const { data, error } = await supabase
     .from("profiles")
-    .select("role, full_name")
+    .select("role, full_name, custom_permissions")
     .eq("id", userId)
     .maybeSingle();
 
@@ -60,6 +70,7 @@ export const useAdminAuth = () => {
         email: currentSession.user.email || "",
         full_name: data?.full_name || currentSession.user.email || "Admin",
         role: data?.role || "user",
+        custom_permissions: (data?.custom_permissions as AdminCustomPermissions) || {},
       });
     };
 
@@ -108,8 +119,18 @@ export const useAdminAuth = () => {
   const isCoordinator = profile?.role === UserRole.COORDINATOR;
   const isSupport = profile?.role === UserRole.SUPPORT;
   const canAccessAdmin = canAccessAdminPortal(profile?.role, profile?.email);
-  const hasTreasuryAccess = canAccessTreasury(profile?.role, profile?.email);
-  const isReadOnly = isSupport && !isSuperDeveloper && !isAdmin;
+  const hasTreasuryAccess =
+    canAccessTreasury(profile?.role, profile?.email) ||
+    Boolean(profile?.custom_permissions?.access_treasury);
+  const canManageMembers =
+    isAdmin || isSuperDeveloper || Boolean(profile?.custom_permissions?.manage_members);
+  const canProcessWithdrawals =
+    isAdmin || isSuperDeveloper || Boolean(profile?.custom_permissions?.process_withdrawals);
+  const canExportData =
+    isAdmin || isSuperDeveloper || Boolean(profile?.custom_permissions?.export_data);
+  const canManageFarms =
+    isAdmin || isSuperDeveloper || isCoordinator || Boolean(profile?.custom_permissions?.manage_farms);
+  const isReadOnly = isSupport && !isSuperDeveloper && !isAdmin && !canManageMembers;
   const isEstherBola = profile?.email?.toLowerCase() === ESTHER_BOLA_EMAIL.toLowerCase();
   const canAssignRoles = canCreateRoles(profile?.role, profile?.email);
   const allowedAssignableRoles = getAllowedAssignableRoles(profile?.role, profile?.email);
@@ -126,6 +147,10 @@ export const useAdminAuth = () => {
     isSupport,
     canAccessAdmin,
     hasTreasuryAccess,
+    canManageMembers,
+    canProcessWithdrawals,
+    canExportData,
+    canManageFarms,
     isReadOnly,
     canAssignRoles,
     allowedAssignableRoles,

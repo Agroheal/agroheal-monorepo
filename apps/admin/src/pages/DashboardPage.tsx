@@ -284,7 +284,48 @@ export default function DashboardPage() {
         </div>
       </Card>
 
-      {/* Recent Enrolled Members Table */}
+      {/* Treasury, Solvency & Corporate Revenue Quick Command Card */}
+      <Card className="p-4 border-border bg-card/60">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
+              <Landmark className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-bold text-foreground">Treasury, Solvency &amp; Financial Ledger</span>
+                <span className="rounded-full bg-primary/10 border border-primary/30 px-2 py-0.5 text-[10px] font-mono font-bold text-primary">
+                  Item 4.2 Solvency Shield
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Real-time gateway liquidity monitoring, pre-payout solvency verification, corporate revenue margins, and double-entry ledger.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button asChild size="sm" variant="outline" className="text-xs h-8 gap-1.5 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10">
+              <Link to="/treasury?tab=payouts">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                Solvency &amp; Payouts
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline" className="text-xs h-8 gap-1.5 border-primary/40 text-primary hover:bg-primary/10">
+              <Link to="/treasury/corporate-revenue">
+                <Landmark className="w-3.5 h-3.5" />
+                Corporate Revenue Trail
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline" className="text-xs h-8 gap-1.5 border-border/70 text-foreground hover:bg-muted/40">
+              <Link to="/payments?tab=ledger">
+                <CreditCard className="w-3.5 h-3.5 text-blue-400" />
+                Master Ledger
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </Card>
       <Card className="p-4 border-border">
         <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
           <div className="flex items-center gap-2">

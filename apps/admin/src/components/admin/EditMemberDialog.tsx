@@ -438,19 +438,36 @@ export function EditMemberDialog({
                 name="referral_code"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Referral Code</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Referral Code</FormLabel>
+                      {isSuperDeveloper && (
+                        <span className="text-[10px] font-semibold text-emerald-400">
+                          Webmaster Mode
+                        </span>
+                      )}
+                    </div>
                     <FormControl>
                       <Input
                         placeholder="REF123"
-                        className="font-mono bg-muted/60 text-muted-foreground cursor-not-allowed"
-                        disabled
-                        readOnly
-                        title="Referral code is permanently immutable to prevent breaking downstream referral trees."
+                        className={cn(
+                          "font-mono uppercase",
+                          !isSuperDeveloper && "bg-muted/60 text-muted-foreground cursor-not-allowed"
+                        )}
+                        disabled={!isSuperDeveloper}
+                        readOnly={!isSuperDeveloper}
+                        title={
+                          isSuperDeveloper
+                            ? "Webmaster Privilege: Modify referral code. Old code will be preserved as an active alias."
+                            : "Referral code is permanently assigned. Modification restricted to Webmaster."
+                        }
                         {...field}
+                        onChange={(e) => field.onChange(e.target.value.toUpperCase())}
                       />
                     </FormControl>
                     <span className="text-[11px] text-muted-foreground">
-                      Permanently assigned on registration. Read-only to preserve tree integrity.
+                      {isSuperDeveloper
+                        ? "Webmaster: Editable. Old code will automatically remain active as a legacy alias."
+                        : "Permanently assigned on registration. Read-only to preserve tree integrity."}
                     </span>
                     <FormMessage />
                   </FormItem>

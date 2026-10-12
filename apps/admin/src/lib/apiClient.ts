@@ -106,20 +106,55 @@ export const adminApiClient = {
         farmGroupsCount: number;
         timestamp: string;
       }>("admin/stats"),
-    getTreasuryAudit: (params?: { startDate?: string; endDate?: string }) => {
+    getTreasuryAudit: (params?: { startDate?: string; endDate?: string; tier?: string }) => {
       const query = new URLSearchParams();
       if (params?.startDate) query.append("startDate", params.startDate);
       if (params?.endDate) query.append("endDate", params.endDate);
+      if (params?.tier) query.append("tier", params.tier);
       const qs = query.toString() ? `?${query.toString()}` : "";
       return apiRequest<any>(`admin/treasury-audit${qs}`);
     },
-    getWalletHistory: (walletKey: string, params?: { startDate?: string; endDate?: string; search?: string }) => {
+    getWalletHistory: (walletKey: string, params?: { startDate?: string; endDate?: string; search?: string; tier?: string }) => {
       const query = new URLSearchParams();
       if (params?.startDate) query.append("startDate", params.startDate);
       if (params?.endDate) query.append("endDate", params.endDate);
       if (params?.search) query.append("search", params.search);
+      if (params?.tier) query.append("tier", params.tier);
       const qs = query.toString() ? `?${query.toString()}` : "";
       return apiRequest<any>(`admin/treasury/wallet-history/${walletKey}${qs}`);
+    },
+    getMasterLedger: (params?: {
+      page?: number;
+      limit?: number;
+      entryType?: string;
+      category?: string;
+      tier?: string;
+      startDate?: string;
+      endDate?: string;
+      search?: string;
+    }) => {
+      const query = new URLSearchParams();
+      if (params?.page) query.append("page", String(params.page));
+      if (params?.limit) query.append("limit", String(params.limit));
+      if (params?.entryType) query.append("entryType", params.entryType);
+      if (params?.category) query.append("category", params.category);
+      if (params?.tier) query.append("tier", params.tier);
+      if (params?.startDate) query.append("startDate", params.startDate);
+      if (params?.endDate) query.append("endDate", params.endDate);
+      if (params?.search) query.append("search", params.search);
+      const qs = query.toString() ? `?${query.toString()}` : "";
+      return apiRequest<{
+        entries: any[];
+        totalCount: number;
+        page: number;
+        limit: number;
+        totalPages: number;
+        totals: {
+          totalCredits: number;
+          totalDebits: number;
+          netBalance: number;
+        };
+      }>(`admin/ledger/master${qs}`);
     },
     getGroupFarms: () => apiRequest<any[]>("admin/treasury/group-farms"),
     getGroupFarmHistory: (farmId: string, params?: { startDate?: string; endDate?: string; search?: string }) => {
@@ -258,11 +293,19 @@ export const adminApiClient = {
   members: {
     placeMatrix: (id: string) =>
       apiRequest<any>(`admin/members/${id}/place-matrix`, { method: "POST" }),
-    reassignSponsor: (id: string, newSponsorId: string, reason?: string) =>
+    reassignSponsor: (id: string, newSponsorId: string, reason?: string, rePlaceInMatrix = false) =>
       apiRequest<any>(`admin/members/${id}/sponsor`, {
         method: "PUT",
-        body: JSON.stringify({ newSponsorId, reason }),
+        body: JSON.stringify({ newSponsorId, reason, rePlaceInMatrix }),
       }),
+    updateReferralCode: (id: string, newReferralCode: string) =>
+      apiRequest<{ memberId: string; referralCode: string; aliases: string[] }>(
+        `admin/members/${id}/referral-code`,
+        {
+          method: "PUT",
+          body: JSON.stringify({ newReferralCode }),
+        }
+      ),
     issueAdvance: (payload: { userId: string; amount: number; notes?: string }) =>
       apiRequest<any>("admin/members/issue-advance", {
         method: "POST",
@@ -325,6 +368,16 @@ export const adminApiClient = {
   },
   withdrawals: {
     listWithdrawals: () => apiRequest<any[]>("admin/withdrawals"),
+    getLiveBalance: () =>
+      apiRequest<{
+        success: boolean;
+        availableBalance: number;
+        ledgerBalance: number;
+        currency: string;
+        source: "flutterwave" | "fallback";
+        message?: string;
+        queriedAt: string;
+      }>("admin/withdrawals/live-balance"),
     approveWithdrawal: (id: string) =>
       apiRequest<any>(`admin/withdrawals/${id}/approve`, { method: "POST" }),
     rejectWithdrawal: (id: string, reason?: string) =>
@@ -332,7 +385,7 @@ export const adminApiClient = {
         method: "POST",
         body: JSON.stringify({ reason }),
       }),
-    evaluateSolvencyShield: (payload: { liquidBankBalance: number; withdrawalIds?: string[] }) =>
+    evaluateSolvencyShield: (payload: { liquidBankBalance?: number; withdrawalIds?: string[] }) =>
       apiRequest<{
         liquidBankBalance: number;
         totalPendingLiability: number;
@@ -341,6 +394,7 @@ export const adminApiClient = {
         shortfall: number;
         pendingWithdrawalsCount: number;
         recommendedAction: string;
+        balanceSource?: "manual" | "flutterwave";
       }>("admin/withdrawals/solvency-shield", {
         method: "POST",
         body: JSON.stringify(payload),
@@ -363,10 +417,10 @@ export const adminApiClient = {
         method: "PUT",
         body: JSON.stringify(payload),
       }),
-    updateAdminPermission: (id: string, canManageConfigs: boolean) =>
+    updateAdminPermission: (id: string, canManageConfigs?: boolean, customPermissions?: Record<string, boolean>) =>
       apiRequest<any>(`admin/users/${id}/permissions`, {
         method: "PUT",
-        body: JSON.stringify({ canManageConfigs }),
+        body: JSON.stringify({ canManageConfigs, customPermissions }),
       }),
   },
 };
