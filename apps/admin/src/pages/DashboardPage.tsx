@@ -173,11 +173,23 @@ export default function DashboardPage() {
             asChild
             variant="outline"
             size="sm"
-            className="text-xs gap-1.5 h-8"
+            className="text-xs gap-1.5 h-8 border-primary/30 text-primary hover:bg-primary/10"
           >
             <Link to="/treasury">
-              <Landmark className="w-3.5 h-3.5 text-blue-500" />
+              <Landmark className="w-3.5 h-3.5 text-primary" />
               Treasury
+            </Link>
+          </Button>
+
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="text-xs gap-1.5 h-8 border-amber-500/40 text-amber-500 hover:bg-amber-500/10"
+          >
+            <Link to="/treasury?tab=payouts">
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+              Payouts &amp; Solvency
             </Link>
           </Button>
         </div>

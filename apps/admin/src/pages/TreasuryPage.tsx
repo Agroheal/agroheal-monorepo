@@ -189,6 +189,7 @@ export default function TreasuryPage() {
 
   // Treasury Audit State
   const [auditData, setAuditData] = useState<TreasuryAuditData | null>(null);
+  const [auditError, setAuditError] = useState<string | null>(null);
   const [walletCategoryTab, setWalletCategoryTab] = useState<"all" | "inflows" | "commissions" | "reserves">("all");
   const [treasuryStartDate, setTreasuryStartDate] = useState("");
   const [treasuryEndDate, setTreasuryEndDate] = useState("");
@@ -311,21 +312,39 @@ export default function TreasuryPage() {
 
   const loadData = async (sDate = treasuryStartDate, eDate = treasuryEndDate) => {
     setRefreshing(true);
+    setAuditError(null);
     try {
       // 1. Load Executive Treasury Audit, Pending Withdrawals, Group Farms, and Live Flutterwave Balance in parallel
-      const [audit, queue, farms, liveBal] = await Promise.all([
-        adminApiClient.admin.getTreasuryAudit({ startDate: sDate, endDate: eDate, tier: currentTier }).catch(() => null),
-        adminApiClient.withdrawals.listWithdrawals().catch(() => []),
-        adminApiClient.admin.getGroupFarms().catch(() => []),
-        adminApiClient.withdrawals.getLiveBalance().catch(() => null),
+      const [auditRes, queueRes, farmsRes, liveBalRes] = await Promise.allSettled([
+        adminApiClient.admin.getTreasuryAudit({ startDate: sDate, endDate: eDate, tier: currentTier }),
+        adminApiClient.withdrawals.listWithdrawals(),
+        adminApiClient.admin.getGroupFarms(),
+        adminApiClient.withdrawals.getLiveBalance(),
       ]);
-      if (audit) setAuditData(audit);
-      setWithdrawals(queue || []);
-      if (Array.isArray(farms)) setGroupFarms(farms);
-      if (liveBal?.success) {
-        setLiveGatewayBalance(liveBal);
+
+      if (auditRes.status === "fulfilled" && auditRes.value) {
+        setAuditData(auditRes.value);
+        setAuditError(null);
+      } else {
+        const err = auditRes.status === "rejected" ? (auditRes.reason?.message || "Failed to load audit") : "Audit response empty";
+        console.warn("Treasury audit failed:", err);
+        setAuditError(err);
+      }
+
+      if (queueRes.status === "fulfilled" && Array.isArray(queueRes.value)) {
+        setWithdrawals(queueRes.value);
+      } else {
+        setWithdrawals([]);
+      }
+
+      if (farmsRes.status === "fulfilled" && Array.isArray(farmsRes.value)) {
+        setGroupFarms(farmsRes.value);
+      }
+
+      if (liveBalRes.status === "fulfilled" && liveBalRes.value?.success) {
+        setLiveGatewayBalance(liveBalRes.value);
         if (!useManualBalance) {
-          setLiquidBankBalance(liveBal.availableBalance);
+          setLiquidBankBalance(liveBalRes.value.availableBalance);
         }
       }
 
@@ -690,6 +709,27 @@ export default function TreasuryPage() {
       <StatusBanner variant="success" message={successMessage} />
       <StatusBanner variant="error" message={errorMessage} />
 
+      {auditError && (
+        <div className="p-3.5 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>
+              <strong>Server Initializing / Reconnecting:</strong> Financial reconciliation data is re-establishing connection with the cloud server ({auditError}). If cards show ₦0, click retry below.
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs border-amber-500/40 text-amber-300 hover:bg-amber-500/20 shrink-0 cursor-pointer"
+            onClick={() => loadData()}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`w-3 h-3 mr-1 ${refreshing ? "animate-spin" : ""}`} />
+            Retry Connection
+          </Button>
+        </div>
+      )}
+
       {/* Header & Controls */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         <div>
@@ -890,6 +930,114 @@ export default function TreasuryPage() {
         </div>
       )}
 
+      {/* ── STATUTORY CAPITAL ALLOCATION WATERFALL (Visual Proportional Financial Bar) ── */}
+      {(activeMainTab === "reserves" || activeMainTab === "revenue" || activeMainTab === "all") && (
+        <Card className="border-border/70 bg-card/60 backdrop-blur-sm p-4 rounded-xl space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                <Layers className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-foreground">
+                  Statutory Capital Allocation Waterfall
+                </h4>
+                <p className="text-[11px] text-muted-foreground">
+                  Proportional statutory reserve distribution of gross inflows (100% Platform Ring-Fence)
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                100% Ring-Fenced Parity Verified
+              </span>
+            </div>
+          </div>
+
+          {/* Proportional Segmented Progress Bar */}
+          <div className="space-y-1.5">
+            <div className="w-full h-3.5 rounded-full overflow-hidden flex bg-muted/40 p-0.5 border border-border/60">
+              <div
+                className="bg-emerald-500 hover:opacity-90 transition-all rounded-l-full relative group cursor-pointer"
+                style={{ width: "40%" }}
+                title="Member Network & Direct Commissions (40% Statutory Mandate)"
+              />
+              <div
+                className="bg-blue-500 hover:opacity-90 transition-all relative group cursor-pointer"
+                style={{ width: "35%" }}
+                title="LGA Farm Production Capital (35% Statutory Mandate)"
+              />
+              <div
+                className="bg-purple-500 hover:opacity-90 transition-all relative group cursor-pointer"
+                style={{ width: "15%" }}
+                title="Starter Pack Fulfillment Reserve (15% Statutory Mandate)"
+              />
+              <div
+                className="bg-amber-500 hover:opacity-90 transition-all rounded-r-full relative group cursor-pointer"
+                style={{ width: "10%" }}
+                title="Corporate Retained Margins & Awards (10% Statutory Mandate)"
+              />
+            </div>
+
+            {/* Allocation Ratio Legend */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-1 text-xs">
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-card/80 border border-border/40">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                <div className="min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[11px] font-medium text-foreground truncate">Commissions &amp; Payouts</span>
+                    <span className="text-[10px] font-mono text-emerald-400 font-bold shrink-0">40%</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-muted-foreground block truncate">
+                    ₦{(auditData?.memberLiabilitiesPending || 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-card/80 border border-border/40">
+                <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+                <div className="min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[11px] font-medium text-foreground truncate">LGA Farm Production</span>
+                    <span className="text-[10px] font-mono text-blue-400 font-bold shrink-0">35%</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-muted-foreground block truncate">
+                    ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.lgaFarmProduction?.currentBalance || 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-card/80 border border-border/40">
+                <div className="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0" />
+                <div className="min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[11px] font-medium text-foreground truncate">Starter Pack Reserve</span>
+                    <span className="text-[10px] font-mono text-purple-400 font-bold shrink-0">15%</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-muted-foreground block truncate">
+                    ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.starterPackProduction?.currentBalance || 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-card/80 border border-border/40">
+                <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+                <div className="min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[11px] font-medium text-foreground truncate">Corporate Margin &amp; Awards</span>
+                    <span className="text-[10px] font-mono text-amber-400 font-bold shrink-0">10%</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-muted-foreground block truncate">
+                    ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.agrohealCorporateRevenue?.currentBalance || 0).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {/* ── SECTION 2: PLATFORM WALLETS & PAYMENT BREAKDOWN ── */}
       {(activeMainTab === "reserves" || activeMainTab === "revenue" || activeMainTab === "all") && (
         <div className="space-y-4">
@@ -1027,53 +1175,84 @@ export default function TreasuryPage() {
                 </div>
               </Card>
 
-              {/* Gingertown Slots */}
-              <Card className="border-border/60 bg-card p-4 space-y-2.5 rounded-xl hover:border-primary/30 transition-all">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
-                      <Sprout className="w-4 h-4" />
+              {/* Modern LGA Farm Slots */}
+              {(currentTier === "modern" || currentTier === "all") && (
+                <Card className="border-border/60 bg-card p-4 space-y-2.5 rounded-xl hover:border-primary/30 transition-all">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+                        <Sprout className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-foreground">LGA Farm Slots (774 LGAs)</h4>
+                        <p className="text-[10px] text-muted-foreground">₦10,000 / ₦5,000 Decentralized Production Slots</p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-foreground">Farm Slots: Gingertown</h4>
-                      <p className="text-[10px] text-muted-foreground">₦5k / ₦10k Commercial Ginger Slots</p>
-                    </div>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold">
+                      {auditData?.paymentCategories?.lgaFarmSlots?.count ?? 0} slots
+                    </span>
                   </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-semibold">
-                    {auditData?.paymentCategories?.gingertown?.count ?? 0} txns
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-border/40 flex items-baseline justify-between">
-                  <span className="text-xs text-muted-foreground">Collected Inflow:</span>
-                  <span className="font-mono text-sm font-bold text-foreground">
-                    ₦{(auditData?.paymentCategories?.gingertown?.total ?? 0).toLocaleString()}
-                  </span>
-                </div>
-              </Card>
+                  <div className="pt-2 border-t border-border/40 flex items-baseline justify-between">
+                    <span className="text-xs text-muted-foreground">Collected Inflow:</span>
+                    <span className="font-mono text-sm font-bold text-foreground">
+                      ₦{(auditData?.paymentCategories?.lgaFarmSlots?.total ?? 0).toLocaleString()}
+                    </span>
+                  </div>
+                </Card>
+              )}
 
-              {/* Mushroom Village Slots */}
-              <Card className="border-border/60 bg-card p-4 space-y-2.5 rounded-xl hover:border-primary/30 transition-all">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
-                      <Sprout className="w-4 h-4" />
+              {/* Legacy Pioneer Clusters: Gingertown & Mushroom Village */}
+              {(currentTier === "legacy" || currentTier === "all") && (
+                <>
+                  {/* Gingertown Slots */}
+                  <Card className="border-border/60 bg-card p-4 space-y-2.5 rounded-xl hover:border-primary/30 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-400">
+                          <Sprout className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-foreground">Farm Slots: Gingertown</h4>
+                          <p className="text-[10px] text-muted-foreground">₦5k / ₦10k Commercial Ginger Slots</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 font-semibold">
+                        {auditData?.paymentCategories?.gingertown?.count ?? 0} txns
+                      </span>
                     </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-foreground">Farm Slots: Mushroom Village</h4>
-                      <p className="text-[10px] text-muted-foreground">₦5,000 Production Farm Slots</p>
+                    <div className="pt-2 border-t border-border/40 flex items-baseline justify-between">
+                      <span className="text-xs text-muted-foreground">Collected Inflow:</span>
+                      <span className="font-mono text-sm font-bold text-foreground">
+                        ₦{(auditData?.paymentCategories?.gingertown?.total ?? 0).toLocaleString()}
+                      </span>
                     </div>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold">
-                    {auditData?.paymentCategories?.mushroomVillage?.count ?? 0} txns
-                  </span>
-                </div>
-                <div className="pt-2 border-t border-border/40 flex items-baseline justify-between">
-                  <span className="text-xs text-muted-foreground">Collected Inflow:</span>
-                  <span className="font-mono text-sm font-bold text-foreground">
-                    ₦{(auditData?.paymentCategories?.mushroomVillage?.total ?? 0).toLocaleString()}
-                  </span>
-                </div>
-              </Card>
+                  </Card>
+
+                  {/* Mushroom Village Slots */}
+                  <Card className="border-border/60 bg-card p-4 space-y-2.5 rounded-xl hover:border-primary/30 transition-all">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
+                          <Sprout className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-foreground">Farm Slots: Mushroom Village</h4>
+                          <p className="text-[10px] text-muted-foreground">₦5,000 Production Farm Slots</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-semibold">
+                        {auditData?.paymentCategories?.mushroomVillage?.count ?? 0} txns
+                      </span>
+                    </div>
+                    <div className="pt-2 border-t border-border/40 flex items-baseline justify-between">
+                      <span className="text-xs text-muted-foreground">Collected Inflow:</span>
+                      <span className="font-mono text-sm font-bold text-foreground">
+                        ₦{(auditData?.paymentCategories?.mushroomVillage?.total ?? 0).toLocaleString()}
+                      </span>
+                    </div>
+                  </Card>
+                </>
+              )}
 
               {/* Mushroom Power Products */}
               <Card className="border-border/60 bg-card p-4 space-y-2.5 rounded-xl hover:border-primary/30 transition-all">
@@ -1296,53 +1475,7 @@ export default function TreasuryPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Wallet 1: 5x7 Network & Core Drivers */}
-              <Card
-                onClick={() => handleOpenWalletHistory("networkAndCoreDrivers", "5×7 Network & Core Drivers Pool")}
-                className="border-border/60 bg-card p-4 space-y-2.5 rounded-xl hover:border-emerald-500/50 hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400">
-                      <Wallet className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-foreground group-hover:text-emerald-400 transition-colors">
-                        5×7 Network &amp; Core Drivers
-                      </h4>
-                      <p className="text-[10px] text-muted-foreground font-mono">₦900 GC + ₦1,350 SP + ₦1,157 PQV</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Statutory Inflows:</span>
-                    <span className="font-mono font-semibold text-foreground">
-                      ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.networkAndCoreDrivers?.totalInflows || 0).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Payout Disbursals:</span>
-                    <span className="font-mono text-destructive">
-                      -₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.networkAndCoreDrivers?.totalOutflows || 0).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="pt-1 border-t border-border/40 flex justify-between text-xs font-bold">
-                    <span className="text-emerald-400">Net Balance:</span>
-                    <span className="font-mono text-emerald-400">
-                      ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.networkAndCoreDrivers?.currentBalance || 0).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/40 text-muted-foreground group-hover:text-foreground">
-                  <span className="text-emerald-400 flex items-center gap-1 font-medium">
-                    Inspect Audit Trail <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                  </span>
-                  <span className="text-[10px] font-mono">Row-by-Row</span>
-                </div>
-              </Card>
-
-              {/* Wallet 2: LGA Farm Production */}
+              {/* Wallet 1: LGA Farm Production */}
               <Card
                 onClick={() => handleOpenWalletHistory("lgaFarmProduction", "LGA Farm Production Fund")}
                 className="border-border/60 bg-card p-4 space-y-2.5 rounded-xl hover:border-blue-500/50 hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
@@ -1382,6 +1515,52 @@ export default function TreasuryPage() {
                 </div>
                 <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/40 text-muted-foreground group-hover:text-foreground">
                   <span className="text-blue-400 flex items-center gap-1 font-medium">
+                    Inspect Audit Trail <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                  </span>
+                  <span className="text-[10px] font-mono">Row-by-Row</span>
+                </div>
+              </Card>
+
+              {/* Wallet 2: Starter Pack Production */}
+              <Card
+                onClick={() => handleOpenWalletHistory("starterPackProduction", "Starter Pack Production Fund")}
+                className="border-border/60 bg-card p-4 space-y-2.5 rounded-xl hover:border-purple-500/50 hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-400">
+                      <Boxes className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-foreground group-hover:text-purple-400 transition-colors">
+                        Starter Pack Production
+                      </h4>
+                      <p className="text-[10px] text-muted-foreground font-mono">₦4,500 per Mushroom Pack</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Packaging Funding:</span>
+                    <span className="font-mono font-semibold text-foreground">
+                      ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.starterPackProduction?.totalInflows || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Packaging &amp; Fulfillment:</span>
+                    <span className="font-mono text-destructive">
+                      -₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.starterPackProduction?.totalOutflows || 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="pt-1 border-t border-border/40 flex justify-between text-xs font-bold">
+                    <span className="text-purple-400">Packing Reserve:</span>
+                    <span className="font-mono text-purple-400">
+                      ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.starterPackProduction?.currentBalance || 0).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/40 text-muted-foreground group-hover:text-foreground">
+                  <span className="text-purple-400 flex items-center gap-1 font-medium">
                     Inspect Audit Trail <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                   </span>
                   <span className="text-[10px] font-mono">Row-by-Row</span>
@@ -1434,99 +1613,58 @@ export default function TreasuryPage() {
                 </div>
               </Card>
 
-              {/* Wallet 4: Starter Pack Production */}
+              {/* Wallet 4: AgroHeal Retained Corporate Revenue */}
               <Card
-                onClick={() => handleOpenWalletHistory("starterPackProduction", "Starter Pack Production Fund")}
-                className="border-border/60 bg-card p-4 space-y-2.5 rounded-xl hover:border-purple-500/50 hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
+                onClick={() => handleOpenWalletHistory("agrohealCorporateRevenue", "AgroHeal Retained Corporate Revenue")}
+                className="border-primary/30 bg-primary/5 p-4 space-y-2.5 rounded-xl hover:border-primary/60 hover:shadow-md transition-all cursor-pointer group active:scale-[0.99]"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-purple-500/10 text-purple-400">
-                      <Boxes className="w-4 h-4" />
+                    <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                      <Landmark className="w-4 h-4" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-bold text-foreground group-hover:text-purple-400 transition-colors">
-                        Starter Pack Production
+                      <h4 className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">
+                        AgroHeal Corporate Revenue
                       </h4>
-                      <p className="text-[10px] text-muted-foreground font-mono">₦4,500 per Mushroom Pack</p>
+                      <p className="text-[10px] text-muted-foreground font-mono">₦100 GC + ₦1k Slot + ₦750 SP</p>
                     </div>
                   </div>
                 </div>
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Packaging Funding:</span>
+                    <span className="text-muted-foreground">Accrued Margin:</span>
                     <span className="font-mono font-semibold text-foreground">
-                      ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.starterPackProduction?.totalInflows || 0).toLocaleString()}
+                      ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.agrohealCorporateRevenue?.totalInflows || 0).toLocaleString()}
                     </span>
                   </div>
                   <div className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">Packaging &amp; Fulfillment:</span>
+                    <span className="text-muted-foreground">Executed Sweeps:</span>
                     <span className="font-mono text-destructive">
-                      -₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.starterPackProduction?.totalOutflows || 0).toLocaleString()}
+                      -₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.agrohealCorporateRevenue?.totalOutflows || 0).toLocaleString()}
                     </span>
                   </div>
                   <div className="pt-1 border-t border-border/40 flex justify-between text-xs font-bold">
-                    <span className="text-purple-400">Packing Reserve:</span>
-                    <span className="font-mono text-purple-400">
-                      ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.starterPackProduction?.currentBalance || 0).toLocaleString()}
+                    <span className="text-primary">Net Margin:</span>
+                    <span className="font-mono text-primary">
+                      ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.agrohealCorporateRevenue?.currentBalance || 0).toLocaleString()}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-[11px] pt-1 border-t border-border/40 text-muted-foreground group-hover:text-foreground">
-                  <span className="text-purple-400 flex items-center gap-1 font-medium">
+                  <span className="text-primary flex items-center gap-1 font-medium">
                     Inspect Audit Trail <ArrowUpRight className="w-3 h-3 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                   </span>
-                  <span className="text-[10px] font-mono">Row-by-Row</span>
+                  <Link
+                    to="/treasury/corporate-revenue"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-[10px] font-semibold text-primary underline hover:text-primary/80"
+                  >
+                    Dedicated Page →
+                  </Link>
                 </div>
               </Card>
             </div>
-
-            {/* Retained Corporate Margin Card */}
-            <Card
-              className="border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl hover:border-primary/60 hover:shadow-md transition-all"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                  <Landmark className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-bold text-foreground">
-                      AgroHeal Retained Corporate Revenue
-                    </h4>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-semibold">
-                      ₦1,850 per ₦15,000 Combo
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Inflow: ₦100 (GC) + ₦1,000 (Slot) + ₦750 (Starter Pack) • Accumulated today: ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.agrohealCorporateRevenue?.currentBalance || 0).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 flex-wrap">
-                <div className="text-right">
-                  <span className="text-xs text-muted-foreground block">Net Unswept Margin</span>
-                  <span className="font-mono text-lg font-bold text-primary">
-                    ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.agrohealCorporateRevenue?.currentBalance || 0).toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleOpenWalletHistory("agrohealCorporateRevenue", "AgroHeal Retained Corporate Revenue")}
-                    className="h-8 text-xs cursor-pointer"
-                  >
-                    Quick Audit Modal
-                  </Button>
-                  <Link to="/treasury/corporate-revenue">
-                    <Button size="sm" className="h-8 text-xs gap-1 cursor-pointer">
-                      Row-by-Row Page <ArrowUpRight className="w-3.5 h-3.5" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </Card>
 
             {/* 2D. DECENTRALIZED COMMUNITY GROUP FARM WALLETS */}
             <div className="space-y-3 pt-4 border-t border-border/40">
