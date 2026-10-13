@@ -281,7 +281,7 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
         if (bankVerification && !bankVerification.isMatch) {
           toast.error(
             bankVerification.reason ||
-              "Bank account name does not match your profile name. At least two names must match in any order."
+              "Bank account name does not match your profile name. At least one name must match in any order."
           );
           setLoading(false);
           return;
@@ -678,7 +678,7 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
                             )}
                             <span className="text-[11px] text-rose-800 leading-tight block mt-0.5">
                               {bankVerification.reason ||
-                                "Name mismatch: At least two names must match your registered profile in any order."}
+                                "Name mismatch: At least one name must match your registered profile in any order."}
                             </span>
                           </div>
                         </div>
