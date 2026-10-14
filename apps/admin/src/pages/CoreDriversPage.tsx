@@ -100,6 +100,15 @@ const STATIC_CORE_PARTICIPANTS = [
   },
   {
     id: "driver-8",
+    name: "Juliana Chikaodi Obinwanne",
+    email: "shekinahexcellency@gmail.com",
+    roleTitle: "Core Operations Driver",
+    driverType: "operational" as const,
+    sharePerCard: 25,
+    termNotice: "Commenced from Oct 1, 2026 Launch",
+  },
+  {
+    id: "driver-9",
     name: "Oluwafemi Olaleye",
     email: "femmaleye@gmail.com",
     roleTitle: "Core Partner (Finance)",
@@ -347,8 +356,12 @@ export default function CoreDriversPage() {
     }
   };
 
-  const totalOperationalAccrued = activeGreenCardsCount * 350; // ₦350 pool (7 seats × ₦50)
-  const totalFinancePartnerAccrued = activeGreenCardsCount * 100; // ₦100 pool (1 finance partner)
+  const totalOperationalAccrued = drivers
+    .filter((d) => d.driverType === "operational")
+    .reduce((sum, d) => sum + d.totalEarned, 0);
+  const totalFinancePartnerAccrued = drivers
+    .filter((d) => d.driverType === "finance_partner")
+    .reduce((sum, d) => sum + d.totalEarned, 0);
 
   const filteredDrivers = drivers.filter(
     (d) =>
@@ -370,7 +383,7 @@ export default function CoreDriversPage() {
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1">
-            Real-time tracking of the Green Card Growth Pool (7 Operational Drivers @ ₦50/card + 1 Core Finance Partner @ ₦100/card).
+            Real-time tracking of the Green Card Growth Pool (8 Operational Drivers + 1 Core Finance Partner @ ₦100/card).
           </p>
         </div>
 
@@ -396,7 +409,7 @@ export default function CoreDriversPage() {
         <StatCard
           label="Operational Growth Pool"
           value={`₦${totalOperationalAccrued.toLocaleString()}`}
-          footer="₦350/card statutory pool (7 × ₦50)"
+          footer="Accrued statutory operational pool"
           icon={TrendingUp}
         />
         <StatCard
@@ -408,7 +421,7 @@ export default function CoreDriversPage() {
         <StatCard
           label="Active Participants"
           value={`${drivers.length} Total`}
-          footer="7 Operational Drivers + 1 Finance Partner"
+          footer="8 Operational Drivers + 1 Finance Partner"
           icon={Users}
         />
       </div>
