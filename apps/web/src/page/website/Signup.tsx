@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Leaf, Mail, Lock, User, Phone, EyeOff, Eye, Tag, ArrowRight } from "lucide-react";
+import { Leaf, Mail, Lock, User, Phone, EyeOff, Eye, Tag, ArrowRight, UserCheck, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -16,6 +16,15 @@ import * as Sentry from "@sentry/react";
 import AuthSidebar from "@/components/webComponents/authSidebar";
 import { cleanName, cleanEmail, normalizePhoneNumber, cleanReferralCode, validatePhoneNumber, SUPPORTED_COUNTRY_CODES } from "@shared/dataSanitizers";
 import { PasswordRequirementsTracker, checkPasswordRequirements } from "@/components/common/PasswordRequirementsTracker";
+import { API_BASE_URL } from "@/config/Index";
+
+interface SponsorInfo {
+  found: boolean;
+  id?: string;
+  fullName?: string;
+  referralCode?: string;
+  memberId?: string;
+}
 
 const Signup = () => {
   const [searchParams] = useSearchParams();
@@ -41,10 +50,67 @@ const Signup = () => {
   const DEFAULT_SPONSOR_CODE = "356FV1"; // Adetola Esther (Co-founder Root Sponsor)
   const queryRef = searchParams.get("ref");
   const storedRef = typeof window !== "undefined" ? localStorage.getItem("agroheal_ref") : null;
-  const effectiveRef = (queryRef || storedRef || DEFAULT_SPONSOR_CODE).trim().toUpperCase();
-  const hasQueryRef = Boolean(queryRef || storedRef);
-  const [referral, setReferral] = useState<string>(effectiveRef);
+  const initialRef = (queryRef || storedRef || "").trim().toUpperCase();
+  const hasInitialRef = Boolean(initialRef);
+
+  const [referral, setReferral] = useState<string>(initialRef || DEFAULT_SPONSOR_CODE);
+  const [sponsorInfo, setSponsorInfo] = useState<SponsorInfo | null>(null);
+  const [isResolvingSponsor, setIsResolvingSponsor] = useState<boolean>(false);
+  const [isEditingReferral, setIsEditingReferral] = useState<boolean>(!hasInitialRef);
   const [termsAccepted, setTermsAccepted] = useState<boolean>(false);
+
+  const resolveSponsor = async (codeToResolve: string) => {
+    const cleanCode = codeToResolve.trim().toUpperCase();
+    if (!cleanCode) {
+      setSponsorInfo(null);
+      return;
+    }
+    setIsResolvingSponsor(true);
+    try {
+      // 1. Direct Supabase RPC (fastest, client-side, security definer)
+      const { data, error } = await supabase.rpc("resolve_referral_sponsor", {
+        sponsor_input: cleanCode,
+      });
+      if (!error && data && typeof data === "object") {
+        setSponsorInfo(data as SponsorInfo);
+        return;
+      }
+
+      // 2. Fallback to Express backend endpoint
+      const res = await fetch(`${API_BASE_URL.replace(/\/+$/, "")}/auth/resolve-sponsor/${encodeURIComponent(cleanCode)}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data) {
+          setSponsorInfo(json.data as SponsorInfo);
+          return;
+        }
+      }
+      setSponsorInfo({ found: false });
+    } catch (err) {
+      console.warn("Could not resolve sponsor:", err);
+      setSponsorInfo({ found: false });
+    } finally {
+      setIsResolvingSponsor(false);
+    }
+  };
+
+  useEffect(() => {
+    const codeToResolve = initialRef || DEFAULT_SPONSOR_CODE;
+    resolveSponsor(codeToResolve);
+  }, []);
+
+  useEffect(() => {
+    if (!isEditingReferral) return;
+    const clean = referral.trim().toUpperCase();
+    if (!clean) {
+      setSponsorInfo(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      resolveSponsor(clean);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [referral, isEditingReferral]);
 
   // console.log("ref param:", searchParams.get("ref"));
 
@@ -423,28 +489,90 @@ const Signup = () => {
               <PasswordRequirementsTracker password={password} />
             </div>
 
-            {/* Referral Code */}
+            {/* Referral / Sponsor Resolution */}
             <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="referral" className="text-[11px] sm:text-xs font-semibold text-gray-700 truncate">
-                  Referral Code
-                </Label>
-                <span className="text-[10px] sm:text-[11px] font-medium text-muted-foreground">
-                  {hasQueryRef ? "(Applied)" : "(Optional)"}
-                </span>
-              </div>
-              <div className="relative">
-                <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                <Input
-                  id="referral"
-                  value={referral}
-                  onChange={(e) => setReferral(e.target.value)}
-                  type="text"
-                  disabled={hasQueryRef}
-                  placeholder="Sponsor code"
-                  className="pl-9 h-9 sm:h-10 bg-white border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all uppercase tracking-wider"
-                />
-              </div>
+              {sponsorInfo?.found && !isEditingReferral ? (
+                <div className="p-2.5 sm:p-3 bg-green-50/90 border border-green-200/90 rounded-lg sm:rounded-xl shadow-xs transition-all">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs text-green-900 font-medium">
+                      <UserCheck className="w-3.5 h-3.5 text-green-700 flex-shrink-0" />
+                      <span>You are referred by</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingReferral(true)}
+                      className="text-[11px] text-green-800 hover:text-green-950 font-medium underline underline-offset-2 transition-colors cursor-pointer"
+                    >
+                      Change referral code
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-xs sm:text-sm font-bold text-gray-900 truncate">
+                      {sponsorInfo.fullName}
+                    </span>
+                    <span className="text-[10px] font-mono text-green-800 bg-white/90 border border-green-200 px-2 py-0.5 rounded-md font-semibold ml-2 flex-shrink-0">
+                      {sponsorInfo.referralCode || sponsorInfo.memberId}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="referral" className="text-[11px] sm:text-xs font-semibold text-gray-700 truncate">
+                      Referral Code
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      {sponsorInfo?.found && (
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingReferral(false)}
+                          className="text-[10px] sm:text-[11px] text-green-800 hover:text-green-950 font-medium underline cursor-pointer"
+                        >
+                          Keep sponsor
+                        </button>
+                      )}
+                      <span className="text-[10px] sm:text-[11px] font-medium text-muted-foreground">
+                        {hasInitialRef ? "(Referred)" : "(Optional)"}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                    <Input
+                      id="referral"
+                      value={referral}
+                      onChange={(e) => setReferral(e.target.value)}
+                      type="text"
+                      placeholder="e.g. 1V4PGU or Member ID"
+                      className="pl-9 pr-9 h-9 sm:h-10 bg-white border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all uppercase tracking-wider"
+                    />
+                    {isResolvingSponsor && (
+                      <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-green-700 animate-spin" />
+                    )}
+                  </div>
+                  {/* Real-time verification preview */}
+                  {sponsorInfo?.found ? (
+                    <div className="flex items-center justify-between px-1 text-[11px] text-green-800">
+                      <span className="flex items-center gap-1 font-medium truncate">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                        Sponsor: <strong>{sponsorInfo.fullName}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingReferral(false)}
+                        className="text-[10px] text-green-800 font-semibold hover:underline flex-shrink-0 ml-1"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  ) : referral && !isResolvingSponsor ? (
+                    <div className="flex items-center gap-1 px-1 text-[11px] text-amber-700">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                      <span>Code not found. If left blank, you will be assigned to community support.</span>
+                    </div>
+                  ) : null}
+                </div>
+              )}
             </div>
 
             {/* Terms checkbox */}
