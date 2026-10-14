@@ -265,7 +265,7 @@ export function ForceSettleDialog({
                         Core Driver Growth Pool
                       </span>
                       <span className="text-[11px] text-muted-foreground">
-                        7 Core Drivers credited ₦{plan?.coreDriversBonus?.amountPerDriver || 0} each
+                        {plan?.coreDriversBonus?.totalDrivers || 8} Core Drivers credited ₦{plan?.coreDriversBonus?.amountPerDriver || 0} each
                       </span>
                     </div>
                   </div>

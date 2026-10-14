@@ -32,6 +32,7 @@
   - Successfully reversed the unverified September offline activation bonuses (₦250 deducted across 35 ledger records) on PROD DB.
   - Reconciled core driver wallet balances; drivers retain only genuine referral earnings and historical balances.
   - Created auth account for the 7th driver (`gkygmr56@gmail.com` / Nathaniel Omokanye) to ensure clean distribution.
+  - Integrated 8th Core Driver Juliana Chikaodi Obinwanne (`shekinahexcellency@gmail.com`, ₦25 share effective Oct 1, 2026 launch) across server distribution engine, ledger backfill, and admin roster.
 
 - [ ] **Custom SMTP & Reliable Transactional Email Delivery (Top Priority)**:
 
