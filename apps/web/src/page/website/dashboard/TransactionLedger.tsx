@@ -186,11 +186,14 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
     }
   };
 
-  // Matrix Withdrawal Qualification: 5 direct referrals AND ₦10,000 PQV in 30 days
-  const isMatrixQualified = directReferralsCount >= 5 && activePqv30d >= 10000;
-
-  // Direct Referral Withdrawal Qualification: Active Project Subscribed AND >= 5 direct referrals AND >= ₦2,000
-  const isDirectReferralWithdrawable = isProjectSubscribed && directReferralsCount >= 5 && directReferralEarnings >= 2000;
+  // Withdrawal Qualification: Rules apply uniformly to ALL earnings (not just matrix).
+  // 1. Must have >= 5 direct referrals (personally referred members, not spillover)
+  // 2. PQV requirement is currently not enforced/waived by Management.
+  // 3. Minimum withdrawal threshold of ₦2,000.
+  // 4. Legacy balances remain strictly on hold.
+  const isDirectsQualified = directReferralsCount >= 5;
+  const isMatrixQualified = isDirectsQualified;
+  const isDirectReferralWithdrawable = isDirectsQualified;
   // Pay from wallet temporarily disabled/commented out as requested
   const canSubscribeWithWallet = false;
   const hasGreenCard = Boolean(memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING"));
@@ -205,23 +208,13 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
   const isLegacyHold = walletMode === "legacy";
 
   // Calculate unlocked components bounded by the current live liquid balance:
-  // 1. Direct referral earnings are unlocked if live mode + active project + >= 5 direct referrals + direct earnings >= ₦2,000
-  const unlockedDirect = (!isLegacyHold && isDirectReferralWithdrawable)
-    ? Math.min(ledgerBalance, directReferralEarnings)
-    : 0;
+  // In live mode, having >= 5 direct referrals qualifies ALL live earnings uniformly
+  const rawClearedBalance = (!isLegacyHold && isDirectsQualified) ? ledgerBalance : 0;
 
-  // 2. Matrix earnings are unlocked if live mode + >= 5 direct referrals AND >= ₦10,000 30-day PQV
-  const unlockedMatrix = (!isLegacyHold && isMatrixQualified)
-    ? Math.min(Math.max(0, ledgerBalance - unlockedDirect), matrixEarnings)
-    : 0;
-
-  // 3. Total unlocked liquid capital
-  const rawClearedBalance = isLegacyHold ? 0 : (unlockedDirect + unlockedMatrix);
-
-  // 4. Statutory Gate: Must have >= ₦2,000 in unlocked funds to withdraw immediately
+  // Statutory Gate: Must have >= ₦2,000 in unlocked funds to withdraw immediately
   const availableBalance = (!isLegacyHold && rawClearedBalance >= 2000) ? rawClearedBalance : 0;
 
-  // 5. Total locked capital is the remainder of the liquid balance held in reserve (in legacy mode, 100% is on hold)
+  // Total locked capital: either held because < 5 directs, or below ₦2,000, or in legacy mode
   const totalLockedAmount = isLegacyHold ? ledgerBalance : Math.max(0, ledgerBalance - availableBalance);
 
   const [isRefreshing, setIsRefreshing] = useState(false);

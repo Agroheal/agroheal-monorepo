@@ -63,10 +63,10 @@ export const ReleaseConditionsModal: React.FC<ReleaseConditionsModalProps> = ({
   // Gate 1: Starter Package Requirement
   const isGate1Passed = Boolean(isProjectSubscribed || hasPurchasedStarterPack);
 
-  // Gate 2: 5x7 Matrix Spillover Qualification (5 directs + ₦10,000 PQV in 30 days)
+  // Gate 2: 5 Direct Referrals (Rules apply uniformly to all earnings; PQV waived by Management)
   const isDirectsMet = directReferralsCount >= 5;
   const isPqvMet = activePqv30d >= 10000;
-  const isGate2Passed = isDirectsMet && isPqvMet;
+  const isGate2Passed = isDirectsMet;
 
   // Gate 3: Minimum ₦2,000 floor
   const isGate3Passed = availableBalance >= 2000;
@@ -249,7 +249,7 @@ export const ReleaseConditionsModal: React.FC<ReleaseConditionsModalProps> = ({
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm text-slate-900">
-                          Gate 2: 5×7 Matrix Spillover Qualification
+                          Gate 2: 5 Direct Personally Sponsored Referrals
                         </span>
                         <Badge
                           className={`text-[10px] font-bold py-0.5 px-2 ${
@@ -262,7 +262,7 @@ export const ReleaseConditionsModal: React.FC<ReleaseConditionsModalProps> = ({
                         </Badge>
                       </div>
                       <p className="text-xs text-slate-600 mt-1">
-                        Requires 5 direct personally sponsored referrals AND ₦10,000 personal product volume (PQV) in rolling 30 days.
+                        Requires 5 direct personally sponsored referrals. (Rolling 30-day PQV is currently waived by Management).
                       </p>
                     </div>
                   </div>
@@ -290,15 +290,18 @@ export const ReleaseConditionsModal: React.FC<ReleaseConditionsModalProps> = ({
                     </div>
                   </div>
 
-                  {/* 30-Day PQV Progress */}
+                  {/* 30-Day PQV Progress (Waived by Management) */}
                   <div>
                     <div className="flex justify-between text-xs font-semibold mb-1">
                       <span className="flex items-center gap-1.5 text-slate-700">
                         <ShoppingBag className="w-3.5 h-3.5 text-slate-500" />
                         Rolling 30-Day Product PQV
+                        <span className="text-[10px] text-emerald-600 font-normal bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                          Waived
+                        </span>
                       </span>
-                      <span className={isPqvMet ? "text-emerald-700 font-bold" : "text-slate-600"}>
-                        ₦{activePqv30d.toLocaleString()} / ₦10,000 {isPqvMet && "✓"}
+                      <span className="text-slate-600">
+                        ₦{activePqv30d.toLocaleString()} / ₦10,000 (Grace Period)
                       </span>
                     </div>
                     <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">

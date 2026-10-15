@@ -141,27 +141,21 @@ export default function LockedReservesGuide() {
   // Calculations if logged in
   const directs = walletSummary?.directReferralsCount ?? 0;
   const activePqv30d = walletSummary?.activePqv30d ?? 0;
-  // Matrix withdrawal gate requires 5 direct referrals AND ₦10,000 30-day PQV
-  const isMatrixQualified = directs >= 5 && activePqv30d >= 10000;
+  // Management Directive: Withdrawal rules apply uniformly to ALL earnings (not just matrix).
+  // 1. Must have >= 5 direct referrals (personally referred, no spillover)
+  // 2. PQV requirement is currently not enforced/waived by Management.
+  // 3. Minimum withdrawal threshold of ₦2,000.
+  const isDirectsQualified = directs >= 5;
+  const isMatrixQualified = isDirectsQualified;
   const isProjectSubscribed = Boolean(walletSummary?.isProjectSubscribed);
   const matrixEarnings = walletSummary?.matrixEarnings ?? 0;
   const directEarnings = walletSummary?.directReferralEarnings ?? 0;
   const totalBalance = walletSummary?.walletBalance ?? 0;
 
-  // Compartment financial calculation matching TransactionLedger:
-  // 1. Direct referral earnings are unlocked if active starter package + 5 direct referrals
-  const isDirectUnlocked = isProjectSubscribed && directs >= 5;
-  const unlockedDirect = isDirectUnlocked ? Math.min(totalBalance, directEarnings) : 0;
+  // Unlocked funds apply to ALL earnings once 5 direct referrals are achieved
+  const rawCleared = isDirectsQualified ? totalBalance : 0;
 
-  // 2. Matrix earnings are unlocked if 5 direct referrals AND ₦10,000 30-day PQV
-  const unlockedMatrix = isMatrixQualified
-    ? Math.min(Math.max(0, totalBalance - unlockedDirect), matrixEarnings)
-    : 0;
-
-  // 3. Raw cleared funds
-  const rawCleared = unlockedDirect + unlockedMatrix;
-
-  // 4. Statutory gate: min ₦2,000 to withdraw
+  // Statutory gate: min ₦2,000 to withdraw
   const availableBalance = rawCleared >= 2000 ? rawCleared : 0;
 
   // 5. Total locked amount is bounded by the ledger balance
