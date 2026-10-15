@@ -18,6 +18,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import { DigitalGreenCard, formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import { SITE_URL } from "@/config/Index";
+import { setStoredReferral, getSignupUrl } from "@/lib/referralManager";
 
 interface VerificationData {
   valid: boolean;
@@ -63,9 +64,12 @@ export const VerifyCard: React.FC = () => {
                 }).toUpperCase()
               : "AUGUST 2026";
 
+            const resolvedMemberId = formatAgcId(rpcData.memberId || formattedId);
+            setStoredReferral(resolvedMemberId);
+
             setData({
               valid: Boolean(rpcData.valid),
-              memberId: formatAgcId(rpcData.memberId || formattedId),
+              memberId: resolvedMemberId,
               fullName: rpcData.fullName || "AgroHeal Member",
               memberSince: formattedDate,
               status: rpcData.status === "active" ? "active" : "inactive",
@@ -91,9 +95,12 @@ export const VerifyCard: React.FC = () => {
                 }).toUpperCase()
               : "AUGUST 2026";
 
+            const resolvedMemberId = formatAgcId(apiData.memberId);
+            setStoredReferral(resolvedMemberId);
+
             setData({
               valid: Boolean(apiData.isVerified),
-              memberId: formatAgcId(apiData.memberId),
+              memberId: resolvedMemberId,
               fullName: apiData.fullName || "AgroHeal Member",
               memberSince: formattedDate,
               status: apiData.isVerified ? "active" : "inactive",
@@ -339,7 +346,7 @@ export const VerifyCard: React.FC = () => {
                 </p>
               </div>
               <Button asChild className="rounded-xl bg-amber-400 hover:bg-amber-300 text-gray-950 font-bold px-6 h-11 shrink-0">
-                <Link to="/signup" className="flex items-center gap-2">
+                <Link to={getSignupUrl()} className="flex items-center gap-2">
                   Get Started
                   <ArrowRight className="w-4 h-4" />
                 </Link>

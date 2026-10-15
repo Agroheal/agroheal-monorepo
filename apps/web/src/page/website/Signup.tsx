@@ -17,6 +17,7 @@ import AuthSidebar from "@/components/webComponents/authSidebar";
 import { cleanName, cleanEmail, normalizePhoneNumber, cleanReferralCode, validatePhoneNumber, SUPPORTED_COUNTRY_CODES } from "@shared/dataSanitizers";
 import { PasswordRequirementsTracker, checkPasswordRequirements } from "@/components/common/PasswordRequirementsTracker";
 import { API_BASE_URL } from "@/config/Index";
+import { getActiveReferral, clearStoredReferral, DEFAULT_ROOT_SPONSOR_CODE } from "@/lib/referralManager";
 
 interface SponsorInfo {
   found: boolean;
@@ -47,13 +48,12 @@ const Signup = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [isEmailConfirmationPending, setIsEmailConfirmationPending] = useState<boolean>(false);
   const [resending, setResending] = useState<boolean>(false);
-  const DEFAULT_SPONSOR_CODE = "356FV1"; // Adetola Esther (Co-founder Root Sponsor)
-  const queryRef = searchParams.get("ref");
-  const storedRef = typeof window !== "undefined" ? localStorage.getItem("agroheal_ref") : null;
-  const initialRef = (queryRef || storedRef || "").trim().toUpperCase();
+
+  const initialRef = getActiveReferral(searchParams);
   const hasInitialRef = Boolean(initialRef);
 
-  const [referral, setReferral] = useState<string>(initialRef || DEFAULT_SPONSOR_CODE);
+  // If referral is detected, populate and verify it. If empty, keep blank so user can enter one or leave optional.
+  const [referral, setReferral] = useState<string>(initialRef);
   const [sponsorInfo, setSponsorInfo] = useState<SponsorInfo | null>(null);
   const [isResolvingSponsor, setIsResolvingSponsor] = useState<boolean>(false);
   const [isEditingReferral, setIsEditingReferral] = useState<boolean>(!hasInitialRef);
@@ -95,9 +95,10 @@ const Signup = () => {
   };
 
   useEffect(() => {
-    const codeToResolve = initialRef || DEFAULT_SPONSOR_CODE;
-    resolveSponsor(codeToResolve);
-  }, []);
+    if (initialRef) {
+      resolveSponsor(initialRef);
+    }
+  }, [initialRef]);
 
   useEffect(() => {
     if (!isEditingReferral) return;
@@ -163,7 +164,7 @@ const Signup = () => {
     }
 
     const formattedEmail = cleanEmail(email);
-    const cleanedReferral = cleanReferralCode(referral) || DEFAULT_SPONSOR_CODE;
+    const cleanedReferral = cleanReferralCode(referral) || DEFAULT_ROOT_SPONSOR_CODE;
 
     // Check if email already registered
     const { data: emailExists, error: rpcError } = await supabase.rpc(
@@ -251,18 +252,14 @@ const Signup = () => {
       });
 
       Sentry.metrics.count("signup_completed", 1);
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("agroheal_ref");
-      }
+      clearStoredReferral();
       setTimeout(() => {
         navigate(redirectUrl);
       }, 1000);
     } else {
       // Email confirmation is required by Supabase Auth
       setIsEmailConfirmationPending(true);
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("agroheal_ref");
-      }
+      clearStoredReferral();
       showToast({
         variant: "success",
         title: "Account created!",

@@ -2,12 +2,14 @@ import { Outlet, useLocation, useNavigate, ScrollRestoration, useSearchParams } 
 import Header from "./Header";
 import Footer from "./Footer";
 import { useEffect } from "react";
+import { captureReferral } from "@/lib/referralManager";
 
 const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
 
 const Layout = () => {
   // hiden header and footer logic on some paths
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname } = location;
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -15,17 +17,14 @@ const Layout = () => {
 
   // Capture and persist affiliate referral code across marketing navigation
   useEffect(() => {
-    const ref = searchParams.get("ref");
-    if (ref && typeof window !== "undefined") {
-      localStorage.setItem("agroheal_ref", ref.trim().toUpperCase());
-    }
+    captureReferral(searchParams);
   }, [searchParams]);
 
   useEffect(() => {
     if (pathname !== normalizedPath) {
-      navigate(normalizedPath, { replace: true });
+      navigate({ pathname: normalizedPath, search: location.search }, { replace: true });
     }
-  }, [pathname, normalizedPath, navigate]);
+  }, [pathname, normalizedPath, navigate, location.search]);
 
   // Ensure window scrolls to top on navigation to any page (e.g. from footer links)
   useEffect(() => {

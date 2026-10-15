@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { showToast } from "@/components/ui/ToastComponent";
 
+import { captureReferral, getActiveReferral, getSignupUrl } from "@/lib/referralManager";
+
 const GREEN_CARD_CONFIG = {
   whatsappUrl:
     "https://wa.me/2349168055000?text=Hello%20Agroheal,%20I%20am%20interested%20in%20the%20Green%20Card%20Organic%20Food%20Revolution",
@@ -16,8 +18,12 @@ const GREEN_CARD_CONFIG = {
 
 export const Funnel1: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const refCode = searchParams.get("ref") || searchParams.get("sponsor") || "";
-  const signupUrl = refCode ? `/signup?ref=${encodeURIComponent(refCode)}` : "/signup";
+
+  useEffect(() => {
+    captureReferral(searchParams);
+  }, [searchParams]);
+
+  const signupUrl = getSignupUrl();
 
   const [activeVideoModal, setActiveVideoModal] = useState<string | null>(null);
 

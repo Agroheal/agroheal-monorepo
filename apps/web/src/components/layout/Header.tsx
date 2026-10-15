@@ -5,6 +5,7 @@ import { Menu, X, LayoutDashboard, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AgrohealImages } from "@/constant/Image";
 import { supabase } from "@/lib/supabaseClient";
+import { getSignupUrl } from "@/lib/referralManager";
 
 const navLinks = [
   { name: "Home", href: "/" },
@@ -114,7 +115,7 @@ export default function Header() {
                     Sign In
                   </Button>
                 </Link>
-                <Link to="/signup">
+                <Link to={getSignupUrl()}>
                   <Button className="bg-emerald-800 text-white hover:bg-emerald-900 font-bold px-6 py-2 rounded-xl shadow-xs cursor-pointer">
                     Get Started
                   </Button>
@@ -174,7 +175,7 @@ export default function Header() {
                           Sign In
                         </Button>
                       </Link>
-                      <Link to="/signup" className="w-full" onClick={() => setIsOpen(false)}>
+                      <Link to={getSignupUrl()} className="w-full" onClick={() => setIsOpen(false)}>
                         <Button className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-bold py-2.5 rounded-xl shadow-xs">
                           Get Started
                         </Button>

@@ -10,6 +10,7 @@ import { Toaster } from "react-hot-toast";
 import { showToast } from "@/components/ui/ToastComponent";
 import AuthSidebar from "@/components/webComponents/authSidebar";
 import * as Sentry from "@sentry/react";
+import { getSignupUrl } from "@/lib/referralManager";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -299,7 +300,7 @@ const Login = () => {
           >
             Don't have an account?{" "}
             <Link
-              to={redirectUrl !== "/dashboard" ? `/signup?redirect=${encodeURIComponent(redirectUrl)}` : "/signup"}
+              to={getSignupUrl(redirectUrl !== "/dashboard" ? redirectUrl : undefined)}
               className="text-green-800 font-semibold hover:text-green-700 transition-colors"
             >
               Sign Up
