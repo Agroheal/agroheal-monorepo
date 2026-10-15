@@ -79,34 +79,39 @@ export default function LockedReservesGuide() {
         // fallback
       }
 
-      // Count direct referrals
-      const { count: directsCount } = await supabase
-        .from("profiles")
-        .select("id", { count: "exact", head: true })
-        .eq("sponsor_id", user.id);
+      // Count direct referrals (authoritative count from API or DB)
+      let directsCount = apiSummary?.matrixSpilloverWallet?.directReferralsCount;
+      if (directsCount === undefined) {
+        const { count } = await supabase
+          .from("profiles")
+          .select("id", { count: "exact", head: true })
+          .or(`sponsor_id.eq.${user.id},referred_by.eq.${user.id}`);
+        directsCount = count ?? 0;
+      }
 
       // Check slot subscriptions
       const { data: slots } = await supabase
         .from("slot_subscriptions")
-        .select("id, slots_count, status")
+        .select("id, slots, status")
         .eq("user_id", user.id)
         .in("status", ["active", "paid", "confirmed", "completed"]);
 
-      const totalSlots = (slots || []).reduce((acc: number, s: any) => acc + (Number(s.slots_count) || 1), 0);
+      const totalSlots = (slots || []).reduce((acc: number, s: any) => acc + (Number(s.slots) || 0), 0);
       const isSubscribed = Boolean(prof?.has_purchased_starter_pack || totalSlots > 0);
 
-      // Direct referral vs matrix earnings
-      const directEarnings = apiSummary?.directReferralsEarnings ?? Number(prof?.referral_earnings || 0);
-      const matrixEarnings = apiSummary?.matrixSpilloverEarnings ?? 0;
+      // Direct referral vs matrix earnings directly from authoritative API payload
+      const directEarnings = apiSummary?.directReferralWallet?.balance ?? Number(prof?.referral_earnings || 0);
+      const matrixEarnings = apiSummary?.matrixSpilloverWallet?.balance ?? 0;
       const baseWallet = Number(prof?.wallet_balance || 0);
+      const activePqv = apiSummary?.matrixSpilloverWallet?.activePqv30d ?? 0;
 
       setWalletSummary({
-        walletBalance: Math.max(baseWallet, directEarnings + matrixEarnings),
+        walletBalance: baseWallet > 0 ? baseWallet : (directEarnings + matrixEarnings),
         directReferralEarnings: directEarnings,
         matrixEarnings: matrixEarnings,
         totalSlots: totalSlots,
         directReferralsCount: directsCount ?? 0,
-        activePqv30d: totalSlots * 5000,
+        activePqv30d: activePqv,
         isProjectSubscribed: isSubscribed,
       });
     } catch (err) {
@@ -135,18 +140,32 @@ export default function LockedReservesGuide() {
 
   // Calculations if logged in
   const directs = walletSummary?.directReferralsCount ?? 0;
-  const isMatrixQualified = directs >= 5;
+  const activePqv30d = walletSummary?.activePqv30d ?? 0;
+  // Matrix withdrawal gate requires 5 direct referrals AND ₦10,000 30-day PQV
+  const isMatrixQualified = directs >= 5 && activePqv30d >= 10000;
   const isProjectSubscribed = Boolean(walletSummary?.isProjectSubscribed);
   const matrixEarnings = walletSummary?.matrixEarnings ?? 0;
   const directEarnings = walletSummary?.directReferralEarnings ?? 0;
   const totalBalance = walletSummary?.walletBalance ?? 0;
 
-  const lockedMatrix = !isMatrixQualified ? matrixEarnings : 0;
-  const lockedDirect = (!isProjectSubscribed || directs < 5) ? directEarnings : 0;
-  const rawCleared = Math.max(0, totalBalance - (lockedMatrix + lockedDirect));
+  // Compartment financial calculation matching TransactionLedger:
+  // 1. Direct referral earnings are unlocked if active starter package + 5 direct referrals
+  const isDirectUnlocked = isProjectSubscribed && directs >= 5;
+  const unlockedDirect = isDirectUnlocked ? Math.min(totalBalance, directEarnings) : 0;
+
+  // 2. Matrix earnings are unlocked if 5 direct referrals AND ₦10,000 30-day PQV
+  const unlockedMatrix = isMatrixQualified
+    ? Math.min(Math.max(0, totalBalance - unlockedDirect), matrixEarnings)
+    : 0;
+
+  // 3. Raw cleared funds
+  const rawCleared = unlockedDirect + unlockedMatrix;
+
+  // 4. Statutory gate: min ₦2,000 to withdraw
   const availableBalance = rawCleared >= 2000 ? rawCleared : 0;
-  const lockedBelowFloor = rawCleared < 2000 ? rawCleared : 0;
-  const totalLocked = lockedMatrix + lockedDirect + lockedBelowFloor;
+
+  // 5. Total locked amount is bounded by the ledger balance
+  const totalLocked = Math.max(0, totalBalance - availableBalance);
 
   return (
     <div className="min-h-screen bg-[#faf9f6] text-gray-900 font-sans pb-20">
@@ -269,7 +288,7 @@ export default function LockedReservesGuide() {
                   Gatekeeper Release Analysis
                 </h3>
 
-                {/* Gate 1: 5 Directs */}
+                {/* Gate 1: 5 Directs + ₦10k PQV */}
                 <div
                   className={`p-4 rounded-2xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
                     isMatrixQualified
@@ -285,14 +304,16 @@ export default function LockedReservesGuide() {
                     )}
                     <div>
                       <p className="font-bold text-sm">
-                        1. 5×7 Matrix Direct Referral Gate ({directs}/5 Directs)
+                        1. 5×7 Matrix Spillover Gate ({directs}/5 Directs • ₦{activePqv30d.toLocaleString()}/₦10,000 PQV)
                       </p>
                       <p className="text-gray-600 mt-0.5">
                         {isMatrixQualified
-                          ? "Qualified! You have sponsored 5 or more active members. 100% of your 7-tier matrix spillover commissions are unlocked."
-                          : `You have sponsored ${directs} of 5 required active partners. Sponsor ${
-                              5 - directs
-                            } more partner(s) to unlock ₦${matrixEarnings.toLocaleString()} held in matrix reserve.`}
+                          ? "Qualified! You have sponsored 5 or more active members and maintain ₦10,000 rolling 30-day PQV. 100% of your 7-tier matrix spillover commissions are unlocked."
+                          : directs < 5 && activePqv30d < 10000
+                          ? `Matrix spillover withdrawal requires 5 direct referrals and ₦10,000 30-day PQV. Sponsor ${5 - directs} more partner(s) and accumulate ₦${(10000 - activePqv30d).toLocaleString()} in product PQV to unlock ₦${matrixEarnings.toLocaleString()} held in matrix reserve.`
+                          : directs < 5
+                          ? `You have sponsored ${directs} of 5 required active partners. Sponsor ${5 - directs} more partner(s) to unlock ₦${matrixEarnings.toLocaleString()} held in matrix reserve.`
+                          : `You have sponsored ${directs} direct partners. Maintain ₦10,000 rolling 30-day PQV (currently ₦${activePqv30d.toLocaleString()}/₦10,000) to unlock ₦${matrixEarnings.toLocaleString()} held in matrix reserve.`}
                       </p>
                     </div>
                   </div>
@@ -322,27 +343,27 @@ export default function LockedReservesGuide() {
                 {/* Gate 2: Starter Package */}
                 <div
                   className={`p-4 rounded-2xl border text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                    isProjectSubscribed
+                    isProjectSubscribed && directs >= 5
                       ? "bg-emerald-50/60 border-emerald-200 text-emerald-950"
                       : "bg-amber-50/70 border-amber-200 text-amber-950"
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    {isProjectSubscribed ? (
+                    {isProjectSubscribed && directs >= 5 ? (
                       <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                     ) : (
                       <Lock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                     )}
                     <div>
                       <p className="font-bold text-sm">
-                        2. Producer-Consumer Starter Package (₦10,000)
+                        2. Producer-Consumer Starter Package &amp; Direct Referrals Gate
                       </p>
                       <p className="text-gray-600 mt-0.5">
-                        {isProjectSubscribed
-                          ? "Active! You have enrolled in practical agricultural production with your starter package."
-                          : directEarnings >= 10000
-                          ? `You have ₦${directEarnings.toLocaleString()} in referral earnings! You can activate your ₦10,000 starter package directly using your wallet balance without paying out-of-pocket.`
-                          : "Activate your ₦10,000 starter package (₦5,000 Mushroom Power 100g + ₦5,000 1st farm slot) to participate in quarterly harvest surplus distributions."}
+                        {isProjectSubscribed && directs >= 5
+                          ? "Qualified! You have enrolled in practical agricultural production with your starter package and sponsored 5 active partners. Direct referral earnings are 100% unlocked."
+                          : !isProjectSubscribed
+                          ? "Direct sponsor referral earnings unlock once you activate your ₦10,000 starter package (₦5,000 Mushroom Power 100g + ₦5,000 1st farm slot)."
+                          : `You have activated your starter package! Direct referral earnings unlock once you sponsor your first 5 active partners (currently ${directs}/5).`}
                       </p>
                     </div>
                   </div>
@@ -353,7 +374,7 @@ export default function LockedReservesGuide() {
                       size="sm"
                       className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs h-8 rounded-xl font-semibold shrink-0 self-start sm:self-auto"
                     >
-                      <Link to="/dashboard/checkout?product=green_card_combo">
+                      <Link to="/dashboard/checkout?bundle=starter">
                         Activate Package
                       </Link>
                     </Button>
@@ -363,12 +384,12 @@ export default function LockedReservesGuide() {
                 {/* Gate 3: Minimum Payout Floor */}
                 <div
                   className={`p-4 rounded-2xl border text-xs flex items-start gap-3 ${
-                    rawCleared >= 2000
+                    availableBalance >= 2000
                       ? "bg-emerald-50/60 border-emerald-200 text-emerald-950"
                       : "bg-gray-50 border-gray-200 text-gray-700"
                   }`}
                 >
-                  {rawCleared >= 2000 ? (
+                  {availableBalance >= 2000 ? (
                     <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                   ) : (
                     <AlertCircle className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
@@ -378,11 +399,11 @@ export default function LockedReservesGuide() {
                       3. Statutory Minimum Withdrawal Floor (₦2,000)
                     </p>
                     <p className="text-gray-600 mt-0.5">
-                      {rawCleared >= 2000
-                        ? `Cleared balance meets the statutory ₦2,000 minimum payout floor. You can request a withdrawal anytime from your dashboard.`
-                        : `Your cleared balance is currently ₦${rawCleared.toLocaleString()}. Accumulate ₦${(
-                            2000 - rawCleared
-                          ).toLocaleString()} more to release directly to your bank account.`}
+                      {availableBalance >= 2000
+                        ? `Cleared available balance (₦${availableBalance.toLocaleString()}) meets the statutory ₦2,000 minimum payout floor. You can request a withdrawal anytime from your dashboard.`
+                        : `Your cleared available balance is currently ₦${availableBalance.toLocaleString()}. Accumulate ₦${(
+                            2000 - availableBalance
+                          ).toLocaleString()} more in cleared funds to dispatch directly to your bank account.`}
                     </p>
                   </div>
                 </div>
@@ -461,7 +482,7 @@ export default function LockedReservesGuide() {
               </div>
 
               <div className="pt-3 border-t border-gray-100 text-[11px] font-semibold text-emerald-800">
-                Rule: 5 Direct Referrals unlocks all 7 Matrix tiers.
+                Rule: 5 Direct Referrals + ₦10,000 30-Day PQV unlocks Matrix commissions.
               </div>
             </div>
 
@@ -475,14 +496,13 @@ export default function LockedReservesGuide() {
                   2. Practical Farm Participation
                 </h3>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  To participate in quarterly harvest sales dividends, members must activate the
+                  To participate in quarterly harvest sales dividends and unlock direct referral withdrawals, members must activate the
                   <strong> ₦10,000 Wealth Creation starter package</strong> (₦5k Mushroom Power welcome product + ₦5k 1st farm slot).
-                  Referral earnings accumulate freely and can even fund this activation!
                 </p>
               </div>
 
               <div className="pt-3 border-t border-gray-100 text-[11px] font-semibold text-amber-800">
-                Rule: ₦10,000 Starter Package qualifies for harvest distributions.
+                Rule: ₦10,000 Starter Package qualifies for referral withdrawals &amp; harvest distributions.
               </div>
             </div>
 

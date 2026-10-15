@@ -306,7 +306,7 @@ export const apiClient = {
         body: JSON.stringify(payload),
       }),
     request: (payload: {
-      walletType: "DIRECT_REFERRAL" | "MATRIX_SPILLOVER";
+      walletType: "DIRECT_REFERRAL" | "MATRIX_SPILLOVER" | "WALLET" | string;
       amount: number;
       bankName: string;
       bankCode?: string;

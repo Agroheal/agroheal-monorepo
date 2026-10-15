@@ -1,6 +1,10 @@
 # AgroHeal Development & Enhancement TODO
 
 ## High Priority (Immediate / ASAP)
+- [ ] **Universal ₦10,000 30-Day PQV Withdrawal Requirement (Policy Consideration)**:
+  - Minimum ₦10,000 rolling 30-day PQV (personal product purchases or farm slot renewals) may be established as a mandatory requirement for **all** external bank withdrawals, rather than applying solely to 5×7 matrix spillover and product network commissions.
+  - Evaluate cooperative cashflow and communicate to community leadership prior to enforcing on direct sponsor referrals.
+
 - [ ] **Custom SMTP & Reliable Transactional Email Delivery (Top Priority)**:
   - **Custom SMTP Provider Setup**: Configure dedicated transactional email infrastructure (Resend, SendGrid, AWS SES, or custom SMTP) to eliminate Supabase default rate-limits (3-4 emails/hour restriction) and deliver emails from verified domain `@agroheal.com` / `@agroheal.ng`.
   - **Essential Automated Email Triggers**:

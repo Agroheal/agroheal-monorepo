@@ -370,7 +370,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
               .eq("user_id", user.id),
         supabase
           .from("other_payments")
-          .select("id, amount, payment_type, created_at, status, reference, is_legacy")
+          .select("id, amount, payment_type, created_at, status, transaction_ref, is_legacy")
           .eq("user_id", user.id),
         supabase
           .from("wallet_ledger")
@@ -819,7 +819,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           amount: Number(p.amount || 0),
           description: `${(p.payment_type || "Payment").replace(/_/g, " ").toUpperCase()} Contribution`,
           status: isPCompleted ? "COMPLETED" : isPFailed ? "FAILED" : "PENDING",
-          reference: p.reference || `PAY-${p.id.slice(0, 8)}`,
+          reference: p.transaction_ref || p.reference || `PAY-${p.id.slice(0, 8)}`,
           is_legacy: Boolean(p.is_legacy || isLegacyMember(p.created_at)),
         });
       });
@@ -968,7 +968,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
         const { data: opData } = await supabase
           .from("other_payments")
           .select("*")
-          .eq("reference", targetRef)
+          .eq("transaction_ref", targetRef)
           .maybeSingle();
         paymentRecord = opData;
       }

@@ -62,9 +62,6 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
   hasPurchasedStarterPack = false,
   onSuccess,
 }) => {
-  const [walletType, setWalletType] = useState<"DIRECT_REFERRAL" | "MATRIX_SPILLOVER">(
-    "DIRECT_REFERRAL"
-  );
   const [amount, setAmount] = useState<string>("");
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -87,10 +84,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
   );
 
   // Authoritative Available Cleared Balance (strictly enforcing ₦2k gate and qualification rules)
-  const currentAvailableBalance =
-    walletType === "DIRECT_REFERRAL"
-      ? (isDirectReferralWithdrawable && directReferralBalance >= 2000 ? directReferralBalance : 0)
-      : (isMatrixQualified && matrixBalance >= 2000 ? matrixBalance : 0);
+  const currentAvailableBalance = Math.max(0, availableBalance);
 
   const handleMaxAmount = () => {
     setAmount(Math.max(0, currentAvailableBalance).toString());
@@ -119,9 +113,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
 
     if (parsedAmount > currentAvailableBalance) {
       setErrorMsg(
-        `Withdrawal amount exceeds your available cleared ${
-          walletType === "DIRECT_REFERRAL" ? "Direct Referral" : "Matrix Spillover"
-        } balance of ₦${currentAvailableBalance.toLocaleString()}.`
+        `Withdrawal amount exceeds your available cleared balance of ₦${currentAvailableBalance.toLocaleString()}.`
       );
       return;
     }
@@ -133,24 +125,10 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
       return;
     }
 
-    if (walletType === "DIRECT_REFERRAL" && !isDirectReferralWithdrawable) {
-      setErrorMsg(
-        "Bank withdrawals are locked until you bring in your first 5 direct referrals."
-      );
-      return;
-    }
-
-    if (walletType === "MATRIX_SPILLOVER" && !isMatrixQualified) {
-      setErrorMsg(
-        "Matrix Spillover Wallet requires 30-day qualification (min. 5 direct referrals + ₦5,000 PQV)."
-      );
-      return;
-    }
-
     setSubmitting(true);
     try {
       await apiClient.withdrawals.request({
-        walletType,
+        walletType: "WALLET",
         amount: parsedAmount,
         bankName: savedBankName || "",
         bankCode: savedBankCode || "",
@@ -215,66 +193,21 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
             )}
 
             <form onSubmit={handleSubmitWithdrawal} className="space-y-5">
-              {/* Channel / Wallet Selector */}
-              <div className="space-y-2">
-                <Label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                  Select Originating Balance
-                </Label>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setWalletType("DIRECT_REFERRAL")}
-                    className={`p-3 rounded-2xl border-2 text-left transition-all relative ${
-                      walletType === "DIRECT_REFERRAL"
-                        ? "border-emerald-600 bg-emerald-50/50 shadow-xs"
-                        : "border-gray-200 hover:border-gray-300 bg-white"
-                    }`}
-                  >
-                    <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                      Direct Referral
-                    </div>
-                    <div className="text-sm font-black text-gray-900 mt-0.5">
-                      ₦{Math.max(directReferralBalance, walletBalance || 0).toLocaleString()}
-                    </div>
-                    <div className="text-[10px] text-emerald-700 font-semibold mt-1 flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" />
-                      Min. ₦2,000
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setWalletType("MATRIX_SPILLOVER")}
-                    className={`p-3 rounded-2xl border-2 text-left transition-all relative ${
-                      walletType === "MATRIX_SPILLOVER"
-                        ? "border-emerald-600 bg-emerald-50/50 shadow-xs"
-                        : "border-gray-200 hover:border-gray-300 bg-white"
-                    }`}
-                  >
-                    <div className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                      5×7 Matrix Spillover
-                    </div>
-                    <div className="text-sm font-black text-gray-900 mt-0.5">
-                      ₦{matrixBalance.toLocaleString()}
-                    </div>
-                    <div
-                      className={`text-[10px] font-semibold mt-1 flex items-center gap-1 ${
-                        isMatrixQualified ? "text-emerald-700" : "text-amber-700"
-                      }`}
-                    >
-                      {isMatrixQualified ? (
-                        <>
-                          <CheckCircle2 className="w-3 h-3" />
-                          <span>Qualified</span>
-                        </>
-                      ) : (
-                        <>
-                          <AlertCircle className="w-3 h-3" />
-                          <span>Needs 5 Directs + ₦5k PQV</span>
-                        </>
-                      )}
-                    </div>
-                  </button>
+              {/* Available Withdrawable Balance Card */}
+              <div className="p-4 rounded-2xl bg-emerald-50/80 border border-emerald-200/80 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block">
+                    Available to Withdraw
+                  </span>
+                  <p className="text-2xl font-black font-mono text-emerald-950 mt-0.5">
+                    ₦{currentAvailableBalance.toLocaleString()}
+                  </p>
+                  <span className="text-[11px] text-emerald-700 font-medium">
+                    100% Cleared for bank transfer (Min. ₦2,000)
+                  </span>
+                </div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-100/80 border border-emerald-300 flex items-center justify-center text-emerald-800">
+                  <Coins className="w-5 h-5" />
                 </div>
               </div>
 
@@ -419,8 +352,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
                   disabled={
                     submitting ||
                     !hasLinkedBank ||
-                    currentAvailableBalance < 2000 ||
-                    (walletType === "MATRIX_SPILLOVER" && !isMatrixQualified)
+                    currentAvailableBalance < 2000
                   }
                   className="rounded-xl h-10 px-5 text-xs font-bold bg-emerald-800 hover:bg-emerald-700 text-white gap-2 shadow-xs"
                 >
