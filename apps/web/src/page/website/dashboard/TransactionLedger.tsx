@@ -199,17 +199,25 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
     ? walletBalance
     : legacyEarnings;
 
-  // Gatekeeper locked capital:
-  // If user is not qualified for 5x7 matrix (5 directs + ₦10k 30d PQV), all matrix earnings are locked.
-  const lockedMatrixAmount = !isMatrixQualified ? matrixEarnings : 0;
-  // If direct referral earnings do not meet withdrawal conditions (active project + ₦2k threshold), lock them.
-  const lockedDirectAmount = !isDirectReferralWithdrawable ? directReferralEarnings : 0;
+  // Calculate unlocked components bounded by the current live liquid balance:
+  // 1. Direct referral earnings are unlocked if active project + >= 5 direct referrals + direct earnings >= ₦2,000
+  const unlockedDirect = isDirectReferralWithdrawable
+    ? Math.min(ledgerBalance, directReferralEarnings)
+    : 0;
 
-  // Statutory Gate: A balance cannot appear in Available Balance if it is less than ₦2,000 (minimum statutory payout).
-  const rawClearedBalance = Math.max(0, ledgerBalance - (lockedMatrixAmount + lockedDirectAmount));
+  // 2. Matrix earnings are unlocked if >= 5 direct referrals AND >= ₦10,000 30-day PQV
+  const unlockedMatrix = isMatrixQualified
+    ? Math.min(Math.max(0, ledgerBalance - unlockedDirect), matrixEarnings)
+    : 0;
+
+  // 3. Total unlocked liquid capital
+  const rawClearedBalance = unlockedDirect + unlockedMatrix;
+
+  // 4. Statutory Gate: Must have >= ₦2,000 in unlocked funds to withdraw immediately
   const availableBalance = rawClearedBalance >= 2000 ? rawClearedBalance : 0;
-  const lockedBelowThresholdAmount = rawClearedBalance < 2000 ? rawClearedBalance : 0;
-  const totalLockedAmount = lockedMatrixAmount + lockedDirectAmount + lockedBelowThresholdAmount;
+
+  // 5. Total locked capital is the remainder of the liquid balance held in reserve
+  const totalLockedAmount = Math.max(0, ledgerBalance - availableBalance);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -341,6 +349,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
         { data: otherPayments },
         { data: dbWalletLedger },
         { data: dbOrders },
+        { data: dbWithdrawals },
       ] = await Promise.all([
         supabase
           .from("profiles")
@@ -372,6 +381,11 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           .from("orders")
           .select("id, product_code, quantity, total_price, pv_earned, status, notes, created_at, transaction_id")
           .eq("user_id", user.id),
+        supabase
+          .from("withdrawals")
+          .select("id, amount, status, reference, bank_name, account_number, created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false }),
       ]);
 
       const orders = dbOrders || [];
@@ -518,7 +532,9 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
       const ledgerSource = apiLedgerEntries.length > 0 ? apiLedgerEntries : (dbWalletLedger || []);
       if (ledgerSource.length > 0) {
         ledgerSource.forEach((entry: any) => {
-          if ((entry.status || "").toUpperCase() === "PENDING") return; // Pending loan commissions should not show in UI at all
+          const isPending = (entry.status || "").toUpperCase() === "PENDING";
+          // Only skip pending loan commissions; allow withdrawals to show as PENDING
+          if (isPending && entry.category !== "WITHDRAWAL") return;
           items.push({
             id: entry.id || `ledger-${entry.reference_id || Math.random()}`,
             date: entry.created_at || new Date().toISOString(),
@@ -526,10 +542,30 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
             category: entry.category || "REFERRAL_BONUS",
             amount: Number(entry.amount) || 0,
             description: entry.description || "Wallet Transaction",
-            status: entry.status === "FAILED" ? "FAILED" : "COMPLETED",
+            status: isPending ? "PENDING" : entry.status === "FAILED" ? "FAILED" : "COMPLETED",
             reference: entry.reference_id || entry.id || "N/A",
             is_legacy: entry.category === "CORE_DRIVER_BONUS" ? false : Boolean(entry.is_legacy || isLegacyMember(entry.created_at)),
           });
+        });
+
+        // Also merge any withdrawal requests from the withdrawals table that are not yet in wallet_ledger
+        (dbWithdrawals || []).forEach((w: any) => {
+          const exists = items.some((i) => i.reference === w.reference || i.id === w.id);
+          if (!exists) {
+            const isWdPending = (w.status || "").toUpperCase() === "PENDING";
+            const isWdFailed = ["FAILED", "REJECTED", "CANCELLED"].includes((w.status || "").toUpperCase());
+            items.push({
+              id: w.id || `wd-${w.reference}`,
+              date: w.created_at || new Date().toISOString(),
+              type: "DEBIT",
+              category: "WITHDRAWAL",
+              amount: Number(w.amount) || 0,
+              description: `Bank withdrawal to ${w.bank_name || "Bank"} (${w.account_number || ""})`,
+              status: isWdPending ? "PENDING" : isWdFailed ? "FAILED" : "COMPLETED",
+              reference: w.reference || `WD-${w.id.slice(0, 8)}`,
+              is_legacy: false,
+            });
+          }
         });
       }
 
