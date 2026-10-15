@@ -45,6 +45,7 @@ import { AgrohealImages } from "@/constant/Image";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import WithdrawalModal from "@/components/wallet/WithdrawalModal";
+import { ReleaseConditionsModal } from "@/components/wallet/ReleaseConditionsModal";
 import { DataPagination } from "@/components/ui/pagination";
 
 interface LedgerItem {
@@ -124,6 +125,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
   const [activeRequeryRef, setActiveRequeryRef] = useState<string | null>(null);
   const [showRequeryModal, setShowRequeryModal] = useState<boolean>(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState<boolean>(false);
+  const [isReleaseModalOpen, setIsReleaseModalOpen] = useState<boolean>(false);
   const [isProjectSubscribed, setIsProjectSubscribed] = useState<boolean>(false);
   const [subscribingWithWallet, setSubscribingWithWallet] = useState<boolean>(false);
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
@@ -199,25 +201,28 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
     ? walletBalance
     : legacyEarnings;
 
+  // STRICT MANAGEMENT RULE: Withdrawals are strictly ON HOLD for legacy balances/wallet
+  const isLegacyHold = walletMode === "legacy";
+
   // Calculate unlocked components bounded by the current live liquid balance:
-  // 1. Direct referral earnings are unlocked if active project + >= 5 direct referrals + direct earnings >= ₦2,000
-  const unlockedDirect = isDirectReferralWithdrawable
+  // 1. Direct referral earnings are unlocked if live mode + active project + >= 5 direct referrals + direct earnings >= ₦2,000
+  const unlockedDirect = (!isLegacyHold && isDirectReferralWithdrawable)
     ? Math.min(ledgerBalance, directReferralEarnings)
     : 0;
 
-  // 2. Matrix earnings are unlocked if >= 5 direct referrals AND >= ₦10,000 30-day PQV
-  const unlockedMatrix = isMatrixQualified
+  // 2. Matrix earnings are unlocked if live mode + >= 5 direct referrals AND >= ₦10,000 30-day PQV
+  const unlockedMatrix = (!isLegacyHold && isMatrixQualified)
     ? Math.min(Math.max(0, ledgerBalance - unlockedDirect), matrixEarnings)
     : 0;
 
   // 3. Total unlocked liquid capital
-  const rawClearedBalance = unlockedDirect + unlockedMatrix;
+  const rawClearedBalance = isLegacyHold ? 0 : (unlockedDirect + unlockedMatrix);
 
   // 4. Statutory Gate: Must have >= ₦2,000 in unlocked funds to withdraw immediately
-  const availableBalance = rawClearedBalance >= 2000 ? rawClearedBalance : 0;
+  const availableBalance = (!isLegacyHold && rawClearedBalance >= 2000) ? rawClearedBalance : 0;
 
-  // 5. Total locked capital is the remainder of the liquid balance held in reserve
-  const totalLockedAmount = Math.max(0, ledgerBalance - availableBalance);
+  // 5. Total locked capital is the remainder of the liquid balance held in reserve (in legacy mode, 100% is on hold)
+  const totalLockedAmount = isLegacyHold ? ledgerBalance : Math.max(0, ledgerBalance - availableBalance);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -370,7 +375,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
               .eq("user_id", user.id),
         supabase
           .from("other_payments")
-          .select("id, amount, payment_type, created_at, status, transaction_ref, is_legacy")
+          .select("id, amount, payment_type, created_at, status, transaction_ref")
           .eq("user_id", user.id),
         supabase
           .from("wallet_ledger")
@@ -820,7 +825,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           description: `${(p.payment_type || "Payment").replace(/_/g, " ").toUpperCase()} Contribution`,
           status: isPCompleted ? "COMPLETED" : isPFailed ? "FAILED" : "PENDING",
           reference: p.transaction_ref || p.reference || `PAY-${p.id.slice(0, 8)}`,
-          is_legacy: Boolean(p.is_legacy || isLegacyMember(p.created_at)),
+          is_legacy: Boolean(isLegacyMember(p.created_at)),
         });
       });
 
@@ -1493,7 +1498,9 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
                     }`}
                   >
                     <ArrowUpRight className="w-3.5 h-3.5 mr-1" />
-                    {availableBalance >= 2000
+                    {isLegacyHold
+                      ? "Legacy Balances on Hold (Non-Withdrawable)"
+                      : availableBalance >= 2000
                       ? `Withdraw Available Funds (₦${availableBalance.toLocaleString()})`
                       : userProfile?.is_legacy && !userProfile?.has_purchased_starter_pack
                       ? "Withdrawal Locked (₦5,000 Mushroom Power Required)"
@@ -1506,14 +1513,15 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
                     <div className="pt-1 flex items-center justify-between text-[11px] text-amber-200/80">
                       <span className="flex items-center gap-1.5">
                         <Lock className="w-3 h-3 text-amber-400 shrink-0" />
-                        <span>₦{totalLockedAmount.toLocaleString()} held in reserve</span>
+                        <span>₦{totalLockedAmount.toLocaleString()} {isLegacyHold ? "on legacy hold" : "held in reserve"}</span>
                       </span>
-                      <Link
-                        to="/how-it-works/locked-withdrawals"
-                        className="underline underline-offset-2 hover:text-white transition-colors"
+                      <button
+                        type="button"
+                        onClick={() => setIsReleaseModalOpen(true)}
+                        className="underline underline-offset-2 hover:text-white transition-colors cursor-pointer text-left"
                       >
                         Release conditions →
-                      </Link>
+                      </button>
                     </div>
                   )}
 
@@ -2029,6 +2037,28 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           onSaveBankToProfile={handleSaveBankToProfile}
           onSuccess={() => {
             loadLedger();
+          }}
+        />
+
+        {/* In-Dashboard Reserve Release Conditions Modal */}
+        <ReleaseConditionsModal
+          isOpen={isReleaseModalOpen}
+          onClose={() => setIsReleaseModalOpen(false)}
+          ledgerBalance={ledgerBalance}
+          availableBalance={availableBalance}
+          totalLockedAmount={totalLockedAmount}
+          directReferralEarnings={directReferralEarnings}
+          matrixEarnings={matrixEarnings}
+          directReferralsCount={directReferralsCount}
+          activePqv30d={activePqv30d}
+          isProjectSubscribed={isProjectSubscribed}
+          hasPurchasedStarterPack={Boolean(userProfile?.has_purchased_starter_pack)}
+          isLegacy={Boolean(userProfile?.is_legacy)}
+          isLegacyHold={isLegacyHold}
+          advanceDebt={advanceDebt}
+          onOpenWithdrawal={() => {
+            setIsReleaseModalOpen(false);
+            setIsWithdrawModalOpen(true);
           }}
         />
       </div>
