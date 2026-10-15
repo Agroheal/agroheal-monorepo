@@ -455,8 +455,15 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
       }
       setDirectReferralEarnings(refEarnings);
 
-      const wBal = Number(profile?.wallet_balance) || 0;
-      setWalletBalance(wBal);
+      let wBal = 0;
+      if (apiSummary?.availableBalance !== undefined) {
+        wBal = Number(apiSummary.availableBalance) || 0;
+      } else if (apiSummary?.matrixSpilloverWallet?.balance !== undefined) {
+        wBal = Number(apiSummary.matrixSpilloverWallet.balance) || 0;
+      } else {
+        wBal = Number(profile?.wallet_balance) || 0;
+      }
+      setWalletBalance(Math.max(0, wBal));
 
       let matEarnings = 0;
       if (apiSummary?.matrixSpilloverWallet?.balance !== undefined) {
@@ -550,8 +557,8 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
         (dbWithdrawals || []).forEach((w: any) => {
           const exists = items.some((i) => i.reference === w.reference || i.id === w.id);
           if (!exists) {
-            const isWdPending = (w.status || "").toUpperCase() === "PENDING";
-            const isWdFailed = ["FAILED", "REJECTED", "CANCELLED"].includes((w.status || "").toUpperCase());
+            const isWdPending = ["PENDING", "QUEUED", "PROCESSING"].includes((w.status || "").toUpperCase());
+            const isWdFailed = ["FAILED", "REJECTED", "CANCELLED", "REVERSED"].includes((w.status || "").toUpperCase());
             items.push({
               id: w.id || `wd-${w.reference}`,
               date: w.created_at || new Date().toISOString(),

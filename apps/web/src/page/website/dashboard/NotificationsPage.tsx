@@ -41,6 +41,12 @@ export const NotificationsPage: React.FC = () => {
 
   useEffect(() => {
     loadAllNotifications();
+
+    const handleSync = () => {
+      loadAllNotifications();
+    };
+    window.addEventListener("agroheal_notifications_updated", handleSync);
+    return () => window.removeEventListener("agroheal_notifications_updated", handleSync);
   }, []);
 
   async function loadAllNotifications() {
@@ -51,16 +57,18 @@ export const NotificationsPage: React.FC = () => {
       } = await supabase.auth.getUser();
       if (!user) return;
 
+      const LEGACY_CUTOFF_MS = new Date("2026-09-27T00:00:00.000Z").getTime();
+
       const [
         { data: profile },
         { data: subscriptions },
-        { data: otherPayments },
-        { data: dbNotifications },
+        { data: liveLedger },
+        { data: userWithdrawals },
         { data: announcementConfig },
       ] = await Promise.all([
         supabase
           .from("profiles")
-          .select("member_id, referral_code, referral_earnings, created_at, total_referrals")
+          .select("member_id, referral_code, created_at, total_referrals, is_legacy")
           .eq("id", user.id)
           .maybeSingle(),
         supabase
@@ -68,17 +76,18 @@ export const NotificationsPage: React.FC = () => {
           .select("plan, status, started_at, slots")
           .eq("user_id", user.id),
         supabase
-          .from("other_payments")
-          .select("payment_type, amount, created_at, status")
+          .from("wallet_ledger")
+          .select("id, amount, entry_type, category, description, created_at, status")
           .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(10),
-        supabase
-          .from("notifications")
-          .select("*")
-          .eq("user_id", user.id)
+          .eq("entry_type", "CREDIT")
           .order("created_at", { ascending: false })
           .limit(30),
+        supabase
+          .from("withdrawals")
+          .select("id, amount, status, reference, bank_name, account_number, created_at, updated_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(15),
         supabase
           .from("system_configs")
           .select("value")
@@ -103,27 +112,71 @@ export const NotificationsPage: React.FC = () => {
         });
       }
 
-      // 2. Database Notifications
-      (dbNotifications || []).forEach((n: any) => {
-        let mappedType: NotificationItem["type"] = "system";
-        if (n.type === "green_card") mappedType = "greencard";
-        else if (n.type === "slot_assigned") mappedType = "slot";
-        else if (n.type === "harvest_dividend") mappedType = "dividend";
-        else if (n.type === "withdrawal_update") mappedType = "withdrawal";
-        else if (n.type === "bonus") mappedType = "bonus";
+      // 2. Live Wallet Double-Entry Credits & Bonuses
+      (liveLedger || []).forEach((entry: any) => {
+        const isLegacy =
+          entry.category !== "CORE_DRIVER_BONUS" &&
+          entry.created_at &&
+          new Date(entry.created_at).getTime() < LEGACY_CUTOFF_MS;
+        if (isLegacy) return; // Strict barricade: zero legacy system notifications
+
+        const amt = Number(entry.amount) || 0;
+        let title = "Bonus Credited";
+        let type: NotificationItem["type"] = "bonus";
+
+        if (entry.category === "REFERRAL_BONUS") {
+          title = "Direct Referral Bonus";
+        } else if (entry.category === "CORE_DRIVER_BONUS") {
+          title = "Core Driver Growth Pool Bonus";
+        } else if (entry.category === "MATRIX_COMMISSION") {
+          title = "Matrix Commission Earned";
+          type = "matrix";
+        } else if (entry.category === "SLOT_BONUS") {
+          title = "Sponsor Farm Slot Commission";
+          type = "slot";
+        }
 
         items.push({
-          id: n.id,
-          title: n.title,
-          message: n.message,
-          type: mappedType,
-          created_at: n.created_at,
-          read: Boolean(n.is_read),
-          link: n.action_url || undefined,
+          id: `ledger-${entry.id}`,
+          title: `💰 ${title}`,
+          message: `₦${amt.toLocaleString()} credited: ${entry.description || "Earned bonus"}`,
+          type,
+          created_at: entry.created_at,
+          read: false,
+          link: "/dashboard/transactions",
         });
       });
 
-      // 3. Green Card Status
+      // 3. Live Member Withdrawals & Status Updates
+      (userWithdrawals || []).forEach((w: any) => {
+        const statusUpper = (w.status || "").toUpperCase();
+        const amt = Number(w.amount) || 0;
+        let title = "Withdrawal Update";
+        let message = `Withdrawal of ₦${amt.toLocaleString()} to ${w.bank_name || "bank"} (${w.account_number || ""})`;
+
+        if (statusUpper === "QUEUED" || statusUpper === "PENDING" || statusUpper === "PROCESSING") {
+          title = "Withdrawal Request Queued";
+          message = `Your withdrawal request of ₦${amt.toLocaleString()} is queued for processing. Reference: ${w.reference || w.id.slice(0, 8)}`;
+        } else if (statusUpper === "COMPLETED") {
+          title = "Withdrawal Disbursed";
+          message = `Your payout of ₦${amt.toLocaleString()} has been approved and disbursed to ${w.bank_name} (${w.account_number}).`;
+        } else if (statusUpper === "REVERSED" || statusUpper === "FAILED") {
+          title = "Withdrawal Reversed";
+          message = `Your withdrawal request of ₦${amt.toLocaleString()} was reversed and funds restored to your wallet.`;
+        }
+
+        items.push({
+          id: `wdr-${w.id}`,
+          title: `🏦 ${title}`,
+          message,
+          type: "withdrawal",
+          created_at: w.updated_at || w.created_at,
+          read: false,
+          link: "/dashboard/transactions",
+        });
+      });
+
+      // 4. Green Card Digital Credential Status
       const greenCardSub = (subscriptions || []).find(
         (s) => s.plan === "green_card" && s.status === "active"
       );
@@ -131,9 +184,10 @@ export const NotificationsPage: React.FC = () => {
         items.push({
           id: "notif-gc-active",
           title: "AgroHeal Green Card Validated",
-          message: `Your digital membership is active. Unlocks practical organic farming masterclasses, ₦1,000 instant direct sponsor commission, and commercial farm slot eligibility.`,
+          message:
+            "Your digital membership is active. Unlocks practical organic farming masterclasses, ₦1,000 instant direct sponsor commission, and commercial farm slot eligibility.",
           type: "greencard",
-          created_at: greenCardSub.started_at || profile?.created_at || new Date().toISOString(),
+          created_at: greenCardSub.started_at || profile?.created_at || "2026-09-27T00:00:00.000Z",
           read: false,
           link: "/dashboard/profile/green-card",
         });
@@ -141,23 +195,25 @@ export const NotificationsPage: React.FC = () => {
         items.push({
           id: "notif-gc-pending",
           title: "Activate Your Green Card",
-          message: "Secure your AgroHeal Green Card for ₦2,000 to unlock direct referral commissions and commercial farm slots.",
+          message:
+            "Secure your AgroHeal Green Card for ₦2,000 to unlock direct referral commissions and commercial farm slots.",
           type: "greencard",
-          created_at: profile?.created_at || new Date().toISOString(),
+          created_at: profile?.created_at || "2026-09-27T00:00:00.000Z",
           read: false,
           link: "/dashboard/checkout?product=green_card",
         });
       }
 
-      // 4. FIRST 5 Mission Milestone
+      // 5. FIRST 5 Mission Milestone
       const totalReferrals = Number(profile?.total_referrals || 0);
       if (totalReferrals >= 5) {
         items.push({
           id: "notif-first-5-complete",
           title: "🎉 I HAVE MY 5! Mission Complete",
-          message: "Congratulations! You have completed your FIRST 5. Help your direct 5 build their 5 to create an unstoppable food ecosystem duplication!",
+          message:
+            "Congratulations! You have completed your FIRST 5. Help your direct 5 build their 5 to create an unstoppable food ecosystem duplication!",
           type: "bonus",
-          created_at: profile?.created_at || new Date().toISOString(),
+          created_at: profile?.created_at || "2026-09-27T00:00:00.000Z",
           read: false,
           link: "/dashboard/my-network",
         });
@@ -167,13 +223,13 @@ export const NotificationsPage: React.FC = () => {
           title: `🌱 FIRST 5 MISSION (${totalReferrals}/5 Active)`,
           message: `You have activated ${totalReferrals} member${totalReferrals === 1 ? "" : "s"}. Bring ${5 - totalReferrals} more to unlock your First 5 Pioneer Badge!`,
           type: "matrix",
-          created_at: profile?.created_at || new Date().toISOString(),
+          created_at: profile?.created_at || "2026-09-27T00:00:00.000Z",
           read: false,
           link: "/dashboard/my-network",
         });
       }
 
-      // 5. Farm Slots
+      // 6. Farm Slots Held
       const totalSlots = (subscriptions || []).reduce(
         (sum, s) => sum + (Number(s.slots) || 0),
         0
@@ -184,38 +240,11 @@ export const NotificationsPage: React.FC = () => {
           title: "Active Mushroom Farm Slots",
           message: `You hold ${totalSlots} active farm slot(s). Production yields and harvest dividends are tracked in your Farm Operations ledger.`,
           type: "slot",
-          created_at: profile?.created_at || new Date().toISOString(),
+          created_at: subscriptions?.[0]?.started_at || profile?.created_at || "2026-09-27T00:00:00.000Z",
           read: false,
           link: "/dashboard/farm-operations/my-slots",
         });
       }
-
-      // 6. Referral Earnings
-      const earnings = Number(profile?.referral_earnings || 0);
-      if (earnings > 0) {
-        items.push({
-          id: "notif-referral-earnings",
-          title: "Direct Referral Bonus Balance",
-          message: `You have accumulated ₦${earnings.toLocaleString()} in referral bonuses. Direct referral earnings are withdrawable once they reach the ₦2,000 threshold.`,
-          type: "bonus",
-          created_at: profile?.created_at || new Date().toISOString(),
-          read: false,
-          link: "/dashboard/transactions",
-        });
-      }
-
-      // 7. Recent Inflows
-      (otherPayments || []).forEach((p, idx) => {
-        items.push({
-          id: `notif-payment-${idx}`,
-          title: "Verified Payment Inflow",
-          message: `₦${Number(p.amount || 0).toLocaleString()} recorded for ${p.payment_type.replace(/_/g, " ")}.`,
-          type: "system",
-          created_at: p.created_at,
-          read: true,
-          link: "/dashboard/transactions",
-        });
-      });
 
       // Overlay LocalStorage read state
       const readIds: string[] = JSON.parse(
@@ -227,7 +256,7 @@ export const NotificationsPage: React.FC = () => {
         read: n.read || readIds.includes(n.id),
       }));
 
-      // STRICT SORT BY RECENCY (Newest first)
+      // STRICT SORT BY RECENCY: Most recent first by default
       finalized.sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
@@ -250,6 +279,7 @@ export const NotificationsPage: React.FC = () => {
     localStorage.setItem(`read_notifs_${user.id}`, JSON.stringify(allIds));
 
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    window.dispatchEvent(new CustomEvent("agroheal_notifications_updated"));
 
     try {
       await supabase
@@ -276,6 +306,7 @@ export const NotificationsPage: React.FC = () => {
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
+    window.dispatchEvent(new CustomEvent("agroheal_notifications_updated"));
 
     if (link) {
       if (link.startsWith("http")) window.open(link, "_blank");
