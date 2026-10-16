@@ -849,7 +849,17 @@ const CompoundReferrals: React.FC = () => {
         }
       }
 
-      // Unplaced direct referrals remain in unplacedChildren and are listed in the Directory roster below.
+      // Automatically fill open frontline legs (1 to 5) with direct downlines (in registration order)
+      for (let leg = 1; leg <= 5; leg++) {
+        if (!occupiedLegs.has(leg) && unplacedChildren.length > 0) {
+          const autoAssigned = unplacedChildren.shift();
+          occupiedLegs.set(leg, {
+            ...autoAssigned,
+            matrix_position: leg,
+            placement_status: autoAssigned.placement_status || "DIRECT_DOWNLINE",
+          });
+        }
+      }
 
       for (let leg = 1; leg <= 5; leg++) {
         const cp = occupiedLegs.get(leg);
@@ -1013,7 +1023,7 @@ const CompoundReferrals: React.FC = () => {
         const { data: nextLevelProfiles } = await supabase
           .from("profiles")
           .select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals, placement_parent_id, matrix_position, placement_status, has_purchased_starter_pack")
-          .in("placement_parent_id", currentParentIds)
+          .or(`placement_parent_id.in.(${currentParentIds.join(",")}),referred_by.in.(${currentParentIds.join(",")})`)
           .order("created_at", { ascending: true })
           .limit(200);
 
@@ -1031,16 +1041,23 @@ const CompoundReferrals: React.FC = () => {
           nSlotsMap.set(row.user_id, cur + (Number(row.slots) || 0));
         }
 
+        const parentChildCount = new Map<string, number>();
         for (const np of nextLevelProfiles) {
           if (!allRoster.some((r) => r.id === np.id)) {
+            const effectiveParentId = np.placement_parent_id || np.referred_by || targetId;
+            const curPos = np.matrix_position && np.matrix_position >= 1 && np.matrix_position <= 5
+              ? np.matrix_position
+              : (parentChildCount.get(effectiveParentId) || 0) + 1;
+            parentChildCount.set(effectiveParentId, curPos);
+
             allRoster.push({
               id: np.id,
               fullName: np.full_name || "Downline Partner",
               email: np.email || "",
               phone: np.phone || null,
               memberId: formatAgcId(np.member_id),
-              parentId: np.placement_parent_id || targetId,
-              position: np.matrix_position || 0,
+              parentId: effectiveParentId,
+              position: curPos,
               level: currentDepth,
               slotsHeld: nSlotsMap.get(np.id) || 0,
               directReferralsCount: Number(np.total_referrals) || 0,
