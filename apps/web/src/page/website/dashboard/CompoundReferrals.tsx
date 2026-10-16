@@ -76,10 +76,22 @@ export interface OrganogramNode {
   hasPurchasedStarterPack?: boolean;
 }
 
-export const isThreeStepQualified = (node: OrganogramNode): boolean => {
-  const hasGC = Boolean(node.hasGreenCard || node.memberId);
-  const hasSlots = (Number(node.slotsHeld) || 0) > 0;
-  const hasStarter = Boolean(node.hasPurchasedStarterPack);
+export const isThreeStepQualified = (node: OrganogramNode | any): boolean => {
+  const isLegacy = Boolean(
+    node.is_legacy ||
+    node.isLegacy ||
+    (node.createdAt && new Date(node.createdAt).getTime() < new Date("2026-10-01T00:00:00Z").getTime())
+  );
+  const hasStarter = Boolean(node.hasPurchasedStarterPack || node.has_purchased_starter_pack || node.is_wealth_creation_active);
+
+  // Legacy members only require Mushroom Power 100g (Starter Pack)
+  if (isLegacy) {
+    return hasStarter;
+  }
+
+  // Modern members require Green Card + Slots + Starter Pack
+  const hasGC = Boolean(node.hasGreenCard || node.memberId || node.member_id || node.is_green_card_holder || node.has_greencard);
+  const hasSlots = (Number(node.slotsHeld ?? node.slots) || 0) > 0;
   return hasGC && hasSlots && hasStarter;
 };
 
@@ -695,8 +707,14 @@ const CompoundReferrals: React.FC = () => {
       // Note: Any enrollee with placement_status === "LOCKED" has already satisfied all 3 criteria.
       const directCount = directRecruits.filter((r: any) => {
         if (r.placement_status === "LOCKED") return true;
-        const hasCard = Boolean(r.member_id || r.is_green_card_holder || r.has_greencard);
+        const isLegacy = Boolean(
+          r.is_legacy ||
+          (r.created_at && new Date(r.created_at).getTime() < new Date("2026-10-01T00:00:00Z").getTime())
+        );
         const hasPack = Boolean(r.has_purchased_starter_pack || r.is_wealth_creation_active);
+        if (isLegacy) return hasPack;
+
+        const hasCard = Boolean(r.member_id || r.is_green_card_holder || r.has_greencard);
         const hasSlot = directRecruitSlotIds.has(r.id);
         return hasCard && hasPack && hasSlot;
       }).length;
@@ -782,11 +800,12 @@ const CompoundReferrals: React.FC = () => {
   const buildSubtree = async (targetId: string, isSelf: boolean) => {
     setActiveRootId(targetId);
 
-    // 1. Fetch target node profile, slots, and downline children in 1 parallel network round-trip!
-    const [rootProfileRes, rootSlotsRes, childrenProfilesRes] = await Promise.all([
+    // 1. Fetch target node profile, slots, and downline children
+    // Note: We query frontline placed members explicitly so they are NEVER truncated by referral count!
+    const [rootProfileRes, rootSlotsRes, placedFrontlineRes, directRecruitsRes] = await Promise.all([
       supabase
         .from("profiles")
-        .select("id, full_name, email, phone, member_id, referred_by, total_referrals, created_at, has_purchased_starter_pack")
+        .select("id, full_name, email, phone, member_id, referred_by, total_referrals, created_at, has_purchased_starter_pack, is_green_card_holder, has_greencard, is_wealth_creation_active, is_legacy")
         .eq("id", targetId)
         .maybeSingle(),
       supabase
@@ -795,10 +814,15 @@ const CompoundReferrals: React.FC = () => {
         .eq("user_id", targetId),
       supabase
         .from("profiles")
-        .select("id, full_name, email, phone, member_id, created_at, green_card_activated_at, referred_by, total_referrals, placement_parent_id, matrix_position, placement_status, has_purchased_starter_pack")
-        .or(`placement_parent_id.eq.${targetId},referred_by.eq.${targetId}`)
-        .order("created_at", { ascending: true })
-        .limit(100),
+        .select("id, full_name, email, phone, member_id, created_at, green_card_activated_at, referred_by, total_referrals, placement_parent_id, matrix_position, placement_status, has_purchased_starter_pack, is_green_card_holder, has_greencard, is_wealth_creation_active, is_legacy")
+        .eq("placement_parent_id", targetId)
+        .order("matrix_position", { ascending: true }),
+      supabase
+        .from("profiles")
+        .select("id, full_name, email, phone, member_id, created_at, green_card_activated_at, referred_by, total_referrals, placement_parent_id, matrix_position, placement_status, has_purchased_starter_pack, is_green_card_holder, has_greencard, is_wealth_creation_active, is_legacy")
+        .eq("referred_by", targetId)
+        .order("created_at", { ascending: false })
+        .limit(200),
     ]);
 
     const rootProfile = rootProfileRes.data;
@@ -808,15 +832,21 @@ const CompoundReferrals: React.FC = () => {
     }
 
     const slotsCount = (rootSlotsRes.data || []).reduce((sum, s) => sum + (Number(s.slots) || 0), 0);
-    const childrenProfiles = childrenProfilesRes.data || [];
+    const placedFrontline = placedFrontlineRes.data || [];
+    const directRecruits = directRecruitsRes.data || [];
+
+    // Combine unique profiles for batch slot queries
+    const profileMap = new Map<string, any>();
+    for (const p of placedFrontline) profileMap.set(p.id, p);
+    for (const p of directRecruits) profileMap.set(p.id, p);
+    const uniqueChildren = Array.from(profileMap.values());
 
     const childrenNodes: OrganogramNode[] = [];
     const allRoster: OrganogramNode[] = [];
 
     // 2. High-Performance BATCH Query for all children's slots and grandchildren counts!
-    // Replaces 2*N sequential queries with 2 single batch queries.
-    if (childrenProfiles.length > 0) {
-      const childIds = childrenProfiles.map((cp) => cp.id);
+    if (uniqueChildren.length > 0) {
+      const childIds = uniqueChildren.map((cp) => cp.id);
 
       const [childSlotsRes, grandChildrenRes] = await Promise.all([
         supabase.from("slot_subscriptions").select("user_id, slots").in("user_id", childIds),
@@ -837,27 +867,11 @@ const CompoundReferrals: React.FC = () => {
         }
       }
 
-      // Map explicit matrix placements first (legs 1 to 5)
+      // Map official matrix frontline placements (legs 1 to 5)
       const occupiedLegs = new Map<number, any>();
-      const unplacedChildren: any[] = [];
-
-      for (const cp of childrenProfiles) {
-        if (cp.placement_parent_id === targetId && cp.matrix_position >= 1 && cp.matrix_position <= 5) {
+      for (const cp of placedFrontline) {
+        if (cp.matrix_position >= 1 && cp.matrix_position <= 5) {
           occupiedLegs.set(cp.matrix_position, cp);
-        } else {
-          unplacedChildren.push(cp);
-        }
-      }
-
-      // Automatically fill open frontline legs (1 to 5) with direct downlines (in registration order)
-      for (let leg = 1; leg <= 5; leg++) {
-        if (!occupiedLegs.has(leg) && unplacedChildren.length > 0) {
-          const autoAssigned = unplacedChildren.shift();
-          occupiedLegs.set(leg, {
-            ...autoAssigned,
-            matrix_position: leg,
-            placement_status: autoAssigned.placement_status || "DIRECT_DOWNLINE",
-          });
         }
       }
 
@@ -873,17 +887,17 @@ const CompoundReferrals: React.FC = () => {
             phone: cp.phone || null,
             memberId: formatAgcId(cp.member_id),
             parentId: targetId,
-            placementParentId: cp.placement_parent_id || targetId,
-            placementStatus: cp.placement_status || "PLACED",
+            placementParentId: targetId,
+            placementStatus: cp.placement_status || "LOCKED",
             position: leg,
             level: 1,
             slotsHeld: cSlotCount,
             directReferralsCount: grandChildrenCount,
             createdAt: cp.created_at,
-            hasGreenCard: Boolean(cp.member_id),
+            hasGreenCard: Boolean(cp.member_id || cp.is_green_card_holder || cp.has_greencard),
             greenCardActivatedAt: cp.green_card_activated_at || null,
             isSpillover: cp.referred_by !== targetId,
-            hasPurchasedStarterPack: Boolean(cp.has_purchased_starter_pack),
+            hasPurchasedStarterPack: Boolean(cp.has_purchased_starter_pack || cp.is_wealth_creation_active),
             children: [],
           };
           allRoster.push(memberItem);
@@ -891,12 +905,12 @@ const CompoundReferrals: React.FC = () => {
         }
       }
 
-      // Also add remaining unplaced members to roster for directory & search
-      for (const cp of unplacedChildren) {
-        if (!Array.from(occupiedLegs.values()).some((p) => p.id === cp.id)) {
+      // Add direct recruits to roster for Directory Table (with their real placement status)
+      for (const cp of directRecruits) {
+        if (!allRoster.some((r) => r.id === cp.id)) {
           const cSlotCount = slotsMap.get(cp.id) || 0;
           const grandChildrenCount = grandChildrenCountMap.get(cp.id) || 0;
-          const isPlaced = Boolean(cp.placement_parent_id || cp.placement_status === "PLACED");
+          const isPlaced = Boolean(cp.placement_parent_id || cp.placement_status === "LOCKED");
           allRoster.push({
             id: cp.id,
             fullName: cp.full_name || "Downline Partner",
@@ -907,125 +921,31 @@ const CompoundReferrals: React.FC = () => {
             placementParentId: cp.placement_parent_id || null,
             placementStatus: cp.placement_status || (isPlaced ? "PLACED" : "HOLDING_TANK"),
             position: cp.placement_parent_id === targetId ? cp.matrix_position || 0 : 0,
-            level: 2,
+            level: 1,
             slotsHeld: cSlotCount,
             directReferralsCount: grandChildrenCount,
             createdAt: cp.created_at,
-            hasGreenCard: Boolean(cp.member_id),
+            hasGreenCard: Boolean(cp.member_id || cp.is_green_card_holder || cp.has_greencard),
             greenCardActivatedAt: cp.green_card_activated_at || null,
-            isSpillover: cp.referred_by !== targetId,
-            hasPurchasedStarterPack: Boolean(cp.has_purchased_starter_pack),
+            isSpillover: false,
+            hasPurchasedStarterPack: Boolean(cp.has_purchased_starter_pack || cp.is_wealth_creation_active),
             children: [],
           });
         }
       }
     }
 
-    // 3. Balanced Round-Robin Spillover from Upline (Batch Evaluated)
-    // If target has fewer than 5 active legs and has an upline sponsor, check if the upline
-    // has overflow beyond their 5 frontline slots (Index >= 5).
-    // The overflow is evenly distributed to frontline children via (index - 5) % 5.
-    if (childrenNodes.length < 5 && rootProfile.referred_by) {
-      try {
-        const uplineId = rootProfile.referred_by;
-        const [uplineProfileRes, uplineChildrenRes] = await Promise.all([
-          supabase.from("profiles").select("id, full_name, member_id").eq("id", uplineId).maybeSingle(),
-          supabase.from("profiles").select("id, full_name, email, phone, member_id, created_at, has_purchased_starter_pack").eq("referred_by", uplineId).order("created_at", { ascending: true }).limit(100),
-        ]);
-
-        const uplineProfile = uplineProfileRes.data;
-        const uplineChildren = uplineChildrenRes.data || [];
-
-        if (uplineChildren.length > 5) {
-          const uplineChildIds = uplineChildren.map((uc) => uc.id);
-          const { data: ucSlotsData } = await supabase
-            .from("slot_subscriptions")
-            .select("user_id, slots")
-            .in("user_id", uplineChildIds);
-
-          const uplineSlotsMap = new Map<string, number>();
-          for (const row of ucSlotsData || []) {
-            const cur = uplineSlotsMap.get(row.user_id) || 0;
-            uplineSlotsMap.set(row.user_id, cur + (Number(row.slots) || 0));
-          }
-
-          const uplineSlotChildren: any[] = [];
-          for (const uc of uplineChildren) {
-            const ucSlotsCount = uplineSlotsMap.get(uc.id) || 0;
-            if (ucSlotsCount > 0) {
-              uplineSlotChildren.push({ ...uc, slotsHeld: ucSlotsCount });
-            }
-          }
-
-          const myLegIndex = uplineSlotChildren.findIndex((u) => u.id === targetId);
-          if (myLegIndex >= 0 && myLegIndex < 5) {
-            const candidateSpillovers: any[] = [];
-            for (let i = 5; i < uplineSlotChildren.length; i++) {
-              if ((i - 5) % 5 === myLegIndex && childrenNodes.length + candidateSpillovers.length < 5) {
-                const spillCandidate = uplineSlotChildren[i];
-                if (!allRoster.some((m) => m.id === spillCandidate.id) && !candidateSpillovers.some((m) => m.id === spillCandidate.id)) {
-                  candidateSpillovers.push(spillCandidate);
-                }
-              }
-            }
-
-            const spillCandidateIds = candidateSpillovers.map((s) => s.id);
-            const spillGrandChildrenMap = new Map<string, number>();
-            if (spillCandidateIds.length > 0) {
-              const { data: spillGrandChildrenData } = await supabase
-                .from("profiles")
-                .select("referred_by")
-                .in("referred_by", spillCandidateIds);
-              for (const row of spillGrandChildrenData || []) {
-                if (row.referred_by) {
-                  const cur = spillGrandChildrenMap.get(row.referred_by) || 0;
-                  spillGrandChildrenMap.set(row.referred_by, cur + 1);
-                }
-              }
-            }
-
-            for (const spillCandidate of candidateSpillovers) {
-              const spillGrandChildren = spillGrandChildrenMap.get(spillCandidate.id) || 0;
-              const spillNode: OrganogramNode = {
-                id: spillCandidate.id,
-                fullName: spillCandidate.full_name || "Spillover Partner",
-                email: spillCandidate.email || "",
-                phone: spillCandidate.phone || null,
-                memberId: formatAgcId(spillCandidate.member_id),
-                parentId: targetId,
-                position: childrenNodes.length + 1,
-                level: 1,
-                slotsHeld: spillCandidate.slotsHeld,
-                directReferralsCount: spillGrandChildren,
-                createdAt: spillCandidate.created_at,
-                hasGreenCard: Boolean(spillCandidate.member_id),
-                isSpillover: true,
-                sponsorName: uplineProfile?.full_name || "Upline Sponsor",
-                hasPurchasedStarterPack: Boolean(spillCandidate.has_purchased_starter_pack),
-                children: [],
-              };
-              childrenNodes.push(spillNode);
-              allRoster.push(spillNode);
-            }
-          }
-        }
-      } catch (spillErr) {
-        console.warn("Spillover evaluation fallback", spillErr);
-      }
-    }
-
-    // 4. Multi-level downline exploration up to Level 7 (supports From Level / To Level range filtering)
+    // 3. Multi-level downline matrix exploration up to Level 7 (strictly following placement_parent_id)
     try {
-      let currentParentIds = childrenProfiles.map((cp) => cp.id);
+      let currentParentIds = placedFrontline.map((cp) => cp.id);
       let currentDepth = 2;
 
       while (currentDepth <= 7 && currentParentIds.length > 0) {
         const { data: nextLevelProfiles } = await supabase
           .from("profiles")
-          .select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals, placement_parent_id, matrix_position, placement_status, has_purchased_starter_pack")
-          .or(`placement_parent_id.in.(${currentParentIds.join(",")}),referred_by.in.(${currentParentIds.join(",")})`)
-          .order("created_at", { ascending: true })
-          .limit(200);
+          .select("id, full_name, email, phone, member_id, created_at, referred_by, total_referrals, placement_parent_id, matrix_position, placement_status, has_purchased_starter_pack, is_green_card_holder, has_greencard, is_wealth_creation_active, is_legacy")
+          .in("placement_parent_id", currentParentIds)
+          .order("matrix_position", { ascending: true });
 
         if (!nextLevelProfiles || nextLevelProfiles.length === 0) break;
 
@@ -1041,30 +961,25 @@ const CompoundReferrals: React.FC = () => {
           nSlotsMap.set(row.user_id, cur + (Number(row.slots) || 0));
         }
 
-        const parentChildCount = new Map<string, number>();
         for (const np of nextLevelProfiles) {
           if (!allRoster.some((r) => r.id === np.id)) {
-            const effectiveParentId = np.placement_parent_id || np.referred_by || targetId;
-            const curPos = np.matrix_position && np.matrix_position >= 1 && np.matrix_position <= 5
-              ? np.matrix_position
-              : (parentChildCount.get(effectiveParentId) || 0) + 1;
-            parentChildCount.set(effectiveParentId, curPos);
-
             allRoster.push({
               id: np.id,
               fullName: np.full_name || "Downline Partner",
               email: np.email || "",
               phone: np.phone || null,
               memberId: formatAgcId(np.member_id),
-              parentId: effectiveParentId,
-              position: curPos,
+              parentId: np.placement_parent_id || targetId,
+              placementParentId: np.placement_parent_id,
+              placementStatus: np.placement_status || "LOCKED",
+              position: np.matrix_position || 1,
               level: currentDepth,
               slotsHeld: nSlotsMap.get(np.id) || 0,
               directReferralsCount: Number(np.total_referrals) || 0,
               createdAt: np.created_at,
-              hasGreenCard: Boolean(np.member_id),
+              hasGreenCard: Boolean(np.member_id || np.is_green_card_holder || np.has_greencard),
               isSpillover: np.referred_by !== targetId,
-              hasPurchasedStarterPack: Boolean(np.has_purchased_starter_pack),
+              hasPurchasedStarterPack: Boolean(np.has_purchased_starter_pack || np.is_wealth_creation_active),
               children: [],
             });
           }
@@ -1087,15 +1002,15 @@ const CompoundReferrals: React.FC = () => {
       position: 1,
       level: 0,
       slotsHeld: slotsCount,
-      directReferralsCount: childrenProfiles.length,
+      directReferralsCount: directRecruits.length,
       createdAt: rootProfile.created_at,
-      hasGreenCard: Boolean(rootProfile.member_id),
+      hasGreenCard: Boolean(rootProfile.member_id || rootProfile.is_green_card_holder || rootProfile.has_greencard),
       isSpillover: false,
-      hasPurchasedStarterPack: Boolean(rootProfile.has_purchased_starter_pack),
+      hasPurchasedStarterPack: Boolean(rootProfile.has_purchased_starter_pack || rootProfile.is_wealth_creation_active),
       children: childrenNodes,
     };
 
-    // 5. Wire the complete hierarchical graph across all depths
+    // 4. Wire the complete hierarchical graph across all depths
     const nodeMap = new Map<string, OrganogramNode>();
     nodeMap.set(builtRoot.id, builtRoot);
     for (const item of allRoster) {

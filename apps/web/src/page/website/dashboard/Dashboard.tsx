@@ -247,8 +247,14 @@ const Dashboard = () => {
       // Note: Any enrollee with placement_status === 'LOCKED' has already satisfied all 3 criteria.
       const isQualifiedDirect = (r: any) => {
         if (r.placement_status === "LOCKED") return true;
-        const hasCard = Boolean(r.member_id || r.is_green_card_holder || r.has_greencard);
+        const isLegacy = Boolean(
+          r.is_legacy ||
+          (r.created_at && new Date(r.created_at).getTime() < new Date("2026-10-01T00:00:00Z").getTime())
+        );
         const hasPack = Boolean(r.has_purchased_starter_pack || r.is_wealth_creation_active);
+        if (isLegacy) return hasPack;
+
+        const hasCard = Boolean(r.member_id || r.is_green_card_holder || r.has_greencard);
         const hasSlot = directRecruitSlotIds.has(r.id);
         return hasCard && hasPack && hasSlot;
       };
