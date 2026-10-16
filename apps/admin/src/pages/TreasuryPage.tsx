@@ -513,19 +513,28 @@ export default function TreasuryPage() {
     }
   };
 
-  const handleDisburseTransfer = async (withdrawal: PendingWithdrawal) => {
+  const handleDisburseTransfer = async (withdrawal: PendingWithdrawal, manual = false) => {
     if (!isAdmin && !isSuperDeveloper) {
       flash(setErrorMessage, "Only Platform Admins and Super Developer can disburse transfers.");
       return;
     }
 
+    if (manual) {
+      const confirmed = window.confirm(
+        `Confirm that you have manually transferred ₦${(withdrawal.net_amount || withdrawal.amount).toLocaleString()} to ${withdrawal.profiles?.full_name || "member"} (${withdrawal.bank_name} - ${withdrawal.account_number})?\n\nThis will mark the withdrawal as completed and clear the ledger hold.`
+      );
+      if (!confirmed) return;
+    }
+
     setProcessingId(withdrawal.id);
     setErrorMessage("");
     try {
-      await adminApiClient.withdrawals.approveWithdrawal(withdrawal.id);
+      await adminApiClient.withdrawals.approveWithdrawal(withdrawal.id, { manual });
       flash(
         setSuccessMessage,
-        `Transfer of ₦${(withdrawal.net_amount || withdrawal.amount).toLocaleString()} disbursed successfully.`
+        manual
+          ? `Withdrawal marked as paid via Manual Transfer. Ledger hold cleared.`
+          : `Transfer of ₦${(withdrawal.net_amount || withdrawal.amount).toLocaleString()} disbursed successfully via Flutterwave.`
       );
       await loadData();
     } catch (err: any) {
@@ -2108,7 +2117,7 @@ export default function TreasuryPage() {
                         {formatWATDateTime(w.created_at)}
                       </td>
 
-                      <td className="px-4 py-3 text-right space-x-2">
+                      <td className="px-4 py-3 text-right space-x-2 whitespace-nowrap">
                         <Button
                           size="sm"
                           variant="outline"
@@ -2121,11 +2130,22 @@ export default function TreasuryPage() {
 
                         <Button
                           size="sm"
+                          variant="secondary"
                           disabled={isProcessing || batchProcessing}
-                          onClick={() => handleDisburseTransfer(w)}
+                          onClick={() => handleDisburseTransfer(w, true)}
+                          className="h-8 text-xs font-medium border border-border/70 hover:bg-muted"
+                          title="Mark as paid after executing manual bank transfer"
+                        >
+                          Mark Paid (Manual)
+                        </Button>
+
+                        <Button
+                          size="sm"
+                          disabled={isProcessing || batchProcessing}
+                          onClick={() => handleDisburseTransfer(w, false)}
                           className="h-8 text-xs font-semibold gap-1 bg-primary hover:bg-primary/90 text-primary-foreground"
                         >
-                          {isProcessing ? "Disbursing..." : "Disburse Transfer"}
+                          {isProcessing ? "Disbursing..." : "Disburse via Gateway"}
                         </Button>
                       </td>
                     </tr>

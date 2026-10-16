@@ -378,8 +378,11 @@ export const adminApiClient = {
         message?: string;
         queriedAt: string;
       }>("admin/withdrawals/live-balance"),
-    approveWithdrawal: (id: string) =>
-      apiRequest<any>(`admin/withdrawals/${id}/approve`, { method: "POST" }),
+    approveWithdrawal: (id: string, options?: { manual?: boolean; notes?: string }) =>
+      apiRequest<any>(`admin/withdrawals/${id}/approve`, {
+        method: "POST",
+        body: JSON.stringify(options || {}),
+      }),
     rejectWithdrawal: (id: string, reason?: string) =>
       apiRequest<any>(`admin/withdrawals/${id}/reject`, {
         method: "POST",
