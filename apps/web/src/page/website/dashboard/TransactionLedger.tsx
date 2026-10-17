@@ -33,6 +33,7 @@ import {
   Landmark,
   Sparkles,
   Info,
+  RotateCcw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { showToast } from "@/components/ui/ToastComponent";
@@ -55,7 +56,7 @@ interface LedgerItem {
   category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION" | "CORE_DRIVER_BONUS" | "RETAIL_PURCHASE" | "FARM_CONTRIBUTION" | "COMBO_PACKAGE" | "SLOT_BONUS" | "ADVANCE_RECOVERY";
   amount: number;
   description: string;
-  status: "COMPLETED" | "PENDING" | "FAILED";
+  status: "COMPLETED" | "PENDING" | "FAILED" | "REVERSED";
   reference: string;
   is_legacy?: boolean;
 }
@@ -899,6 +900,8 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           if (!isUserAdmin && (entry.category === "CORE_DRIVER_BONUS" || desc.includes("Growth") || desc.includes("Core Partner"))) {
             desc = desc.replace(/from\s+[^()]+\s*\(((?:AGC|GC)[^)]+)\)/gi, "from $1");
           }
+          const statusUpper = (entry.status || "").toUpperCase();
+          const mappedStatus = statusUpper === "FAILED" ? "FAILED" : statusUpper === "REVERSED" ? "REVERSED" : "COMPLETED";
           items.push({
             id: entry.id || `ledger-${ref}`,
             date: entry.created_at || new Date().toISOString(),
@@ -906,7 +909,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
             category: entry.category || "CORE_DRIVER_BONUS",
             amount: Math.abs(Number(entry.amount) || 0),
             description: desc,
-            status: entry.status === "FAILED" ? "FAILED" : "COMPLETED",
+            status: mappedStatus,
             reference: ref,
             is_legacy: entry.category === "CORE_DRIVER_BONUS" ? false : Boolean(entry.is_legacy || isLegacyMember(entry.created_at)),
           });
@@ -1826,12 +1829,14 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
                             {/* Credit / Debit Pill */}
                             <span
                               className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9.5px] font-bold ${
-                                t.type === "CREDIT"
+                                t.status === "REVERSED"
+                                  ? "bg-slate-100 text-slate-700 border border-slate-200"
+                                  : t.type === "CREDIT"
                                   ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
                                   : "bg-rose-100 text-rose-800 border border-rose-200"
                               }`}
                             >
-                              {t.type === "CREDIT" ? "Credit" : "Debit"}
+                              {t.status === "REVERSED" ? "Reversed" : t.type === "CREDIT" ? "Credit" : "Debit"}
                             </span>
 
                             {/* Category Pill */}
@@ -1897,10 +1902,14 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
                       </td>
                       <td
                         className={`py-3.5 px-2.5 sm:px-3 whitespace-nowrap text-right font-mono font-bold text-xs sm:text-sm ${
-                          t.type === "CREDIT" ? "text-emerald-700" : "text-rose-600"
+                          t.status === "REVERSED"
+                            ? "text-slate-400 line-through"
+                            : t.type === "CREDIT"
+                            ? "text-emerald-700"
+                            : "text-rose-600"
                         }`}
                       >
-                        {t.type === "CREDIT" ? "+" : "-"}₦{t.amount.toLocaleString()}
+                        {t.status === "REVERSED" ? "" : t.type === "CREDIT" ? "+" : "-"}₦{t.amount.toLocaleString()}
                       </td>
                       <td className="py-3.5 px-2 whitespace-nowrap text-center">
                         <div className="inline-flex items-center justify-center gap-1">
@@ -1908,6 +1917,8 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
                             className={`inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9.5px] sm:text-[10px] font-semibold ${
                               t.status === "COMPLETED"
                                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : t.status === "REVERSED"
+                                ? "bg-purple-50 text-purple-700 border border-purple-200"
                                 : t.status === "FAILED"
                                 ? "bg-rose-50 text-rose-700 border border-rose-200"
                                 : "bg-amber-50 text-amber-700 border border-amber-200"
@@ -1915,6 +1926,8 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
                           >
                             {t.status === "COMPLETED" ? (
                               <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+                            ) : t.status === "REVERSED" ? (
+                              <RotateCcw className="w-3 h-3 text-purple-600 shrink-0" />
                             ) : t.status === "FAILED" ? (
                               <AlertCircle className="w-3 h-3 text-rose-600 shrink-0" />
                             ) : (

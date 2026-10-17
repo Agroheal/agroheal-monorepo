@@ -8,7 +8,7 @@ export interface LedgerItem {
   category: "REFERRAL_BONUS" | "SLOT_PURCHASE" | "SUBSCRIPTION" | "WITHDRAWAL" | "MATRIX_COMMISSION" | "CORE_DRIVER_BONUS";
   amount: number;
   description: string;
-  status: "COMPLETED" | "PENDING" | "FAILED";
+  status: "COMPLETED" | "PENDING" | "FAILED" | "REVERSED";
   reference: string;
 }
 
@@ -97,6 +97,8 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         if (!isAdmin && (entry.category === "CORE_DRIVER_BONUS" || desc.includes("Growth") || desc.includes("Core Partner"))) {
           desc = desc.replace(/from\s+[^()]+\s*\(((?:AGC|GC)[^)]+)\)/gi, "from $1");
         }
+        const statusUpper = (entry.status || "").toUpperCase();
+        const mappedStatus = statusUpper === "FAILED" ? "FAILED" : statusUpper === "REVERSED" ? "REVERSED" : "COMPLETED";
         items.push({
           id: entry.id || `ledger-${entry.reference_id || Math.random()}`,
           date: entry.created_at || new Date().toISOString(),
@@ -104,7 +106,7 @@ export const useWalletStore = create<WalletState>((set, get) => ({
           category: (entry.category === "CORE_DRIVER_BONUS" ? "CORE_DRIVER_BONUS" : (entry.category || "REFERRAL_BONUS")) as any,
           amount: Math.abs(Number(entry.amount) || 0),
           description: desc,
-          status: entry.status === "FAILED" ? "FAILED" : "COMPLETED",
+          status: mappedStatus,
           reference: entry.reference_id || entry.id?.slice(0, 8) || "N/A",
         });
       });
