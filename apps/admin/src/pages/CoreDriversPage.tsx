@@ -32,7 +32,6 @@ export interface CoreDriver {
   totalWithdrawn: number;
   availableBalance: number;
   isEligibleForWithdrawal: boolean;
-  portalAccessEnabled: boolean;
   role?: string;
 }
 
@@ -118,11 +117,9 @@ const MIN_WITHDRAWAL_THRESHOLD = 2000;
 export default function CoreDriversPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [activeGreenCardsCount, setActiveGreenCardsCount] = useState(0);
   const [drivers, setDrivers] = useState<CoreDriver[]>([]);
-  const [enabledEmails, setEnabledEmails] = useState<string[]>([]);
 
   const flash = (fn: (v: string) => void, text: string) => {
     fn(text);
@@ -149,21 +146,7 @@ export default function CoreDriversPage() {
       const totalCards = Math.max(greenCardsCount || 0, profGreenCardCount || 0);
       setActiveGreenCardsCount(totalCards);
 
-      // 2. Load driver portal access configuration from system_configs
-      const { data: configRow } = await supabase
-        .from("system_configs")
-        .select("value")
-        .eq("key", "core_drivers_config")
-        .maybeSingle();
-
-      const configVal = configRow?.value || {};
-      // Portal access defaults only to explicit admin accounts; NEVER auto-enabled for all regular core drivers
-      const allowedEmails: string[] = Array.isArray(configVal?.enabled_emails)
-        ? configVal.enabled_emails.map((e: string) => e.toLowerCase())
-        : ["developerelijah360@gmail.com", "estherbola888@gmail.com", "davidomokanye141@gmail.com"];
-      setEnabledEmails(allowedEmails);
-
-      // 3. Fetch profiles for these emails to get actual IDs, member IDs & roles
+      // 2. Fetch profiles for these emails to get actual IDs, member IDs & roles
       const emails = STATIC_CORE_PARTICIPANTS.map((d) => d.email.toLowerCase());
       const { data: profiles } = await supabase
         .from("profiles")
@@ -215,8 +198,6 @@ export default function CoreDriversPage() {
           : 0;
         const availableBalance = Number(prof?.wallet_balance ?? Math.max(0, totalEarned - totalWithdrawn));
         const isEligible = availableBalance >= MIN_WITHDRAWAL_THRESHOLD;
-        const isPlatformAdminUser = prof?.role === "admin" || prof?.role === "super_admin";
-        const portalAccess = allowedEmails.includes(driver.email.toLowerCase()) || isPlatformAdminUser;
 
         return {
           ...driver,
@@ -228,7 +209,6 @@ export default function CoreDriversPage() {
           totalWithdrawn,
           availableBalance,
           isEligibleForWithdrawal: isEligible,
-          portalAccessEnabled: portalAccess,
         };
       });
 
@@ -244,44 +224,6 @@ export default function CoreDriversPage() {
   useEffect(() => {
     loadData();
   }, []);
-
-  const handleToggleAccess = async (driverEmail: string, currentStatus: boolean) => {
-    const emailNorm = driverEmail.toLowerCase();
-    let updated: string[];
-    if (currentStatus) {
-      updated = enabledEmails.filter((e) => e !== emailNorm);
-    } else {
-      updated = [...enabledEmails, emailNorm];
-    }
-
-    try {
-      const { error } = await supabase.from("system_configs").upsert({
-        key: "core_drivers_config",
-        value: {
-          enabled_emails: updated,
-          updated_at: new Date().toISOString(),
-        },
-      });
-
-      if (error) throw error;
-
-      setEnabledEmails(updated);
-      setDrivers((prev) =>
-        prev.map((d) =>
-          d.email.toLowerCase() === emailNorm
-            ? { ...d, portalAccessEnabled: !currentStatus }
-            : d
-        )
-      );
-
-      flash(
-        setSuccessMessage,
-        `Portal access for ${driverEmail} ${!currentStatus ? "ENABLED" : "RESTRICTED"}`
-      );
-    } catch (err: any) {
-      flash(setErrorMessage, `Failed to update access: ${err.message}`);
-    }
-  };
 
   const totalOperationalAccrued = drivers
     .filter((d) => d.driverType === "operational")
@@ -322,7 +264,6 @@ export default function CoreDriversPage() {
         </div>
       </div>
 
-      <StatusBanner variant="success" message={successMessage} />
       <StatusBanner variant="error" message={errorMessage} />
 
       {/* KPI Stats Grid */}
@@ -383,7 +324,6 @@ export default function CoreDriversPage() {
                 <th className="px-4 py-3 text-right">Total Accrued</th>
                 <th className="px-4 py-3 text-right">Available Balance</th>
                 <th className="px-4 py-3 text-center">Eligibility</th>
-                <th className="px-4 py-3 text-center">Portal Access</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -429,25 +369,6 @@ export default function CoreDriversPage() {
                         <Clock className="h-3 w-3" />
                         &lt; ₦2k Threshold
                       </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3.5 text-center">
-                    {driver.role === "admin" || driver.role === "super_admin" ? (
-                      <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-md bg-primary/15 text-primary">
-                        Admin Active
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleToggleAccess(driver.email, driver.portalAccessEnabled)}
-                        className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-md transition-colors ${
-                          driver.portalAccessEnabled
-                            ? "bg-primary/15 text-primary hover:bg-primary/25"
-                            : "bg-muted text-muted-foreground hover:bg-muted/80"
-                        }`}
-                      >
-                        {driver.portalAccessEnabled ? "Enabled" : "Disabled"}
-                      </button>
                     )}
                   </td>
                 </tr>
