@@ -220,16 +220,27 @@ export default function FarmAssignmentsPage() {
         } else {
           // Modern slot: authoritative grouping by LGA and State
           const prof = profMap.get(s.user_id);
-          const rawState = (s.state || prof?.state || "Unassigned").trim();
-          const rawLga = (s.lga || prof?.lga || "General Unit").trim();
-          const state = rawState ? rawState.charAt(0).toUpperCase() + rawState.slice(1) : "Unassigned";
-          const lga = rawLga ? rawLga.charAt(0).toUpperCase() + rawLga.slice(1) : "General Unit";
+          const rawState = (s.state || prof?.state || "").trim();
+          const rawLga = (s.lga || prof?.lga || "").trim();
+
+          // Exclude slots without valid checkout state/LGA or generic unassigned placeholders
+          if (
+            !rawState ||
+            !rawLga ||
+            rawState.toLowerCase() === "unassigned" ||
+            rawLga.toLowerCase() === "general unit"
+          ) {
+            return;
+          }
+
+          const state = rawState.charAt(0).toUpperCase() + rawState.slice(1);
+          const lga = rawLga.charAt(0).toUpperCase() + rawLga.slice(1);
           const key = `${state}::${lga}`;
 
           if (!lgaClustersMap.has(key)) {
             lgaClustersMap.set(key, {
               name: `${lga} Community Unit [${state}]`,
-              project_category: s.project_category || "Mushroom Village",
+              project_category: "Modern Farm Unit",
               state,
               lga,
               slots: 0,
@@ -572,7 +583,7 @@ export default function FarmAssignmentsPage() {
               {displayedClusters.map((cluster) => {
                 const cycle = cyclesByFarm[cluster.id];
                 const cycleNum = cycle?.cycle_number || 1;
-                const status = cycle?.status || "PLANNING";
+                const status = cycle?.status || (cycle ? "PLANNING" : "AWAITING CYCLE");
 
                 const statusColor =
                   status === "DISTRIBUTED"
@@ -583,6 +594,8 @@ export default function FarmAssignmentsPage() {
                     ? "bg-purple-500/10 text-purple-400 border-purple-500/30"
                     : status === "GROWING"
                     ? "bg-amber-500/10 text-amber-400 border-amber-500/30"
+                    : status === "PLANNING"
+                    ? "bg-sky-500/10 text-sky-400 border-sky-500/30"
                     : "bg-muted text-muted-foreground border-border";
 
                 return (
@@ -616,19 +629,31 @@ export default function FarmAssignmentsPage() {
                       </div>
 
                       {/* Cycle Number & Rules Banner */}
-                      <div className="p-3 rounded-xl bg-muted/40 border border-border/40 text-xs space-y-1">
-                        <div className="flex items-center justify-between font-semibold text-foreground">
-                          <span>Cycle #{cycleNum}</span>
-                          <span className="text-[11px] text-primary">
-                            {cycleNum === 1 ? "Capacity Doubling" : "Quarterly Distribution"}
-                          </span>
+                      {cycle ? (
+                        <div className="p-3 rounded-xl bg-muted/40 border border-border/40 text-xs space-y-1">
+                          <div className="flex items-center justify-between font-semibold text-foreground">
+                            <span>Cycle #{cycleNum}</span>
+                            <span className="text-[11px] text-primary">
+                              {cycleNum === 1 ? "Capacity Doubling" : "Quarterly Distribution"}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground font-light leading-relaxed">
+                            {cycleNum === 1
+                              ? "Cycle 1: 90% biological reinvestment (2→4 bags), ₦0 cash payout."
+                              : "Cycle 2+: ₦10k revenue − ₦4k continuation = ₦6k distributable (40% to slot owners)."}
+                          </p>
                         </div>
-                        <p className="text-[11px] text-muted-foreground font-light leading-relaxed">
-                          {cycleNum === 1
-                            ? "Cycle 1: 90% biological reinvestment (2→4 bags), ₦0 cash payout."
-                            : "Cycle 2+: ₦10k revenue − ₦4k continuation = ₦6k distributable (40% to slot owners)."}
-                        </p>
-                      </div>
+                      ) : (
+                        <div className="p-3 rounded-xl bg-muted/40 border border-border/40 text-xs space-y-1">
+                          <div className="flex items-center justify-between font-semibold text-foreground">
+                            <span>Awaiting Cycle Initiation</span>
+                            <span className="text-[11px] text-muted-foreground">Not Started</span>
+                          </div>
+                          <p className="text-[11px] text-muted-foreground font-light leading-relaxed">
+                            Admin will initiate Cycle #1 when biological setup and bagging commence for this unit.
+                          </p>
+                        </div>
+                      )}
 
                       {/* Reconciled Key Metrics: Slots Bought vs Target & Biological Bags */}
                       <div className="grid grid-cols-2 gap-2 text-xs">
@@ -678,12 +703,12 @@ export default function FarmAssignmentsPage() {
 
                         {isAdmin || isSuperDeveloper ? (
                           <Select
-                            value={cycle?.stage || (status === "DISTRIBUTED" ? "DISTRIBUTED" : status === "AUDITED" ? "AUDITING" : status === "HARVESTED" ? "HARVESTING" : status === "GROWING" ? "GROWING" : "PLANNING")}
+                            value={cycle?.stage || ""}
                             onValueChange={(val) => handleStageChange(cluster.id, val)}
                             disabled={updatingStageClusterId === cluster.id}
                           >
                             <SelectTrigger className="h-8 text-xs bg-muted/40 border-border/60">
-                              <SelectValue placeholder="Advance crop stage..." />
+                              <SelectValue placeholder={cycle ? "Advance crop stage..." : "Initiate Cycle (Select Stage)..."} />
                             </SelectTrigger>
                             <SelectContent>
                               {CYCLE_STAGE_OPTIONS.map((opt) => (
@@ -696,9 +721,9 @@ export default function FarmAssignmentsPage() {
                         ) : (
                           <div className="px-3 py-1.5 rounded-lg bg-muted/40 border border-border/40 text-xs font-medium text-foreground flex items-center justify-between">
                             <span>
-                              {CYCLE_STAGE_OPTIONS.find(
-                                (s) => s.value === (cycle?.stage || status)
-                              )?.label || (cycle?.stage || status)}
+                              {cycle
+                                ? CYCLE_STAGE_OPTIONS.find((s) => s.value === (cycle.stage || status))?.label || (cycle.stage || status)
+                                : "Awaiting Initiation"}
                             </span>
                             <Lock className="w-3 h-3 text-muted-foreground" />
                           </div>

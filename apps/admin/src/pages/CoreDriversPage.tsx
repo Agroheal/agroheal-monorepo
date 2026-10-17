@@ -3,20 +3,15 @@ import {
   Users,
   ShieldCheck,
   TrendingUp,
-  Wallet,
-  ArrowUpRight,
   CheckCircle2,
   Clock,
   Search,
   RefreshCw,
   Award,
-  AlertCircle,
-  History,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { StatCard } from "@/components/admin/StatCard";
 import { StatusBanner } from "@/components/admin/StatusBanner";
-import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -114,7 +109,7 @@ const STATIC_CORE_PARTICIPANTS = [
     roleTitle: "Core Partner (Finance)",
     driverType: "finance_partner" as const,
     sharePerCard: 100,
-    termNotice: "3-Year Statutory Term (July 22, 2026 - July 22, 2029)",
+    termNotice: "3-Year Statutory Term (Sept 27, 2026 - Sept 27, 2029)",
   },
 ];
 
@@ -128,12 +123,6 @@ export default function CoreDriversPage() {
   const [activeGreenCardsCount, setActiveGreenCardsCount] = useState(0);
   const [drivers, setDrivers] = useState<CoreDriver[]>([]);
   const [enabledEmails, setEnabledEmails] = useState<string[]>([]);
-  const [selectedDriverForPayout, setSelectedDriverForPayout] = useState<CoreDriver | null>(null);
-  const [payoutAmount, setPayoutAmount] = useState<number>(0);
-  const [isProcessingPayout, setIsProcessingPayout] = useState(false);
-  const [selectedDriverForLedger, setSelectedDriverForLedger] = useState<CoreDriver | null>(null);
-  const [driverLedgerEntries, setDriverLedgerEntries] = useState<any[]>([]);
-  const [loadingDriverLedger, setLoadingDriverLedger] = useState<boolean>(false);
 
   const flash = (fn: (v: string) => void, text: string) => {
     fn(text);
@@ -294,68 +283,6 @@ export default function CoreDriversPage() {
     }
   };
 
-  const handleTriggerPayout = async () => {
-    if (!selectedDriverForPayout) return;
-    setIsProcessingPayout(true);
-    try {
-      // Record payout to withdrawals table with pending status
-      if (selectedDriverForPayout.profileId) {
-        const ref = `CD-PAYOUT-${Date.now()}-${selectedDriverForPayout.profileId.slice(0, 6)}`;
-        const { error: wErr } = await supabase.from("withdrawals").insert([
-          {
-            user_id: selectedDriverForPayout.profileId,
-            amount: payoutAmount,
-            fee: 0,
-            net_amount: payoutAmount,
-            reference: ref,
-            status: "pending",
-            bank_name: "Core Driver Pool",
-            account_number: "STATUTORY_POOL",
-            account_name: selectedDriverForPayout.name,
-            withdrawal_type: "bonus",
-            created_at: new Date().toISOString(),
-          },
-        ]);
-        if (wErr) throw wErr;
-      }
-
-      flash(
-        setSuccessMessage,
-        `Disbursement of ₦${payoutAmount.toLocaleString()} queued successfully for ${selectedDriverForPayout.name}!`
-      );
-      setSelectedDriverForPayout(null);
-      loadData();
-    } catch (err: any) {
-      flash(setErrorMessage, `Payout failed: ${err.message}`);
-    } finally {
-      setIsProcessingPayout(false);
-    }
-  };
-
-  const handleOpenLedger = async (driver: CoreDriver) => {
-    setSelectedDriverForLedger(driver);
-    setLoadingDriverLedger(true);
-    try {
-      if (driver.profileId) {
-        const { data, error } = await supabase
-          .from("wallet_ledger")
-          .select("*")
-          .eq("user_id", driver.profileId)
-          .order("created_at", { ascending: false });
-
-        if (error) throw error;
-        setDriverLedgerEntries(data || []);
-      } else {
-        setDriverLedgerEntries([]);
-      }
-    } catch (err: any) {
-      console.error("Failed to load driver ledger:", err);
-      flash(setErrorMessage, `Failed to load ledger: ${err.message}`);
-    } finally {
-      setLoadingDriverLedger(false);
-    }
-  };
-
   const totalOperationalAccrued = drivers
     .filter((d) => d.driverType === "operational")
     .reduce((sum, d) => sum + d.totalEarned, 0);
@@ -457,7 +384,6 @@ export default function CoreDriversPage() {
                 <th className="px-4 py-3 text-right">Available Balance</th>
                 <th className="px-4 py-3 text-center">Eligibility</th>
                 <th className="px-4 py-3 text-center">Portal Access</th>
-                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -524,237 +450,12 @@ export default function CoreDriversPage() {
                       </button>
                     )}
                   </td>
-                  <td className="px-4 py-3.5 text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleOpenLedger(driver)}
-                        className="text-xs h-8 gap-1 text-muted-foreground hover:text-foreground hover:bg-muted"
-                        title="View Detailed Transaction Ledger"
-                      >
-                        <History className="h-3.5 w-3.5" />
-                        Ledger
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={!driver.isEligibleForWithdrawal}
-                        onClick={() => {
-                          setSelectedDriverForPayout(driver);
-                          setPayoutAmount(driver.availableBalance);
-                        }}
-                        className="text-xs h-8 gap-1 text-primary border-primary/30 hover:bg-primary/10 disabled:opacity-40"
-                      >
-                        Disburse
-                        <ArrowUpRight className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       </div>
-
-      {/* Payout Confirmation Modal */}
-      {selectedDriverForPayout && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                  <Wallet className="h-4 w-4" />
-                </div>
-                <h3 className="font-semibold text-foreground">Trigger Driver Payout</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedDriverForPayout(null)}
-                className="text-muted-foreground hover:text-foreground text-sm"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-3 text-sm">
-              <div className="bg-muted/30 rounded-lg p-3 space-y-1">
-                <div className="text-xs text-muted-foreground">Recipient</div>
-                <div className="font-semibold text-foreground">{selectedDriverForPayout.name}</div>
-                <div className="text-xs text-muted-foreground">{selectedDriverForPayout.email}</div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-foreground">Disbursement Amount (₦)</label>
-                <Input
-                  type="number"
-                  min={MIN_WITHDRAWAL_THRESHOLD}
-                  max={selectedDriverForPayout.availableBalance}
-                  value={payoutAmount}
-                  onChange={(e) => setPayoutAmount(Number(e.target.value))}
-                  className="font-mono text-base"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Available: ₦{selectedDriverForPayout.availableBalance.toLocaleString()} (Min: ₦{MIN_WITHDRAWAL_THRESHOLD.toLocaleString()})
-                </p>
-              </div>
-
-              <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
-                <span>
-                  This action queues a payout record in the platform wallet ledger and flags it for treasury disbursement.
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedDriverForPayout(null)}
-                disabled={isProcessingPayout}
-              >
-                Cancel
-              </Button>
-              <Button
-                size="sm"
-                onClick={handleTriggerPayout}
-                disabled={isProcessingPayout || payoutAmount < MIN_WITHDRAWAL_THRESHOLD}
-                className="bg-primary text-primary-foreground"
-              >
-                {isProcessingPayout ? "Processing..." : `Confirm ₦${payoutAmount.toLocaleString()} Payout`}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Driver Ledger History Modal */}
-      {selectedDriverForLedger && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in">
-          <div className="w-full max-w-2xl rounded-xl border border-border bg-card p-6 shadow-xl space-y-4 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between border-b border-border pb-3 shrink-0">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                  <History className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-foreground">Driver Transaction History</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedDriverForLedger.name} • {selectedDriverForLedger.email}
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedDriverForLedger(null)}
-                className="text-muted-foreground hover:text-foreground text-sm"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3 bg-muted/20 p-3 rounded-lg border border-border shrink-0 text-xs">
-              <div>
-                <span className="text-muted-foreground block">Growth Share</span>
-                <span className="font-bold text-foreground font-mono">₦{selectedDriverForLedger.sharePerCard} / card</span>
-              </div>
-              <div>
-                <span className="text-muted-foreground block">Total Accrued</span>
-                <span className="font-bold text-emerald-600 dark:text-emerald-400 font-mono">
-                  ₦{selectedDriverForLedger.totalEarned.toLocaleString()}
-                </span>
-              </div>
-              <div>
-                <span className="text-muted-foreground block">Wallet Balance</span>
-                <span className="font-bold text-foreground font-mono">
-                  ₦{selectedDriverForLedger.availableBalance.toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            <div className="overflow-y-auto flex-1 border border-border rounded-lg">
-              {loadingDriverLedger ? (
-                <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-                  <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                  Loading driver ledger...
-                </div>
-              ) : driverLedgerEntries.length === 0 ? (
-                <div className="text-center py-12 text-sm text-muted-foreground">
-                  No ledger transactions found for this driver yet.
-                </div>
-              ) : (
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-muted/40 font-semibold text-muted-foreground uppercase tracking-wider border-b border-border sticky top-0">
-                    <tr>
-                      <th className="px-3 py-2.5">Date</th>
-                      <th className="px-3 py-2.5">Type & Reference</th>
-                      <th className="px-3 py-2.5">Description</th>
-                      <th className="px-3 py-2.5 text-right">Amount</th>
-                      <th className="px-3 py-2.5 text-right">Balance After</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {driverLedgerEntries.map((entry) => (
-                      <tr key={entry.id} className="hover:bg-muted/30">
-                        <td className="px-3 py-2 whitespace-nowrap text-muted-foreground font-mono text-[11px]">
-                          {formatWATDateTime(entry.created_at)}
-                        </td>
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          <div className="flex items-center gap-1.5">
-                            <Badge
-                              variant="outline"
-                              className={
-                                entry.entry_type === "DEBIT"
-                                  ? "bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20 text-[10px]"
-                                  : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-[10px]"
-                              }
-                            >
-                              {entry.category === "CORE_DRIVER_BONUS" ? "Growth Bonus" : entry.category || entry.entry_type}
-                            </Badge>
-                            {entry.reference_id && (
-                              <span className="font-mono text-[10px] text-muted-foreground">
-                                {entry.reference_id}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 text-foreground font-medium max-w-xs truncate" title={entry.description}>
-                          {entry.description || "Growth Pool Share"}
-                        </td>
-                        <td
-                          className={`px-3 py-2 text-right font-mono font-bold whitespace-nowrap ${
-                            entry.entry_type === "DEBIT" ? "text-red-600" : "text-emerald-600 dark:text-emerald-400"
-                          }`}
-                        >
-                          {entry.entry_type === "DEBIT" ? "-" : "+"}₦{Number(entry.amount || 0).toLocaleString()}
-                        </td>
-                        <td className="px-3 py-2 text-right font-mono text-muted-foreground whitespace-nowrap">
-                          {entry.balance_after != null ? `₦${Number(entry.balance_after).toLocaleString()}` : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between pt-2 border-t border-border shrink-0">
-              <span className="text-xs text-muted-foreground">
-                Showing {driverLedgerEntries.length} recorded ledger transaction{driverLedgerEntries.length === 1 ? "" : "s"}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedDriverForLedger(null)}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

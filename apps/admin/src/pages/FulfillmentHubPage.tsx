@@ -37,7 +37,8 @@ export default function FulfillmentHubPage() {
   const [search, setSearch] = useState("");
   const [selectedState, setSelectedState] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<"groups" | "table">("groups");
+  const [viewMode, setViewMode] = useState<"groups" | "table">("table");
+  const [groupByMember, setGroupByMember] = useState(false);
   const [copiedText, setCopiedText] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -288,6 +289,40 @@ export default function FulfillmentHubPage() {
     });
   }, [orders, search, selectedState, selectedStatus, tierFilter]);
 
+  // Count occurrences per member (by email, phone, or name)
+  const memberOrderCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    filteredOrders.forEach((o) => {
+      const key = (o.buyer.email || o.buyer.phone || o.buyer.fullName || o.buyer.memberId).toLowerCase().trim();
+      if (key) {
+        map.set(key, (map.get(key) || 0) + 1);
+      }
+    });
+    return map;
+  }, [filteredOrders]);
+
+  // Display orders honoring multi-order grouping toggle
+  const displayOrders = useMemo(() => {
+    if (!groupByMember) return filteredOrders;
+
+    return [...filteredOrders].sort((a, b) => {
+      const keyA = (a.buyer.email || a.buyer.phone || a.buyer.fullName || a.buyer.memberId).toLowerCase().trim();
+      const keyB = (b.buyer.email || b.buyer.phone || b.buyer.fullName || b.buyer.memberId).toLowerCase().trim();
+      const countA = memberOrderCounts.get(keyA) || 0;
+      const countB = memberOrderCounts.get(keyB) || 0;
+
+      // Prioritize members with multiple orders
+      if (countA > 1 && countB <= 1) return -1;
+      if (countA <= 1 && countB > 1) return 1;
+
+      // Group same members together
+      if (keyA !== keyB) return keyA.localeCompare(keyB);
+
+      // Within the same member, sort newest first
+      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+    });
+  }, [filteredOrders, groupByMember, memberOrderCounts]);
+
   // Grouped by State for Logistics
   const stateGroups = useMemo(() => {
     const map = new Map<
@@ -306,8 +341,23 @@ export default function FulfillmentHubPage() {
       g.items.push(o);
     });
 
+    if (groupByMember) {
+      map.forEach((g) => {
+        g.items.sort((a, b) => {
+          const keyA = (a.buyer.email || a.buyer.phone || a.buyer.fullName || a.buyer.memberId).toLowerCase().trim();
+          const keyB = (b.buyer.email || b.buyer.phone || b.buyer.fullName || b.buyer.memberId).toLowerCase().trim();
+          const countA = memberOrderCounts.get(keyA) || 0;
+          const countB = memberOrderCounts.get(keyB) || 0;
+          if (countA > 1 && countB <= 1) return -1;
+          if (countA <= 1 && countB > 1) return 1;
+          if (keyA !== keyB) return keyA.localeCompare(keyB);
+          return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        });
+      });
+    }
+
     return Array.from(map.values()).sort((a, b) => b.count - a.count);
-  }, [filteredOrders]);
+  }, [filteredOrders, groupByMember, memberOrderCounts]);
 
   // Overall KPIs
   const totalPackages = orders.reduce((sum, o) => sum + o.quantity, 0);
@@ -533,19 +583,19 @@ export default function FulfillmentHubPage() {
               </SelectContent>
             </Select>
 
+            {/* Group Multi-Orders Checkbox */}
+            <label className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-border bg-muted/30 text-xs text-muted-foreground hover:text-foreground cursor-pointer select-none transition-colors">
+              <input
+                type="checkbox"
+                checked={groupByMember}
+                onChange={(e) => setGroupByMember(e.target.checked)}
+                className="rounded border-border text-primary focus:ring-primary h-3.5 w-3.5 cursor-pointer"
+              />
+              <span className="font-medium whitespace-nowrap">Group Multi-Orders</span>
+            </label>
+
             {/* View Mode Switcher */}
             <div className="flex items-center rounded-lg border border-border p-0.5 bg-muted/40">
-              <Button
-                type="button"
-                variant={viewMode === "groups" ? "default" : "ghost"}
-                size="sm"
-                onClick={() => setViewMode("groups")}
-                className="h-8 px-2.5 text-xs gap-1"
-                title="Group by State & LGA"
-              >
-                <Layers className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">By State</span>
-              </Button>
               <Button
                 type="button"
                 variant={viewMode === "table" ? "default" : "ghost"}
@@ -557,14 +607,32 @@ export default function FulfillmentHubPage() {
                 <TableIcon className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Table</span>
               </Button>
+              <Button
+                type="button"
+                variant={viewMode === "groups" ? "default" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("groups")}
+                className="h-8 px-2.5 text-xs gap-1"
+                title="Group by State & LGA"
+              >
+                <Layers className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">By State</span>
+              </Button>
             </div>
           </div>
         </div>
 
         <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/40">
-          <span>
-            Showing <strong className="text-foreground">{filteredOrders.length}</strong> matching shipment orders
-          </span>
+          <div className="flex items-center gap-2">
+            <span>
+              Showing <strong className="text-foreground">{filteredOrders.length}</strong> matching shipment orders
+            </span>
+            {groupByMember && (
+              <span className="rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.2 text-[10px] font-medium">
+                Multi-Orders Grouped
+              </span>
+            )}
+          </div>
           <span>
             Physical Packs:{" "}
             <strong className="text-foreground font-mono">
@@ -629,6 +697,15 @@ export default function FulfillmentHubPage() {
                                 Live Platform
                               </span>
                             )}
+                            {(() => {
+                              const key = (order.buyer.email || order.buyer.phone || order.buyer.fullName || order.buyer.memberId).toLowerCase().trim();
+                              const count = memberOrderCounts.get(key) || 0;
+                              return count > 1 ? (
+                                <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20" title={`Member has ${count} orders`}>
+                                  📦 Multi-Order ({count})
+                                </span>
+                              ) : null;
+                            })()}
                           </div>
 
                           <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1 flex-wrap">
@@ -738,9 +815,11 @@ export default function FulfillmentHubPage() {
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-border/60">
-              {filteredOrders.map((o, idx) => {
+              {displayOrders.map((o, idx) => {
                 const cleanPhone = o.buyer.phone?.replace(/[^0-9]/g, "");
                 const waLink = cleanPhone ? `https://wa.me/234${cleanPhone.startsWith("0") ? cleanPhone.slice(1) : cleanPhone}` : null;
+                const memberKey = (o.buyer.email || o.buyer.phone || o.buyer.fullName || o.buyer.memberId).toLowerCase().trim();
+                const memberOrderCount = memberOrderCounts.get(memberKey) || 0;
 
                 return (
                   <TableRow key={o.id} className="hover:bg-muted/20 transition-colors">
@@ -755,6 +834,11 @@ export default function FulfillmentHubPage() {
                         ) : (
                           <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                             Live
+                          </span>
+                        )}
+                        {memberOrderCount > 1 && (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20" title={`Member has ${memberOrderCount} total orders`}>
+                            📦 Multi-Order ({memberOrderCount})
                           </span>
                         )}
                       </div>

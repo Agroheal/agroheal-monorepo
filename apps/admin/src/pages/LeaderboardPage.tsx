@@ -45,13 +45,20 @@ export default function LeaderboardPage() {
     });
 
     members.forEach((m) => {
+      // Strictly honor modern vs legacy toggle
+      if (tierFilter === "live" && m.is_legacy) return;
+      if (tierFilter === "legacy" && !m.is_legacy) return;
+
       // 3-Tier direct qualification check
       const is3TierQualified = Boolean(
         m.has_green_card ||
         m.has_purchased_starter_pack ||
         m.is_wealth_creation_active ||
-        (m.total_slots && m.total_slots > 0) ||
-        (m.live_slots && m.live_slots > 0)
+        (tierFilter === "live"
+          ? m.live_slots && m.live_slots > 0
+          : tierFilter === "legacy"
+          ? m.legacy_slots && m.legacy_slots > 0
+          : (m.total_slots && m.total_slots > 0) || (m.live_slots && m.live_slots > 0))
       );
 
       // If the referred member has not activated any of the 3 tiers, they do not count towards leadership rank
@@ -71,7 +78,7 @@ export default function LeaderboardPage() {
     });
 
     return counts;
-  }, [members]);
+  }, [members, tierFilter]);
 
   // Enriched & ranked members respecting active tier filter
   const rankedMembers = useMemo(() => {
