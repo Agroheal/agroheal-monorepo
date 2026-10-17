@@ -50,7 +50,7 @@ import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import OrganogramSkeleton from "@/components/dashboard/OrganogramSkeleton";
 import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
-import { isLegacyMember } from "@shared/businessRules";
+import { isLegacyMember, isGreenCardHolder, hasPurchasedStarterPack } from "@shared/businessRules";
 import { SITE_URL } from "@/config/Index";
 
 export interface OrganogramNode {
@@ -82,7 +82,7 @@ export const isThreeStepQualified = (node: OrganogramNode | any): boolean => {
     node.isLegacy ||
     (node.createdAt && new Date(node.createdAt).getTime() < new Date("2026-10-01T00:00:00Z").getTime())
   );
-  const hasStarter = Boolean(node.hasPurchasedStarterPack || node.has_purchased_starter_pack || node.is_wealth_creation_active);
+  const hasStarter = hasPurchasedStarterPack(node);
 
   // Legacy members only require Mushroom Power 100g (Starter Pack)
   if (isLegacy) {
@@ -90,7 +90,7 @@ export const isThreeStepQualified = (node: OrganogramNode | any): boolean => {
   }
 
   // Modern members require Green Card + Slots + Starter Pack
-  const hasGC = Boolean(node.hasGreenCard || node.memberId || node.member_id || node.is_green_card_holder || node.has_greencard);
+  const hasGC = isGreenCardHolder(node);
   const hasSlots = (Number(node.slotsHeld ?? node.slots) || 0) > 0;
   return hasGC && hasSlots && hasStarter;
 };
@@ -831,7 +831,15 @@ const CompoundReferrals: React.FC = () => {
       return null;
     }
 
-    const slotsCount = (rootSlotsRes.data || []).reduce((sum, s) => sum + (Number(s.slots) || 0), 0);
+    let slotsCount = (rootSlotsRes.data || []).reduce((sum, s) => sum + (Number(s.slots) || 0), 0);
+    if (slotsCount === 0 && rootProfile.email) {
+      const { data: rootLgData } = await supabase
+        .from("lg_farm_records")
+        .select("farm_slots")
+        .ilike("email", rootProfile.email.trim());
+      const lgSlots = (rootLgData || []).reduce((sum, r) => sum + (Number(r.farm_slots) || 0), 0);
+      if (lgSlots > 0) slotsCount = lgSlots;
+    }
     const placedFrontline = placedFrontlineRes.data || [];
     const directRecruits = directRecruitsRes.data || [];
 
@@ -847,16 +855,42 @@ const CompoundReferrals: React.FC = () => {
     // 2. High-Performance BATCH Query for all children's slots and grandchildren counts!
     if (uniqueChildren.length > 0) {
       const childIds = uniqueChildren.map((cp) => cp.id);
+      const childEmails = uniqueChildren
+        .map((cp) => (cp.email || "").trim())
+        .filter((e) => Boolean(e));
 
-      const [childSlotsRes, grandChildrenRes] = await Promise.all([
+      const [childSlotsRes, grandChildrenRes, childLgSlotsRes] = await Promise.all([
         supabase.from("slot_subscriptions").select("user_id, slots").in("user_id", childIds),
         supabase.from("profiles").select("referred_by").in("referred_by", childIds),
+        childEmails.length > 0
+          ? supabase.from("lg_farm_records").select("email, farm_slots").in("email", childEmails)
+          : Promise.resolve({ data: [] }),
       ]);
 
       const slotsMap = new Map<string, number>();
       for (const row of childSlotsRes.data || []) {
         const cur = slotsMap.get(row.user_id) || 0;
         slotsMap.set(row.user_id, cur + (Number(row.slots) || 0));
+      }
+
+      // Merge legacy farm records by email if sub_slots is 0
+      const emailToLgSlots = new Map<string, number>();
+      for (const row of childLgSlotsRes.data || []) {
+        const em = (row.email || "").trim().toLowerCase();
+        if (em) {
+          const cur = emailToLgSlots.get(em) || 0;
+          emailToLgSlots.set(em, cur + (Number(row.farm_slots) || 0));
+        }
+      }
+
+      for (const cp of uniqueChildren) {
+        const subSlots = slotsMap.get(cp.id) || 0;
+        if (subSlots === 0 && cp.email) {
+          const lgSlots = emailToLgSlots.get(cp.email.trim().toLowerCase()) || 0;
+          if (lgSlots > 0) {
+            slotsMap.set(cp.id, lgSlots);
+          }
+        }
       }
 
       const grandChildrenCountMap = new Map<string, number>();
@@ -885,7 +919,7 @@ const CompoundReferrals: React.FC = () => {
             fullName: cp.full_name || "Downline Partner",
             email: cp.email || "",
             phone: cp.phone || null,
-            memberId: formatAgcId(cp.member_id),
+            memberId: cp.member_id ? formatAgcId(cp.member_id) : "Pending Green Card",
             parentId: targetId,
             placementParentId: targetId,
             placementStatus: cp.placement_status || "LOCKED",
@@ -894,14 +928,17 @@ const CompoundReferrals: React.FC = () => {
             slotsHeld: cSlotCount,
             directReferralsCount: grandChildrenCount,
             createdAt: cp.created_at,
-            hasGreenCard: Boolean(cp.member_id || cp.is_green_card_holder || cp.has_greencard),
+            hasGreenCard: isGreenCardHolder(cp),
             greenCardActivatedAt: cp.green_card_activated_at || null,
             isSpillover: cp.referred_by !== targetId,
-            hasPurchasedStarterPack: Boolean(cp.has_purchased_starter_pack || cp.is_wealth_creation_active),
+            hasPurchasedStarterPack: hasPurchasedStarterPack(cp),
             children: [],
           };
           allRoster.push(memberItem);
-          childrenNodes.push(memberItem);
+          // Strictly verify 3-step qualification before seating on tree frontline
+          if (isThreeStepQualified(memberItem)) {
+            childrenNodes.push(memberItem);
+          }
         }
       }
 
@@ -916,7 +953,7 @@ const CompoundReferrals: React.FC = () => {
             fullName: cp.full_name || "Downline Partner",
             email: cp.email || "",
             phone: cp.phone || null,
-            memberId: formatAgcId(cp.member_id),
+            memberId: cp.member_id ? formatAgcId(cp.member_id) : "Pending Green Card",
             parentId: cp.placement_parent_id || targetId,
             placementParentId: cp.placement_parent_id || null,
             placementStatus: cp.placement_status || (isPlaced ? "PLACED" : "HOLDING_TANK"),
@@ -925,10 +962,10 @@ const CompoundReferrals: React.FC = () => {
             slotsHeld: cSlotCount,
             directReferralsCount: grandChildrenCount,
             createdAt: cp.created_at,
-            hasGreenCard: Boolean(cp.member_id || cp.is_green_card_holder || cp.has_greencard),
+            hasGreenCard: isGreenCardHolder(cp),
             greenCardActivatedAt: cp.green_card_activated_at || null,
             isSpillover: false,
-            hasPurchasedStarterPack: Boolean(cp.has_purchased_starter_pack || cp.is_wealth_creation_active),
+            hasPurchasedStarterPack: hasPurchasedStarterPack(cp),
             children: [],
           });
         }
@@ -950,25 +987,48 @@ const CompoundReferrals: React.FC = () => {
         if (!nextLevelProfiles || nextLevelProfiles.length === 0) break;
 
         const nextIds = nextLevelProfiles.map((p) => p.id);
-        const { data: nSlotsData } = await supabase
-          .from("slot_subscriptions")
-          .select("user_id, slots")
-          .in("user_id", nextIds);
+        const nextEmails = nextLevelProfiles
+          .map((p) => (p.email || "").trim())
+          .filter((e) => Boolean(e));
+
+        const [nSlotsDataRes, nLgSlotsDataRes] = await Promise.all([
+          supabase.from("slot_subscriptions").select("user_id, slots").in("user_id", nextIds),
+          nextEmails.length > 0
+            ? supabase.from("lg_farm_records").select("email, farm_slots").in("email", nextEmails)
+            : Promise.resolve({ data: [] }),
+        ]);
 
         const nSlotsMap = new Map<string, number>();
-        for (const row of nSlotsData || []) {
+        for (const row of nSlotsDataRes.data || []) {
           const cur = nSlotsMap.get(row.user_id) || 0;
           nSlotsMap.set(row.user_id, cur + (Number(row.slots) || 0));
         }
 
+        const nextEmailToLgSlots = new Map<string, number>();
+        for (const row of nLgSlotsDataRes.data || []) {
+          const em = (row.email || "").trim().toLowerCase();
+          if (em) {
+            const cur = nextEmailToLgSlots.get(em) || 0;
+            nextEmailToLgSlots.set(em, cur + (Number(row.farm_slots) || 0));
+          }
+        }
+
         for (const np of nextLevelProfiles) {
+          const subSlots = nSlotsMap.get(np.id) || 0;
+          if (subSlots === 0 && np.email) {
+            const lgSlots = nextEmailToLgSlots.get(np.email.trim().toLowerCase()) || 0;
+            if (lgSlots > 0) {
+              nSlotsMap.set(np.id, lgSlots);
+            }
+          }
+
           if (!allRoster.some((r) => r.id === np.id)) {
             allRoster.push({
               id: np.id,
               fullName: np.full_name || "Downline Partner",
               email: np.email || "",
               phone: np.phone || null,
-              memberId: formatAgcId(np.member_id),
+              memberId: np.member_id ? formatAgcId(np.member_id) : "Pending Green Card",
               parentId: np.placement_parent_id || targetId,
               placementParentId: np.placement_parent_id,
               placementStatus: np.placement_status || "LOCKED",
@@ -977,9 +1037,9 @@ const CompoundReferrals: React.FC = () => {
               slotsHeld: nSlotsMap.get(np.id) || 0,
               directReferralsCount: Number(np.total_referrals) || 0,
               createdAt: np.created_at,
-              hasGreenCard: Boolean(np.member_id || np.is_green_card_holder || np.has_greencard),
+              hasGreenCard: isGreenCardHolder(np),
               isSpillover: np.referred_by !== targetId,
-              hasPurchasedStarterPack: Boolean(np.has_purchased_starter_pack || np.is_wealth_creation_active),
+              hasPurchasedStarterPack: hasPurchasedStarterPack(np),
               children: [],
             });
           }
@@ -997,16 +1057,16 @@ const CompoundReferrals: React.FC = () => {
       fullName: rootProfile.full_name || (isSelf ? "You (Root Node)" : "AgroHeal Member"),
       email: rootProfile.email || "",
       phone: rootProfile.phone || null,
-      memberId: formatAgcId(rootProfile.member_id),
+      memberId: rootProfile.member_id ? formatAgcId(rootProfile.member_id) : "Pending Green Card",
       parentId: rootProfile.referred_by || null,
       position: 1,
       level: 0,
       slotsHeld: slotsCount,
       directReferralsCount: directRecruits.length,
       createdAt: rootProfile.created_at,
-      hasGreenCard: Boolean(rootProfile.member_id || rootProfile.is_green_card_holder || rootProfile.has_greencard),
+      hasGreenCard: isGreenCardHolder(rootProfile),
       isSpillover: false,
-      hasPurchasedStarterPack: Boolean(rootProfile.has_purchased_starter_pack || rootProfile.is_wealth_creation_active),
+      hasPurchasedStarterPack: hasPurchasedStarterPack(rootProfile),
       children: childrenNodes,
     };
 
@@ -1021,8 +1081,11 @@ const CompoundReferrals: React.FC = () => {
       if (item.parentId && nodeMap.has(item.parentId) && item.position >= 1 && item.position <= 5) {
         const parent = nodeMap.get(item.parentId)!;
         if (!parent.children.some((c) => c.id === item.id)) {
-          parent.children.push(item);
-          parent.children.sort((a, b) => (a.position || 0) - (b.position || 0));
+          // Strictly verify 3-step qualification before seating on tree downline branches
+          if (isThreeStepQualified(item)) {
+            parent.children.push(item);
+            parent.children.sort((a, b) => (a.position || 0) - (b.position || 0));
+          }
         }
       }
     }
@@ -1042,7 +1105,7 @@ const CompoundReferrals: React.FC = () => {
         if (existsIndex >= 0) return prev.slice(0, existsIndex + 1);
         if (prev.length === 0 && currentUserId) {
           const rootLabel = currentUserProfile?.full_name || "Root Organogram";
-          const rootMemberId = formatAgcId(currentUserProfile?.member_id);
+          const rootMemberId = currentUserProfile?.member_id ? formatAgcId(currentUserProfile.member_id) : "Pending Green Card";
           return [
             { id: currentUserId, name: rootLabel, memberId: rootMemberId },
             { id: builtRoot.id, name: builtRoot.fullName, memberId: builtRoot.memberId },

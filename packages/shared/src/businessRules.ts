@@ -104,3 +104,54 @@ export const formatNaira = (amount: number): string => {
     maximumFractionDigits: 2,
   })}`;
 };
+
+// ── 7. CANONICAL QUALIFICATION ACCESSORS ──
+export interface QualificationProfile {
+  id?: string;
+  member_id?: string | null;
+  memberId?: string | null;
+  is_green_card_holder?: boolean | null;
+  has_greencard?: boolean | null;
+  hasGreenCard?: boolean | null;
+  greencard_status?: string | null;
+  has_purchased_starter_pack?: boolean | null;
+  hasPurchasedStarterPack?: boolean | null;
+  is_wealth_creation_active?: boolean | null;
+  isWealthCreationActive?: boolean | null;
+  farm_slots?: number | null;
+  slotsCount?: number | null;
+  [key: string]: any;
+}
+
+export const isGreenCardHolder = (profile?: QualificationProfile | null): boolean => {
+  if (!profile) return false;
+  return Boolean(
+    profile.is_green_card_holder ||
+    profile.has_greencard ||
+    profile.hasGreenCard ||
+    (profile.greencard_status && profile.greencard_status.toLowerCase() === "active") ||
+    (profile.member_id && profile.member_id !== "PENDING" && !String(profile.member_id).toUpperCase().includes("NO GREENCARD")) ||
+    (profile.memberId && profile.memberId !== "PENDING" && !String(profile.memberId).toUpperCase().includes("NO GREENCARD"))
+  );
+};
+
+export const hasPurchasedStarterPack = (profile?: QualificationProfile | null): boolean => {
+  if (!profile) return false;
+  return Boolean(
+    profile.has_purchased_starter_pack ||
+    profile.hasPurchasedStarterPack ||
+    profile.is_wealth_creation_active ||
+    profile.isWealthCreationActive
+  );
+};
+
+export const isThreeStepQualified = (
+  profile?: QualificationProfile | null,
+  slotsCount: number = 0
+): boolean => {
+  if (!profile) return false;
+  const card = isGreenCardHolder(profile);
+  const starter = hasPurchasedStarterPack(profile);
+  const resolvedSlots = (Number(slotsCount) || Number(profile.slotsCount) || Number(profile.farm_slots) || 0);
+  return card && starter && resolvedSlots > 0;
+};

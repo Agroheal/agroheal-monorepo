@@ -50,7 +50,7 @@ import {
   type MatrixLevelsData,
 } from "@/components/common/GreenCardFirst5Card";
 import { GreenCardPointsCard } from "@/components/dashboard/GreenCardPointsCard";
-import { isLegacyMember, getGreenCardFee, formatNaira } from "@shared/businessRules";
+import { isLegacyMember, getGreenCardFee, formatNaira, isGreenCardHolder, hasPurchasedStarterPack, isThreeStepQualified } from "@shared/businessRules";
 
 interface ReferralProps {
   id: string;
@@ -251,10 +251,10 @@ const Dashboard = () => {
           r.is_legacy ||
           (r.created_at && new Date(r.created_at).getTime() < new Date("2026-10-01T00:00:00Z").getTime())
         );
-        const hasPack = Boolean(r.has_purchased_starter_pack || r.is_wealth_creation_active);
+        const hasPack = hasPurchasedStarterPack(r);
         if (isLegacy) return hasPack;
 
-        const hasCard = Boolean(r.member_id || r.is_green_card_holder || r.has_greencard);
+        const hasCard = isGreenCardHolder(r);
         const hasSlot = directRecruitSlotIds.has(r.id);
         return hasCard && hasPack && hasSlot;
       };
@@ -603,8 +603,8 @@ const Dashboard = () => {
 
   // Dynamic Intelligent Quick Checkout Tile based on member standing
   const isLegacy = Boolean(profile?.is_legacy) || isLegacyMember(profile?.created_at);
-  const hasStarterPack = Boolean(profile?.has_purchased_starter_pack);
-  const isCardHolder = Boolean(hasGreenCard || profile?.is_green_card_holder || profile?.member_id);
+  const hasStarterPack = hasPurchasedStarterPack(profile);
+  const isCardHolder = Boolean(hasGreenCard || isGreenCardHolder(profile));
 
   let checkoutTile;
   if (isLegacy && !hasStarterPack) {

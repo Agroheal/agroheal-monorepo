@@ -41,7 +41,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import { exportToExcel } from "@shared/excelExport";
-import { isLegacyMember } from "@shared/businessRules";
+import { isLegacyMember, isGreenCardHolder, hasPurchasedStarterPack } from "@shared/businessRules";
 import { AgrohealImages } from "@/constant/Image";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -411,10 +411,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
 
       let resolvedMemberId = profile?.member_id;
       const isCardHolder = Boolean(
-        profile?.is_green_card_holder ||
-        profile?.has_greencard ||
-        profile?.greencard_status === "active" ||
-        Boolean(resolvedMemberId) ||
+        isGreenCardHolder(profile) ||
         (subscriptions && subscriptions.some((s: any) => s.plan === "green_card" && s.status === "active" && (!s.expires_at || new Date(s.expires_at) > new Date())))
       );
 
@@ -485,7 +482,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
       setMatrixEarnings(matEarnings);
 
       const hasBoughtStarter = Boolean(
-        profile?.has_purchased_starter_pack ||
+        hasPurchasedStarterPack(profile) ||
         (orders && orders.some((o: any) => o.product_code === "SP-MUSH-100G" && (o.status || "").toUpperCase() === "PAID"))
       );
 
