@@ -90,15 +90,16 @@ export const useWalletStore = create<WalletState>((set, get) => ({
 
       // 1. Official wallet_ledger entries (including CORE_DRIVER_BONUS, direct credits)
       (walletLedgerData || []).forEach((entry: any) => {
-        // Pending loan commissions should not show in UI at all, should only show when not pending
-        if ((entry.status || "").toUpperCase() === "PENDING") return;
+        const statusUpper = (entry.status || "").toUpperCase();
+        const isPending = statusUpper === "PENDING";
+        // Only skip pending loan commissions; allow withdrawals to show as PENDING
+        if (isPending && entry.category !== "WITHDRAWAL") return;
         const isDebit = entry.entry_type === "DEBIT";
         let desc = entry.description || "Wallet Ledger Transaction";
         if (!isAdmin && (entry.category === "CORE_DRIVER_BONUS" || desc.includes("Growth") || desc.includes("Core Partner"))) {
           desc = desc.replace(/from\s+[^()]+\s*\(((?:AGC|GC)[^)]+)\)/gi, "from $1");
         }
-        const statusUpper = (entry.status || "").toUpperCase();
-        const mappedStatus = statusUpper === "FAILED" ? "FAILED" : statusUpper === "REVERSED" ? "REVERSED" : "COMPLETED";
+        const mappedStatus = isPending ? "PENDING" : statusUpper === "FAILED" ? "FAILED" : statusUpper === "REVERSED" ? "REVERSED" : "COMPLETED";
         items.push({
           id: entry.id || `ledger-${entry.reference_id || Math.random()}`,
           date: entry.created_at || new Date().toISOString(),

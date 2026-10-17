@@ -535,9 +535,18 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
       const ledgerSource = apiLedgerEntries.length > 0 ? apiLedgerEntries : (dbWalletLedger || []);
       if (ledgerSource.length > 0) {
         ledgerSource.forEach((entry: any) => {
-          const isPending = (entry.status || "").toUpperCase() === "PENDING";
+          const statusUpper = (entry.status || "").toUpperCase();
+          const isPending = statusUpper === "PENDING";
           // Only skip pending loan commissions; allow withdrawals to show as PENDING
           if (isPending && entry.category !== "WITHDRAWAL") return;
+          const mappedStatus: "COMPLETED" | "PENDING" | "FAILED" | "REVERSED" =
+            isPending
+              ? "PENDING"
+              : statusUpper === "REVERSED"
+              ? "REVERSED"
+              : statusUpper === "FAILED" || statusUpper === "CANCELLED"
+              ? "FAILED"
+              : "COMPLETED";
           items.push({
             id: entry.id || `ledger-${entry.reference_id || Math.random()}`,
             date: entry.created_at || new Date().toISOString(),
@@ -545,7 +554,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
             category: entry.category || "REFERRAL_BONUS",
             amount: Number(entry.amount) || 0,
             description: entry.description || "Wallet Transaction",
-            status: isPending ? "PENDING" : entry.status === "FAILED" ? "FAILED" : "COMPLETED",
+            status: mappedStatus,
             reference: entry.reference_id || entry.id || "N/A",
             is_legacy: entry.category === "CORE_DRIVER_BONUS" ? false : Boolean(entry.is_legacy || isLegacyMember(entry.created_at)),
           });
@@ -555,8 +564,12 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
         (dbWithdrawals || []).forEach((w: any) => {
           const exists = items.some((i) => i.reference === w.reference || i.id === w.id);
           if (!exists) {
-            const isWdPending = ["PENDING", "QUEUED", "PROCESSING"].includes((w.status || "").toUpperCase());
-            const isWdFailed = ["FAILED", "REJECTED", "CANCELLED", "REVERSED"].includes((w.status || "").toUpperCase());
+            const wdStatus = (w.status || "").toUpperCase();
+            const isWdPending = ["PENDING", "QUEUED", "PROCESSING"].includes(wdStatus);
+            const isWdReversed = ["REVERSED", "REJECTED"].includes(wdStatus);
+            const isWdFailed = ["FAILED", "CANCELLED"].includes(wdStatus);
+            const mappedWdStatus: "COMPLETED" | "PENDING" | "FAILED" | "REVERSED" =
+              isWdPending ? "PENDING" : isWdReversed ? "REVERSED" : isWdFailed ? "FAILED" : "COMPLETED";
             items.push({
               id: w.id || `wd-${w.reference}`,
               date: w.created_at || new Date().toISOString(),
@@ -564,26 +577,11 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
               category: "WITHDRAWAL",
               amount: Number(w.amount) || 0,
               description: `Bank withdrawal to ${w.bank_name || "Bank"} (${w.account_number || ""})`,
-              status: isWdPending ? "PENDING" : isWdFailed ? "FAILED" : "COMPLETED",
+              status: mappedWdStatus,
               reference: w.reference || `WD-${w.id.slice(0, 8)}`,
               is_legacy: false,
             });
           }
-        });
-      }
-
-      // 1. Direct referral earnings entries (for non-legacy or fallback if no ledger entries)
-      if (!isLegacy && refEarnings > 0 && !items.some((i) => i.category === "REFERRAL_BONUS" && !i.is_legacy)) {
-        items.push({
-          id: `ref-total-${user.id}`,
-          date: profile?.created_at || new Date().toISOString(),
-          type: "CREDIT",
-          category: "REFERRAL_BONUS",
-          amount: refEarnings,
-          description: `Direct Referral Bonuses (${refCount} active referrals)`,
-          status: "COMPLETED",
-          reference: `DIR-REF-${refCount}`,
-          is_legacy: false,
         });
       }
 

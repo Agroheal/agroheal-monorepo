@@ -72,6 +72,15 @@ export interface AuditEventRecord {
     config_key?: string;
     new_value?: Record<string, unknown>;
     is_update?: boolean;
+    bank_name?: string;
+    bank_code?: string;
+    account_number?: string;
+    account_name?: string;
+    rejection_reason?: string | null;
+    disbursed_count?: number;
+    withdrawal_type?: string;
+    provider?: string;
+    refunded_amount?: number;
   };
   created_at: string;
 }
@@ -82,7 +91,7 @@ export function AdminAuditLogTable() {
   const [logs, setLogs] = useState<AuditEventRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<"all" | "green_card" | "slots" | "financial" | "members" | "operations">("all");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | "green_card" | "slots" | "withdrawals" | "financial" | "members" | "operations">("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [page, setPage] = useState(1);
@@ -121,6 +130,14 @@ export function AdminAuditLogTable() {
       result = result.filter((l) => l.action === "MANUAL_GREEN_CARD_ACTIVATION");
     } else if (categoryFilter === "slots") {
       result = result.filter((l) => l.action === "MANUAL_SLOT_CREDIT");
+    } else if (categoryFilter === "withdrawals") {
+      result = result.filter((l) =>
+        [
+          "WITHDRAWAL_APPROVED",
+          "WITHDRAWAL_REJECTED",
+          "WITHDRAWAL_BATCH_DISBURSE",
+        ].includes(l.action),
+      );
     } else if (categoryFilter === "financial") {
       result = result.filter((l) =>
         [
@@ -172,6 +189,10 @@ export function AdminAuditLogTable() {
         (p.project_category && p.project_category.toLowerCase().includes(q)) ||
         (p.category && p.category.toLowerCase().includes(q)) ||
         (p.transaction_ref && p.transaction_ref.toLowerCase().includes(q)) ||
+        (p.bank_name && p.bank_name.toLowerCase().includes(q)) ||
+        (p.account_number && p.account_number.toLowerCase().includes(q)) ||
+        (p.account_name && p.account_name.toLowerCase().includes(q)) ||
+        (p.rejection_reason && p.rejection_reason.toLowerCase().includes(q)) ||
         (p.notes && p.notes.toLowerCase().includes(q))
       );
     });
@@ -209,6 +230,12 @@ export function AdminAuditLogTable() {
         return "Config Update";
       case "FARM_GROUP_ASSIGNMENT":
         return "Farm Slot Assignment";
+      case "WITHDRAWAL_APPROVED":
+        return "Withdrawal Approved";
+      case "WITHDRAWAL_REJECTED":
+        return "Withdrawal Declined";
+      case "WITHDRAWAL_BATCH_DISBURSE":
+        return "Batch Payout Disbursed";
       default:
         return action;
     }
@@ -233,6 +260,8 @@ export function AdminAuditLogTable() {
         "Amount (₦)": p.amount !== undefined ? p.amount : "-",
         "Rate Tier": p.is_legacy !== undefined ? (p.is_legacy ? "Legacy (₦1,000)" : "Standard (₦2,000)") : "-",
         "Bank Reference": p.transaction_ref || "-",
+        "Bank Details": p.bank_name ? `${p.bank_name} (${p.account_number || ""})` : "-",
+        "Decline Reason": p.rejection_reason || "-",
         "Payment Date": p.payment_date ? new Date(p.payment_date).toLocaleDateString() : "-",
         "Has Receipt": p.receipt_url ? "YES" : "NO",
         "Receipt URL": p.receipt_url || "-",
@@ -266,6 +295,24 @@ export function AdminAuditLogTable() {
         return (
           <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px] font-semibold">
             🌱 Slot Credit ({p.slots || 0})
+          </Badge>
+        );
+      case "WITHDRAWAL_APPROVED":
+        return (
+          <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 text-[10px] font-semibold">
+            ✅ Approved &amp; Paid
+          </Badge>
+        );
+      case "WITHDRAWAL_REJECTED":
+        return (
+          <Badge className="bg-rose-500/10 text-rose-400 border-rose-500/20 text-[10px] font-semibold">
+            ❌ Declined &amp; Reversed
+          </Badge>
+        );
+      case "WITHDRAWAL_BATCH_DISBURSE":
+        return (
+          <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-[10px] font-semibold">
+            💸 Batch Disbursal ({p.disbursed_count || 0})
           </Badge>
         );
       case "MANUAL_TX_FORCE_SETTLE":
@@ -372,12 +419,22 @@ export function AdminAuditLogTable() {
             {p.project_category}
           </span>
         )}
+        {p.bank_name && p.account_number && (
+          <span className="font-mono text-[10px] text-muted-foreground truncate max-w-[240px]">
+            🏦 {p.bank_name} • {p.account_number}
+          </span>
+        )}
+        {p.rejection_reason && (
+          <span className="text-[10px] text-rose-400 font-medium truncate max-w-[240px]" title={p.rejection_reason}>
+            Reason: &ldquo;{p.rejection_reason}&rdquo;
+          </span>
+        )}
         {p.updated_fields && (
           <span className="text-[10px] text-purple-400/90 font-mono truncate max-w-[220px]" title={Object.keys(p.updated_fields).join(", ")}>
             Changed: {Object.keys(p.updated_fields).join(", ")}
           </span>
         )}
-        {p.notes && (
+        {p.notes && !p.rejection_reason && (
           <span className="text-[10px] text-muted-foreground italic truncate max-w-[220px]" title={p.notes}>
             &ldquo;{p.notes}&rdquo;
           </span>
@@ -478,6 +535,15 @@ export function AdminAuditLogTable() {
           className="h-7 text-xs px-2.5 cursor-pointer"
         >
           🌱 Slot Credits
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={categoryFilter === "withdrawals" ? "default" : "outline"}
+          onClick={() => { setCategoryFilter("withdrawals"); setPage(1); }}
+          className="h-7 text-xs px-2.5 cursor-pointer"
+        >
+          💸 Withdrawals &amp; Payouts
         </Button>
         <Button
           type="button"
