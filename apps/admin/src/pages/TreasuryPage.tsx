@@ -22,7 +22,6 @@ import {
   ArrowUpRight,
   X,
   Zap,
-  Play,
   SlidersHorizontal,
   CalendarClock,
   Bell,
@@ -271,7 +270,6 @@ export default function TreasuryPage() {
     min_solvency_lcr: 1.25,
   });
   const [savingPayoutSettings, setSavingPayoutSettings] = useState(false);
-  const [triggeringScheduledDisbursals, setTriggeringScheduledDisbursals] = useState(false);
 
   // Drill-down Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -652,32 +650,6 @@ export default function TreasuryPage() {
       flash(setErrorMessage, err.message || "Failed to update payout settings.");
     } finally {
       setSavingPayoutSettings(false);
-    }
-  };
-
-  const handleTriggerScheduledSweepNow = async () => {
-    if (!isAdmin && !isSuperDeveloper) {
-      flash(setErrorMessage, "Only Platform Admins and Super Developer can trigger disbursements.");
-      return;
-    }
-    const confirmed = window.confirm(
-      "Execute automated scheduled disbursement sweep right now across all pending eligible member withdrawals?"
-    );
-    if (!confirmed) return;
-
-    setTriggeringScheduledDisbursals(true);
-    try {
-      const res = await adminApiClient.crons.triggerScheduledDisbursements();
-      flash(
-        setSuccessMessage,
-        res?.message ||
-          `Scheduled sweep finished: ${res?.result?.disbursedCount || 0} transfer(s) cleared (₦${(res?.result?.totalDisbursed || 0).toLocaleString()}).`
-      );
-      await loadData();
-    } catch (err: any) {
-      flash(setErrorMessage, err.message || "Failed to execute scheduled disbursement sweep.");
-    } finally {
-      setTriggeringScheduledDisbursals(false);
     }
   };
 
@@ -2118,18 +2090,10 @@ export default function TreasuryPage() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={triggeringScheduledDisbursals || withdrawals.length === 0}
-              onClick={handleTriggerScheduledSweepNow}
-              className="text-xs font-semibold gap-1.5 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 cursor-pointer"
-              title="Execute scheduled payout sweep immediately across all pending withdrawals"
-            >
-              <Play className={cn("w-3.5 h-3.5", triggeringScheduledDisbursals && "animate-spin")} />
-              {triggeringScheduledDisbursals ? "Executing Sweep..." : "Run Scheduled Sweep Now"}
-            </Button>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-muted/60 border border-border/60 text-muted-foreground">
+              <CalendarClock className="w-3.5 h-3.5 text-blue-400" />
+              <span>Autonomous Sweeps: 5:00 PM &amp; 11:59 PM WAT</span>
+            </div>
             <Button
               type="button"
               size="sm"
