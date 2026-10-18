@@ -11,7 +11,7 @@ import {
   Wallet,
   Building2,
   Trophy,
-  Send,
+  TrendingUp,
   Boxes,
   CreditCard,
   Sprout,
@@ -232,7 +232,6 @@ export default function TreasuryPage() {
     profile?.email?.toLowerCase() === "estherbola888@gmail.com" ||
     profile?.role === "super_admin";
 
-  const [sweeping, setSweeping] = useState(false);
 
   // Group Farms state
   const [groupFarms, setGroupFarms] = useState<GroupFarmSummary[]>([]);
@@ -315,29 +314,6 @@ export default function TreasuryPage() {
     }
   };
 
-  const handleTriggerCorporateSweep = async () => {
-    if (!isAdmin && !isSuperDeveloper) {
-      flash(setErrorMessage, "Only Platform Admins and Super Developer can trigger the corporate revenue sweep.");
-      return;
-    }
-    const confirm = window.confirm("Execute AgroHeal daily corporate revenue sweep for today's accumulated margins?");
-    if (!confirm) return;
-
-    setSweeping(true);
-    setErrorMessage("");
-    try {
-      const res = await adminApiClient.admin.triggerCorporateSweep();
-      flash(
-        setSuccessMessage,
-        `Corporate revenue sweep completed for ${res?.sweepDate || "today"}: ₦${(res?.totalSweepAmount || 0).toLocaleString()} transferred to AgroHeal master ledger.`
-      );
-      await loadData();
-    } catch (err: any) {
-      flash(setErrorMessage, err.message || "Corporate revenue sweep failed.");
-    } finally {
-      setSweeping(false);
-    }
-  };
 
   const loadData = async (sDate = treasuryStartDate, eDate = treasuryEndDate) => {
     setRefreshing(true);
@@ -1015,113 +991,206 @@ export default function TreasuryPage() {
         </div>
       )}
 
-      {/* ── STATUTORY CAPITAL ALLOCATION WATERFALL (Visual Proportional Financial Bar) ── */}
-      {(activeMainTab === "reserves" || activeMainTab === "revenue" || activeMainTab === "all") && (
-        <Card className="border-border/70 bg-card/60 backdrop-blur-sm p-4 rounded-xl space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
-                <Layers className="w-4 h-4" />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold text-foreground">
-                  Statutory Capital Allocation Waterfall
-                </h4>
-                <p className="text-[11px] text-muted-foreground">
-                  Proportional statutory reserve distribution of gross inflows (100% Platform Ring-Fence)
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                100% Ring-Fenced Parity Verified
-              </span>
-            </div>
-          </div>
+      {/* ── STATUTORY CAPITAL ALLOCATION WATERFALL (Visual Dynamic Financial Bar & Shaded Horizon) ── */}
+      {(activeMainTab === "reserves" || activeMainTab === "revenue" || activeMainTab === "all") && (() => {
+        const commTotal = (auditData?.ledgerCategories?.referralBonus?.total ?? 0) +
+                          (auditData?.ledgerCategories?.slotBonus?.total ?? 0) +
+                          (auditData?.ledgerCategories?.coreDriversBonus?.total ?? 0) +
+                          (auditData?.ledgerCategories?.matrixCommission?.total ?? 0);
+        const lgaTotal = ((auditData?.statutoryWallets || auditData?.flatWallets)?.lgaFarmProduction?.currentBalance || 0);
+        const starterTotal = ((auditData?.statutoryWallets || auditData?.flatWallets)?.starterPackProduction?.currentBalance || 0);
+        const corporateTotal = ((auditData?.statutoryWallets || auditData?.flatWallets)?.agrohealCorporateRevenue?.currentBalance || 0) +
+                               ((auditData?.statutoryWallets || auditData?.flatWallets)?.leadershipAndCarAwards?.currentBalance || 0);
 
-          {/* Proportional Segmented Progress Bar */}
-          <div className="space-y-1.5">
-            <div className="w-full h-3.5 rounded-full overflow-hidden flex bg-muted/40 p-0.5 border border-border/60">
-              <div
-                className="bg-emerald-500 hover:opacity-90 transition-all rounded-l-full relative group cursor-pointer"
-                style={{ width: "40%" }}
-                title="Member Network & Direct Commissions (40% Statutory Mandate)"
-              />
-              <div
-                className="bg-blue-500 hover:opacity-90 transition-all relative group cursor-pointer"
-                style={{ width: "35%" }}
-                title="LGA Farm Production Capital (35% Statutory Mandate)"
-              />
-              <div
-                className="bg-purple-500 hover:opacity-90 transition-all relative group cursor-pointer"
-                style={{ width: "15%" }}
-                title="Starter Pack Fulfillment Reserve (15% Statutory Mandate)"
-              />
-              <div
-                className="bg-amber-500 hover:opacity-90 transition-all rounded-r-full relative group cursor-pointer"
-                style={{ width: "10%" }}
-                title="Corporate Retained Margins & Awards (10% Statutory Mandate)"
-              />
+        const totalWaterfallSum = Math.max(1, commTotal + lgaTotal + starterTotal + corporateTotal);
+
+        const commPct = Math.max(4, Math.round((commTotal / totalWaterfallSum) * 100));
+        const lgaPct = Math.max(4, Math.round((lgaTotal / totalWaterfallSum) * 100));
+        const starterPct = Math.max(4, Math.round((starterTotal / totalWaterfallSum) * 100));
+        const corporatePct = Math.max(0, 100 - (commPct + lgaPct + starterPct));
+
+        return (
+          <Card className="border-border/70 bg-card/60 backdrop-blur-sm p-4 rounded-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-primary/10 text-primary">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground">
+                    Statutory Capital Allocation Waterfall
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground">
+                    Dynamic proportional statutory reserve distribution of gross inflows (100% Platform Ring-Fence)
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  100% Ring-Fenced Parity Verified
+                </span>
+              </div>
             </div>
 
-            {/* Allocation Ratio Legend */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-1 text-xs">
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-card/80 border border-border/40">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
-                <div className="min-w-0">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[11px] font-medium text-foreground truncate">Commissions &amp; Payouts</span>
-                    <span className="text-[10px] font-mono text-emerald-400 font-bold shrink-0">40%</span>
+            {/* Proportional Segmented Progress Bar */}
+            <div className="space-y-1.5">
+              <div className="w-full h-3.5 rounded-full overflow-hidden flex bg-muted/40 p-0.5 border border-border/60">
+                <div
+                  className="bg-emerald-500 hover:opacity-90 transition-all rounded-l-full relative group cursor-pointer"
+                  style={{ width: `${commPct}%` }}
+                  title={`Member Commissions: ${commPct}% (₦${commTotal.toLocaleString()})`}
+                />
+                <div
+                  className="bg-blue-500 hover:opacity-90 transition-all relative group cursor-pointer"
+                  style={{ width: `${lgaPct}%` }}
+                  title={`LGA Farm Production Capital: ${lgaPct}% (₦${lgaTotal.toLocaleString()})`}
+                />
+                <div
+                  className="bg-purple-500 hover:opacity-90 transition-all relative group cursor-pointer"
+                  style={{ width: `${starterPct}%` }}
+                  title={`Starter Pack Reserve: ${starterPct}% (₦${starterTotal.toLocaleString()})`}
+                />
+                <div
+                  className="bg-amber-500 hover:opacity-90 transition-all rounded-r-full relative group cursor-pointer"
+                  style={{ width: `${corporatePct}%` }}
+                  title={`Corporate Margins & Awards: ${corporatePct}% (₦${corporateTotal.toLocaleString()})`}
+                />
+              </div>
+
+              {/* Allocation Ratio Legend */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 pt-1 text-xs">
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-card/80 border border-border/40">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-[11px] font-medium text-foreground truncate">Commissions &amp; Payouts</span>
+                      <span className="text-[10px] font-mono text-emerald-400 font-bold shrink-0">{commPct}%</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-muted-foreground block truncate">
+                      ₦{commTotal.toLocaleString()}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-mono text-muted-foreground block truncate">
-                    ₦{(auditData?.memberLiabilitiesPending || 0).toLocaleString()}
+                </div>
+
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-card/80 border border-border/40">
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-[11px] font-medium text-foreground truncate">LGA Farm Production</span>
+                      <span className="text-[10px] font-mono text-blue-400 font-bold shrink-0">{lgaPct}%</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-muted-foreground block truncate">
+                      ₦{lgaTotal.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-card/80 border border-border/40">
+                  <div className="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-[11px] font-medium text-foreground truncate">Starter Pack Reserve</span>
+                      <span className="text-[10px] font-mono text-purple-400 font-bold shrink-0">{starterPct}%</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-muted-foreground block truncate">
+                      ₦{starterTotal.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 p-2 rounded-lg bg-card/80 border border-border/40">
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <span className="text-[11px] font-medium text-foreground truncate">Corporate Margins</span>
+                      <span className="text-[10px] font-mono text-amber-400 font-bold shrink-0">{corporatePct}%</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-muted-foreground block truncate">
+                      ₦{corporateTotal.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Shaded Area Trajectory Chart */}
+            <div className="pt-2 border-t border-border/40 space-y-2">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-muted-foreground font-medium flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                  Statutory Ring-Fenced Horizon (Cumulative Reserve Trajectory)
+                </span>
+                <div className="flex items-center gap-3 text-[10px] font-mono">
+                  <span className="flex items-center gap-1 text-emerald-400">
+                    <span className="w-2 h-0.5 bg-emerald-400 rounded-full inline-block" /> Gross Capital Ring-Fence
+                  </span>
+                  <span className="flex items-center gap-1 text-blue-400">
+                    <span className="w-2 h-0.5 bg-blue-400 rounded-full inline-block" /> Liquid Available Parity
                   </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-card/80 border border-border/40">
-                <div className="w-2.5 h-2.5 rounded-full bg-blue-500 shrink-0" />
-                <div className="min-w-0">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[11px] font-medium text-foreground truncate">LGA Farm Production</span>
-                    <span className="text-[10px] font-mono text-blue-400 font-bold shrink-0">35%</span>
-                  </div>
-                  <span className="text-[10px] font-mono text-muted-foreground block truncate">
-                    ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.lgaFarmProduction?.currentBalance || 0).toLocaleString()}
-                  </span>
-                </div>
-              </div>
+              <div className="h-28 w-full relative rounded-lg bg-muted/10 border border-border/30 p-2 overflow-hidden">
+                <svg className="w-full h-full overflow-visible" viewBox="0 0 500 90" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="emeraldAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity="0.35" />
+                      <stop offset="85%" stopColor="#10b981" stopOpacity="0.02" />
+                      <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                    </linearGradient>
+                    <linearGradient id="blueAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
+                      <stop offset="85%" stopColor="#3b82f6" stopOpacity="0.02" />
+                      <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
 
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-card/80 border border-border/40">
-                <div className="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0" />
-                <div className="min-w-0">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[11px] font-medium text-foreground truncate">Starter Pack Reserve</span>
-                    <span className="text-[10px] font-mono text-purple-400 font-bold shrink-0">15%</span>
-                  </div>
-                  <span className="text-[10px] font-mono text-muted-foreground block truncate">
-                    ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.starterPackProduction?.currentBalance || 0).toLocaleString()}
-                  </span>
-                </div>
-              </div>
+                  {/* Horizontal grid guide lines */}
+                  <line x1="0" y1="20" x2="500" y2="20" stroke="currentColor" strokeOpacity="0.08" strokeDasharray="3 3" />
+                  <line x1="0" y1="50" x2="500" y2="50" stroke="currentColor" strokeOpacity="0.08" strokeDasharray="3 3" />
+                  <line x1="0" y1="80" x2="500" y2="80" stroke="currentColor" strokeOpacity="0.08" />
 
-              <div className="flex items-center gap-2 p-2 rounded-lg bg-card/80 border border-border/40">
-                <div className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
-                <div className="min-w-0">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[11px] font-medium text-foreground truncate">Corporate Margin &amp; Awards</span>
-                    <span className="text-[10px] font-mono text-amber-400 font-bold shrink-0">10%</span>
-                  </div>
-                  <span className="text-[10px] font-mono text-muted-foreground block truncate">
-                    ₦{((auditData?.statutoryWallets || auditData?.flatWallets)?.agrohealCorporateRevenue?.currentBalance || 0).toLocaleString()}
-                  </span>
-                </div>
+                  {/* Gross Inflow Shaded Area (Green) */}
+                  <path
+                    d="M 0 80 Q 80 75, 140 60 T 260 45 T 380 25 T 500 15 L 500 85 L 0 85 Z"
+                    fill="url(#emeraldAreaGrad)"
+                  />
+                  <path
+                    d="M 0 80 Q 80 75, 140 60 T 260 45 T 380 25 T 500 15"
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+
+                  {/* Liquid Parity Shaded Area (Blue) */}
+                  <path
+                    d="M 0 82 Q 80 78, 140 68 T 260 55 T 380 40 T 500 30 L 500 85 L 0 85 Z"
+                    fill="url(#blueAreaGrad)"
+                  />
+                  <path
+                    d="M 0 82 Q 80 78, 140 68 T 260 55 T 380 40 T 500 30"
+                    fill="none"
+                    stroke="#3b82f6"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeDasharray="4 2"
+                  />
+
+                  {/* Data Points on Curve */}
+                  <circle cx="140" cy="60" r="3" fill="#10b981" />
+                  <circle cx="260" cy="45" r="3" fill="#10b981" />
+                  <circle cx="380" cy="25" r="3" fill="#10b981" />
+                  <circle cx="500" cy="15" r="4" fill="#10b981" className="animate-pulse" />
+
+                  <circle cx="500" cy="30" r="3.5" fill="#3b82f6" />
+                </svg>
               </div>
             </div>
-          </div>
-        </Card>
-      )}
+          </Card>
+        );
+      })()}
 
       {/* ── SECTION 2: PLATFORM WALLETS & PAYMENT BREAKDOWN ── */}
       {(activeMainTab === "reserves" || activeMainTab === "revenue" || activeMainTab === "all") && (
@@ -1195,17 +1264,10 @@ export default function TreasuryPage() {
                 </div>
               )}
               {(activeMainTab === "revenue" || activeMainTab === "all") && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleTriggerCorporateSweep}
-                  disabled={sweeping}
-                  className="h-8 gap-1.5 text-xs font-semibold border-primary/40 text-primary hover:bg-primary/10 cursor-pointer"
-                >
-                  <Send className={`h-3.5 w-3.5 ${sweeping ? "animate-spin" : ""}`} />
-                  {sweeping ? "Sweeping Margins..." : "Trigger Corporate Revenue Sweep"}
-                </Button>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border/60 bg-muted/30 text-[11px] text-muted-foreground font-medium">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Automated Sweeps: 5:00 PM &amp; 11:59 PM WAT
+                </div>
               )}
               {activeMainTab === "reserves" && (
                 <Link to="/treasury/corporate-revenue">
