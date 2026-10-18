@@ -62,3 +62,6 @@ export function useAdminTierFilter(): AdminTierContextValue {
   }
   return context;
 }
+
+export { useTierPartitioned, partitionCollectionByTier, filterCollectionByTier, defaultIsLegacy } from "@/hooks/useTierPartitioned";
+export type { TierPartitions, TierCounts, TierPartitionResult, UseTierPartitionedOptions } from "@/hooks/useTierPartitioned";

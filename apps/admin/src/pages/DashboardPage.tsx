@@ -14,7 +14,7 @@ import {
   Banknote,
 } from "lucide-react";
 import { useAdminMembers } from "@/hooks/useAdminMembers";
-import { useAdminTierFilter } from "@/context/AdminTierContext";
+import { useAdminTierFilter, useTierPartitioned } from "@/context/AdminTierContext";
 import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import { StatCard } from "@/components/admin/StatCard";
 import { SlotCreditorForm } from "@/components/admin/SlotCreditorForm";
@@ -69,22 +69,9 @@ export default function DashboardPage() {
     setTimeout(() => fn(""), 4000);
   };
 
-  // Dynamically adapt records to active global tier
-  const displayedMembers = useMemo(() => {
-    return members.filter((m) => {
-      if (tier === "live") return !m.is_legacy;
-      if (tier === "legacy") return Boolean(m.is_legacy);
-      return true;
-    });
-  }, [members, tier]);
-
-  const displayedLogs = useMemo(() => {
-    return paymentLogs.filter((p) => {
-      if (tier === "live") return !p.is_legacy;
-      if (tier === "legacy") return Boolean(p.is_legacy);
-      return true;
-    });
-  }, [paymentLogs, tier]);
+  // Decoupled Central Switch & Aggregate Root projections
+  const { active: displayedMembers } = useTierPartitioned(members);
+  const { active: displayedLogs } = useTierPartitioned(paymentLogs);
 
   const registeredMembersCount = useMemo(() => {
     if (serverStats) {

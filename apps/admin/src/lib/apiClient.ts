@@ -345,6 +345,16 @@ export const adminApiClient = {
     getStatus: () => apiRequest<any>("admin/crons/status"),
     triggerReconciliation: () => apiRequest<any>("admin/crons/reconciliation", { method: "POST" }),
     triggerPqvEvaluation: () => apiRequest<any>("admin/crons/pqv-evaluation", { method: "POST" }),
+    triggerScheduledDisbursements: () =>
+      apiRequest<{
+        success: boolean;
+        message: string;
+        result?: {
+          disbursedCount: number;
+          totalDisbursed: number;
+          solvencyShield: any;
+        };
+      }>("admin/crons/scheduled-disbursements", { method: "POST" }),
   },
   cycles: {
     draftHarvestYield: (payload: {
@@ -410,6 +420,37 @@ export const adminApiClient = {
         solvencyShield: any;
       }>("admin/withdrawals/batch-disburse", {
         method: "POST",
+        body: JSON.stringify(payload),
+      }),
+    getPayoutSettings: () =>
+      apiRequest<{
+        mode: "manual" | "instant" | "scheduled";
+        cron_frequency: "daily" | "weekly";
+        cron_scheduled_time: string;
+        weekly_day_of_week: number;
+        instant_alerts_enabled: boolean;
+        max_single_auto_disbursal: number;
+        max_daily_auto_disbursal: number;
+        min_solvency_lcr: number;
+        updated_at: string;
+        updated_by: string | null;
+      }>("admin/treasury/payout-settings"),
+    updatePayoutSettings: (payload: {
+      mode?: "manual" | "instant" | "scheduled";
+      cron_frequency?: "daily" | "weekly";
+      cron_scheduled_time?: string;
+      weekly_day_of_week?: number;
+      instant_alerts_enabled?: boolean;
+      max_single_auto_disbursal?: number;
+      max_daily_auto_disbursal?: number;
+      min_solvency_lcr?: number;
+    }) =>
+      apiRequest<{
+        success: boolean;
+        message: string;
+        settings: any;
+      }>("admin/treasury/payout-settings", {
+        method: "PUT",
         body: JSON.stringify(payload),
       }),
   },

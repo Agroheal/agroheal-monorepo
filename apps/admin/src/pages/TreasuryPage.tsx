@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ShieldCheck,
@@ -21,6 +21,11 @@ import {
   Search,
   ArrowUpRight,
   X,
+  Zap,
+  Play,
+  SlidersHorizontal,
+  CalendarClock,
+  Bell,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +44,7 @@ import { formatWATDateTime } from "@/lib/dateTimeFormat";
 import { adminApiClient } from "@/lib/apiClient";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useAdminTierFilter } from "@/context/AdminTierContext";
+import { useTierPartitioned } from "@/hooks/useTierPartitioned";
 import { DateRangeFilter } from "@/components/common/DateRangeFilter";
 import { cn } from "@/lib/utils";
 
@@ -231,19 +237,42 @@ export default function TreasuryPage() {
   // Group Farms state
   const [groupFarms, setGroupFarms] = useState<GroupFarmSummary[]>([]);
 
-  // Filter Group Farms by active tier
-  const filteredGroupFarms = useMemo(() => {
-    return groupFarms.filter((farm) => {
-      const isLegacy =
-        farm.slug.toLowerCase().includes("gingertown") ||
-        farm.slug.toLowerCase().includes("mushroom-village") ||
-        farm.name.toLowerCase().includes("gingertown") ||
-        farm.name.toLowerCase().includes("mushroom village");
-      if (currentTier === "modern") return !isLegacy;
-      if (currentTier === "legacy") return isLegacy;
-      return true;
-    });
-  }, [groupFarms, currentTier]);
+  // Decoupled Central Switch & Aggregate Root: Filter Group Farms by active tier using useTierPartitioned
+  const { active: filteredGroupFarms } = useTierPartitioned(groupFarms, {
+    isLegacyFn: (farm) => {
+      const slug = farm.slug?.toLowerCase() || "";
+      const name = farm.name?.toLowerCase() || "";
+      return (
+        slug.includes("gingertown") ||
+        slug.includes("mushroom-village") ||
+        name.includes("gingertown") ||
+        name.includes("mushroom village")
+      );
+    },
+  });
+
+  // Automated Payout Engine & Cron Settings State
+  const [payoutSettings, setPayoutSettings] = useState<{
+    mode: "manual" | "instant" | "scheduled";
+    cron_frequency: "daily" | "weekly";
+    cron_scheduled_time: string;
+    weekly_day_of_week: number;
+    instant_alerts_enabled: boolean;
+    max_single_auto_disbursal: number;
+    max_daily_auto_disbursal: number;
+    min_solvency_lcr: number;
+  }>({
+    mode: "manual",
+    cron_frequency: "daily",
+    cron_scheduled_time: "09:00",
+    weekly_day_of_week: 5,
+    instant_alerts_enabled: true,
+    max_single_auto_disbursal: 10000,
+    max_daily_auto_disbursal: 25000,
+    min_solvency_lcr: 1.25,
+  });
+  const [savingPayoutSettings, setSavingPayoutSettings] = useState(false);
+  const [triggeringScheduledDisbursals, setTriggeringScheduledDisbursals] = useState(false);
 
   // Drill-down Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -314,12 +343,13 @@ export default function TreasuryPage() {
     setRefreshing(true);
     setAuditError(null);
     try {
-      // 1. Load Executive Treasury Audit, Pending Withdrawals, Group Farms, and Live Flutterwave Balance in parallel
-      const [auditRes, queueRes, farmsRes, liveBalRes] = await Promise.allSettled([
+      // 1. Load Executive Treasury Audit, Pending Withdrawals, Group Farms, Live Flutterwave Balance, and Payout Settings in parallel
+      const [auditRes, queueRes, farmsRes, liveBalRes, payoutSettingsRes] = await Promise.allSettled([
         adminApiClient.admin.getTreasuryAudit({ startDate: sDate, endDate: eDate, tier: currentTier }),
         adminApiClient.withdrawals.listWithdrawals(),
         adminApiClient.admin.getGroupFarms(),
         adminApiClient.withdrawals.getLiveBalance(),
+        adminApiClient.withdrawals.getPayoutSettings(),
       ]);
 
       if (auditRes.status === "fulfilled" && auditRes.value) {
@@ -346,6 +376,10 @@ export default function TreasuryPage() {
         if (!useManualBalance) {
           setLiquidBankBalance(liveBalRes.value.availableBalance);
         }
+      }
+
+      if (payoutSettingsRes.status === "fulfilled" && payoutSettingsRes.value) {
+        setPayoutSettings(payoutSettingsRes.value);
       }
 
       // 2. Initial Solvency Shield Evaluation using live Flutterwave or manual balance
@@ -629,6 +663,48 @@ export default function TreasuryPage() {
     }
   };
 
+  const handleSavePayoutSettings = async () => {
+    if (!isAdmin && !isSuperDeveloper) {
+      flash(setErrorMessage, "Only Platform Admins and Super Developer can modify payout settings.");
+      return;
+    }
+    setSavingPayoutSettings(true);
+    try {
+      await adminApiClient.withdrawals.updatePayoutSettings(payoutSettings);
+      flash(setSuccessMessage, "Automated Treasury Payout settings updated successfully.");
+    } catch (err: any) {
+      flash(setErrorMessage, err.message || "Failed to update payout settings.");
+    } finally {
+      setSavingPayoutSettings(false);
+    }
+  };
+
+  const handleTriggerScheduledSweepNow = async () => {
+    if (!isAdmin && !isSuperDeveloper) {
+      flash(setErrorMessage, "Only Platform Admins and Super Developer can trigger disbursements.");
+      return;
+    }
+    const confirmed = window.confirm(
+      "Execute automated scheduled disbursement sweep right now across all pending eligible member withdrawals?"
+    );
+    if (!confirmed) return;
+
+    setTriggeringScheduledDisbursals(true);
+    try {
+      const res = await adminApiClient.crons.triggerScheduledDisbursements();
+      flash(
+        setSuccessMessage,
+        res?.message ||
+          `Scheduled sweep finished: ${res?.result?.disbursedCount || 0} transfer(s) cleared (₦${(res?.result?.totalDisbursed || 0).toLocaleString()}).`
+      );
+      await loadData();
+    } catch (err: any) {
+      flash(setErrorMessage, err.message || "Failed to execute scheduled disbursement sweep.");
+    } finally {
+      setTriggeringScheduledDisbursals(false);
+    }
+  };
+
   const handleAutoApproveQualified = async () => {
     if (!isSuperAdminOrEsther) {
       flash(setErrorMessage, "Only Super Admin and Esther Bola can authorize statutory auto-approval.");
@@ -899,14 +975,14 @@ export default function TreasuryPage() {
 
           <Card className="border-border/60 bg-card p-4">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Pending Member Liabilities</span>
+              <span>Member Wallet Liabilities</span>
               <Clock className="w-4 h-4 text-amber-400" />
             </div>
             <div className="mt-2 text-xl font-bold font-mono text-amber-300">
-              ₦{(solvencyShield?.totalPendingLiability || 0).toLocaleString()}
+              ₦{(auditData?.memberLiabilitiesPending || 0).toLocaleString()}
             </div>
             <div className="mt-1 text-[11px] text-muted-foreground">
-              {withdrawals.length} pending bank payout request(s)
+              {withdrawals.length} pending payout request(s) (Queue: ₦{(solvencyShield?.totalPendingLiability || 0).toLocaleString()})
             </div>
           </Card>
 
@@ -1946,6 +2022,281 @@ export default function TreasuryPage() {
             </div>
           </div>
         )}
+      </Card>
+
+      {/* ── SECTION: AUTOMATED TREASURY PAYOUT ENGINE & CRON CONTROLS ── */}
+      <Card className="border-border/70 bg-card p-5 sm:p-6 space-y-5 rounded-xl shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <SlidersHorizontal className="w-5 h-5 text-primary" />
+              <h3 className="text-sm font-bold text-foreground">
+                Automated Payout Engine &amp; Cron Controls
+              </h3>
+              <Badge
+                variant="outline"
+                className={
+                  payoutSettings.mode === "instant"
+                    ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10 text-xs"
+                    : payoutSettings.mode === "scheduled"
+                    ? "text-blue-400 border-blue-500/30 bg-blue-500/10 text-xs"
+                    : "text-amber-400 border-amber-500/30 bg-amber-500/10 text-xs"
+                }
+              >
+                {payoutSettings.mode === "instant"
+                  ? "⚡ Instant STP Active"
+                  : payoutSettings.mode === "scheduled"
+                  ? `⏰ Scheduled Cron (${payoutSettings.cron_frequency === "daily" ? "Daily" : "Weekly"})`
+                  : "🛡️ Maker-Checker Manual Queue"}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Configure disbursement automation policy across manual maker-checker authorization, real-time straight-through processing (STP), and customizable background cron sweeps.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={triggeringScheduledDisbursals || withdrawals.length === 0}
+              onClick={handleTriggerScheduledSweepNow}
+              className="text-xs font-semibold gap-1.5 border-blue-500/30 text-blue-400 hover:bg-blue-500/10 cursor-pointer"
+              title="Execute scheduled payout sweep immediately across all pending withdrawals"
+            >
+              <Play className={cn("w-3.5 h-3.5", triggeringScheduledDisbursals && "animate-spin")} />
+              {triggeringScheduledDisbursals ? "Executing Sweep..." : "Run Scheduled Sweep Now"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              disabled={savingPayoutSettings}
+              onClick={handleSavePayoutSettings}
+              className="text-xs font-semibold gap-1.5 cursor-pointer"
+            >
+              {savingPayoutSettings ? "Saving..." : "Save Settings"}
+            </Button>
+          </div>
+        </div>
+
+        {/* 3 Selectable Modes */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Mode 1: Manual Maker-Checker */}
+          <div
+            onClick={() => setPayoutSettings((prev) => ({ ...prev, mode: "manual" }))}
+            className={cn(
+              "p-4 rounded-xl border text-left cursor-pointer transition-all space-y-2",
+              payoutSettings.mode === "manual"
+                ? "border-primary bg-primary/5 ring-1 ring-primary/40 shadow-sm"
+                : "border-border/60 bg-muted/20 hover:border-border"
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                Maker-Checker Manual Queue
+              </span>
+              <input
+                type="radio"
+                name="payout_mode"
+                checked={payoutSettings.mode === "manual"}
+                onChange={() => setPayoutSettings((prev) => ({ ...prev, mode: "manual" }))}
+                className="text-primary focus:ring-primary h-3.5 w-3.5"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Standard dual-authorization workflow. All withdrawals stay held in queue until reviewed and disbursed individually or in batch by an admin.
+            </p>
+            <div className="pt-1 text-[10px] text-amber-400/90 font-medium">
+              Maximum Administrative Oversight
+            </div>
+          </div>
+
+          {/* Mode 2: Instant STP */}
+          <div
+            onClick={() => setPayoutSettings((prev) => ({ ...prev, mode: "instant" }))}
+            className={cn(
+              "p-4 rounded-xl border text-left cursor-pointer transition-all space-y-2",
+              payoutSettings.mode === "instant"
+                ? "border-emerald-500 bg-emerald-500/5 ring-1 ring-emerald-500/40 shadow-sm"
+                : "border-border/60 bg-muted/20 hover:border-border"
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <Zap className="w-4 h-4 text-emerald-400" />
+                Instant Straight-Through (STP)
+              </span>
+              <input
+                type="radio"
+                name="payout_mode"
+                checked={payoutSettings.mode === "instant"}
+                onChange={() => setPayoutSettings((prev) => ({ ...prev, mode: "instant" }))}
+                className="text-emerald-500 focus:ring-emerald-500 h-3.5 w-3.5"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Real-time automated bank transfer as members click withdraw. Strictly gated by Solvency Shield (LCR ≥ 125%) and single/daily velocity caps.
+            </p>
+            <div className="pt-1 text-[10px] text-emerald-400 font-medium">
+              Zero Delay • Instant Member Alerts
+            </div>
+          </div>
+
+          {/* Mode 3: Scheduled Cron */}
+          <div
+            onClick={() => setPayoutSettings((prev) => ({ ...prev, mode: "scheduled" }))}
+            className={cn(
+              "p-4 rounded-xl border text-left cursor-pointer transition-all space-y-2",
+              payoutSettings.mode === "scheduled"
+                ? "border-blue-500 bg-blue-500/5 ring-1 ring-blue-500/40 shadow-sm"
+                : "border-border/60 bg-muted/20 hover:border-border"
+            )}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                <CalendarClock className="w-4 h-4 text-blue-400" />
+                Scheduled Batch Disbursal Cron
+              </span>
+              <input
+                type="radio"
+                name="payout_mode"
+                checked={payoutSettings.mode === "scheduled"}
+                onChange={() => setPayoutSettings((prev) => ({ ...prev, mode: "scheduled" }))}
+                className="text-blue-500 focus:ring-blue-500 h-3.5 w-3.5"
+              />
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Background cron job autonomously executes batch sweeps at recurring intervals (daily or weekly), verifying solvency before releasing funds.
+            </p>
+            <div className="pt-1 text-[10px] text-blue-400 font-medium">
+              Predictable Liquidity • Autonomous Operations
+            </div>
+          </div>
+        </div>
+
+        {/* Customizable Cron Controls (when scheduled or for sweeps) */}
+        <div className="pt-3 border-t border-border/40 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Sweep Frequency</Label>
+            <select
+              value={payoutSettings.cron_frequency}
+              onChange={(e) =>
+                setPayoutSettings((prev) => ({
+                  ...prev,
+                  cron_frequency: e.target.value as "daily" | "weekly",
+                }))
+              }
+              className="w-full text-xs bg-background border border-border/80 rounded-lg px-2.5 py-1.5 font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+            >
+              <option value="daily">Daily Batch Sweep</option>
+              <option value="weekly">Weekly Batch Sweep</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Execution Time (WAT)</Label>
+            <Input
+              type="time"
+              value={payoutSettings.cron_scheduled_time}
+              onChange={(e) =>
+                setPayoutSettings((prev) => ({
+                  ...prev,
+                  cron_scheduled_time: e.target.value || "09:00",
+                }))
+              }
+              className="text-xs font-mono h-8"
+            />
+          </div>
+
+          {payoutSettings.cron_frequency === "weekly" ? (
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Disbursal Day of Week</Label>
+              <select
+                value={payoutSettings.weekly_day_of_week}
+                onChange={(e) =>
+                  setPayoutSettings((prev) => ({
+                    ...prev,
+                    weekly_day_of_week: Number(e.target.value),
+                  }))
+                }
+                className="w-full text-xs bg-background border border-border/80 rounded-lg px-2.5 py-1.5 font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer"
+              >
+                <option value={1}>Monday</option>
+                <option value={2}>Tuesday</option>
+                <option value={3}>Wednesday</option>
+                <option value={4}>Thursday</option>
+                <option value={5}>Friday (Recommended)</option>
+              </select>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Single Transaction Cap (₦)</Label>
+              <Input
+                type="number"
+                min="2000"
+                step="1000"
+                value={payoutSettings.max_single_auto_disbursal}
+                onChange={(e) =>
+                  setPayoutSettings((prev) => ({
+                    ...prev,
+                    max_single_auto_disbursal: Number(e.target.value) || 10000,
+                  }))
+                }
+                className="text-xs font-mono h-8"
+              />
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Daily Aggregate Cap (₦)</Label>
+            <Input
+              type="number"
+              min="5000"
+              step="5000"
+              value={payoutSettings.max_daily_auto_disbursal}
+              onChange={(e) =>
+                setPayoutSettings((prev) => ({
+                  ...prev,
+                  max_daily_auto_disbursal: Number(e.target.value) || 25000,
+                }))
+              }
+              className="text-xs font-mono h-8"
+            />
+          </div>
+        </div>
+
+        {/* Security Guardrails & Instant Notifications Bar */}
+        <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs bg-muted/20 p-3 rounded-lg border border-border/40">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={payoutSettings.instant_alerts_enabled}
+              onChange={(e) =>
+                setPayoutSettings((prev) => ({
+                  ...prev,
+                  instant_alerts_enabled: e.target.checked,
+                }))
+              }
+              className="h-4 w-4 rounded border-border text-emerald-500 focus:ring-emerald-500"
+            />
+            <span className="flex items-center gap-1.5 text-foreground font-medium">
+              <Bell className="w-3.5 h-3.5 text-emerald-400" />
+              Instant Member Alerts (In-App notification &amp; Email receipt as bank transfers complete)
+            </span>
+          </label>
+
+          <div className="flex items-center gap-3 text-muted-foreground text-[11px]">
+            <span>
+              Solvency Floor: <strong className="text-foreground font-mono">{(payoutSettings.min_solvency_lcr * 100).toFixed(0)}% LCR</strong>
+            </span>
+            <span>•</span>
+            <span>
+              Single Cap: <strong className="text-foreground font-mono">₦{payoutSettings.max_single_auto_disbursal.toLocaleString()}</strong>
+            </span>
+          </div>
+        </div>
       </Card>
 
       {/* ── SECTION 3: WITHDRAWALS DISBURSAL QUEUE ── */}
