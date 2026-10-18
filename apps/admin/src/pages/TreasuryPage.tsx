@@ -265,8 +265,8 @@ export default function TreasuryPage() {
     cron_scheduled_time: "09:00",
     weekly_day_of_week: 5,
     instant_alerts_enabled: true,
-    max_single_auto_disbursal: 10000,
-    max_daily_auto_disbursal: 25000,
+    max_single_auto_disbursal: 25000,
+    max_daily_auto_disbursal: 50000,
     min_solvency_lcr: 1.25,
   });
   const [savingPayoutSettings, setSavingPayoutSettings] = useState(false);
@@ -910,14 +910,17 @@ export default function TreasuryPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Card className="border-border/60 bg-card p-4">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Gross Platform Inflows</span>
+              <span className="font-medium">Gross Platform Inflows</span>
               <Coins className="w-4 h-4 text-emerald-400" />
             </div>
-            <div className="mt-2 text-xl font-bold font-mono text-foreground">
-              ₦{(auditData?.totalInflows || 0).toLocaleString()}
+            <div className="mt-2 text-xl font-bold font-mono text-foreground flex items-baseline gap-2">
+              <span>₦{(auditData?.totalInflows || 0).toLocaleString()}</span>
+              <Badge variant="outline" className="text-[10px] text-emerald-400 border-emerald-500/30 bg-emerald-500/10">
+                All-Time Revenue
+              </Badge>
             </div>
-            <div className="mt-1 text-[11px] text-emerald-400/80">
-              Green Cards + Farm Slots + Activations
+            <div className="mt-1 text-[11px] text-muted-foreground">
+              Cumulative historical inflows across all transactions (vs Live Gateway Cash below)
             </div>
           </Card>
 
@@ -2236,7 +2239,7 @@ export default function TreasuryPage() {
             />
           </div>
 
-          {payoutSettings.cron_frequency === "weekly" ? (
+          {payoutSettings.cron_frequency === "weekly" && (
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">Disbursal Day of Week</Label>
               <select
@@ -2256,24 +2259,24 @@ export default function TreasuryPage() {
                 <option value={5}>Friday (Recommended)</option>
               </select>
             </div>
-          ) : (
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">Single Transaction Cap (₦)</Label>
-              <Input
-                type="number"
-                min="2000"
-                step="1000"
-                value={payoutSettings.max_single_auto_disbursal}
-                onChange={(e) =>
-                  setPayoutSettings((prev) => ({
-                    ...prev,
-                    max_single_auto_disbursal: Number(e.target.value) || 10000,
-                  }))
-                }
-                className="text-xs font-mono h-8"
-              />
-            </div>
           )}
+
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Single Transaction Cap (₦)</Label>
+            <Input
+              type="number"
+              min="2000"
+              step="1000"
+              value={payoutSettings.max_single_auto_disbursal}
+              onChange={(e) =>
+                setPayoutSettings((prev) => ({
+                  ...prev,
+                  max_single_auto_disbursal: Number(e.target.value) || 25000,
+                }))
+              }
+              className="text-xs font-mono h-8"
+            />
+          </div>
 
           <div className="space-y-1">
             <Label className="text-xs text-muted-foreground">Daily Aggregate Cap (₦)</Label>
@@ -2285,7 +2288,7 @@ export default function TreasuryPage() {
               onChange={(e) =>
                 setPayoutSettings((prev) => ({
                   ...prev,
-                  max_daily_auto_disbursal: Number(e.target.value) || 25000,
+                  max_daily_auto_disbursal: Number(e.target.value) || 50000,
                 }))
               }
               className="text-xs font-mono h-8"
