@@ -156,15 +156,16 @@ export default function CoreDriversPage() {
       const profileMap = new Map((profiles || []).map((p) => [p.email?.toLowerCase(), p]));
       const profileIds = (profiles || []).map((p) => p.id).filter(Boolean);
 
-      // 4. Fetch ledger entries for CORE_DRIVER_BONUS
+      // 4. Fetch ledger entries for CORE_DRIVER_BONUS (excluding reversed entries)
       const { data: ledgerEntries } = await supabase
         .from("wallet_ledger")
         .select("user_id, amount, category, status")
-        .eq("category", "CORE_DRIVER_BONUS");
+        .eq("category", "CORE_DRIVER_BONUS")
+        .neq("status", "REVERSED");
 
       const ledgerMap = new Map<string, number>();
       (ledgerEntries || []).forEach((entry) => {
-        if (entry.user_id) {
+        if (entry.user_id && (entry.status || "").toUpperCase() !== "REVERSED") {
           const prev = ledgerMap.get(entry.user_id) || 0;
           ledgerMap.set(entry.user_id, prev + Number(entry.amount || 0));
         }

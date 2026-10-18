@@ -447,7 +447,8 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
               e.category === "REFERRAL_BONUS" &&
               e.entry_type === "CREDIT" &&
               !e.is_legacy &&
-              (e.status || "").toUpperCase() !== "PENDING"
+              (e.status || "").toUpperCase() !== "PENDING" &&
+              (e.status || "").toUpperCase() !== "REVERSED"
           )
           .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
       }
@@ -475,7 +476,8 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
                 e.category === "CORE_DRIVER_BONUS") &&
               e.entry_type === "CREDIT" &&
               !e.is_legacy &&
-              (e.status || "").toUpperCase() !== "PENDING"
+              (e.status || "").toUpperCase() !== "PENDING" &&
+              (e.status || "").toUpperCase() !== "REVERSED"
           )
           .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
       }
