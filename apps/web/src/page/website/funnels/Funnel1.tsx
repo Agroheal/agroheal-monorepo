@@ -8,13 +8,26 @@ const GREEN_CARD_CONFIG = {
   whatsappUrl:
     "https://wa.me/2349168055000?text=Hello%20Agroheal,%20I%20am%20interested%20in%20the%20Green%20Card%20Organic%20Food%20Revolution",
   videos: {
-    farm: "",
-    launch: "",
-    testimonials: "",
+    farm: "https://youtu.be/MqQ3sYcPDTE?si=rZRpBGpuWrUZ6r-A",
+    launch: "https://youtu.be/vH6_BLQGj0E?si=H6tEBkYHraMnTn7Q",
+    testimonials: "https://youtu.be/A6Q89j6eSpo?si=QAA9QKco2ukn_oir",
     explainer: "",
     advert: "",
   },
 };
+
+function getYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  return match ? match[1] : null;
+}
+
+interface ActiveVideo {
+  key: string;
+  title: string;
+  url: string;
+  videoId: string;
+}
 
 export const Funnel1: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -25,10 +38,20 @@ export const Funnel1: React.FC = () => {
 
   const signupUrl = getSignupUrl();
 
-  const [activeVideoModal, setActiveVideoModal] = useState<string | null>(null);
+  const [activeVideoModal, setActiveVideoModal] = useState<ActiveVideo | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setActiveVideoModal(null);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const handleVideoClick = (
@@ -38,8 +61,9 @@ export const Funnel1: React.FC = () => {
   ) => {
     e.preventDefault();
     const url = GREEN_CARD_CONFIG.videos[key];
-    if (url && url.startsWith("http")) {
-      window.open(url, "_blank", "noopener,noreferrer");
+    const videoId = getYouTubeId(url);
+    if (url && videoId) {
+      setActiveVideoModal({ key, title, url, videoId });
     } else {
       showToast({
         variant: "warning",
@@ -90,20 +114,15 @@ export const Funnel1: React.FC = () => {
             <div>
               <span className="eyebrow">🌍 The Green Card Organic Food Revolution</span>
               <h1>
-                Join the Revolution.
+                Join The Health And Wealth Revolution,
                 <br />
-                <span>Build Your Network.</span>
-                <br />
-                Unlock the Potential.
+                <span>Let's Grow Organic Food And Wealth Together.</span>
               </h1>
               <p>
                 <strong>
-                  A 5×7 matrix. Seven levels. A modelled opportunity of up to ₦15 million at the
-                  Level 7 stage.
-                </strong>{" "}
-                With ₦10,000 qualifying monthly PQV per participant, the fully populated model
-                projects around ₦12.86 million in combined monthly network payouts—subject to
-                performance.
+                  We have a vision to raise millions of healthy and wealthy Africans before 2030 using the
+                  instrumentality of organic agribusiness, with Nigeria as the springboard.
+                </strong>
               </p>
               <div className="actions">
                 <Link className="btn register-link" to={signupUrl}>
@@ -131,8 +150,8 @@ export const Funnel1: React.FC = () => {
             >
               <div>
                 <div className="play">▶</div>
-                <strong>Discover the Green Card Opportunity</strong>
-                <small>Watch the short explainer</small>
+                <strong>Explainer Video</strong>
+                <small>Watch the Explainer Video</small>
               </div>
             </a>
           </div>
@@ -202,86 +221,31 @@ export const Funnel1: React.FC = () => {
           </div>
         </section>
 
-        {/* How it connects Section */}
-        <section className="section dark">
-          <div className="wrap">
-            <div className="head">
-              <div className="kicker">How it connects</div>
-              <h2>Learn. Farm. Consume. Market.</h2>
-              <p>A practical pathway to take part in a community-based food ecosystem.</p>
-            </div>
-            <div className="journey">
-              <div className="step">
-                <b>STEP 01</b>
-                <h3>LEARN</h3>
-                <p>Build skills through LEAP training.</p>
-              </div>
-              <div className="step">
-                <b>STEP 02</b>
-                <h3>FARM</h3>
-                <p>Explore local growing and group-production opportunities.</p>
-              </div>
-              <div className="step">
-                <b>STEP 03</b>
-                <h3>CONSUME</h3>
-                <p>Discover food products and marketplace options.</p>
-              </div>
-              <div className="step">
-                <b>STEP 04</b>
-                <h3>MARKET</h3>
-                <p>Connect with the producer–consumer network.</p>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Videos Section */}
         <section className="section videos" id="videos">
           <div className="wrap">
             <div className="head">
               <div className="kicker">See it. Understand it. Decide.</div>
-              <h2>Explore the movement in five videos</h2>
-              <p>
-                Start with the explainer, then see the work and hear directly from the people
-                involved.
-              </p>
+              <h2>Explore the movement in four videos</h2>
             </div>
             <div className="grid3">
+              {/* 1. Farm Tour */}
               <article className="card">
                 <a
                   className="video-link"
-                  href="#videos"
-                  onClick={(e) => handleVideoClick(e, "explainer", "Explainer Video")}
-                  style={{ textDecoration: "none" }}
-                >
-                  <div className="thumb">
-                    <div>
-                      <div className="play">▶</div>
-                      <b>Ecosystem overview</b>
-                    </div>
-                  </div>
-                </a>
-                <div className="vbody">
-                  <h3>1. Explainer Video</h3>
-                  <p>How the Green Card, LEAP, production, food access and community connect.</p>
-                  <a
-                    className="btn small video-link"
-                    href="#videos"
-                    onClick={(e) => handleVideoClick(e, "explainer", "Explainer Video")}
-                  >
-                    WATCH EXPLAINER →
-                  </a>
-                </div>
-              </article>
-
-              <article className="card">
-                <a
-                  className="video-link"
+                  data-video="farm"
                   href="#videos"
                   onClick={(e) => handleVideoClick(e, "farm", "Farm Tour")}
                   style={{ textDecoration: "none" }}
                 >
-                  <div className="thumb">
+                  <div
+                    className="thumb"
+                    style={{
+                      backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.55)), url('https://img.youtube.com/vi/MqQ3sYcPDTE/hqdefault.jpg')`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  >
                     <div>
                       <div className="play">▶</div>
                       <b>See the work</b>
@@ -289,10 +253,11 @@ export const Funnel1: React.FC = () => {
                   </div>
                 </a>
                 <div className="vbody">
-                  <h3>2. Farm Tour</h3>
+                  <h3>1. Farm Tour</h3>
                   <p>See farming activities and the practical work behind the ecosystem.</p>
                   <a
                     className="btn small video-link"
+                    data-video="farm"
                     href="#videos"
                     onClick={(e) => handleVideoClick(e, "farm", "Farm Tour")}
                   >
@@ -301,14 +266,23 @@ export const Funnel1: React.FC = () => {
                 </div>
               </article>
 
+              {/* 2. Launch Video */}
               <article className="card">
                 <a
                   className="video-link"
+                  data-video="launch"
                   href="#videos"
                   onClick={(e) => handleVideoClick(e, "launch", "Launch Video")}
                   style={{ textDecoration: "none" }}
                 >
-                  <div className="thumb">
+                  <div
+                    className="thumb"
+                    style={{
+                      backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.55)), url('https://img.youtube.com/vi/vH6_BLQGj0E/hqdefault.jpg')`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  >
                     <div>
                       <div className="play">▶</div>
                       <b>Meet the movement</b>
@@ -316,10 +290,11 @@ export const Funnel1: React.FC = () => {
                   </div>
                 </a>
                 <div className="vbody">
-                  <h3>3. Launch Video</h3>
+                  <h3>2. Launch Video</h3>
                   <p>Discover the mission and invitation to build a stronger food ecosystem.</p>
                   <a
                     className="btn small video-link"
+                    data-video="launch"
                     href="#videos"
                     onClick={(e) => handleVideoClick(e, "launch", "Launch Video")}
                   >
@@ -328,14 +303,23 @@ export const Funnel1: React.FC = () => {
                 </div>
               </article>
 
+              {/* 3. Testimonials */}
               <article className="card">
                 <a
                   className="video-link"
+                  data-video="testimonials"
                   href="#videos"
                   onClick={(e) => handleVideoClick(e, "testimonials", "Testimonials Video")}
                   style={{ textDecoration: "none" }}
                 >
-                  <div className="thumb">
+                  <div
+                    className="thumb"
+                    style={{
+                      backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.55)), url('https://img.youtube.com/vi/A6Q89j6eSpo/hqdefault.jpg')`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  >
                     <div>
                       <div className="play">▶</div>
                       <b>Hear member stories</b>
@@ -343,10 +327,11 @@ export const Funnel1: React.FC = () => {
                   </div>
                 </a>
                 <div className="vbody">
-                  <h3>4. Testimonials</h3>
+                  <h3>3. Testimonials</h3>
                   <p>Hear individual experiences; results and experiences may differ.</p>
                   <a
                     className="btn small video-link"
+                    data-video="testimonials"
                     href="#videos"
                     onClick={(e) => handleVideoClick(e, "testimonials", "Testimonials Video")}
                   >
@@ -355,11 +340,13 @@ export const Funnel1: React.FC = () => {
                 </div>
               </article>
 
+              {/* 4. Short Explainer Video */}
               <article className="card">
                 <a
                   className="video-link"
+                  data-video="advert"
                   href="#videos"
-                  onClick={(e) => handleVideoClick(e, "advert", "Campaign Advert")}
+                  onClick={(e) => handleVideoClick(e, "advert", "Short Explainer Video")}
                   style={{ textDecoration: "none" }}
                 >
                   <div className="thumb">
@@ -370,18 +357,20 @@ export const Funnel1: React.FC = () => {
                   </div>
                 </a>
                 <div className="vbody">
-                  <h3>5. Campaign Advert</h3>
-                  <p>Catch the energy of the Green Card Organic Food Revolution.</p>
+                  <h3>4. Short Explainer Video</h3>
+                  <p>A concise introduction to the Green Card Organic Food Ecosystem and how to take the next step.</p>
                   <a
                     className="btn small video-link"
+                    data-video="advert"
                     href="#videos"
-                    onClick={(e) => handleVideoClick(e, "advert", "Campaign Advert")}
+                    onClick={(e) => handleVideoClick(e, "advert", "Short Explainer Video")}
                   >
-                    WATCH ADVERT →
+                    WATCH SHORT EXPLAINER →
                   </a>
                 </div>
               </article>
 
+              {/* 5. Need Guidance / WhatsApp */}
               <article className="card" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
                 <div className="ico">💬</div>
                 <h3>Need guidance?</h3>
@@ -721,6 +710,45 @@ export const Funnel1: React.FC = () => {
           </a>
         </div>
       </div>
+
+      {/* Video Modal Player */}
+      {activeVideoModal && (
+        <div
+          className="funnel-video-modal-backdrop"
+          onClick={() => setActiveVideoModal(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label={activeVideoModal.title}
+        >
+          <div className="funnel-video-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="funnel-video-modal-header">
+              <span className="funnel-video-modal-title">{activeVideoModal.title}</span>
+              <button
+                type="button"
+                className="funnel-video-modal-close"
+                onClick={() => setActiveVideoModal(null)}
+                aria-label="Close video player"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="funnel-video-frame-wrap">
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${activeVideoModal.videoId}?autoplay=1&rel=0`}
+                title={activeVideoModal.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            </div>
+            <div className="funnel-video-modal-footer">
+              <span>Agroheal Green Card Official Video</span>
+              <a href={activeVideoModal.url} target="_blank" rel="noopener noreferrer">
+                Watch on YouTube ↗
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Embedded Scoped Styles Preserving 100% of Visual Fidelity with Key Contrast Enhancements */}
       <style>{`
@@ -1215,6 +1243,88 @@ export const Funnel1: React.FC = () => {
           .funnel-container .card { padding: 20px; }
           .funnel-container .offer { padding: 20px; }
           .funnel-container footer { padding-bottom: 110px; }
+        }
+
+        /* Video Modal Styles */
+        .funnel-video-modal-backdrop {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.88);
+          backdrop-filter: blur(8px);
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+        }
+        .funnel-video-modal {
+          width: min(860px, 100%);
+          background: #042e15;
+          border: 1px solid rgba(255, 255, 255, 0.22);
+          border-radius: 20px;
+          overflow: hidden;
+          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+        }
+        .funnel-video-modal-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 14px 20px;
+          background: #03210f;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .funnel-video-modal-title {
+          font-weight: 850;
+          font-size: 1.05rem;
+          color: #fff;
+        }
+        .funnel-video-modal-close {
+          background: rgba(255, 255, 255, 0.12);
+          border: 0;
+          color: #fff;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          cursor: pointer;
+          display: grid;
+          place-items: center;
+          font-size: 1rem;
+          transition: 0.15s;
+        }
+        .funnel-video-modal-close:hover {
+          background: #ff8a1d;
+          color: #033d1c;
+        }
+        .funnel-video-frame-wrap {
+          position: relative;
+          width: 100%;
+          padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+          background: #000;
+        }
+        .funnel-video-frame-wrap iframe {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          border: 0;
+        }
+        .funnel-video-modal-footer {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 20px;
+          background: #03210f;
+          font-size: 0.88rem;
+          color: rgba(255, 255, 255, 0.75);
+        }
+        .funnel-video-modal-footer a {
+          color: #ffb15e;
+          font-weight: 750;
+          text-decoration: none;
+        }
+        .funnel-video-modal-footer a:hover {
+          text-decoration: underline;
         }
       `}</style>
     </div>
