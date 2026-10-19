@@ -34,7 +34,10 @@ interface WithdrawalModalProps {
   isBankVerified?: boolean;
   userEmail?: string;
   isLegacy?: boolean;
+  hasGreenCard?: boolean;
+  hasFarmSlot?: boolean;
   hasPurchasedStarterPack?: boolean;
+  directReferralsCount?: number;
   onSaveBankToProfile?: (bankDetails: {
     bankName: string;
     accountNumber: string;
@@ -59,7 +62,10 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
   isBankVerified,
   userEmail,
   isLegacy = false,
+  hasGreenCard = true,
+  hasFarmSlot = true,
   hasPurchasedStarterPack = false,
+  directReferralsCount = 0,
   onSuccess,
 }) => {
   const [amount, setAmount] = useState<string>("");
@@ -95,6 +101,30 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
     e.preventDefault();
     setErrorMsg(null);
 
+    // Gate 1: Active Green Card Pass
+    if (!hasGreenCard) {
+      setErrorMsg("Green Card Required: You must be an active Green Card holder to request bank withdrawals.");
+      return;
+    }
+
+    // Gate 2: Farm Slot Ownership
+    if (!hasFarmSlot) {
+      setErrorMsg("Farm Slot Required: You must own at least 1 active Farm Slot to request bank withdrawals.");
+      return;
+    }
+
+    // Gate 3: Mushroom Power / Starter Pack Activation
+    if (!hasPurchasedStarterPack) {
+      setErrorMsg("Mushroom Power Required: You must activate your Starter Pack (Mushroom Power 100g) to request bank withdrawals.");
+      return;
+    }
+
+    // Gate 4: 5 Direct Referrals
+    if (directReferralsCount < 5) {
+      setErrorMsg(`Direct Referrals Required: Bank withdrawals are locked until you refer at least 5 direct members (currently ${directReferralsCount}/5).`);
+      return;
+    }
+
     if (!hasLinkedBank) {
       setErrorMsg("Please link your verified bank account in your Profile Settings first.");
       return;
@@ -105,6 +135,7 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
       return;
     }
 
+    // Gate 5: Minimum ₦2,000 Amount
     const parsedAmount = Number(amount);
     if (!parsedAmount || isNaN(parsedAmount) || parsedAmount < 2000) {
       setErrorMsg("Minimum withdrawal amount is ₦2,000. Negative or invalid amounts are not permitted.");
@@ -114,13 +145,6 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
     if (parsedAmount > currentAvailableBalance) {
       setErrorMsg(
         `Withdrawal amount exceeds your available cleared balance of ₦${currentAvailableBalance.toLocaleString()}.`
-      );
-      return;
-    }
-
-    if (isLegacy && !hasPurchasedStarterPack) {
-      setErrorMsg(
-        "Mushroom Power Required: As a Founding Member, please complete your one-time ₦5,000 Mushroom Power 100g purchase to unlock external bank withdrawals."
       );
       return;
     }

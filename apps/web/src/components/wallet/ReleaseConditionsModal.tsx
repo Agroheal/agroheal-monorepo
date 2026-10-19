@@ -14,6 +14,8 @@ import {
   ArrowRight,
   Clock,
   Sparkles,
+  Layers,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +32,8 @@ interface ReleaseConditionsModalProps {
   activePqv30d: number;
   isProjectSubscribed: boolean;
   hasPurchasedStarterPack: boolean;
+  hasGreenCard?: boolean;
+  hasFarmSlot?: boolean;
   isLegacy?: boolean;
   isLegacyHold?: boolean;
   advanceDebt?: {
@@ -53,6 +57,8 @@ export const ReleaseConditionsModal: React.FC<ReleaseConditionsModalProps> = ({
   activePqv30d,
   isProjectSubscribed,
   hasPurchasedStarterPack,
+  hasGreenCard = true,
+  hasFarmSlot = true,
   isLegacy,
   isLegacyHold,
   advanceDebt,
@@ -60,16 +66,22 @@ export const ReleaseConditionsModal: React.FC<ReleaseConditionsModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  // Gate 1: Starter Package Requirement
-  const isGate1Passed = Boolean(isProjectSubscribed || hasPurchasedStarterPack);
+  // Gate 1: Green Card Lifetime Membership
+  const isGate1Passed = Boolean(hasGreenCard);
 
-  // Gate 2: 5 Direct Referrals (Rules apply uniformly to all earnings; PQV waived by Management)
+  // Gate 2: Farm Slot Ownership
+  const isGate2Passed = Boolean(hasFarmSlot || isProjectSubscribed);
+
+  // Gate 3: Mushroom Power / Starter Pack Activation
+  const isGate3Passed = Boolean(hasPurchasedStarterPack);
+
+  // Gate 4: 5 Direct Referrals (Rules apply uniformly to all earnings)
   const isDirectsMet = directReferralsCount >= 5;
   const isPqvMet = activePqv30d >= 10000;
-  const isGate2Passed = isDirectsMet;
+  const isGate4Passed = isDirectsMet;
 
-  // Gate 3: Minimum ₦2,000 floor
-  const isGate3Passed = availableBalance >= 2000;
+  // Gate 5: Minimum ₦2,000 floor
+  const isGate5Passed = availableBalance >= 2000;
 
   const directsProgress = Math.min(100, Math.round((directReferralsCount / 5) * 100));
   const pqvProgress = Math.min(100, Math.round((activePqv30d / 10000) * 100));
@@ -166,13 +178,13 @@ export const ReleaseConditionsModal: React.FC<ReleaseConditionsModalProps> = ({
               </div>
             )}
 
-            {/* The 3 Statutory Gates */}
+            {/* The 5 Statutory Qualification Gates */}
             <div className="space-y-3.5">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                Statutory Qualification Gates
+                Statutory Qualification Gates (5-Point Release Standard)
               </h3>
 
-              {/* Gate 1: Farm Project / Starter Package */}
+              {/* Gate 1: Green Card Lifetime Pass */}
               <div className={`p-4 rounded-2xl border transition-all ${
                 isGate1Passed
                   ? "bg-emerald-50/70 border-emerald-200"
@@ -192,7 +204,7 @@ export const ReleaseConditionsModal: React.FC<ReleaseConditionsModalProps> = ({
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm text-slate-900">
-                          Gate 1: Farm Project / Starter Package
+                          Gate 1: Green Card Lifetime Pass
                         </span>
                         <Badge
                           className={`text-[10px] font-bold py-0.5 px-2 ${
@@ -205,7 +217,7 @@ export const ReleaseConditionsModal: React.FC<ReleaseConditionsModalProps> = ({
                         </Badge>
                       </div>
                       <p className="text-xs text-slate-600 mt-1">
-                        Active farm slot subscription or Starter Package (Mushroom Power 100g) required for external withdrawals.
+                        Active certified Green Card membership (AGC Member ID) required for account verification and withdrawal rights.
                       </p>
                     </div>
                   </div>
@@ -214,7 +226,121 @@ export const ReleaseConditionsModal: React.FC<ReleaseConditionsModalProps> = ({
                 {!isGate1Passed && (
                   <div className="mt-3 pt-3 border-t border-amber-200/70 flex items-center justify-between">
                     <span className="text-xs text-amber-900 font-medium">
-                      One-time Starter Package activation unlocks eligibility.
+                      One-time ₦2,000 Green Card activation required.
+                    </span>
+                    <Button
+                      asChild
+                      size="sm"
+                      className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold"
+                    >
+                      <Link to="/dashboard/checkout?bundle=greencard" onClick={onClose}>
+                        Activate Green Card <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Gate 2: Farm Slot Ownership */}
+              <div className={`p-4 rounded-2xl border transition-all ${
+                isGate2Passed
+                  ? "bg-emerald-50/70 border-emerald-200"
+                  : "bg-amber-50/70 border-amber-200"
+              }`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-xl shrink-0 mt-0.5 ${
+                      isGate2Passed ? "bg-emerald-600 text-white" : "bg-amber-500 text-white"
+                    }`}>
+                      {isGate2Passed ? (
+                        <CheckCircle2 className="w-4 h-4" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-slate-900">
+                          Gate 2: Farm Slot Ownership
+                        </span>
+                        <Badge
+                          className={`text-[10px] font-bold py-0.5 px-2 ${
+                            isGate2Passed
+                              ? "bg-emerald-600 hover:bg-emerald-600 text-white"
+                              : "bg-amber-600 hover:bg-amber-600 text-white"
+                          }`}
+                        >
+                          {isGate2Passed ? "UNLOCKED" : "ACTION REQUIRED"}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-1">
+                        Ownership of at least 1 active commercial farm slot subscription required for bank disbursements.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {!isGate2Passed && (
+                  <div className="mt-3 pt-3 border-t border-amber-200/70 flex items-center justify-between">
+                    <span className="text-xs text-amber-900 font-medium">
+                      Subscribe to a ₦5,000 commercial farm slot to unlock.
+                    </span>
+                    <Button
+                      asChild
+                      size="sm"
+                      className="bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold"
+                    >
+                      <Link to="/dashboard/checkout?bundle=slot" onClick={onClose}>
+                        Subscribe Slot <ArrowRight className="w-3.5 h-3.5 ml-1" />
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Gate 3: Mushroom Power / Starter Pack Activation */}
+              <div className={`p-4 rounded-2xl border transition-all ${
+                isGate3Passed
+                  ? "bg-emerald-50/70 border-emerald-200"
+                  : "bg-amber-50/70 border-amber-200"
+              }`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className={`p-2 rounded-xl shrink-0 mt-0.5 ${
+                      isGate3Passed ? "bg-emerald-600 text-white" : "bg-amber-500 text-white"
+                    }`}>
+                      {isGate3Passed ? (
+                        <CheckCircle2 className="w-4 h-4" />
+                      ) : (
+                        <AlertCircle className="w-4 h-4" />
+                      )}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-sm text-slate-900">
+                          Gate 3: Mushroom Power (Starter Pack)
+                        </span>
+                        <Badge
+                          className={`text-[10px] font-bold py-0.5 px-2 ${
+                            isGate3Passed
+                              ? "bg-emerald-600 hover:bg-emerald-600 text-white"
+                              : "bg-amber-600 hover:bg-amber-600 text-white"
+                          }`}
+                        >
+                          {isGate3Passed ? "UNLOCKED" : "ACTION REQUIRED"}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-slate-600 mt-1">
+                        Starter Package (Mushroom Power 100g — ₦5,000) activation required for network earnings disbursement.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {!isGate3Passed && (
+                  <div className="mt-3 pt-3 border-t border-amber-200/70 flex items-center justify-between">
+                    <span className="text-xs text-amber-900 font-medium">
+                      One-time Starter Package (₦5,000) unlocks disbursement eligibility.
                     </span>
                     <Button
                       asChild
@@ -229,18 +355,18 @@ export const ReleaseConditionsModal: React.FC<ReleaseConditionsModalProps> = ({
                 )}
               </div>
 
-              {/* Gate 2: 5x7 Matrix Spillover Qualification */}
+              {/* Gate 4: 5 Direct Personally Sponsored Referrals */}
               <div className={`p-4 rounded-2xl border transition-all ${
-                isGate2Passed
+                isGate4Passed
                   ? "bg-emerald-50/70 border-emerald-200"
                   : "bg-slate-50 border-slate-200"
               }`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3">
                     <div className={`p-2 rounded-xl shrink-0 mt-0.5 ${
-                      isGate2Passed ? "bg-emerald-600 text-white" : "bg-slate-400 text-white"
+                      isGate4Passed ? "bg-emerald-600 text-white" : "bg-slate-400 text-white"
                     }`}>
-                      {isGate2Passed ? (
+                      {isGate4Passed ? (
                         <CheckCircle2 className="w-4 h-4" />
                       ) : (
                         <Lock className="w-4 h-4" />
@@ -249,20 +375,20 @@ export const ReleaseConditionsModal: React.FC<ReleaseConditionsModalProps> = ({
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-sm text-slate-900">
-                          Gate 2: 5 Direct Personally Sponsored Referrals
+                          Gate 4: 5 Direct Personally Sponsored Referrals
                         </span>
                         <Badge
                           className={`text-[10px] font-bold py-0.5 px-2 ${
-                            isGate2Passed
+                            isGate4Passed
                               ? "bg-emerald-600 hover:bg-emerald-600 text-white"
                               : "bg-slate-600 hover:bg-slate-600 text-white"
                           }`}
                         >
-                          {isGate2Passed ? "QUALIFIED" : "IN PROGRESS"}
+                          {isGate4Passed ? "QUALIFIED" : "IN PROGRESS"}
                         </Badge>
                       </div>
                       <p className="text-xs text-slate-600 mt-1">
-                        Requires 5 direct personally sponsored referrals. (Rolling 30-day PQV is currently waived by Management).
+                        Requires at least 5 personally referred members with verified Green Cards.
                       </p>
                     </div>
                   </div>
@@ -290,34 +416,10 @@ export const ReleaseConditionsModal: React.FC<ReleaseConditionsModalProps> = ({
                     </div>
                   </div>
 
-                  {/* 30-Day PQV Progress (Waived by Management) */}
-                  <div>
-                    <div className="flex justify-between text-xs font-semibold mb-1">
-                      <span className="flex items-center gap-1.5 text-slate-700">
-                        <ShoppingBag className="w-3.5 h-3.5 text-slate-500" />
-                        Rolling 30-Day Product PQV
-                        <span className="text-[10px] text-emerald-600 font-normal bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
-                          Waived
-                        </span>
-                      </span>
-                      <span className="text-slate-600">
-                        ₦{activePqv30d.toLocaleString()} / ₦10,000 (Grace Period)
-                      </span>
-                    </div>
-                    <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          isPqvMet ? "bg-emerald-600" : "bg-purple-600"
-                        }`}
-                        style={{ width: `${pqvProgress}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {!isGate2Passed && (
+                  {!isGate4Passed && (
                     <div className="pt-1 flex items-center justify-between text-xs">
                       <span className="text-slate-500">
-                        Matrix reserve: <strong className="text-slate-800">₦{matrixEarnings.toLocaleString()}</strong>
+                        Referral requirement: <strong className="text-slate-800">{Math.max(0, 5 - directReferralsCount)} more direct recruit(s) needed</strong>
                       </span>
                       <Button
                         asChild
@@ -334,31 +436,31 @@ export const ReleaseConditionsModal: React.FC<ReleaseConditionsModalProps> = ({
                 </div>
               </div>
 
-              {/* Gate 3: Statutory Minimum ₦2,000 Floor */}
+              {/* Gate 5: Statutory Minimum ₦2,000 Floor */}
               <div className={`p-4 rounded-2xl border transition-all ${
-                isGate3Passed
+                isGate5Passed
                   ? "bg-emerald-50/70 border-emerald-200"
                   : "bg-slate-50 border-slate-200"
               }`}>
                 <div className="flex items-start gap-3">
                   <div className={`p-2 rounded-xl shrink-0 mt-0.5 ${
-                    isGate3Passed ? "bg-emerald-600 text-white" : "bg-slate-400 text-white"
+                    isGate5Passed ? "bg-emerald-600 text-white" : "bg-slate-400 text-white"
                   }`}>
                     <Coins className="w-4 h-4" />
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-sm text-slate-900">
-                        Gate 3: Minimum ₦2,000 Disbursement Floor
+                        Gate 5: Minimum ₦2,000 Disbursement Floor
                       </span>
                       <Badge
                         className={`text-[10px] font-bold py-0.5 px-2 ${
-                          isGate3Passed
+                          isGate5Passed
                             ? "bg-emerald-600 hover:bg-emerald-600 text-white"
                             : "bg-slate-500 hover:bg-slate-500 text-white"
                         }`}
                       >
-                        {isGate3Passed ? "MET" : `₦${(2000 - availableBalance).toLocaleString()} NEEDED`}
+                        {isGate5Passed ? "MET" : `₦${Math.max(0, 2000 - availableBalance).toLocaleString()} NEEDED`}
                       </Badge>
                     </div>
                     <p className="text-xs text-slate-600 mt-1">

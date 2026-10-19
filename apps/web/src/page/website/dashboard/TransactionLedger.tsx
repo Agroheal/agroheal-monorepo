@@ -128,6 +128,8 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState<boolean>(false);
   const [isReleaseModalOpen, setIsReleaseModalOpen] = useState<boolean>(false);
   const [isProjectSubscribed, setIsProjectSubscribed] = useState<boolean>(false);
+  const [hasFarmSlotState, setHasFarmSlotState] = useState<boolean>(false);
+  const [hasMushroomPowerState, setHasMushroomPowerState] = useState<boolean>(false);
   const [subscribingWithWallet, setSubscribingWithWallet] = useState<boolean>(false);
   const [copiedRef, setCopiedRef] = useState<string | null>(null);
   const [copiedDesc, setCopiedDesc] = useState<string | null>(null);
@@ -154,7 +156,28 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
     return legacyTransactions.filter((t) => t.category === "SLOT_PURCHASE" || t.category === "FARM_CONTRIBUTION").length;
   }, [legacyTransactions]);
 
-  const getCategoryLabel = (category: string) => {
+  const formatLedgerDate = (dateVal: any) => {
+    if (!dateVal) return { dateStr: "-", timeStr: "-" };
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return { dateStr: "-", timeStr: "-" };
+    return {
+      dateStr: new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Africa/Lagos",
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }).format(d),
+      timeStr: new Intl.DateTimeFormat("en-US", {
+        timeZone: "Africa/Lagos",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }).format(d),
+    };
+  };
+
+  const getCategoryLabel = (category?: string | null) => {
+    if (!category) return "Transaction";
     switch (category) {
       case "COMBO_PACKAGE":
         return "Starter Bundle";
@@ -183,21 +206,36 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
       case "CORP_PROMO_GRANT":
         return "Corporate Promo Grant";
       default:
-        return category.replace(/_/g, " ");
+        return String(category).replace(/_/g, " ");
     }
   };
 
-  // Withdrawal Qualification: Rules apply uniformly to ALL earnings (not just matrix).
-  // 1. Must have >= 5 direct referrals (personally referred members, not spillover)
-  // 2. PQV requirement is currently not enforced/waived by Management.
-  // 3. Minimum withdrawal threshold of ₦2,000.
-  // 4. Legacy balances remain strictly on hold.
+  // Withdrawal Qualification: Rules apply uniformly to ALL earnings.
+  // Statutory 5-Point Invariant:
+  // 1. Green Card Active (must have active Green Card)
+  // 2. Farm Slot Ownership (must own at least 1 farm slot)
+  // 3. Mushroom Power / Starter Pack (must have purchased Starter Pack / Mushroom Power)
+  // 4. 5 Direct Recruits (must have referred at least 5 direct members)
+  // 5. Minimum withdrawal threshold of ₦2,000.
   const isDirectsQualified = directReferralsCount >= 5;
   const isMatrixQualified = isDirectsQualified;
   const isDirectReferralWithdrawable = isDirectsQualified;
   // Pay from wallet temporarily disabled/commented out as requested
   const canSubscribeWithWallet = false;
-  const hasGreenCard = Boolean(memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING"));
+  const hasGreenCard = Boolean(
+    isGreenCardHolder(userProfile) ||
+    (memberId && memberId !== "NO GREENCARD YET" && !memberId.includes("PENDING"))
+  );
+  const hasFarmSlot = Boolean(hasFarmSlotState || isProjectSubscribed);
+  const hasMushroomPower = Boolean(hasMushroomPowerState || hasPurchasedStarterPack(userProfile));
+
+  // All 5 criteria must be satisfied for any earnings to become withdrawable:
+  // 1. Green Card pass
+  // 2. Commercial Farm Slot
+  // 3. Mushroom Power 100g
+  // 4. 5 Direct Referrals
+  // 5. Minimum ₦2,000 threshold
+  const isAllQualificationsMet = hasGreenCard && hasFarmSlot && hasMushroomPower && isDirectsQualified;
 
   // Authoritative financial balances: In live mode, balance is strictly the live liquid walletBalance
   // In legacy mode, it is the legacy pre-migration total
@@ -209,13 +247,12 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
   const isLegacyHold = walletMode === "legacy";
 
   // Calculate unlocked components bounded by the current live liquid balance:
-  // In live mode, having >= 5 direct referrals qualifies ALL live earnings uniformly
-  const rawClearedBalance = (!isLegacyHold && isDirectsQualified) ? ledgerBalance : 0;
+  const rawClearedBalance = (!isLegacyHold && isAllQualificationsMet) ? ledgerBalance : 0;
 
   // Statutory Gate: Must have >= ₦2,000 in unlocked funds to withdraw immediately
   const availableBalance = (!isLegacyHold && rawClearedBalance >= 2000) ? rawClearedBalance : 0;
 
-  // Total locked capital: either held because < 5 directs, or below ₦2,000, or in legacy mode
+  // Total locked capital: either held because qualification missing, or below ₦2,000, or in legacy mode
   const totalLockedAmount = isLegacyHold ? ledgerBalance : Math.max(0, ledgerBalance - availableBalance);
 
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -483,25 +520,31 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
       }
       setMatrixEarnings(matEarnings);
 
-      const hasBoughtStarter = Boolean(
-        hasPurchasedStarterPack(profile) ||
-        (orders && orders.some((o: any) => o.product_code === "SP-MUSH-100G" && (o.status || "").toUpperCase() === "PAID"))
-      );
-
-      // Management Rule: Legacy members MUST purchase the ₦5,000 Mushroom Power 100g to unlock withdrawals & matrix.
-      // Non-legacy members must hold active farm slots / starter package.
-      const hasActiveSub = isLegacy
-        ? hasBoughtStarter
+      const hasSlot = apiSummary?.qualifications?.hasFarmSlot !== undefined
+        ? Boolean(apiSummary.qualifications.hasFarmSlot)
         : Boolean(
-            hasBoughtStarter ||
-            (slotSubscriptions && slotSubscriptions.some((s: any) => (s.status || '').toLowerCase() === 'active')) ||
-            (checkouts && checkouts.some((c: any) => (Number(c.amount) >= 10000 || Number(c.amount) === 12000) && ['paid', 'success', 'completed'].includes((c.status || '').toLowerCase())))
+            (slotSubscriptions && slotSubscriptions.some((s: any) => ['active', 'paid', 'confirmed', 'completed'].includes((s.status || '').toLowerCase()))) ||
+            (farmRecords && farmRecords.some((fr: any) => Number(fr.farm_slots || 0) > 0)) ||
+            (checkouts && checkouts.some((c: any) => (c.project_category || '').toLowerCase().includes('slot') && ['paid', 'success', 'completed'].includes((c.status || '').toLowerCase())))
           );
-      setIsProjectSubscribed(hasActiveSub);
+      setHasFarmSlotState(hasSlot);
 
-      const refCount = apiSummary?.matrixSpilloverWallet?.directReferralsCount !== undefined
-        ? Number(apiSummary.matrixSpilloverWallet.directReferralsCount)
-        : (referrals ? referrals.length : (profile?.total_referrals || 0));
+      const hasBoughtStarter = apiSummary?.qualifications?.hasMushroomPower !== undefined
+        ? Boolean(apiSummary.qualifications.hasMushroomPower)
+        : Boolean(
+            hasPurchasedStarterPack(profile) ||
+            (orders && orders.some((o: any) => (o.product_code === "SP-MUSH-100G" || String(o.product_code || "").toLowerCase().includes("mush")) && ["PAID", "paid", "DISPATCHED", "dispatched", "COMPLETED", "completed"].includes(o.status))) ||
+            (checkouts && checkouts.some((c: any) => ((c.project_category || "").toLowerCase().includes("combo") || (c.notes || "").toLowerCase().includes("combo") || (c.transaction_ref || "").toLowerCase().includes("combo") || (c.notes || "").toLowerCase().includes("mush")) && ['paid', 'success', 'completed'].includes((c.status || '').toLowerCase())))
+          );
+      setHasMushroomPowerState(hasBoughtStarter);
+
+      setIsProjectSubscribed(hasSlot);
+
+      const refCount = apiSummary?.qualifications?.qualifiedDirectsCount !== undefined
+        ? Number(apiSummary.qualifications.qualifiedDirectsCount)
+        : (apiSummary?.matrixSpilloverWallet?.directReferralsCount !== undefined
+          ? Number(apiSummary.matrixSpilloverWallet.directReferralsCount)
+          : (referrals ? referrals.length : (profile?.total_referrals || 0)));
       setDirectReferralsCount(refCount);
       setSelectedMatrixLevel(refCount < 5 ? (refCount < 4 ? refCount + 1 : 5) : 1);
 
@@ -1242,9 +1285,8 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
   };
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* ── HEADER & MEMBER ID BADGE ── */}
+    <div className="max-w-6xl mx-auto space-y-8 p-4 sm:p-6 lg:p-8 pb-16">
+      {/* ── HEADER & MEMBER ID BADGE ── */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -1768,21 +1810,11 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
                     <tr key={t.id} className="hover:bg-gray-50/80 transition-colors">
                       <td className="py-3.5 px-2.5 sm:px-3 whitespace-nowrap font-medium text-gray-900 text-[11px] sm:text-xs">
                         <div className="font-semibold text-gray-900">
-                          {new Intl.DateTimeFormat("en-GB", {
-                            timeZone: "Africa/Lagos",
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          }).format(new Date(t.date))}
+                          {formatLedgerDate(t.date).dateStr}
                         </div>
                         <div className="text-[10px] text-gray-500 font-mono flex items-center gap-1 mt-0.5">
                           <span>
-                            {new Intl.DateTimeFormat("en-US", {
-                              timeZone: "Africa/Lagos",
-                              hour: "numeric",
-                              minute: "2-digit",
-                              hour12: true,
-                            }).format(new Date(t.date))}
+                            {formatLedgerDate(t.date).timeStr}
                           </span>
                           <span className="text-[8.5px] font-bold text-emerald-800 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200">
                             WAT
@@ -1906,7 +1938,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
                             : "text-rose-600"
                         }`}
                       >
-                        {t.status === "REVERSED" ? "" : t.type === "CREDIT" ? "+" : "-"}₦{t.amount.toLocaleString()}
+                        {t.status === "REVERSED" ? "" : t.type === "CREDIT" ? "+" : "-"}₦{(Number(t.amount) || 0).toLocaleString()}
                       </td>
                       <td className="py-3.5 px-2 whitespace-nowrap text-center">
                         <div className="inline-flex items-center justify-center gap-1">
@@ -2043,7 +2075,10 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           isBankVerified={Boolean(userProfile?.bank_verified)}
           userEmail={userProfile?.email}
           isLegacy={Boolean(userProfile?.is_legacy)}
-          hasPurchasedStarterPack={Boolean(userProfile?.has_purchased_starter_pack)}
+          hasGreenCard={hasGreenCard}
+          hasFarmSlot={hasFarmSlot}
+          hasPurchasedStarterPack={hasMushroomPower}
+          directReferralsCount={directReferralsCount}
           onSaveBankToProfile={handleSaveBankToProfile}
           onSuccess={() => {
             loadLedger();
@@ -2061,8 +2096,10 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           matrixEarnings={matrixEarnings}
           directReferralsCount={directReferralsCount}
           activePqv30d={activePqv30d}
-          isProjectSubscribed={isProjectSubscribed}
-          hasPurchasedStarterPack={Boolean(userProfile?.has_purchased_starter_pack)}
+          isProjectSubscribed={hasFarmSlot}
+          hasPurchasedStarterPack={hasMushroomPower}
+          hasGreenCard={hasGreenCard}
+          hasFarmSlot={hasFarmSlot}
           isLegacy={Boolean(userProfile?.is_legacy)}
           isLegacyHold={isLegacyHold}
           advanceDebt={advanceDebt}
@@ -2071,7 +2108,6 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
             setIsWithdrawModalOpen(true);
           }}
         />
-      </div>
     </div>
   );
 };

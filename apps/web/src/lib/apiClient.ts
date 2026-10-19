@@ -269,6 +269,16 @@ export const apiClient = {
           status: string;
         };
         totalEarnings: number;
+        qualifications?: {
+          hasGreenCard: boolean;
+          hasFarmSlot: boolean;
+          hasMushroomPower: boolean;
+          totalSlots: number;
+          isFullyQualified: boolean;
+          missingConstituents: string[];
+          qualifiedDirectsCount: number;
+          isWithdrawalEligible: boolean;
+        };
         advanceDebt?: {
           balance: number;
           total: number;
