@@ -16,6 +16,8 @@
  *  3. Cookie ('agroheal_ref', 30 days, SameSite=Lax, path=/)
  */
 
+import { apiClient } from "./apiClient";
+
 export const REFERRAL_STORAGE_KEY = "agroheal_ref";
 export const DEFAULT_ROOT_SPONSOR_CODE = "356FV1"; // Adetola Esther (Co-founder Root Sponsor)
 
@@ -92,6 +94,23 @@ export function captureReferral(searchParams?: URLSearchParams): string | null {
     try {
       setCookie(REFERRAL_STORAGE_KEY, clean);
     } catch {}
+
+    // Debounced click tracking per session + pathname
+    try {
+      const trackKey = `agroheal_click_tracked_${clean}_${window.location.pathname}`;
+      if (!sessionStorage.getItem(trackKey)) {
+        sessionStorage.setItem(trackKey, "true");
+        apiClient.genealogy
+          .trackClick({
+            sponsorCode: clean,
+            path: window.location.pathname,
+            page: document.title || window.location.pathname,
+            referrer: document.referrer || undefined,
+          })
+          .catch(() => {});
+      }
+    } catch {}
+
     return clean;
   }
 

@@ -243,6 +243,20 @@ export const apiClient = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    trackClick: (data: { sponsorCode: string; page?: string; path?: string; referrer?: string }) =>
+      apiRequest<{ tracked: boolean }>("genealogy/track-click", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    getReferralStats: (options?: ApiRequestOptions) =>
+      apiRequest<{
+        totalClicks: number;
+        uniqueVisitors: number;
+        totalSignups: number;
+        conversionRate: number;
+        clicksByPage: Array<{ page: string; path: string; count: number }>;
+        recentClicks: Array<{ id: string; created_at: string; page: string; path: string; userAgent: string | null }>;
+      }>("genealogy/referral-stats", options),
   },
 
   /**

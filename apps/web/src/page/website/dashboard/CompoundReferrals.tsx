@@ -52,6 +52,7 @@ import OrganogramSkeleton from "@/components/dashboard/OrganogramSkeleton";
 import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
 import { isLegacyMember, isGreenCardHolder, hasPurchasedStarterPack } from "@shared/businessRules";
 import { SITE_URL } from "@/config/Index";
+import ReferralCampaignTool from "@/components/network/ReferralCampaignTool";
 
 export interface OrganogramNode {
   id: string;
@@ -2003,83 +2004,11 @@ const CompoundReferrals: React.FC = () => {
           );
         })()}
 
-        {/* ── MULTI-FARM REFERRAL CODE & AFFILIATE SHARING TOOL ── */}
-        <div className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-emerald-100">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-gray-100">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">
-                  <Share2 className="w-4 h-4" />
-                </span>
-                <h2 className="text-base font-bold text-gray-900">
-                  Affiliate Referral Link &amp; Farm Specific Codes
-                </h2>
-                <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]">
-                  5×7 Linked
-                </Badge>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Share your personal affiliate link to enrol members into your 5×7 community network.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <span className="text-[10px] uppercase font-bold text-gray-400 block tracking-wider">Your Sponsor / MLM Code</span>
-                <span className="font-mono text-sm font-extrabold text-emerald-900 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                  {referralCode || currentUserProfile?.referral_code || currentUserProfile?.member_id || "AGC-PENDING"}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 space-y-3">
-            {/* Cluster destination indicator */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 text-xs">
-              <div className="flex items-center gap-2">
-                <Sprout className="w-4 h-4 text-emerald-700 shrink-0" />
-                <span className="font-semibold text-emerald-950">
-                  Referral Farm Cluster: <span className="font-bold text-emerald-800">Mushroom Village</span>
-                </span>
-              </div>
-              <span className="text-[11px] font-medium text-emerald-800 bg-white/90 px-2.5 py-0.5 rounded-full border border-emerald-200/70 shrink-0">
-                Auto-assigned to your farm group (Spillover at 1,000 slots)
-              </span>
-            </div>
-
-            {/* Link Preview & Copy */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-gray-700 flex items-center justify-between">
-                <span>Standard Invite Link</span>
-                <span className="text-[10px] text-gray-400 font-normal">
-                  Sponsor code attached
-                </span>
-              </label>
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-                <input
-                  type="text"
-                  readOnly
-                  value={activeReferralLink}
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-700 select-all"
-                />
-                <Button
-                  onClick={handleCopyReferralLink}
-                  className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
-                >
-                  {copiedLink ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
-                  {copiedLink ? "Copied" : "Copy Link"}
-                </Button>
-                <Button
-                  onClick={handleShareWhatsApp}
-                  className="bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
-                >
-                  <Share2 className="w-4 h-4" />
-                  WhatsApp
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* ── MULTI-PAGE REFERRAL CAMPAIGN TOOL & CLICK ANALYTICS ── */}
+        <ReferralCampaignTool
+          referralCode={activeReferralCode}
+          directReferralsCount={directReferralsCount}
+        />
 
         {/* ── 5×7 VISUAL ORGANOGRAM ── */}
         {activeRootNode ? (
