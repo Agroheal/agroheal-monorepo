@@ -11,14 +11,14 @@ const GREEN_CARD_CONFIG = {
     farm: "https://youtu.be/MqQ3sYcPDTE?si=rZRpBGpuWrUZ6r-A",
     launch: "https://youtu.be/vH6_BLQGj0E?si=H6tEBkYHraMnTn7Q",
     testimonials: "https://youtu.be/A6Q89j6eSpo?si=QAA9QKco2ukn_oir",
-    explainer: "",
-    advert: "",
+    explainer: "https://youtube.com/shorts/kz5_TZcp4z0?si=eK3xK9XuUhp_P72U",
+    advert: "https://youtube.com/shorts/kz5_TZcp4z0?si=eK3xK9XuUhp_P72U",
   },
 };
 
 function getYouTubeId(url: string): string | null {
   if (!url) return null;
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
   return match ? match[1] : null;
 }
 
@@ -349,7 +349,14 @@ export const Funnel1: React.FC = () => {
                   onClick={(e) => handleVideoClick(e, "advert", "Short Explainer Video")}
                   style={{ textDecoration: "none" }}
                 >
-                  <div className="thumb">
+                  <div
+                    className="thumb"
+                    style={{
+                      backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.55)), url('https://img.youtube.com/vi/kz5_TZcp4z0/hqdefault.jpg')`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                    }}
+                  >
                     <div>
                       <div className="play">▶</div>
                       <b>Feel the vision</b>
