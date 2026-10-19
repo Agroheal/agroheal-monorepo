@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { showToast } from "@/components/ui/ToastComponent";
 
 import { captureReferral, getActiveReferral, getSignupUrl } from "@/lib/referralManager";
+import { AgrohealImages } from "@/constant/Image";
 
 const GREEN_CARD_CONFIG = {
   whatsappUrl:
@@ -37,6 +38,7 @@ export const Funnel1: React.FC = () => {
   }, [searchParams]);
 
   const signupUrl = getSignupUrl();
+  const explainerVideoId = getYouTubeId(GREEN_CARD_CONFIG.videos.explainer) || "kz5_TZcp4z0";
 
   const [activeVideoModal, setActiveVideoModal] = useState<ActiveVideo | null>(null);
 
@@ -87,11 +89,11 @@ export const Funnel1: React.FC = () => {
       <header>
         <div className="wrap">
           <nav aria-label="Main navigation">
-            <a className="brand" href="#top">
-              <span className="mark">GC</span>
-              <span>
-                AGROHEAL <span style={{ color: "#ffb15e" }}>GREEN CARD</span>
-              </span>
+            <a className="brand" href="#top" aria-label="Agroheal Green Card">
+              <div className="brand-logo-wrap">
+                <img src={AgrohealImages.HeaderLogo} alt="Agroheal" className="brand-logo-img" />
+              </div>
+              <span className="brand-tag">GREEN CARD</span>
             </a>
             <div className="navlinks">
               <a href="#ecosystem">Ecosystem</a>
@@ -147,11 +149,16 @@ export const Funnel1: React.FC = () => {
               href="#videos"
               onClick={(e) => handleVideoClick(e, "explainer", "Explainer Video")}
               aria-label="Watch Green Card explainer"
+              style={{
+                backgroundImage: `linear-gradient(rgba(3, 61, 28, 0.45), rgba(3, 61, 28, 0.75)), url('https://img.youtube.com/vi/${explainerVideoId}/hqdefault.jpg')`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+              }}
             >
-              <div>
+              <div style={{ position: "relative", zIndex: 2 }}>
                 <div className="play">▶</div>
-                <strong>Explainer Video</strong>
-                <small>Watch the Explainer Video</small>
+                <strong style={{ textShadow: "0 2px 8px rgba(0,0,0,0.7)" }}>Explainer Video</strong>
+                <small style={{ textShadow: "0 2px 6px rgba(0,0,0,0.7)", color: "#e2f9ea" }}>Watch the Explainer Video</small>
               </div>
             </a>
           </div>
@@ -663,14 +670,15 @@ export const Funnel1: React.FC = () => {
         <div className="wrap">
           <div className="foot">
             <div className="brand">
-              <span className="mark">GC</span>
-              <span>
-                AGROHEAL GREEN CARD
-                <br />
-                <span style={{ fontWeight: 600 }}>
+              <div className="brand-logo-wrap">
+                <img src={AgrohealImages.HeaderLogo} alt="Agroheal" className="brand-logo-img" />
+              </div>
+              <div>
+                <span className="brand-tag">GREEN CARD</span>
+                <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "#a7f3d0", marginTop: "4px" }}>
                   Grow Healthy Food • Live Healthy • Build Wealth
-                </span>
-              </span>
+                </div>
+              </div>
             </div>
             <div className="footlinks">
               <a href="#ecosystem">Ecosystem</a>
@@ -807,19 +815,32 @@ export const Funnel1: React.FC = () => {
         .funnel-container .brand {
           display: flex;
           align-items: center;
-          gap: 10px;
-          font-weight: 950;
+          gap: 12px;
           text-decoration: none;
         }
+        .funnel-container .brand-logo-wrap {
+          background: rgba(255, 255, 255, 0.98);
+          padding: 6px 14px;
+          border-radius: 12px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+        }
+        .funnel-container .brand-logo-img {
+          height: 32px;
+          width: auto;
+          object-fit: contain;
+          display: block;
+        }
+        .funnel-container .brand-tag {
+          font-weight: 900;
+          color: #ffb15e;
+          font-size: 1.05rem;
+          letter-spacing: -0.01em;
+        }
         .funnel-container .mark {
-          display: grid;
-          place-items: center;
-          width: 43px;
-          height: 43px;
-          border-radius: 13px;
-          background: var(--o);
-          color: var(--deep);
-          font-weight: 1000;
+          display: none;
         }
         .funnel-container .navlinks {
           display: flex;
@@ -919,15 +940,18 @@ export const Funnel1: React.FC = () => {
           padding: 28px;
           border-radius: 25px;
           border: 1px solid rgba(255, 255, 255, 0.28);
-          background: linear-gradient(140deg, rgba(3, 61, 28, 0.82), rgba(4, 86, 38, 0.65));
+          background-color: var(--deep);
           backdrop-filter: blur(8px);
           box-shadow: var(--shadow);
           text-decoration: none;
-          transition: transform 0.2s ease, border-color 0.2s ease;
+          transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+          position: relative;
+          overflow: hidden;
         }
         .funnel-container .preview:hover {
           transform: translateY(-3px);
-          border-color: rgba(255, 177, 94, 0.5);
+          border-color: rgba(255, 177, 94, 0.7);
+          box-shadow: 0 22px 54px rgba(0, 0, 0, 0.35);
         }
         .funnel-container .play {
           width: 70px;
