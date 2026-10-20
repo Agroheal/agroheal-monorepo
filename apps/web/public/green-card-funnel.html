@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Join the Agroheal Green Card Producer–Consumer Organic Food Ecosystem. Learn organic farming, explore community production and connect with food opportunities.">
+<meta name="theme-color" content="#087b35">
+<title>Agroheal Green Card | Grow Healthy Food. Build Wealth.</title>
+<link rel="icon" type="image/png" href="/agroheal-logo.png">
+<style>
+:root{--g:#087b35;--gd:#045626;--deep:#033d1c;--o:#ff8a1d;--od:#e56d00;--w:#fff;--ink:#143321;--line:rgba(255,255,255,.22);--soft:#f5fff7;--shadow:0 18px 48px rgba(0,0,0,.18);--r:20px}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,"Segoe UI",Arial,sans-serif;background:var(--g);color:var(--w);line-height:1.6}a{color:inherit}.wrap{width:min(1120px,calc(100% - 32px));margin:auto}
+.funnel-header{padding:12px 0;background:rgba(3,61,28,.85);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:1000}
+nav{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.brand-logo{width:40px;height:40px;object-fit:contain;border-radius:10px;background:#fff;padding:4px;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.footer-logo{width:44px;height:44px}
+.brand-text{display:flex;flex-direction:column;line-height:1.15}
+.brand-main{font-size:1.05rem;font-weight:950;letter-spacing:.04em;color:#fff}
+.brand-sub{font-size:.76rem;font-weight:800;letter-spacing:.12em;color:#ffb15e}
+.navlinks{display:flex;gap:22px;font-weight:700;font-size:.92rem}
+.navlinks a{text-decoration:none;color:rgba(255,255,255,.9);transition:color .15s ease}.navlinks a:hover{color:#ffb15e}
+.header-actions{display:flex;align-items:center;gap:10px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border-radius:999px;background:var(--o);color:#18321e;text-decoration:none;font-weight:900;border:0;cursor:pointer;box-shadow:0 8px 22px rgba(0,0,0,.13);transition:transform .18s ease,background .18s ease}
+.btn:hover{background:#ffa64e;transform:translateY(-2px)}
+.btn.outline{background:transparent;color:white;border:2px solid rgba(255,255,255,.75);box-shadow:none}
+.btn.small{padding:8px 15px;font-size:.86rem}
+.hero{padding:28px 0 24px;background:radial-gradient(circle at 83% 18%,rgba(255,138,29,.22),transparent 28%),linear-gradient(135deg,var(--g),var(--gd))}
+.hero-grid{display:grid;grid-template-columns:1.12fr .88fr;gap:24px;align-items:center}
+.eyebrow,.kicker{font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;font-weight:900}
+.eyebrow{display:inline-block;border:1px solid var(--line);border-radius:999px;padding:5px 12px}
+h1{font-size:clamp(1.8rem,3.4vw,3rem);line-height:1.12;letter-spacing:-.04em;margin:12px 0 10px;font-weight:950}
+h1 span{color:#ffb15e}
+.hero p{font-size:.98rem;color:#f0fff4;max-width:620px;margin:8px 0 12px;line-height:1.48}
+.actions{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0 8px}
+.hero-actions{justify-content:center;margin-top:16px}
+.muted{opacity:.86;font-size:.86rem!important;text-align:center;margin-top:6px}
+.preview{display:block;position:relative;border-radius:20px;border:1px solid var(--line);overflow:hidden;box-shadow:var(--shadow);text-decoration:none;cursor:pointer;aspect-ratio:16/9;max-height:250px;background:#032d15}
+.preview-media-wrap{position:relative;width:100%;height:100%}
+.preview-img{width:100%;height:100%;object-fit:cover;display:block;filter:brightness(.82);transition:transform .3s ease,filter .3s ease}
+.preview:hover .preview-img{transform:scale(1.05);filter:brightness(.95)}
+.preview-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.2) 0%,rgba(3,61,28,.82) 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px;text-align:center}
+.preview-pill{background:rgba(0,0,0,.65);color:#ffb15e;font-size:.72rem;font-weight:900;letter-spacing:.08em;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,177,94,.4);margin-bottom:6px}
+.play{width:58px;height:40px;display:grid;place-items:center;border-radius:12px;margin:6px auto;background:#ff0000;color:#fff;font-size:1.35rem;line-height:1;box-shadow:0 4px 16px rgba(0,0,0,.35);transition:transform .2s ease,background .2s ease}
+.preview:hover .play,.card:hover .play{transform:scale(1.1);background:#ff2222}
+.preview-title{font-size:1.08rem;color:#fff;display:block;margin-top:2px}
+.preview small{display:block;margin-top:4px;font-weight:900;letter-spacing:.08em;color:#ffb15e;font-size:.75rem}
+.section{padding:64px 0}
+.light{background:var(--soft);color:var(--ink)}
+.dark{background:var(--gd)}
+.head{text-align:center;max-width:760px;margin:0 auto 32px}
+.kicker{color:#ffb15e}
+.light .kicker{color:var(--od)}
+h2{font-size:clamp(1.85rem,3.4vw,2.8rem);line-height:1.12;letter-spacing:-.03em;margin:10px 0 14px}
+.head p{font-size:1.02rem;margin:0;opacity:.9}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.card{padding:22px;border:1px solid var(--line);border-radius:var(--r);background:rgba(255,255,255,.08)}
+.light .card{background:white;border-color:#d8eadc;box-shadow:0 8px 24px rgba(10,70,30,.05)}
+.ico{font-size:1.5rem;margin-bottom:8px}
+.card h3{margin:0 0 8px;font-size:1.16rem}
+.card p{margin:0;opacity:.9}
+.videos .card{padding:0;overflow:hidden}
+.thumb{position:relative;overflow:hidden;aspect-ratio:16/9;height:160px;background:#032d15;border-bottom:1px solid var(--line)}
+.video-thumb-img{width:100%;height:100%;object-fit:cover;display:block;filter:brightness(.85);transition:transform .3s ease,filter .3s ease}
+.card:hover .video-thumb-img{transform:scale(1.06);filter:brightness(.96)}
+.thumb-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.15) 0%,rgba(3,61,28,.85) 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px}
+.thumb-overlay .play{width:48px;height:34px;border-radius:9px;font-size:1.1rem;margin-bottom:6px}
+.thumb-overlay b{font-size:.92rem;color:#fff}
+.vbody{padding:20px}
+.vbody h3{font-size:1.22rem;font-weight:950}
+.vbody p{margin-bottom:15px}
+.vbody .btn{font-size:1rem;font-weight:950}
+.offer{padding:30px;border-radius:25px;background:linear-gradient(135deg,#064e25,#087b35);border:1px solid var(--line);box-shadow:var(--shadow)}
+.offer-grid{display:grid;grid-template-columns:.85fr 1.15fr;gap:28px;align-items:start}
+.price{font-size:clamp(2.6rem,5vw,3.8rem);font-weight:950;color:#ffb15e;line-height:1.05;margin:10px 0}
+.breakdown{padding-left:20px;margin:10px 0}
+.breakdown li{margin:7px 0}
+.callout{background:rgba(255,255,255,.09);border:1px solid var(--line);border-radius:15px;padding:16px;margin-top:14px}
+.callout strong{color:#ffb15e}
+.tablewrap{overflow-x:auto;margin-top:15px}
+table{border-collapse:collapse;width:100%;min-width:470px;font-size:.94rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+th{color:#ffb15e}td:last-child,th:last-child{text-align:right}
+.smallnote{font-size:.84rem;opacity:.86;margin-top:12px}
+details{border-bottom:1px solid var(--line);padding:16px 0}
+summary{cursor:pointer;font-weight:850}
+details p{opacity:.9;margin-bottom:0;margin-top:8px}
+.cta{padding:50px 0;text-align:center;background:var(--o);color:#19351f}
+.cta h2{max-width:800px;margin:0 auto 14px}
+.cta p{max-width:680px;margin:0 auto 22px}
+.cta .btn{background:var(--deep);color:white}
+footer{background:var(--deep);padding:30px 0 90px;font-size:.9rem}
+.foot{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.footlinks{display:flex;gap:15px;flex-wrap:wrap}
+.footlinks a{text-decoration:none}
+.fine{font-size:.8rem;color:#cce6d3;margin-top:18px;line-height:1.5}
+.sticky{display:none;position:fixed!important;z-index:2147483000;bottom:0!important;left:0;right:0;width:100%;visibility:visible;opacity:1;pointer-events:auto;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#033d1c;border-top:1px solid rgba(255,255,255,.45);box-shadow:0 -8px 24px rgba(0,0,0,.28);transform:translateZ(0);isolation:isolate}
+.sticky .wrap{display:flex;gap:8px;width:100%;max-width:1120px}
+.sticky .btn{display:inline-flex;visibility:visible;opacity:1;flex:1;min-width:0;padding:12px 8px;font-size:.88rem;line-height:1.25;white-space:normal;text-align:center}
+
+@media(max-width:850px){
+.sticky{display:block!important;visibility:visible!important;opacity:1!important}
+.navlinks,.header-actions{display:none}
+.hero-grid,.offer-grid{grid-template-columns:1fr}
+.hero{padding:24px 0 20px}
+.preview{max-height:220px}
+.hero-grid{gap:16px}
+.hero h1{margin:12px 0 8px}
+.hero p{margin:8px 0 10px}
+.grid3{grid-template-columns:1fr 1fr}
+}
+
+@media(max-width:560px){
+body{padding-bottom:76px}
+.wrap{width:calc(100% - 24px)}
+.hero{padding:18px 0 16px}
+.hero h1{font-size:clamp(1.6rem,7.2vw,2.1rem);line-height:1.1;margin:10px 0 6px}
+.hero p{font-size:.92rem;line-height:1.45;margin:6px 0 10px}
+.preview{max-height:180px}
+.hero .actions{flex-direction:column;gap:8px;margin:12px 0 8px}
+.hero-actions{margin-top:12px}
+.hero-actions .btn{width:100%;padding:11px 16px;font-size:.92rem}
+.section{padding:44px 0}
+.grid3,.grid2{grid-template-columns:1fr}
+.card{padding:18px}
+.offer{padding:18px}
+footer{padding-bottom:110px}
+}
+
+/* Modal styling */
+.funnel-video-modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:grid;place-items:center;padding:16px;z-index:2147483647}
+.funnel-video-modal-dialog{width:min(900px,100%);background:#032d15;border:1px solid rgba(255,255,255,.2);border-radius:20px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.funnel-video-modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:#033d1c;border-bottom:1px solid rgba(255,255,255,.15);color:#fff}
+.funnel-video-modal-title{font-weight:900;font-size:1.05rem}
+.funnel-video-modal-close{background:rgba(255,255,255,.1);border:0;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1.1rem;display:grid;place-items:center}
+.funnel-video-frame-wrap{position:relative;width:100%;padding-bottom:56.25%;background:#000}
+.funnel-video-frame-wrap iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.funnel-video-modal-footer{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;background:#03210f;font-size:.88rem;color:rgba(255,255,255,.75)}
+.funnel-video-modal-footer a{color:#ffb15e;font-weight:750;text-decoration:none}
+</style>
+</head>
+<body>
+
+<header class="funnel-header">
+  <div class="wrap">
+    <nav>
+      <a href="#top" class="brand" aria-label="Agroheal Green Card Home">
+        <img src="/agroheal-logo.png" alt="Agroheal Logo" class="brand-logo">
+        <div class="brand-text">
+          <span class="brand-main">AGROHEAL</span>
+          <span class="brand-sub">GREEN CARD</span>
+        </div>
+      </a>
+      <div class="navlinks">
+        <a href="#ecosystem">Ecosystem</a>
+        <a href="#videos">Videos</a>
+        <a href="#opportunity">Opportunity</a>
+        <a href="#faq">FAQs</a>
+      </div>
+      <div class="header-actions">
+        <a class="btn small outline whatsapp-link" href="#opportunity">WhatsApp</a>
+        <a class="btn small register-link" href="#opportunity">Get Green Card</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+<section class="hero"><div class="wrap">
+<div class="hero-grid"><div>
+<span class="eyebrow">🌍 THE GREENCARD ORGANIC FOOD REVOLUTION</span>
+<h1>Join The Health And Wealth Revolution.<br><span>Let's Grow Organic Food And Wealth Together.</span></h1>
+<p><strong>We have a vision to raise millions of healthy and wealthy Africans before 2030 using the instrumentality of organic agribusiness, with Nigeria as the springboard.</strong></p>
+</div>
+<a class="preview video-link" data-video="explainer" href="#videos" aria-label="Watch Green Card explainer">
+  <div class="preview-media-wrap">
+    <img src="https://img.youtube.com/vi/kz5_TZcp4z0/hqdefault.jpg" alt="GreenCard Explainer Video Thumbnail" class="preview-img" loading="eager">
+    <div class="preview-overlay">
+      <span class="preview-pill">▶ EXPLAINER</span>
+      <div class="play">▶</div>
+      <strong class="preview-title">GreenCard Explainer Video</strong>
+      <small>TAP TO WATCH (1 MIN)</small>
+    </div>
+  </div>
+</a>
+</div>
+<div class="actions hero-actions"><a class="btn register-link" href="#opportunity">GET THE GREENCARD →</a><a class="btn outline whatsapp-link" href="#opportunity">GET GUIDANCE ON WHATSAPP</a></div>
+<p class="muted">See how the model works, review the conditions and decide whether it is right for you.</p>
+</div></section>
+
+<section class="section light" id="ecosystem"><div class="wrap"><div class="head"><div class="kicker">More than a card</div><h2>One connected ecosystem for food, learning and opportunity</h2><p>Your Green Card is the entry point to Agroheal’s LEAP (Learn to Earn Agribusiness Platform) and its growing organic food community.</p></div>
+<div class="grid3">
+<article class="card"><div class="ico">🎓</div><h3>Learn</h3><p>Build practical organic farming skills through LEAP training and community guidance.</p></article>
+<article class="card"><div class="ico">🌱</div><h3>Produce</h3><p>Explore container gardening, Mushroom Village and other group-farming projects, subject to local availability.</p></article>
+<article class="card"><div class="ico">🥗</div><h3>Access food</h3><p>Discover Mushroom Power and the producer–consumer marketplace concept as products and services become available.</p></article>
+<article class="card"><div class="ico">🤝</div><h3>Connect locally</h3><p>Join WhatsApp guidance and local groups to learn, share progress and discover available activities.</p></article>
+<article class="card"><div class="ico">📣</div><h3>Share the movement</h3><p>Learn about qualifying referral and network rewards under the official programme rules.</p></article>
+<article class="card"><div class="ico">🌍</div><h3>Build the bigger vision</h3><p>Connect local growing, processing and food access through Mushroom Village, Gingertown and Organic FoodNation.</p></article>
+</div></div></section>
+
+<section class="section videos" id="videos"><div class="wrap"><div class="head"><div class="kicker">See it. Understand it. Decide.</div><h2>Explore the movement in four videos</h2></div>
+<div class="grid3">
+<article class="card"><a class="video-link" data-video="farm" href="#videos" style="text-decoration:none"><div class="thumb"><img src="https://img.youtube.com/vi/MqQ3sYcPDTE/hqdefault.jpg" alt="Farm Tour" class="video-thumb-img" loading="lazy"><div class="thumb-overlay"><div class="play">▶</div><b>See the work</b></div></div></a><div class="vbody"><h3>1. Farm Tour</h3><p>See farming activities and the practical work behind the ecosystem.</p><a class="btn small video-link" data-video="farm" href="#videos">WATCH FARM TOUR →</a></div></article>
+<article class="card"><a class="video-link" data-video="launch" href="#videos" style="text-decoration:none"><div class="thumb"><img src="https://img.youtube.com/vi/vH6_BLQGj0E/hqdefault.jpg" alt="Launch Video" class="video-thumb-img" loading="lazy"><div class="thumb-overlay"><div class="play">▶</div><b>Meet the movement</b></div></div></a><div class="vbody"><h3>2. Launch Video</h3><p>Discover the mission and invitation to build a stronger food ecosystem.</p><a class="btn small video-link" data-video="launch" href="#videos">WATCH LAUNCH →</a></div></article>
+<article class="card"><a class="video-link" data-video="testimonials" href="#videos" style="text-decoration:none"><div class="thumb"><img src="https://img.youtube.com/vi/A6Q89j6eSpo/hqdefault.jpg" alt="Testimonials" class="video-thumb-img" loading="lazy"><div class="thumb-overlay"><div class="play">▶</div><b>Hear member stories</b></div></div></a><div class="vbody"><h3>3. Testimonials</h3><p>Hear individual experiences; results and experiences may differ.</p><a class="btn small video-link" data-video="testimonials" href="#videos">WATCH STORIES →</a></div></article>
+<article class="card"><a class="video-link" data-video="advert" href="#videos" style="text-decoration:none"><div class="thumb"><img src="https://img.youtube.com/vi/kz5_TZcp4z0/hqdefault.jpg" alt="Short Explainer Video" class="video-thumb-img" loading="lazy"><div class="thumb-overlay"><div class="play">▶</div><b>Feel the vision</b></div></div></a><div class="vbody"><h3>4. Short Explainer Video</h3><p>A concise introduction to the Green Card Organic Food Ecosystem and how to take the next step.</p><a class="btn small video-link" data-video="advert" href="#videos">WATCH SHORT EXPLAINER →</a></div></article>
+<article class="card" style="display:flex;flex-direction:column;justify-content:center"><div class="ico">💬</div><h3>Need guidance?</h3><p>Ask questions and find out how to connect with your local community group.</p><a class="btn small whatsapp-link" href="#opportunity" style="margin-top:16px;align-self:flex-start">JOIN WHATSAPP →</a></article>
+</div></div></section>
+
+<section class="section light" id="opportunity"><div class="wrap"><div class="head"><div class="kicker">The numbers behind the opportunity</div><h2>See the entry model and the monthly 5×7 potential</h2><p>The figures below are model projections for a fully populated, qualifying matrix. They describe potential total network payouts, not guaranteed earnings for an individual.</p></div>
+<div class="grid3" style="margin-bottom:20px">
+<article class="card"><div class="kicker">Level 7 stage</div><div class="price" style="font-size:2.25rem">Up to ₦15m</div><p>Modelled opportunity for a completed qualifying 5×7 network, subject to the official compensation plan.</p></article>
+<article class="card"><div class="kicker">Monthly PQV</div><div class="price" style="font-size:2.25rem">₦10,000</div><p>Qualifying monthly personal purchase volume assumed for each active participant in the illustration.</p></article>
+<article class="card"><div class="kicker">Full-matrix monthly payout</div><div class="price" style="font-size:2.25rem">≈ ₦12.86m</div><p>Illustrative combined payout across the seven levels using the current descending rate model—not an individual income promise.</p></article>
+</div>
+<div class="offer"><div class="offer-grid"><div><div class="kicker">Green Card Starter Combo</div><h2>Get started for</h2><div class="price">₦15,000</div><p>One pathway combining registration, a mushroom farm slot and the Mushroom Power Starter Pack.</p><a class="btn register-link" href="#opportunity">REGISTER / GET STARTED →</a>
+<div class="callout"><strong>Direct referral illustration: up to ₦2,500 per complete Starter Combo</strong><br><span style="font-size:.91rem">₦1,000 Green Card referral + ₦500 farm-slot referral + ₦1,000 Mushroom Power referral, when all three components qualify under the current plan.</span></div>
+</div><div><h3>What the ₦15,000 covers</h3><ul class="breakdown"><li><b>₦2,000 Green Card:</b> ₦1,000 referral / ₦1,000 Agroheal.</li><li><b>₦5,000 farm slot:</b> ₦3,500 production / ₦1,000 Agroheal / ₦500 referral.</li><li><b>₦8,000 Mushroom Power Starter Pack:</b> ₦4,500 product / ₦1,000 referral / ₦750 Agroheal / ₦1,750 rewards pool.</li></ul>
+<div class="callout"><strong>₦1,750 rewards pool:</strong> ₦1,350 5×7 network commissions + ₦200 leadership pool + ₦200 quarterly car awards.</div>
+<div class="callout"><strong>Green Card Points:</strong> 30,000 programme points—15,000 for production participation and 15,000 for consumption/marketplace use, subject to unlock conditions and published rules. Points are not cash.</div>
+</div></div></div>
+<div class="card" style="margin-top:20px"><h3>How the 5×7 matrix reaches Level 7</h3><p>Each participant invites five qualifying people, and each of those people does the same, creating a theoretical seven-level structure. With ₦10,000 qualifying monthly PQV per active participant, the 15% allocation is ₦1,500 per participant. Applying the current descending level rates to a fully populated matrix projects approximately ₦12.86 million in combined monthly payouts across all seven levels.</p>
+<div class="tablewrap"><table><thead><tr><th>Level</th><th>Potential positions in a full 5×7 matrix</th><th>Illustrative payout per position / month</th></tr></thead><tbody>
+<tr><td>Level 1</td><td>5</td><td>₦202.01</td></tr><tr><td>Level 2</td><td>25</td><td>₦189.78</td></tr><tr><td>Level 3</td><td>125</td><td>₦177.54</td></tr><tr><td>Level 4</td><td>625</td><td>₦165.31</td></tr><tr><td>Level 5</td><td>3,125</td><td>₦153.07</td></tr><tr><td>Level 6</td><td>15,625</td><td>₦140.84</td></tr><tr><td>Level 7</td><td>78,125</td><td>₦128.60</td></tr>
+</tbody></table></div>
+<p class="smallnote">Theoretical matrix capacity is 97,655 positions (5 + 25 + 125 + 625 + 3,125 + 15,625 + 78,125). The approximately ₦12.86 million figure is the sum of the illustrative per-position payouts across all seven levels when every position is filled and qualifies at ₦10,000 monthly PQV. Real participation, eligibility, purchase volume, timing, adjustments and the approved compensation plan can change outcomes. The ₦15 million Level 7 figure is a separate programme target/modelled opportunity and must not be interpreted as a guaranteed payment to every member.</p>
+</div>
+<div class="grid2" style="margin-top:20px"><article class="card"><div class="ico">🟠</div><h3>Ready to register?</h3><p>Use the official registration link and review the programme terms.</p><a class="btn register-link" href="#opportunity" style="margin-top:15px">GET MY GREEN CARD</a></article><article class="card"><div class="ico">🟢</div><h3>Prefer guidance first?</h3><p>Join WhatsApp for onboarding help and local community group information.</p><a class="btn whatsapp-link" href="#opportunity" style="margin-top:15px">JOIN WHATSAPP COMMUNITY</a></article></div>
+</div></section>
+
+<section class="section dark" id="faq"><div class="wrap"><div class="head"><div class="kicker">Before you join</div><h2>Frequently asked questions</h2></div><div style="max-width:850px;margin:auto">
+<details><summary>Is this only an investment scheme?</summary><p>No. It is presented as a food and agribusiness participation ecosystem involving learning, production, products and community activity. Do not join on the assumption of guaranteed financial returns.</p></details>
+<details><summary>Are referral or matrix rewards guaranteed?</summary><p>No. They depend on qualifying activity, eligibility, actual network participation and the official compensation plan. Figures on this page are illustrations, not promises of income.</p></details>
+<details><summary>What are Green Card Points?</summary><p>Programme points intended for designated production and consumption purposes. They are not cash; usage and unlock conditions are governed by the published rules.</p></details>
+<details><summary>How do I join a local group?</summary><p>Use the WhatsApp link on this page for onboarding guidance and information about your local community group.</p></details>
+<details><summary>Are farm slots and products available everywhere?</summary><p>Availability can vary by location, season and project capacity. Confirm availability, delivery, terms and timelines before paying.</p></details>
+</div></div></section>
+
+<section class="cta"><div class="wrap"><h2>Help build a healthier, more food-secure future.</h2><p>Get your Green Card, learn with the community and discover how you can participate in the Green Card Producer–Consumer Organic Food Ecosystem.</p><div class="actions" style="justify-content:center"><a class="btn register-link" href="#opportunity">GET MY GREEN CARD NOW →</a><a class="btn whatsapp-link" href="#opportunity" style="background:white;color:#064e25">WHATSAPP GUIDANCE</a></div></div></section>
+</main>
+
+<footer><div class="wrap"><div class="foot">
+  <div class="brand">
+    <img src="/agroheal-logo.png" alt="Agroheal Logo" class="brand-logo footer-logo">
+    <div>
+      <strong style="font-size:1.05rem;letter-spacing:.02em">AGROHEAL GREEN CARD</strong><br>
+      <span style="font-weight:500;opacity:.88;font-size:.85rem">Grow Healthy Food • Live Healthy • Build Wealth</span>
+    </div>
+  </div>
+  <div class="footlinks"><a href="#ecosystem">Ecosystem</a><a href="#videos">Videos</a><a href="#opportunity">Opportunity</a><a href="#faq">FAQs</a><a class="whatsapp-link" href="#opportunity">WhatsApp</a></div>
+</div>
+<p class="fine">Programme features, fees, points, product availability and participation terms may change. Confirm details through official Agroheal channels. Green Card Points are not cash. Farming, product sales and referral/network rewards depend on actual activity, costs, qualifying conditions and published rules. No income, profit, health outcome or financial return is guaranteed. This page is informational and does not replace official terms and conditions.</p><p style="opacity:.75;margin-bottom:0">© 2026 Agroheal Solutions Ltd. All rights reserved.</p></div></footer>
+
+<div class="sticky"><div class="wrap"><a class="btn register-link" href="#opportunity">GET GREEN CARD</a><a class="btn whatsapp-link" href="#opportunity" style="background:white">WHATSAPP</a></div></div>
+
+<script>
+const GREEN_CARD_CONFIG = {
+  registrationUrl: "/signup?ref=AYEG68",
+  whatsappUrl: "https://wa.me/2349168055000?text=Hello%20Agroheal,%20I%20am%20interested%20in%20the%20Green%20Card%20Organic%20Food%20Revolution",
+  videos: {
+    farm: "https://youtu.be/MqQ3sYcPDTE",
+    launch: "https://youtu.be/vH6_BLQGj0E",
+    testimonials: "https://youtu.be/A6Q89j6eSpo",
+    explainer: "https://youtube.com/shorts/kz5_TZcp4z0",
+    advert: "https://youtube.com/shorts/kz5_TZcp4z0"
+  }
+};
+
+function getYouTubeId(url) {
+  if (!url) return null;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
+  return match ? match[1] : null;
+}
+
+document.querySelectorAll('.register-link').forEach(el => {
+  el.setAttribute('href', GREEN_CARD_CONFIG.registrationUrl);
+});
+document.querySelectorAll('.whatsapp-link').forEach(el => {
+  el.setAttribute('href', GREEN_CARD_CONFIG.whatsappUrl);
+  el.setAttribute('target', '_blank');
+  el.setAttribute('rel', 'noopener noreferrer');
+});
+
+document.querySelectorAll('.video-link').forEach(el => {
+  el.addEventListener('click', (e) => {
+    e.preventDefault();
+    const key = el.getAttribute('data-video');
+    const url = GREEN_CARD_CONFIG.videos[key];
+    const videoId = getYouTubeId(url);
+    if (!videoId) return;
+
+    let modal = document.getElementById('video-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'video-modal';
+      modal.className = 'funnel-video-modal-backdrop';
+      modal.innerHTML = `
+        <div class="funnel-video-modal-dialog">
+          <div class="funnel-video-modal-header">
+            <span class="funnel-video-modal-title">Agroheal Video Experience</span>
+            <button type="button" class="funnel-video-modal-close" onclick="document.getElementById('video-modal').remove()">✕</button>
+          </div>
+          <div class="funnel-video-frame-wrap">
+            <iframe id="video-frame" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+          </div>
+          <div class="funnel-video-modal-footer">
+            <span>Agroheal Green Card Experience</span>
+            <a href="${GREEN_CARD_CONFIG.registrationUrl}">Get Green Card Now →</a>
+          </div>
+        </div>
+      `;
+      modal.addEventListener('click', (evt) => {
+        if (evt.target === modal) modal.remove();
+      });
+      document.body.appendChild(modal);
+    }
+    document.getElementById('video-frame').src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+  });
+});
+</script>
+</body>
+</html>

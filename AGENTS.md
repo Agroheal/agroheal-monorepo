@@ -51,3 +51,16 @@
 
 ## 7. Component & Logic Reusability Protocol
 - Always prioritize building and reusing shared components, utilities, and queries across the frontend and backend. Avoid ad-hoc duplicates; reuse existing abstractions whenever possible.
+
+## 8. Deduplication & Entity Counting Invariant (Never Blindly COUNT(*) on Transactions)
+- **Raw Transactions Webhook/Retry Multiplicity**:
+  - Payment gateway webhooks (Paystack/Flutterwave) and `SYSTEM_RECONCILIATION_CRON` sweeps generate multiple transaction rows for the same checkout attempt (e.g., 104 raw Combo transaction rows belong to only 70 distinct activated members).
+  - **NEVER** use `COUNT(*)` on `transactions` alone as a proxy for distinct member activations, issued cards, or earned bonuses.
+  - **ALWAYS** enforce `COUNT(DISTINCT user_id)` or verify against concrete provisioned records (`profiles.has_greencard`, `slot_subscriptions`, `orders`).
+  - **Statutory Ledger Cross-Check**: Every member activation triggers exactly 1 statutory sponsor bonus and 1 set of Core Driver Growth credits. Discrepancies between raw transaction counts and distinct Core Driver bonus events must immediately be flagged as webhook/cron transaction duplicates, not uncredited members.
+
+## 9. Modern vs. Legacy Isolation Protocol (Zero Gingertown / Zero Legacy Infiltration)
+- The modern active AgroHeal system MUST remain strictly decoupled from Gingertown and legacy migration records.
+- In all active platform financial audits, ledger reports, and metrics, ALWAYS enforce `is_legacy = false` and `project_category NOT ILIKE '%ginger%'`.
+- NEVER introduce legacy Gingertown balances, transactions, or legacy referrers into modern active financial analyses.
+

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { showToast } from "@/components/ui/ToastComponent";
 import { captureReferral, getActiveReferral } from "@/lib/referralManager";
+import AgrohealLogo from "@/assets/Image/logo.png";
 
 const GREEN_CARD_CONFIG = {
   whatsappUrl:
@@ -21,6 +22,11 @@ function getYouTubeId(url: string): string | null {
   if (!url) return null;
   const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
   return match ? match[1] : null;
+}
+
+function getVideoThumbnail(url: string): string {
+  const id = getYouTubeId(url);
+  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : "";
 }
 
 interface ActiveVideo {
@@ -88,6 +94,40 @@ export const GreenCardCampaign: React.FC = () => {
 
   return (
     <div className="v8-funnel-root">
+      {/* ── TOP HEADER WITH OFFICIAL AGROHEAL LOGO & NAV ── */}
+      <header className="funnel-header">
+        <div className="wrap">
+          <nav>
+            <a href="#top" className="brand" aria-label="Agroheal Green Card Home">
+              <img src={AgrohealLogo} alt="Agroheal Logo" className="brand-logo" />
+              <div className="brand-text">
+                <span className="brand-main">AGROHEAL</span>
+                <span className="brand-sub">GREEN CARD</span>
+              </div>
+            </a>
+            <div className="navlinks">
+              <a href="#ecosystem">Ecosystem</a>
+              <a href="#videos">Videos</a>
+              <a href="#opportunity">Opportunity</a>
+              <a href="#faq">FAQs</a>
+            </div>
+            <div className="header-actions">
+              <a
+                className="btn small outline whatsapp-link"
+                href={GREEN_CARD_CONFIG.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                WhatsApp
+              </a>
+              <a className="btn small register-link" href={onPageSignupUrl}>
+                Get Green Card
+              </a>
+            </div>
+          </nav>
+        </div>
+      </header>
+
       <main id="top">
         {/* ── HERO SECTION (COMPACT & FULLY VISIBLE ON FIRST SCREEN) ── */}
         <section className="hero">
@@ -107,17 +147,26 @@ export const GreenCardCampaign: React.FC = () => {
                 </p>
               </div>
 
-              {/* Explainer Video Preview */}
+              {/* Explainer Video Preview with Authentic YouTube Thumbnail */}
               <a
                 className="preview video-link"
                 href="#videos"
                 onClick={(e) => handleVideoClick(e, "explainer", "GreenCard Explainer Video")}
-                aria-label="Watch Green Card explainer"
+                aria-label="Watch Green Card explainer video"
               >
-                <div>
-                  <strong>GreenCard Explainer Video</strong>
-                  <div className="play">▶</div>
-                  <small>WATCH</small>
+                <div className="preview-media-wrap">
+                  <img
+                    src={getVideoThumbnail(GREEN_CARD_CONFIG.videos.explainer)}
+                    alt="GreenCard Explainer Video Thumbnail"
+                    className="preview-img"
+                    loading="eager"
+                  />
+                  <div className="preview-overlay">
+                    <span className="preview-pill">▶ EXPLAINER</span>
+                    <div className="play">▶</div>
+                    <strong className="preview-title">GreenCard Explainer Video</strong>
+                    <small>TAP TO WATCH (1 MIN)</small>
+                  </div>
                 </div>
               </a>
             </div>
@@ -202,9 +251,16 @@ export const GreenCardCampaign: React.FC = () => {
                   href="#videos"
                   onClick={(e) => handleVideoClick(e, "farm", "Farm Tour Video")}
                   style={{ textDecoration: "none" }}
+                  aria-label="Watch Farm Tour Video"
                 >
                   <div className="thumb">
-                    <div>
+                    <img
+                      src={getVideoThumbnail(GREEN_CARD_CONFIG.videos.farm)}
+                      alt="Farm Tour Thumbnail"
+                      className="video-thumb-img"
+                      loading="lazy"
+                    />
+                    <div className="thumb-overlay">
                       <div className="play">▶</div>
                       <b>See the work</b>
                     </div>
@@ -229,9 +285,16 @@ export const GreenCardCampaign: React.FC = () => {
                   href="#videos"
                   onClick={(e) => handleVideoClick(e, "launch", "Launch Video")}
                   style={{ textDecoration: "none" }}
+                  aria-label="Watch Launch Video"
                 >
                   <div className="thumb">
-                    <div>
+                    <img
+                      src={getVideoThumbnail(GREEN_CARD_CONFIG.videos.launch)}
+                      alt="Launch Video Thumbnail"
+                      className="video-thumb-img"
+                      loading="lazy"
+                    />
+                    <div className="thumb-overlay">
                       <div className="play">▶</div>
                       <b>Meet the movement</b>
                     </div>
@@ -256,9 +319,16 @@ export const GreenCardCampaign: React.FC = () => {
                   href="#videos"
                   onClick={(e) => handleVideoClick(e, "testimonials", "Testimonials Video")}
                   style={{ textDecoration: "none" }}
+                  aria-label="Watch Member Testimonials"
                 >
                   <div className="thumb">
-                    <div>
+                    <img
+                      src={getVideoThumbnail(GREEN_CARD_CONFIG.videos.testimonials)}
+                      alt="Testimonials Video Thumbnail"
+                      className="video-thumb-img"
+                      loading="lazy"
+                    />
+                    <div className="thumb-overlay">
                       <div className="play">▶</div>
                       <b>Hear member stories</b>
                     </div>
@@ -283,9 +353,16 @@ export const GreenCardCampaign: React.FC = () => {
                   href="#videos"
                   onClick={(e) => handleVideoClick(e, "advert", "Short Explainer Video")}
                   style={{ textDecoration: "none" }}
+                  aria-label="Watch Short Explainer Video"
                 >
                   <div className="thumb">
-                    <div>
+                    <img
+                      src={getVideoThumbnail(GREEN_CARD_CONFIG.videos.advert)}
+                      alt="Short Explainer Thumbnail"
+                      className="video-thumb-img"
+                      loading="lazy"
+                    />
+                    <div className="thumb-overlay">
                       <div className="play">▶</div>
                       <b>Feel the vision</b>
                     </div>
@@ -573,11 +650,13 @@ export const GreenCardCampaign: React.FC = () => {
         <div className="wrap">
           <div className="foot">
             <div className="brand">
-              <span className="mark">GC</span>
-              <span>
-                AGROHEAL GREEN CARD<br />
-                <span style={{ fontWeight: 600 }}>Grow Healthy Food • Live Healthy • Build Wealth</span>
-              </span>
+              <img src={AgrohealLogo} alt="Agroheal Logo" className="brand-logo footer-logo" />
+              <div>
+                <strong style={{ fontSize: "1.05rem", letterSpacing: "0.02em" }}>AGROHEAL GREEN CARD</strong><br />
+                <span style={{ fontWeight: 500, opacity: 0.88, fontSize: "0.85rem" }}>
+                  Grow Healthy Food • Live Healthy • Build Wealth
+                </span>
+              </div>
             </div>
             <div className="footlinks">
               <a href="#ecosystem">Ecosystem</a>
@@ -701,48 +780,83 @@ export const GreenCardCampaign: React.FC = () => {
           gap: 10px;
           flex-wrap: wrap;
         }
-        .v8-funnel-root header {
-          padding: 15px 0;
+        .v8-funnel-root .funnel-header {
+          padding: 12px 0;
+          background: rgba(3, 61, 28, 0.85);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
           border-bottom: 1px solid var(--line);
+          position: sticky;
+          top: 0;
+          z-index: 1000;
         }
         .v8-funnel-root nav {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 18px;
+          gap: 16px;
         }
         .v8-funnel-root .brand {
           display: flex;
           align-items: center;
-          gap: 10px;
-          font-weight: 950;
+          gap: 12px;
           text-decoration: none;
         }
-        .v8-funnel-root .mark {
-          display: grid;
-          place-items: center;
-          width: 43px;
-          height: 43px;
-          border-radius: 13px;
-          background: var(--o);
-          color: var(--deep);
-          font-weight: 1000;
+        .v8-funnel-root .brand-logo {
+          width: 40px;
+          height: 40px;
+          object-fit: contain;
+          border-radius: 10px;
+          background: #ffffff;
+          padding: 4px;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+        }
+        .v8-funnel-root .footer-logo {
+          width: 44px;
+          height: 44px;
+        }
+        .v8-funnel-root .brand-text {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.15;
+        }
+        .v8-funnel-root .brand-main {
+          font-size: 1.05rem;
+          font-weight: 950;
+          letter-spacing: 0.04em;
+          color: #ffffff;
+        }
+        .v8-funnel-root .brand-sub {
+          font-size: 0.76rem;
+          font-weight: 800;
+          letter-spacing: 0.12em;
+          color: #ffb15e;
         }
         .v8-funnel-root .navlinks {
           display: flex;
-          gap: 20px;
-          font-weight: 750;
+          gap: 22px;
+          font-weight: 700;
           font-size: 0.92rem;
         }
         .v8-funnel-root .navlinks a {
           text-decoration: none;
+          color: rgba(255, 255, 255, 0.9);
+          transition: color 0.15s ease;
+        }
+        .v8-funnel-root .navlinks a:hover {
+          color: #ffb15e;
+        }
+        .v8-funnel-root .header-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
         }
         .v8-funnel-root .btn {
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
-          padding: 13px 20px;
+          padding: 12px 20px;
           border-radius: 999px;
           background: var(--o);
           color: #18321e;
@@ -751,7 +865,7 @@ export const GreenCardCampaign: React.FC = () => {
           border: 0;
           cursor: pointer;
           box-shadow: 0 8px 22px rgba(0, 0, 0, 0.13);
-          transition: 0.18s;
+          transition: transform 0.18s ease, background 0.18s ease;
         }
         .v8-funnel-root .btn:hover {
           background: #ffa64e;
@@ -764,19 +878,19 @@ export const GreenCardCampaign: React.FC = () => {
           box-shadow: none;
         }
         .v8-funnel-root .btn.small {
-          padding: 9px 15px;
-          font-size: 0.88rem;
+          padding: 8px 15px;
+          font-size: 0.86rem;
         }
 
         /* ── HERO OPTIMIZED FOR FIRST SCREEN (ABOVE-THE-FOLD) VISIBILITY ── */
         .v8-funnel-root .hero {
-          padding: 42px 0 32px;
+          padding: 28px 0 24px;
           background: radial-gradient(circle at 83% 18%, rgba(255, 138, 29, 0.22), transparent 28%),
             linear-gradient(135deg, var(--g), var(--gd));
         }
         .v8-funnel-root .hero-grid {
           display: grid;
-          grid-template-columns: 1.15fr 0.85fr;
+          grid-template-columns: 1.12fr 0.88fr;
           gap: 24px;
           align-items: center;
         }
@@ -791,85 +905,127 @@ export const GreenCardCampaign: React.FC = () => {
           display: inline-block;
           border: 1px solid var(--line);
           border-radius: 999px;
-          padding: 6px 12px;
+          padding: 5px 12px;
         }
         .v8-funnel-root h1 {
-          font-size: clamp(1.9rem, 3.8vw, 3.2rem);
+          font-size: clamp(1.8rem, 3.4vw, 3rem);
           line-height: 1.12;
           letter-spacing: -0.04em;
-          margin: 16px 0 12px;
+          margin: 12px 0 10px;
           font-weight: 950;
         }
         .v8-funnel-root h1 span {
           color: #ffb15e;
         }
         .v8-funnel-root .hero p {
-          font-size: 1rem;
+          font-size: 0.98rem;
           color: #f0fff4;
-          max-width: 650px;
-          margin: 10px 0 14px;
-          line-height: 1.5;
+          max-width: 620px;
+          margin: 8px 0 12px;
+          line-height: 1.48;
         }
         .v8-funnel-root .actions {
           display: flex;
           gap: 12px;
           flex-wrap: wrap;
-          margin: 18px 0 10px;
+          margin: 14px 0 8px;
         }
         .v8-funnel-root .hero-actions {
           justify-content: center;
-          margin-top: 20px;
+          margin-top: 16px;
         }
         .v8-funnel-root .muted {
           opacity: 0.86;
-          font-size: 0.88rem !important;
+          font-size: 0.86rem !important;
           text-align: center;
-          margin-top: 8px;
+          margin-top: 6px;
         }
 
-        /* ── PREVIEW (VIDEO CARD) ── */
+        /* ── PREVIEW (VIDEO CARD WITH REAL THUMBNAIL) ── */
         .v8-funnel-root .preview {
-          min-height: 240px;
-          display: grid;
-          place-items: center;
-          text-align: center;
-          padding: 20px;
-          border-radius: 24px;
+          display: block;
+          position: relative;
+          border-radius: 20px;
           border: 1px solid var(--line);
-          background: linear-gradient(140deg, rgba(3, 61, 28, 0.38), rgba(255, 138, 29, 0.22)),
-            repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.04) 0 10px, transparent 10px 20px);
+          overflow: hidden;
           box-shadow: var(--shadow);
           text-decoration: none;
           cursor: pointer;
-          transition: transform 0.2s ease;
+          aspect-ratio: 16 / 9;
+          max-height: 250px;
+          background: #032d15;
         }
-        .v8-funnel-root .preview:hover {
-          transform: scale(1.02);
+        .v8-funnel-root .preview-media-wrap {
+          position: relative;
+          width: 100%;
+          height: 100%;
+        }
+        .v8-funnel-root .preview-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+          filter: brightness(0.82);
+          transition: transform 0.3s ease, filter 0.3s ease;
+        }
+        .v8-funnel-root .preview:hover .preview-img {
+          transform: scale(1.05);
+          filter: brightness(0.95);
+        }
+        .v8-funnel-root .preview-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0%, rgba(3, 61, 28, 0.82) 100%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 12px;
+          text-align: center;
+        }
+        .v8-funnel-root .preview-pill {
+          background: rgba(0, 0, 0, 0.65);
+          color: #ffb15e;
+          font-size: 0.72rem;
+          font-weight: 900;
+          letter-spacing: 0.08em;
+          padding: 4px 10px;
+          border-radius: 999px;
+          border: 1px solid rgba(255, 177, 94, 0.4);
+          margin-bottom: 6px;
         }
         .v8-funnel-root .play {
-          width: 68px;
-          height: 48px;
+          width: 58px;
+          height: 40px;
           display: grid;
           place-items: center;
           border-radius: 12px;
-          margin: 10px auto 10px;
+          margin: 6px auto;
           background: #ff0000;
           color: #fff;
-          font-size: 1.5rem;
+          font-size: 1.35rem;
           line-height: 1;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+          transition: transform 0.2s ease, background 0.2s ease;
         }
-        .v8-funnel-root .preview strong {
-          font-size: 1.15rem;
+        .v8-funnel-root .preview:hover .play,
+        .v8-funnel-root .card:hover .play {
+          transform: scale(1.1);
+          background: #ff2222;
+        }
+        .v8-funnel-root .preview-title {
+          font-size: 1.08rem;
+          color: #ffffff;
           display: block;
-          margin-bottom: 8px;
+          margin-top: 2px;
         }
         .v8-funnel-root .preview small {
           display: block;
-          margin-top: 6px;
+          margin-top: 4px;
           font-weight: 900;
           letter-spacing: 0.08em;
           color: #ffb15e;
+          font-size: 0.75rem;
         }
 
         /* ── SECTIONS & CONTENT ── */
@@ -943,19 +1099,47 @@ export const GreenCardCampaign: React.FC = () => {
           overflow: hidden;
         }
         .v8-funnel-root .thumb {
-          display: grid;
-          place-items: center;
-          min-height: 140px;
-          background: linear-gradient(135deg, #05642b, #0d8e43);
+          position: relative;
+          overflow: hidden;
+          aspect-ratio: 16 / 9;
+          min-height: unset;
+          height: 160px;
+          background: #032d15;
           border-bottom: 1px solid var(--line);
-          text-align: center;
         }
-        .v8-funnel-root .thumb .play {
-          width: 52px;
-          height: 36px;
+        .v8-funnel-root .video-thumb-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+          filter: brightness(0.85);
+          transition: transform 0.3s ease, filter 0.3s ease;
+        }
+        .v8-funnel-root .card:hover .video-thumb-img {
+          transform: scale(1.06);
+          filter: brightness(0.96);
+        }
+        .v8-funnel-root .thumb-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(3, 61, 28, 0.85) 100%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 10px;
+        }
+        .v8-funnel-root .thumb-overlay .play {
+          width: 48px;
+          height: 34px;
           border-radius: 9px;
-          font-size: 1.15rem;
+          font-size: 1.1rem;
           margin-bottom: 6px;
+        }
+        .v8-funnel-root .thumb-overlay b {
+          font-size: 0.92rem;
+          color: #ffffff;
         }
         .v8-funnel-root .vbody {
           padding: 20px;
