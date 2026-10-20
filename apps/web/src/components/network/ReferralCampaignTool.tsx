@@ -4,104 +4,28 @@ import {
   Copy,
   Check,
   ExternalLink,
-  Globe,
-  Video,
-  Users,
-  Sprout,
-  Award,
-  GitBranch,
-  FileText,
+  ChevronDown,
   Layers,
   MousePointerClick,
+  Users,
   UserCheck,
   TrendingUp,
   RefreshCw,
   Sparkles,
+  Sprout,
+  Info,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "react-hot-toast";
 import { SITE_URL } from "@/config/Index";
 import { apiClient } from "@/lib/apiClient";
-
-export interface DestinationPage {
-  id: string;
-  title: string;
-  path: string;
-  category: string;
-  badge?: string;
-  icon: React.ElementType;
-  description: string;
-  shareMessage: string;
-}
-
-const DESTINATION_PAGES: DestinationPage[] = [
-  {
-    id: "funnel1",
-    title: "Mushroom Wealth Video Funnel",
-    path: "/join/funnel1",
-    category: "Funnel",
-    badge: "Recommended",
-    icon: Video,
-    description: "Explainer video page for Mushroom Village farm operations and community qualifications.",
-    shareMessage: "Watch this short explainer video on AgroHeal Mushroom Village and learn how to earn compound agricultural wealth:",
-  },
-  {
-    id: "signup",
-    title: "Direct Sign Up",
-    path: "/signup",
-    category: "Registration",
-    badge: "Fast Enrolment",
-    icon: Users,
-    description: "Standard member registration page with your sponsor code pre-filled and locked in.",
-    shareMessage: "Join my AgroHeal 5×7 community network today and start your journey towards sustainable agro-wealth:",
-  },
-  {
-    id: "home",
-    title: "AgroHeal Home",
-    path: "/",
-    category: "Overview",
-    icon: Globe,
-    description: "Main homepage featuring platform overview, ecosystem pillars, and agricultural missions.",
-    shareMessage: "Discover AgroHeal, Africa's technology-driven agro-wealth and mushroom production ecosystem:",
-  },
-  {
-    id: "farm-slots",
-    title: "Farm Slots Overview",
-    path: "/farm-slots",
-    category: "Production",
-    icon: Sprout,
-    description: "Mushroom Village production slots, farm pricing, yields, and monthly harvest returns.",
-    shareMessage: "Explore AgroHeal Mushroom Village farm slots and earn returns on agricultural production:",
-  },
-  {
-    id: "courses",
-    title: "AgroHeal Academy",
-    path: "/courses",
-    category: "Education",
-    icon: Award,
-    description: "Educational courses and masterclasses on mushroom cultivation and agribusiness.",
-    shareMessage: "Learn practical agribusiness and agro-wealth strategies on AgroHeal Academy:",
-  },
-  {
-    id: "affiliate",
-    title: "Affiliate & Partner Network",
-    path: "/affiliate",
-    category: "Comp Plan",
-    icon: GitBranch,
-    description: "Detailed overview of the 5×7 compound matrix commissions, PQV rules, and growth pools.",
-    shareMessage: "Learn how the AgroHeal 5×7 Partner & Referral Network creates sustainable residual income:",
-  },
-  {
-    id: "presentation",
-    title: "Official Presentation",
-    path: "/how-it-works/presentation",
-    category: "Presentation",
-    icon: FileText,
-    description: "Official presentation breakdown and walkthrough of the AgroHeal ecosystem.",
-    shareMessage: "Review the full AgroHeal Official Presentation and discover how our community model works:",
-  },
-];
+import {
+  MARKETING_DESTINATIONS,
+  DEFAULT_MARKETING_DESTINATION,
+  getDestinationById,
+  type MarketingDestinationRoute,
+} from "@/routes/appRouter";
 
 interface ReferralCampaignToolProps {
   referralCode: string;
@@ -112,11 +36,21 @@ export const ReferralCampaignTool: React.FC<ReferralCampaignToolProps> = ({
   referralCode,
   directReferralsCount = 0,
 }) => {
-  const [selectedPageId, setSelectedPageId] = useState<string>("funnel1");
+  const [selectedPageId, setSelectedPageId] = useState<string>(DEFAULT_MARKETING_DESTINATION.id);
   const [isCustomMode, setIsCustomMode] = useState<boolean>(false);
   const [customPath, setCustomPath] = useState<string>("");
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
+
+  // Group destinations by category for clean dropdown optgroups
+  const groupedDestinations = useMemo(() => {
+    const groups: Record<string, MarketingDestinationRoute[]> = {};
+    for (const item of MARKETING_DESTINATIONS) {
+      if (!groups[item.category]) groups[item.category] = [];
+      groups[item.category].push(item);
+    }
+    return groups;
+  }, []);
 
   // Analytics State
   const [loadingStats, setLoadingStats] = useState<boolean>(false);
@@ -130,8 +64,10 @@ export const ReferralCampaignTool: React.FC<ReferralCampaignToolProps> = ({
   } | null>(null);
 
   const selectedPage = useMemo(() => {
-    return DESTINATION_PAGES.find((p) => p.id === selectedPageId) || DESTINATION_PAGES[0];
+    return getDestinationById(selectedPageId);
   }, [selectedPageId]);
+
+  const SelectedIcon = selectedPage.icon;
 
   // Clean code fallback
   const cleanCode = referralCode ? referralCode.trim() : "AGC-PENDING";
@@ -291,62 +227,53 @@ export const ReferralCampaignTool: React.FC<ReferralCampaignToolProps> = ({
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            {DESTINATION_PAGES.map((page) => {
-              const isSelected = selectedPageId === page.id;
-              const Icon = page.icon;
-              return (
-                <button
-                  key={page.id}
-                  type="button"
-                  onClick={() => setSelectedPageId(page.id)}
-                  className={`relative p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-2 ${
-                    isSelected
-                      ? "bg-emerald-50/80 border-emerald-500 shadow-xs ring-1 ring-emerald-500"
-                      : "bg-white border-gray-200 hover:border-emerald-300 hover:bg-gray-50/70"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                          isSelected ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <span className="text-xs font-bold text-gray-900 truncate">
-                        {page.title}
-                      </span>
-                    </div>
-                    {page.badge && (
-                      <span
-                        className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${
-                          page.badge === "Recommended"
-                            ? "bg-amber-100 text-amber-800 border border-amber-200"
-                            : "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                        }`}
-                      >
-                        {page.badge}
-                      </span>
-                    )}
-                  </div>
+          <div className="space-y-2.5">
+            {/* ── COMPACT DROPDOWN SELECTOR (DIRECT FROM ROUTER) ── */}
+            <div className="relative">
+              <select
+                id="referral-destination-select"
+                value={selectedPageId}
+                onChange={(e) => setSelectedPageId(e.target.value)}
+                className="w-full appearance-none bg-gray-50/80 hover:bg-gray-100/70 focus:bg-white border border-gray-200 hover:border-emerald-400 focus:border-emerald-600 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-bold text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 transition-all cursor-pointer pr-10 shadow-xs"
+              >
+                {Object.entries(groupedDestinations).map(([category, items]) => (
+                  <optgroup key={category} label={`── ${category.toUpperCase()} ──`} className="font-bold text-gray-600 bg-white">
+                    {items.map((item) => (
+                      <option key={item.id} value={item.id} className="font-medium text-gray-800 py-1">
+                        {item.badge ? `★ [${item.badge}] ` : ""}{item.title}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3.5 text-gray-400">
+                <ChevronDown className="w-4 h-4 text-emerald-800" />
+              </div>
+            </div>
 
-                  <p className="text-[11px] text-gray-500 line-clamp-2">
-                    {page.description}
-                  </p>
-
-                  <div className="flex items-center justify-between text-[10px] text-gray-400 font-mono pt-1 border-t border-gray-100">
-                    <span className="truncate">{page.path}</span>
-                    {isSelected && (
-                      <span className="text-emerald-700 font-bold flex items-center gap-0.5 shrink-0">
-                        <Check className="w-3 h-3" /> Selected
-                      </span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
+            {/* ── COMPACT ACTIVE DESTINATION PREVIEW STRIP ── */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-100/90 text-xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                  <SelectedIcon className="w-3.5 h-3.5" />
+                </span>
+                <span className="font-bold text-gray-900 truncate">
+                  {selectedPage.title}
+                </span>
+                <span className="font-mono text-[11px] font-bold text-emerald-900 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
+                  {selectedPage.path}
+                </span>
+                {selectedPage.badge && (
+                  <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[10px] shrink-0">
+                    {selectedPage.badge}
+                  </Badge>
+                )}
+              </div>
+              <p className="text-[11px] text-gray-600 flex items-center gap-1.5 shrink-0">
+                <Info className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                <span>{selectedPage.description}</span>
+              </p>
+            </div>
           </div>
         )}
       </div>

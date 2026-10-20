@@ -48,12 +48,29 @@ import FarmSlotsBridge from "@/page/website/FarmSlotsBridge";
 import AffiliateBridge from "@/page/website/AffiliateBridge";
 import Funnel1 from "@/page/website/funnels/Funnel1";
 
+export {
+  MARKETING_DESTINATIONS,
+  DEFAULT_MARKETING_DESTINATION,
+  getDestinationById,
+  getDestinationByPath,
+  type MarketingDestinationRoute,
+  type MarketingCategory,
+} from "./marketingRoutes";
+
 export const appRouter = createBrowserRouter([
   // Dedicated Campaign & Marketing Funnel Routes (Standalone full-bleed layout)
   {
-    path: "/join/funnel1",
+    path: "/gc",
     element: <Funnel1 />,
     errorElement: <Error />,
+  },
+  {
+    path: "/join/gc",
+    element: <Navigate to="/gc" replace />,
+  },
+  {
+    path: "/join/funnel1",
+    element: <Navigate to="/gc" replace />,
   },
 
   // Public Marketing & Informational Routes
