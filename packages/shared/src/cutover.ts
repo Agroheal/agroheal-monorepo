@@ -41,19 +41,20 @@ export const NEW_TOTAL_DIRECT_SPONSOR_BONUS =
 export const NEW_GROUP_FARM_PRODUCTION_FUND = 3500; // Credited directly to Group Farm Wallet
 export const NEW_MUSHROOM_POWER_PRODUCTION_FUND = 4500; // Physical manufacturing fund
 
-// Company Revenue Allocations
-export const NEW_COMPANY_REV_GC = 1000;
+// Company & Core Driver Allocations
+export const NEW_COMPANY_REV_GC = 100; // ₦100 to Company (₦1,000 AgroHeal allocation split)
+export const NEW_CORE_DRIVERS_POOL_GC = 900; // ₦900 for Core Drivers (₦1,000 AgroHeal allocation split)
 export const NEW_COMPANY_REV_SLOT = 1000;
-export const NEW_COMPANY_REV_STARTER_PACK = 250;
+export const NEW_COMPANY_REV_STARTER_PACK = 750;
 export const NEW_TOTAL_COMPANY_REVENUE =
-  NEW_COMPANY_REV_GC + NEW_COMPANY_REV_SLOT + NEW_COMPANY_REV_STARTER_PACK; // ₦2,250
+  NEW_COMPANY_REV_GC + NEW_COMPANY_REV_SLOT + NEW_COMPANY_REV_STARTER_PACK; // ₦1,850
 
-// Reserve & Pool Allocations from ₦8,000 Starter Pack
-export const NEW_CORE_PARTNER_POOL = 500;
+// Reserve & Pool Allocations from ₦8,000 Starter Pack (₦1,750 Total Pool)
+export const NEW_CORE_PARTNER_POOL = 0; // Legacy placeholder replaced by direct GC Core Driver allocation (₦900)
 export const NEW_STARTER_PACK_REWARD_POOL = 1750; // Total MLM + Leadership + Car
-export const NEW_NETWORK_COMMISSION_POOL = 1350; // Distributed over 7 levels
-export const NEW_LEADERSHIP_POOL = 200; // Dedicated leadership reserve account
-export const NEW_CAR_AWARD_POOL = 200; // Dedicated quarterly car award reserve account
+export const NEW_NETWORK_COMMISSION_POOL = 1350; // Distributed over 7 levels (77.142857%)
+export const NEW_LEADERSHIP_POOL = 200; // Dedicated leadership reserve account (11.428571%)
+export const NEW_CAR_AWARD_POOL = 200; // Dedicated quarterly car award reserve account (11.428571%)
 
 // ── 3. 5×7 MLM NETWORK DESCENDING WEIGHT ENGINE ──
 export const GENERATION_INDIRECT_LABELS: Record<number, string> = {
@@ -147,10 +148,11 @@ export interface PqvDistributionTier {
 
 export interface PqvProductCommissionResult {
   orderAmount: number;
-  totalRewardPool: number; // 15% of orderAmount
-  networkCommissionPool: number; // 77.142857% of totalRewardPool (₦1,350 / ₦1,750)
-  leadershipPoolAmount: number; // 11.428571% of totalRewardPool (₦200 / ₦1,750)
-  carAwardPoolAmount: number; // 11.428571% of totalRewardPool (₦200 / ₦1,750)
+  totalRewardPool: number; // 15% of orderAmount (₦1,500 on ₦10,000)
+  networkCommissionPool: number; // 77.142857% of totalRewardPool (₦1,157.14 on ₦10,000)
+  directReferralAmount: number; // 11.428571% of totalRewardPool (₦171.43 on ₦10,000) - replaces leadership pool
+  carAwardPoolAmount: number; // 11.428571% of totalRewardPool (₦171.43 on ₦10,000)
+  leadershipPoolAmount: number; // 0 for monthly PQV (replaced by direct referral)
   tiers: PqvDistributionTier[];
 }
 
@@ -188,15 +190,20 @@ export const calculateProductNetworkCommissions = (
 /**
  * Authoritative Post-Cutover PQV Product Commission Calculator.
  * Applies to all retail / general products purchased on the platform (excluding starter packs).
+ * 
+ * 15% of orderAmount is carved out as the total reward pool (₦1,500 per ₦10,000 PQV):
+ * - 77.142857% (1,350 / 1,750) -> 5×7 Network Commission (₦1,157.14 across 7 upline generations)
+ * - 11.428571% (200 / 1,750)   -> Direct Referral Commission (₦171.43 paid to direct sponsor)
+ * - 11.428571% (200 / 1,750)   -> Quarterly Car Award Reserve Pool (₦171.43)
  */
 export function calculatePqvProductCommissions(
   orderAmount: number
 ): PqvProductCommissionResult {
   const base = Math.max(0, Number(orderAmount) || 0);
   const totalRewardPool = base * 0.15; // 15% pool
-  const networkCommissionPool = totalRewardPool * (NEW_NETWORK_COMMISSION_POOL / NEW_STARTER_PACK_REWARD_POOL); // 77.142857%
-  const leadershipPoolAmount = Math.round(totalRewardPool * (NEW_LEADERSHIP_POOL / NEW_STARTER_PACK_REWARD_POOL) * 100) / 100;
-  const carAwardPoolAmount = Math.round(totalRewardPool * (NEW_CAR_AWARD_POOL / NEW_STARTER_PACK_REWARD_POOL) * 100) / 100;
+  const networkCommissionPool = totalRewardPool * (1350 / 1750); // 77.142857% (₦1,157.14 on ₦10,000)
+  const directReferralAmount = Math.round(totalRewardPool * (200 / 1750) * 100) / 100; // 11.428571% (₦171.43 on ₦10,000)
+  const carAwardPoolAmount = Math.round(totalRewardPool * (200 / 1750) * 100) / 100; // 11.428571% (₦171.43 on ₦10,000)
 
   const tiers: PqvDistributionTier[] = MATRIX_5X7_LEVELS.map((spec, idx) => {
     const rawPct = RAW_PERCENTAGES[idx];
@@ -216,8 +223,9 @@ export function calculatePqvProductCommissions(
     orderAmount: base,
     totalRewardPool,
     networkCommissionPool,
-    leadershipPoolAmount,
+    directReferralAmount,
     carAwardPoolAmount,
+    leadershipPoolAmount: 0,
     tiers,
   };
 }
