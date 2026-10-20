@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import React, { useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { showToast } from "@/components/ui/ToastComponent";
-
-import { captureReferral, getActiveReferral, getSignupUrl } from "@/lib/referralManager";
-import { AgrohealImages } from "@/constant/Image";
+import { captureReferral, getActiveReferral } from "@/lib/referralManager";
 
 const GREEN_CARD_CONFIG = {
   whatsappUrl:
     "https://wa.me/2349168055000?text=Hello%20Agroheal,%20I%20am%20interested%20in%20the%20Green%20Card%20Organic%20Food%20Revolution",
+  defaultOnPageSponsor: "AYEG68",
+  defaultStickySponsor: "V7GK3",
   videos: {
     farm: "https://youtu.be/MqQ3sYcPDTE?si=rZRpBGpuWrUZ6r-A",
     launch: "https://youtu.be/vH6_BLQGj0E?si=H6tEBkYHraMnTn7Q",
@@ -32,15 +32,12 @@ interface ActiveVideo {
 
 export const Funnel1: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const [activeVideoModal, setActiveVideoModal] = useState<ActiveVideo | null>(null);
 
+  // Capture incoming referral parameters across localStorage, sessionStorage, and 30-day Cookie
   useEffect(() => {
     captureReferral(searchParams);
   }, [searchParams]);
-
-  const signupUrl = getSignupUrl();
-  const explainerVideoId = getYouTubeId(GREEN_CARD_CONFIG.videos.explainer) || "kz5_TZcp4z0";
-
-  const [activeVideoModal, setActiveVideoModal] = useState<ActiveVideo | null>(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -56,8 +53,22 @@ export const Funnel1: React.FC = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  // Compute registration URLs: If a prospect arrived with a member's link (or has one stored), retain it strictly.
+  // Otherwise, default company traffic routes to the designated leader marketing codes.
+  const { onPageSignupUrl, stickySignupUrl } = useMemo(() => {
+    const activeCode = getActiveReferral(searchParams);
+    if (activeCode) {
+      const url = `/signup?ref=${encodeURIComponent(activeCode)}`;
+      return { onPageSignupUrl: url, stickySignupUrl: url };
+    }
+    return {
+      onPageSignupUrl: `/signup?ref=${GREEN_CARD_CONFIG.defaultOnPageSponsor}`,
+      stickySignupUrl: `/signup?ref=${GREEN_CARD_CONFIG.defaultStickySponsor}`,
+    };
+  }, [searchParams]);
+
   const handleVideoClick = (
-    e: React.MouseEvent<HTMLAnchorElement>,
+    e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>,
     key: keyof typeof GREEN_CARD_CONFIG.videos,
     title: string
   ) => {
@@ -76,159 +87,108 @@ export const Funnel1: React.FC = () => {
   };
 
   return (
-    <div className="funnel-container">
-      {/* Top Banner */}
-      <div className="top">
-        <div className="wrap">
-          <span>🌱 A practical pathway to Healthy food and Wealthy communities.</span>
-          <span>LEARN • FARM • CONSUME • MARKET</span>
-        </div>
-      </div>
-
-      {/* Main Header */}
-      <header>
-        <div className="wrap">
-          <nav aria-label="Main navigation">
-            <a className="brand" href="#top" aria-label="Agroheal Green Card">
-              <div className="brand-logo-wrap">
-                <img src={AgrohealImages.HeaderLogo} alt="Agroheal" className="brand-logo-img" />
-              </div>
-              <span className="brand-tag">GREEN CARD</span>
-            </a>
-            <div className="navlinks">
-              <a href="#ecosystem">Ecosystem</a>
-              <a href="#videos">Videos</a>
-              <a href="#opportunity">Opportunity</a>
-              <a href="#faq">FAQs</a>
-            </div>
-            <Link className="btn small register-link" to={signupUrl}>
-              GET MY GREEN CARD
-            </Link>
-          </nav>
-        </div>
-      </header>
-
-      {/* Main Content */}
+    <div className="v8-funnel-root">
       <main id="top">
-        {/* Hero Section */}
+        {/* ── HERO SECTION (COMPACT & FULLY VISIBLE ON FIRST SCREEN) ── */}
         <section className="hero">
-          <div className="wrap hero-grid">
-            <div>
-              <span className="eyebrow">🌍 The Green Card Organic Food Revolution</span>
-              <h1>
-                Join The Health And Wealth Revolution,
-                <br />
-                <span>Let's Grow Organic Food And Wealth Together.</span>
-              </h1>
-              <p>
-                <strong>
-                  We have a vision to raise millions of healthy and wealthy Africans before 2030 using the
-                  instrumentality of organic agribusiness, with Nigeria as the springboard.
-                </strong>
-              </p>
-              <div className="actions">
-                <Link className="btn register-link" to={signupUrl}>
-                  EXPLORE THE GREEN CARD →
-                </Link>
-                <a
-                  className="btn outline whatsapp-link"
-                  href={GREEN_CARD_CONFIG.whatsappUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  GET GUIDANCE ON WHATSAPP
-                </a>
+          <div className="wrap">
+            <div className="hero-grid">
+              <div className="hero-text-block">
+                <span className="eyebrow">🌍 THE GREENCARD ORGANIC FOOD REVOLUTION</span>
+                <h1>
+                  Join The Health And Wealth Revolution.<br />
+                  <span>Let's Grow Organic Food And Wealth Together.</span>
+                </h1>
+                <p>
+                  <strong>
+                    We have a vision to raise millions of healthy and wealthy Africans before 2030 using the
+                    instrumentality of organic agribusiness, with Nigeria as the springboard.
+                  </strong>
+                </p>
               </div>
-              <p className="muted">
-                See how the model works, review the conditions and decide whether it is right for
-                you.
-              </p>
+
+              {/* Explainer Video Preview */}
+              <a
+                className="preview video-link"
+                href="#videos"
+                onClick={(e) => handleVideoClick(e, "explainer", "GreenCard Explainer Video")}
+                aria-label="Watch Green Card explainer"
+              >
+                <div>
+                  <strong>GreenCard Explainer Video</strong>
+                  <div className="play">▶</div>
+                  <small>WATCH</small>
+                </div>
+              </a>
             </div>
-            <a
-              className="preview video-link"
-              href="#videos"
-              onClick={(e) => handleVideoClick(e, "explainer", "Explainer Video")}
-              aria-label="Watch Green Card explainer"
-              style={{
-                backgroundImage: `linear-gradient(rgba(3, 61, 28, 0.45), rgba(3, 61, 28, 0.75)), url('https://img.youtube.com/vi/${explainerVideoId}/hqdefault.jpg')`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            >
-              <div style={{ position: "relative", zIndex: 2 }}>
-                <div className="play">▶</div>
-                <strong style={{ textShadow: "0 2px 8px rgba(0,0,0,0.7)" }}>Explainer Video</strong>
-                <small style={{ textShadow: "0 2px 6px rgba(0,0,0,0.7)", color: "#e2f9ea" }}>Watch the Explainer Video</small>
-              </div>
-            </a>
+
+            {/* CTAs Placed Immediately Below Hero & Explainer - Above the Fold */}
+            <div className="actions hero-actions">
+              <a className="btn register-link" href={onPageSignupUrl}>
+                GET THE GREENCARD →
+              </a>
+              <a
+                className="btn outline whatsapp-link"
+                href={GREEN_CARD_CONFIG.whatsappUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                GET GUIDANCE ON WHATSAPP
+              </a>
+            </div>
+            <p className="muted">
+              See how the model works, review the conditions and decide whether it is right for you.
+            </p>
           </div>
         </section>
 
-        {/* Ecosystem Section */}
+        {/* ── ECOSYSTEM SECTION ── */}
         <section className="section light" id="ecosystem">
           <div className="wrap">
             <div className="head">
               <div className="kicker">More than a card</div>
               <h2>One connected ecosystem for food, learning and opportunity</h2>
               <p>
-                Your Green Card is the entry point to Agroheal’s LEAP (Learn to Earn Agribusiness
-                Platform) and its growing organic food community.
+                Your Green Card is the entry point to Agroheal’s LEAP (Learn to Earn Agribusiness Platform) and its
+                growing organic food community.
               </p>
             </div>
             <div className="grid3">
               <article className="card">
                 <div className="ico">🎓</div>
                 <h3>Learn</h3>
-                <p>
-                  Build practical organic farming skills through LEAP training and community
-                  guidance.
-                </p>
+                <p>Build practical organic farming skills through LEAP training and community guidance.</p>
               </article>
               <article className="card">
                 <div className="ico">🌱</div>
                 <h3>Produce</h3>
-                <p>
-                  Explore container gardening, Mushroom Village and other group-farming projects,
-                  subject to local availability.
-                </p>
+                <p>Explore container gardening, Mushroom Village and other group-farming projects, subject to local availability.</p>
               </article>
               <article className="card">
                 <div className="ico">🥗</div>
                 <h3>Access food</h3>
-                <p>
-                  Discover Mushroom Power and the producer–consumer marketplace concept as products
-                  and services become available.
-                </p>
+                <p>Discover Mushroom Power and the producer–consumer marketplace concept as products and services become available.</p>
               </article>
               <article className="card">
                 <div className="ico">🤝</div>
                 <h3>Connect locally</h3>
-                <p>
-                  Join WhatsApp guidance and local groups to learn, share progress and discover
-                  available activities.
-                </p>
+                <p>Join WhatsApp guidance and local groups to learn, share progress and discover available activities.</p>
               </article>
               <article className="card">
                 <div className="ico">📣</div>
                 <h3>Share the movement</h3>
-                <p>
-                  Learn about qualifying referral and network rewards under the official programme
-                  rules.
-                </p>
+                <p>Learn about qualifying referral and network rewards under the official programme rules.</p>
               </article>
               <article className="card">
                 <div className="ico">🌍</div>
                 <h3>Build the bigger vision</h3>
-                <p>
-                  Connect local growing, processing and food access through Mushroom Village,
-                  Gingertown and Organic FoodNation.
-                </p>
+                <p>Connect local growing, processing and food access through Mushroom Village, Gingertown and Organic FoodNation.</p>
               </article>
             </div>
           </div>
         </section>
 
-        {/* Videos Section */}
+        {/* ── VIDEOS SECTION ── */}
         <section className="section videos" id="videos">
           <div className="wrap">
             <div className="head">
@@ -236,23 +196,14 @@ export const Funnel1: React.FC = () => {
               <h2>Explore the movement in four videos</h2>
             </div>
             <div className="grid3">
-              {/* 1. Farm Tour */}
               <article className="card">
                 <a
                   className="video-link"
-                  data-video="farm"
                   href="#videos"
-                  onClick={(e) => handleVideoClick(e, "farm", "Farm Tour")}
+                  onClick={(e) => handleVideoClick(e, "farm", "Farm Tour Video")}
                   style={{ textDecoration: "none" }}
                 >
-                  <div
-                    className="thumb"
-                    style={{
-                      backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.55)), url('https://img.youtube.com/vi/MqQ3sYcPDTE/hqdefault.jpg')`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                  >
+                  <div className="thumb">
                     <div>
                       <div className="play">▶</div>
                       <b>See the work</b>
@@ -264,32 +215,22 @@ export const Funnel1: React.FC = () => {
                   <p>See farming activities and the practical work behind the ecosystem.</p>
                   <a
                     className="btn small video-link"
-                    data-video="farm"
                     href="#videos"
-                    onClick={(e) => handleVideoClick(e, "farm", "Farm Tour")}
+                    onClick={(e) => handleVideoClick(e, "farm", "Farm Tour Video")}
                   >
                     WATCH FARM TOUR →
                   </a>
                 </div>
               </article>
 
-              {/* 2. Launch Video */}
               <article className="card">
                 <a
                   className="video-link"
-                  data-video="launch"
                   href="#videos"
                   onClick={(e) => handleVideoClick(e, "launch", "Launch Video")}
                   style={{ textDecoration: "none" }}
                 >
-                  <div
-                    className="thumb"
-                    style={{
-                      backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.55)), url('https://img.youtube.com/vi/vH6_BLQGj0E/hqdefault.jpg')`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                  >
+                  <div className="thumb">
                     <div>
                       <div className="play">▶</div>
                       <b>Meet the movement</b>
@@ -301,7 +242,6 @@ export const Funnel1: React.FC = () => {
                   <p>Discover the mission and invitation to build a stronger food ecosystem.</p>
                   <a
                     className="btn small video-link"
-                    data-video="launch"
                     href="#videos"
                     onClick={(e) => handleVideoClick(e, "launch", "Launch Video")}
                   >
@@ -310,23 +250,14 @@ export const Funnel1: React.FC = () => {
                 </div>
               </article>
 
-              {/* 3. Testimonials */}
               <article className="card">
                 <a
                   className="video-link"
-                  data-video="testimonials"
                   href="#videos"
                   onClick={(e) => handleVideoClick(e, "testimonials", "Testimonials Video")}
                   style={{ textDecoration: "none" }}
                 >
-                  <div
-                    className="thumb"
-                    style={{
-                      backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.55)), url('https://img.youtube.com/vi/A6Q89j6eSpo/hqdefault.jpg')`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                  >
+                  <div className="thumb">
                     <div>
                       <div className="play">▶</div>
                       <b>Hear member stories</b>
@@ -338,7 +269,6 @@ export const Funnel1: React.FC = () => {
                   <p>Hear individual experiences; results and experiences may differ.</p>
                   <a
                     className="btn small video-link"
-                    data-video="testimonials"
                     href="#videos"
                     onClick={(e) => handleVideoClick(e, "testimonials", "Testimonials Video")}
                   >
@@ -347,23 +277,14 @@ export const Funnel1: React.FC = () => {
                 </div>
               </article>
 
-              {/* 4. Short Explainer Video */}
               <article className="card">
                 <a
                   className="video-link"
-                  data-video="advert"
                   href="#videos"
                   onClick={(e) => handleVideoClick(e, "advert", "Short Explainer Video")}
                   style={{ textDecoration: "none" }}
                 >
-                  <div
-                    className="thumb"
-                    style={{
-                      backgroundImage: `linear-gradient(rgba(0,0,0,0.35), rgba(0,0,0,0.55)), url('https://img.youtube.com/vi/kz5_TZcp4z0/hqdefault.jpg')`,
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                    }}
-                  >
+                  <div className="thumb">
                     <div>
                       <div className="play">▶</div>
                       <b>Feel the vision</b>
@@ -375,7 +296,6 @@ export const Funnel1: React.FC = () => {
                   <p>A concise introduction to the Green Card Organic Food Ecosystem and how to take the next step.</p>
                   <a
                     className="btn small video-link"
-                    data-video="advert"
                     href="#videos"
                     onClick={(e) => handleVideoClick(e, "advert", "Short Explainer Video")}
                   >
@@ -384,7 +304,6 @@ export const Funnel1: React.FC = () => {
                 </div>
               </article>
 
-              {/* 5. Need Guidance / WhatsApp */}
               <article className="card" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
                 <div className="ico">💬</div>
                 <h3>Need guidance?</h3>
@@ -403,69 +322,62 @@ export const Funnel1: React.FC = () => {
           </div>
         </section>
 
-        {/* Opportunity Section */}
+        {/* ── OPPORTUNITY SECTION ── */}
         <section className="section light" id="opportunity">
           <div className="wrap">
             <div className="head">
               <div className="kicker">The numbers behind the opportunity</div>
               <h2>See the entry model and the monthly 5×7 potential</h2>
               <p>
-                The figures below are model projections for a fully populated, qualifying matrix. They
-                describe potential total network payouts, not guaranteed earnings for an individual.
+                The figures below are model projections for a fully populated, qualifying matrix. They describe potential
+                total network payouts, not guaranteed earnings for an individual.
               </p>
             </div>
 
-            {/* 3 Stat Cards with enhanced contrast numbers */}
             <div className="grid3" style={{ marginBottom: "20px" }}>
-              <article className="card stat-card">
+              <article className="card">
                 <div className="kicker">Level 7 stage</div>
-                <div className="price stat-price">Up to ₦15m</div>
-                <p>
-                  Modelled opportunity for a completed qualifying 5×7 network, subject to the official
-                  compensation plan.
-                </p>
+                <div className="price" style={{ fontSize: "2.25rem" }}>
+                  Up to ₦15m
+                </div>
+                <p>Modelled opportunity for a completed qualifying 5×7 network, subject to the official compensation plan.</p>
               </article>
-              <article className="card stat-card">
+              <article className="card">
                 <div className="kicker">Monthly PQV</div>
-                <div className="price stat-price">₦10,000</div>
-                <p>
-                  Qualifying monthly personal purchase volume assumed for each active participant in
-                  the illustration.
-                </p>
+                <div className="price" style={{ fontSize: "2.25rem" }}>
+                  ₦10,000
+                </div>
+                <p>Qualifying monthly personal purchase volume assumed for each active participant in the illustration.</p>
               </article>
-              <article className="card stat-card">
+              <article className="card">
                 <div className="kicker">Full-matrix monthly payout</div>
-                <div className="price stat-price">≈ ₦12.86m</div>
-                <p>
-                  Illustrative combined payout across the seven levels using the current descending
-                  rate model—not an individual income promise.
-                </p>
+                <div className="price" style={{ fontSize: "2.25rem" }}>
+                  ≈ ₦12.86m
+                </div>
+                <p>Illustrative combined payout across the seven levels using the current descending rate model—not an individual income promise.</p>
               </article>
             </div>
 
-            {/* Offer Box */}
+            {/* Offer Combo Box */}
             <div className="offer">
               <div className="offer-grid">
                 <div>
                   <div className="kicker">Green Card Starter Combo</div>
                   <h2>Get started for</h2>
                   <div className="price">₦15,000</div>
-                  <p>
-                    One pathway combining registration, a mushroom farm slot and the Mushroom Power
-                    Starter Pack.
-                  </p>
-                  <Link className="btn register-link" to={signupUrl}>
+                  <p>One pathway combining registration, a mushroom farm slot and the Mushroom Power Starter Pack.</p>
+                  <a className="btn register-link" href={onPageSignupUrl}>
                     REGISTER / GET STARTED →
-                  </Link>
+                  </a>
                   <div className="callout">
                     <strong>Direct referral illustration: up to ₦2,500 per complete Starter Combo</strong>
                     <br />
-                    <span style={{ fontSize: ".91rem" }}>
-                      ₦1,000 Green Card referral + ₦500 farm-slot referral + ₦1,000 Mushroom Power referral,
-                      when all three components qualify under the current plan.
+                    <span style={{ fontSize: "0.91rem" }}>
+                      ₦1,000 Green Card referral + ₦500 farm-slot referral + ₦1,000 Mushroom Power referral, when all three components qualify under the current plan.
                     </span>
                   </div>
                 </div>
+
                 <div>
                   <h3>What the ₦15,000 covers</h3>
                   <ul className="breakdown">
@@ -476,32 +388,27 @@ export const Funnel1: React.FC = () => {
                       <b>₦5,000 farm slot:</b> ₦3,500 production / ₦1,000 Agroheal / ₦500 referral.
                     </li>
                     <li>
-                      <b>₦8,000 Mushroom Power Starter Pack:</b> ₦4,500 product / ₦1,000 referral / ₦750
-                      Agroheal / ₦1,750 rewards pool.
+                      <b>₦8,000 Mushroom Power Starter Pack:</b> ₦4,500 product / ₦1,000 referral / ₦750 Agroheal / ₦1,750 rewards pool.
                     </li>
                   </ul>
                   <div className="callout">
-                    <strong>₦1,750 rewards pool:</strong> ₦1,350 5×7 network commissions + ₦200 leadership pool
-                    + ₦200 quarterly car awards.
+                    <strong>₦1,750 rewards pool:</strong> ₦1,350 5×7 network commissions + ₦200 leadership pool + ₦200 quarterly car awards.
                   </div>
                   <div className="callout">
-                    <strong>Green Card Points:</strong> 30,000 programme points—15,000 for production
-                    participation and 15,000 for consumption/marketplace use, subject to unlock conditions
-                    and published rules. Points are not cash.
+                    <strong>Green Card Points:</strong> 30,000 programme points—15,000 for production participation and 15,000 for consumption/marketplace use, subject to unlock conditions and published rules. Points are not cash.
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* 5x7 Matrix Explanation & Enhanced Table */}
-            <div className="card matrix-table-card" style={{ marginTop: "20px" }}>
+            {/* 5x7 Matrix Tier Table */}
+            <div className="card" style={{ marginTop: "20px" }}>
               <h3>How the 5×7 matrix reaches Level 7</h3>
               <p>
-                Each participant invites five qualifying people, and each of those people does the same,
-                creating a theoretical seven-level structure. With ₦10,000 qualifying monthly PQV per
-                active participant, the 15% allocation is ₦1,500 per participant. Applying the current
-                descending level rates to a fully populated matrix projects approximately ₦12.86 million in
-                combined monthly payouts across all seven levels.
+                Each participant invites five qualifying people, and each of those people does the same, creating a
+                theoretical seven-level structure. With ₦10,000 qualifying monthly PQV per active participant, the 15%
+                allocation is ₦1,500 per participant. Applying the current descending level rates to a fully populated
+                matrix projects approximately ₦12.86 million in combined monthly payouts across all seven levels.
               </p>
               <div className="tablewrap">
                 <table>
@@ -552,25 +459,24 @@ export const Funnel1: React.FC = () => {
                 </table>
               </div>
               <p className="smallnote">
-                Theoretical matrix capacity is 97,655 positions (5 + 25 + 125 + 625 + 3,125 + 15,625 +
-                78,125). The approximately ₦12.86 million figure is the sum of the illustrative per-position
-                payouts across all seven levels when every position is filled and qualifies at ₦10,000 monthly
-                PQV. Real participation, eligibility, purchase volume, timing, adjustments and the approved
-                compensation plan can change outcomes. The ₦15 million Level 7 figure is a separate
-                programme target/modelled opportunity and must not be interpreted as a guaranteed payment to
-                every member.
+                Theoretical matrix capacity is 97,655 positions (5 + 25 + 125 + 625 + 3,125 + 15,625 + 78,125). The
+                approximately ₦12.86 million figure is the sum of the illustrative per-position payouts across all seven
+                levels when every position is filled and qualifies at ₦10,000 monthly PQV. Real participation, eligibility,
+                purchase volume, timing, adjustments and the approved compensation plan can change outcomes. The ₦15 million
+                Level 7 figure is a separate programme target/modelled opportunity and must not be interpreted as a
+                guaranteed payment to every member.
               </p>
             </div>
 
-            {/* Next Steps Buttons */}
+            {/* Action Cards */}
             <div className="grid2" style={{ marginTop: "20px" }}>
               <article className="card">
                 <div className="ico">🟠</div>
                 <h3>Ready to register?</h3>
                 <p>Use the official registration link and review the programme terms.</p>
-                <Link className="btn register-link" to={signupUrl} style={{ marginTop: "15px" }}>
+                <a className="btn register-link" href={onPageSignupUrl} style={{ marginTop: "15px" }}>
                   GET MY GREEN CARD
-                </Link>
+                </a>
               </article>
               <article className="card">
                 <div className="ico">🟢</div>
@@ -590,7 +496,7 @@ export const Funnel1: React.FC = () => {
           </div>
         </section>
 
-        {/* FAQs Section */}
+        {/* ── FAQ SECTION ── */}
         <section className="section dark" id="faq">
           <div className="wrap">
             <div className="head">
@@ -601,56 +507,53 @@ export const Funnel1: React.FC = () => {
               <details>
                 <summary>Is this only an investment scheme?</summary>
                 <p>
-                  No. It is presented as a food and agribusiness participation ecosystem involving
-                  learning, production, products and community activity. Do not join on the assumption of
-                  guaranteed financial returns.
+                  No. It is presented as a food and agribusiness participation ecosystem involving learning, production,
+                  products and community activity. Do not join on the assumption of guaranteed financial returns.
                 </p>
               </details>
               <details>
                 <summary>Are referral or matrix rewards guaranteed?</summary>
                 <p>
-                  No. They depend on qualifying activity, eligibility, actual network participation and the
-                  official compensation plan. Figures on this page are illustrations, not promises of
-                  income.
+                  No. They depend on qualifying activity, eligibility, actual network participation and the official
+                  compensation plan. Figures on this page are illustrations, not promises of income.
                 </p>
               </details>
               <details>
                 <summary>What are Green Card Points?</summary>
                 <p>
-                  Programme points intended for designated production and consumption purposes. They are
-                  not cash; usage and unlock conditions are governed by the published rules.
+                  Programme points intended for designated production and consumption purposes. They are not cash; usage and
+                  unlock conditions are governed by the published rules.
                 </p>
               </details>
               <details>
                 <summary>How do I join a local group?</summary>
                 <p>
-                  Use the WhatsApp link on this page for onboarding guidance and information about your
-                  local community group.
+                  Use the WhatsApp link on this page for onboarding guidance and information about your local community group.
                 </p>
               </details>
               <details>
                 <summary>Are farm slots and products available everywhere?</summary>
                 <p>
-                  Availability can vary by location, season and project capacity. Confirm availability,
-                  delivery, terms and timelines before paying.
+                  Availability can vary by location, season and project capacity. Confirm availability, delivery, terms and
+                  timelines before paying.
                 </p>
               </details>
             </div>
           </div>
         </section>
 
-        {/* Final CTA Banner */}
+        {/* ── CTA SECTION ── */}
         <section className="cta">
           <div className="wrap">
             <h2>Help build a healthier, more food-secure future.</h2>
             <p>
-              Get your Green Card, learn with the community and discover how you can participate in the
-              Green Card Producer–Consumer Organic Food Ecosystem.
+              Get your Green Card, learn with the community and discover how you can participate in the Green Card
+              Producer–Consumer Organic Food Ecosystem.
             </p>
             <div className="actions" style={{ justifyContent: "center" }}>
-              <Link className="btn register-link" to={signupUrl}>
+              <a className="btn register-link" href={onPageSignupUrl}>
                 GET MY GREEN CARD NOW →
-              </Link>
+              </a>
               <a
                 className="btn whatsapp-link"
                 href={GREEN_CARD_CONFIG.whatsappUrl}
@@ -665,42 +568,33 @@ export const Funnel1: React.FC = () => {
         </section>
       </main>
 
-      {/* Footer */}
+      {/* ── FOOTER ── */}
       <footer>
         <div className="wrap">
           <div className="foot">
             <div className="brand">
-              <div className="brand-logo-wrap">
-                <img src={AgrohealImages.HeaderLogo} alt="Agroheal" className="brand-logo-img" />
-              </div>
-              <div>
-                <span className="brand-tag">GREEN CARD</span>
-                <div style={{ fontWeight: 600, fontSize: "0.85rem", color: "#a7f3d0", marginTop: "4px" }}>
-                  Grow Healthy Food • Live Healthy • Build Wealth
-                </div>
-              </div>
+              <span className="mark">GC</span>
+              <span>
+                AGROHEAL GREEN CARD<br />
+                <span style={{ fontWeight: 600 }}>Grow Healthy Food • Live Healthy • Build Wealth</span>
+              </span>
             </div>
             <div className="footlinks">
               <a href="#ecosystem">Ecosystem</a>
               <a href="#videos">Videos</a>
               <a href="#opportunity">Opportunity</a>
               <a href="#faq">FAQs</a>
-              <a
-                className="whatsapp-link"
-                href={GREEN_CARD_CONFIG.whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <a href={GREEN_CARD_CONFIG.whatsappUrl} target="_blank" rel="noopener noreferrer">
                 WhatsApp
               </a>
             </div>
           </div>
           <p className="fine">
-            Programme features, fees, points, product availability and participation terms may change.
-            Confirm details through official Agroheal channels. Green Card Points are not cash. Farming,
-            product sales and referral/network rewards depend on actual activity, costs, qualifying
-            conditions and published rules. No income, profit, health outcome or financial return is
-            guaranteed. This page is informational and does not replace official terms and conditions.
+            Programme features, fees, points, product availability and participation terms may change. Confirm details
+            through official Agroheal channels. Green Card Points are not cash. Farming, product sales and referral/network
+            rewards depend on actual activity, costs, qualifying conditions and published rules. No income, profit, health
+            outcome or financial return is guaranteed. This page is informational and does not replace official terms and
+            conditions.
           </p>
           <p style={{ opacity: 0.75, marginBottom: 0 }}>
             © {new Date().getFullYear()} Agroheal Solutions Ltd. All rights reserved.
@@ -708,66 +602,64 @@ export const Funnel1: React.FC = () => {
         </div>
       </footer>
 
-      {/* Mobile Sticky Bar */}
+      {/* ── STICKY BOTTOM BAR (NON-SCROLLING CTA ON MOBILE & TABLET) ── */}
       <div className="sticky">
         <div className="wrap">
-          <Link className="btn register-link" to={signupUrl}>
+          <a className="btn register-link" href={stickySignupUrl}>
             GET GREEN CARD
-          </Link>
+          </a>
           <a
             className="btn whatsapp-link"
             href={GREEN_CARD_CONFIG.whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ background: "white", color: "#064e25" }}
+            style={{ background: "white" }}
           >
             WHATSAPP
           </a>
         </div>
       </div>
 
-      {/* Video Modal Player */}
+      {/* ── RESPONSIVE VIDEO MODAL ── */}
       {activeVideoModal && (
-        <div
-          className="funnel-video-modal-backdrop"
-          onClick={() => setActiveVideoModal(null)}
-          role="dialog"
-          aria-modal="true"
-          aria-label={activeVideoModal.title}
-        >
-          <div className="funnel-video-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="funnel-video-modal-backdrop" onClick={() => setActiveVideoModal(null)}>
+          <div
+            className="funnel-video-modal-dialog"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={activeVideoModal.title}
+          >
             <div className="funnel-video-modal-header">
               <span className="funnel-video-modal-title">{activeVideoModal.title}</span>
               <button
                 type="button"
                 className="funnel-video-modal-close"
                 onClick={() => setActiveVideoModal(null)}
-                aria-label="Close video player"
+                aria-label="Close video"
               >
                 ✕
               </button>
             </div>
             <div className="funnel-video-frame-wrap">
               <iframe
-                src={`https://www.youtube-nocookie.com/embed/${activeVideoModal.videoId}?autoplay=1&rel=0`}
+                src={`https://www.youtube.com/embed/${activeVideoModal.videoId}?autoplay=1&rel=0&modestbranding=1`}
                 title={activeVideoModal.title}
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
             </div>
             <div className="funnel-video-modal-footer">
-              <span>Agroheal Green Card Official Video</span>
-              <a href={activeVideoModal.url} target="_blank" rel="noopener noreferrer">
-                Watch on YouTube ↗
-              </a>
+              <span>Agroheal Green Card Experience</span>
+              <a href={onPageSignupUrl}>Get Green Card Now →</a>
             </div>
           </div>
         </div>
       )}
 
-      {/* Embedded Scoped Styles Preserving 100% of Visual Fidelity with Key Contrast Enhancements */}
+      {/* ── V8 STYLES & ABOVE-THE-FOLD VIEWPORT OPTIMIZATIONS ── */}
       <style>{`
-        .funnel-container {
+        :root {
           --g: #087b35;
           --gd: #045626;
           --deep: #033d1c;
@@ -779,78 +671,73 @@ export const Funnel1: React.FC = () => {
           --soft: #f5fff7;
           --shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
           --r: 20px;
-          margin: 0;
+        }
+        .v8-funnel-root {
+          box-sizing: border-box;
           font-family: Inter, "Segoe UI", Arial, sans-serif;
           background: var(--g);
           color: var(--w);
           line-height: 1.6;
           min-height: 100vh;
         }
-        .funnel-container a { color: inherit; }
-        .funnel-container .wrap {
+        .v8-funnel-root * {
+          box-sizing: border-box;
+        }
+        .v8-funnel-root a {
+          color: inherit;
+        }
+        .v8-funnel-root .wrap {
           width: min(1120px, calc(100% - 32px));
           margin: auto;
         }
-        .funnel-container .top {
+        .v8-funnel-root .top {
           background: var(--deep);
           font-size: 0.88rem;
           padding: 8px 0;
         }
-        .funnel-container .top .wrap {
+        .v8-funnel-root .top .wrap {
           display: flex;
           justify-content: space-between;
           gap: 10px;
           flex-wrap: wrap;
         }
-        .funnel-container header {
+        .v8-funnel-root header {
           padding: 15px 0;
           border-bottom: 1px solid var(--line);
         }
-        .funnel-container nav {
+        .v8-funnel-root nav {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 18px;
         }
-        .funnel-container .brand {
+        .v8-funnel-root .brand {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
+          font-weight: 950;
           text-decoration: none;
         }
-        .funnel-container .brand-logo-wrap {
-          background: rgba(255, 255, 255, 0.98);
-          padding: 6px 14px;
-          border-radius: 12px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+        .v8-funnel-root .mark {
+          display: grid;
+          place-items: center;
+          width: 43px;
+          height: 43px;
+          border-radius: 13px;
+          background: var(--o);
+          color: var(--deep);
+          font-weight: 1000;
         }
-        .funnel-container .brand-logo-img {
-          height: 32px;
-          width: auto;
-          object-fit: contain;
-          display: block;
-        }
-        .funnel-container .brand-tag {
-          font-weight: 900;
-          color: #ffb15e;
-          font-size: 1.05rem;
-          letter-spacing: -0.01em;
-        }
-        .funnel-container .mark {
-          display: none;
-        }
-        .funnel-container .navlinks {
+        .v8-funnel-root .navlinks {
           display: flex;
           gap: 20px;
           font-weight: 750;
           font-size: 0.92rem;
         }
-        .funnel-container .navlinks a { text-decoration: none; }
-        .funnel-container .navlinks a:hover { color: #ffb15e; }
-        .funnel-container .btn {
+        .v8-funnel-root .navlinks a {
+          text-decoration: none;
+        }
+        .v8-funnel-root .btn {
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -866,206 +753,196 @@ export const Funnel1: React.FC = () => {
           box-shadow: 0 8px 22px rgba(0, 0, 0, 0.13);
           transition: 0.18s;
         }
-        .funnel-container .btn:hover {
+        .v8-funnel-root .btn:hover {
           background: #ffa64e;
           transform: translateY(-2px);
         }
-        .funnel-container .btn.outline {
+        .v8-funnel-root .btn.outline {
           background: transparent;
           color: white;
           border: 2px solid rgba(255, 255, 255, 0.75);
           box-shadow: none;
         }
-        .funnel-container .btn.outline:hover {
-          background: rgba(255, 255, 255, 0.12);
-          border-color: white;
-        }
-        .funnel-container .btn.small {
+        .v8-funnel-root .btn.small {
           padding: 9px 15px;
           font-size: 0.88rem;
         }
-        .funnel-container .hero {
-          padding: 65px 0;
+
+        /* ── HERO OPTIMIZED FOR FIRST SCREEN (ABOVE-THE-FOLD) VISIBILITY ── */
+        .v8-funnel-root .hero {
+          padding: 42px 0 32px;
           background: radial-gradient(circle at 83% 18%, rgba(255, 138, 29, 0.22), transparent 28%),
             linear-gradient(135deg, var(--g), var(--gd));
         }
-        .funnel-container .hero-grid {
+        .v8-funnel-root .hero-grid {
           display: grid;
-          grid-template-columns: 1.08fr 0.92fr;
-          gap: 42px;
+          grid-template-columns: 1.15fr 0.85fr;
+          gap: 24px;
           align-items: center;
         }
-        .funnel-container .eyebrow,
-        .funnel-container .kicker {
-          font-size: 0.8rem;
+        .v8-funnel-root .eyebrow,
+        .v8-funnel-root .kicker {
+          font-size: 0.78rem;
           letter-spacing: 0.1em;
           text-transform: uppercase;
           font-weight: 900;
         }
-        .funnel-container .eyebrow {
+        .v8-funnel-root .eyebrow {
           display: inline-block;
           border: 1px solid var(--line);
           border-radius: 999px;
-          padding: 7px 12px;
+          padding: 6px 12px;
         }
-        .funnel-container h1 {
-          font-size: clamp(2.5rem, 5.2vw, 4.6rem);
-          line-height: 1.02;
-          letter-spacing: -0.045em;
-          margin: 20px 0;
+        .v8-funnel-root h1 {
+          font-size: clamp(1.9rem, 3.8vw, 3.2rem);
+          line-height: 1.12;
+          letter-spacing: -0.04em;
+          margin: 16px 0 12px;
           font-weight: 950;
         }
-        .funnel-container h1 span { color: #ffb15e; }
-        .funnel-container .hero p {
-          font-size: 1.1rem;
+        .v8-funnel-root h1 span {
+          color: #ffb15e;
+        }
+        .v8-funnel-root .hero p {
+          font-size: 1rem;
           color: #f0fff4;
           max-width: 650px;
+          margin: 10px 0 14px;
+          line-height: 1.5;
         }
-        .funnel-container .actions {
+        .v8-funnel-root .actions {
           display: flex;
           gap: 12px;
           flex-wrap: wrap;
-          margin: 25px 0 15px;
+          margin: 18px 0 10px;
         }
-        .funnel-container .muted {
+        .v8-funnel-root .hero-actions {
+          justify-content: center;
+          margin-top: 20px;
+        }
+        .v8-funnel-root .muted {
           opacity: 0.86;
-          font-size: 0.9rem !important;
+          font-size: 0.88rem !important;
+          text-align: center;
+          margin-top: 8px;
         }
-        /* Enhanced smooth glass preview card */
-        .funnel-container .preview {
-          min-height: 320px;
+
+        /* ── PREVIEW (VIDEO CARD) ── */
+        .v8-funnel-root .preview {
+          min-height: 240px;
           display: grid;
           place-items: center;
           text-align: center;
-          padding: 28px;
-          border-radius: 25px;
-          border: 1px solid rgba(255, 255, 255, 0.28);
-          background-color: var(--deep);
-          backdrop-filter: blur(8px);
+          padding: 20px;
+          border-radius: 24px;
+          border: 1px solid var(--line);
+          background: linear-gradient(140deg, rgba(3, 61, 28, 0.38), rgba(255, 138, 29, 0.22)),
+            repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.04) 0 10px, transparent 10px 20px);
           box-shadow: var(--shadow);
           text-decoration: none;
-          transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-          position: relative;
-          overflow: hidden;
+          cursor: pointer;
+          transition: transform 0.2s ease;
         }
-        .funnel-container .preview:hover {
-          transform: translateY(-3px);
-          border-color: rgba(255, 177, 94, 0.7);
-          box-shadow: 0 22px 54px rgba(0, 0, 0, 0.35);
+        .v8-funnel-root .preview:hover {
+          transform: scale(1.02);
         }
-        .funnel-container .play {
-          width: 70px;
-          height: 70px;
+        .v8-funnel-root .play {
+          width: 68px;
+          height: 48px;
           display: grid;
           place-items: center;
-          border-radius: 50%;
-          margin: 0 auto 14px;
-          background: var(--o);
-          color: var(--deep);
-          font-size: 1.6rem;
-          box-shadow: 0 0 25px rgba(255, 138, 29, 0.45);
-          transition: transform 0.18s ease;
+          border-radius: 12px;
+          margin: 10px auto 10px;
+          background: #ff0000;
+          color: #fff;
+          font-size: 1.5rem;
+          line-height: 1;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
         }
-        .funnel-container .preview:hover .play {
-          transform: scale(1.08);
-        }
-        .funnel-container .preview strong {
-          font-size: 1.2rem;
+        .v8-funnel-root .preview strong {
+          font-size: 1.15rem;
           display: block;
+          margin-bottom: 8px;
         }
-        .funnel-container .preview small {
+        .v8-funnel-root .preview small {
           display: block;
-          margin-top: 7px;
-          color: #d1fae5;
+          margin-top: 6px;
+          font-weight: 900;
+          letter-spacing: 0.08em;
+          color: #ffb15e;
         }
-        .funnel-container .section { padding: 70px 0; }
-        .funnel-container .light {
+
+        /* ── SECTIONS & CONTENT ── */
+        .v8-funnel-root .section {
+          padding: 64px 0;
+        }
+        .v8-funnel-root .light {
           background: var(--soft);
           color: var(--ink);
         }
-        .funnel-container .dark { background: var(--gd); }
-        .funnel-container .head {
+        .v8-funnel-root .dark {
+          background: var(--gd);
+        }
+        .v8-funnel-root .head {
           text-align: center;
           max-width: 760px;
-          margin: 0 auto 34px;
+          margin: 0 auto 32px;
         }
-        .funnel-container .kicker { color: #ffb15e; }
-        .funnel-container .light .kicker { color: var(--od); }
-        .funnel-container h2 {
-          font-size: clamp(2rem, 3.5vw, 3rem);
-          line-height: 1.1;
+        .v8-funnel-root .kicker {
+          color: #ffb15e;
+        }
+        .v8-funnel-root .light .kicker {
+          color: var(--od);
+        }
+        .v8-funnel-root h2 {
+          font-size: clamp(1.85rem, 3.4vw, 2.8rem);
+          line-height: 1.12;
           letter-spacing: -0.03em;
           margin: 10px 0 14px;
-          font-weight: 900;
         }
-        .funnel-container .head p {
-          font-size: 1.03rem;
+        .v8-funnel-root .head p {
+          font-size: 1.02rem;
           margin: 0;
           opacity: 0.9;
         }
-        .funnel-container .grid3 {
+        .v8-funnel-root .grid3 {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
           gap: 16px;
         }
-        .funnel-container .grid2 {
+        .v8-funnel-root .grid2 {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
           gap: 18px;
         }
-        .funnel-container .card {
-          padding: 23px;
+        .v8-funnel-root .card {
+          padding: 22px;
           border: 1px solid var(--line);
           border-radius: var(--r);
           background: rgba(255, 255, 255, 0.08);
         }
-        .funnel-container .light .card {
+        .v8-funnel-root .light .card {
           background: white;
           border-color: #d8eadc;
           box-shadow: 0 8px 24px rgba(10, 70, 30, 0.05);
         }
-        .funnel-container .ico {
+        .v8-funnel-root .ico {
           font-size: 1.5rem;
           margin-bottom: 8px;
         }
-        .funnel-container .card h3 {
+        .v8-funnel-root .card h3 {
           margin: 0 0 8px;
-          font-size: 1.18rem;
-          font-weight: 850;
+          font-size: 1.16rem;
         }
-        .funnel-container .card p {
+        .v8-funnel-root .card p {
           margin: 0;
           opacity: 0.9;
         }
-        .funnel-container .journey {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 12px;
-        }
-        .funnel-container .step {
-          padding: 18px;
-          border: 1px solid var(--line);
-          border-radius: 16px;
-          background: rgba(255, 255, 255, 0.08);
-        }
-        .funnel-container .step b {
-          color: #ffb15e;
-          font-size: 0.82rem;
-          letter-spacing: 0.08em;
-        }
-        .funnel-container .step h3 {
-          margin: 6px 0;
-          font-weight: 850;
-        }
-        .funnel-container .step p {
-          margin: 0;
-          font-size: 0.93rem;
-        }
-        .funnel-container .videos .card {
+        .v8-funnel-root .videos .card {
           padding: 0;
           overflow: hidden;
         }
-        .funnel-container .thumb {
+        .v8-funnel-root .thumb {
           display: grid;
           place-items: center;
           min-height: 140px;
@@ -1073,228 +950,334 @@ export const Funnel1: React.FC = () => {
           border-bottom: 1px solid var(--line);
           text-align: center;
         }
-        .funnel-container .thumb .play {
+        .v8-funnel-root .thumb .play {
           width: 52px;
-          height: 52px;
-          font-size: 1.25rem;
+          height: 36px;
+          border-radius: 9px;
+          font-size: 1.15rem;
           margin-bottom: 6px;
         }
-        .funnel-container .vbody { padding: 20px; }
-        .funnel-container .vbody p { margin-bottom: 15px; }
-        .funnel-container .offer {
+        .v8-funnel-root .vbody {
+          padding: 20px;
+        }
+        .v8-funnel-root .vbody h3 {
+          font-size: 1.22rem;
+          font-weight: 950;
+        }
+        .v8-funnel-root .vbody p {
+          margin-bottom: 15px;
+        }
+        .v8-funnel-root .vbody .btn {
+          font-size: 1rem;
+          font-weight: 950;
+        }
+
+        /* ── OFFER COMBO ── */
+        .v8-funnel-root .offer {
           padding: 30px;
           border-radius: 25px;
           background: linear-gradient(135deg, #064e25, #087b35);
           border: 1px solid var(--line);
           box-shadow: var(--shadow);
-          color: white;
         }
-        .funnel-container .offer-grid {
+        .v8-funnel-root .offer-grid {
           display: grid;
-          grid-template-columns: 0.85fr 1.15fr;
+          grid-template-columns: 0.88fr 1.12fr;
           gap: 28px;
           align-items: start;
         }
-        .funnel-container .price {
-          font-size: clamp(2.6rem, 5vw, 3.8rem);
+        .v8-funnel-root .price {
+          font-size: clamp(2.4rem, 4.8vw, 3.6rem);
           font-weight: 950;
           color: #ffb15e;
           line-height: 1.05;
           margin: 10px 0;
         }
-        /* CONTRAST FIX 1: High contrast numbers on white stat cards */
-        .funnel-container .light .card.stat-card .stat-price {
-          color: #045626 !important;
-          font-size: clamp(2.2rem, 3.8vw, 3rem);
-          letter-spacing: -0.03em;
-        }
-        .funnel-container .breakdown {
+        .v8-funnel-root .breakdown {
           padding-left: 20px;
           margin: 10px 0;
         }
-        .funnel-container .breakdown li { margin: 7px 0; }
-        .funnel-container .callout {
+        .v8-funnel-root .breakdown li {
+          margin: 7px 0;
+        }
+        .v8-funnel-root .callout {
           background: rgba(255, 255, 255, 0.09);
           border: 1px solid var(--line);
           border-radius: 15px;
           padding: 16px;
           margin-top: 14px;
         }
-        .funnel-container .callout strong { color: #ffb15e; }
-        .funnel-container .tablewrap {
+        .v8-funnel-root .callout strong {
+          color: #ffb15e;
+        }
+        .v8-funnel-root .tablewrap {
           overflow-x: auto;
           margin-top: 15px;
         }
-        .funnel-container table {
+        .v8-funnel-root table {
           border-collapse: collapse;
           width: 100%;
           min-width: 470px;
           font-size: 0.94rem;
         }
-        /* CONTRAST FIX 2: Dark, crisp headers & subtle row borders on white card */
-        .funnel-container .matrix-table-card table th {
-          color: #045626 !important;
-          font-weight: 850;
-          border-bottom: 2px solid #087b35;
-          padding: 12px 14px;
+        .v8-funnel-root th,
+        .v8-funnel-root td {
           text-align: left;
+          padding: 10px 12px;
+          border-bottom: 1px solid var(--line);
         }
-        .funnel-container .matrix-table-card table td {
-          border-bottom: 1px solid #e2ece4;
-          padding: 11px 14px;
-          color: #143321;
-          font-weight: 550;
+        .v8-funnel-root th {
+          color: #ffb15e;
         }
-        .funnel-container .matrix-table-card table tr:hover td {
-          background: #f7fbf8;
-        }
-        .funnel-container th:last-child,
-        .funnel-container td:last-child {
+        .v8-funnel-root td:last-child,
+        .v8-funnel-root th:last-child {
           text-align: right;
         }
-        .funnel-container .smallnote {
+        .v8-funnel-root .smallnote {
           font-size: 0.84rem;
           opacity: 0.86;
           margin-top: 12px;
-          line-height: 1.55;
+          line-height: 1.5;
         }
-        .funnel-container details {
+        .v8-funnel-root details {
           border-bottom: 1px solid var(--line);
           padding: 16px 0;
         }
-        .funnel-container summary {
+        .v8-funnel-root summary {
           cursor: pointer;
           font-weight: 850;
-          transition: color 0.15s;
         }
-        .funnel-container summary:hover {
-          color: #ffb15e;
-        }
-        .funnel-container details p {
+        .v8-funnel-root details p {
           opacity: 0.9;
-          margin-top: 10px;
           margin-bottom: 0;
-          color: #d1fae5;
+          margin-top: 8px;
         }
-        .funnel-container .cta {
-          padding: 52px 0;
+        .v8-funnel-root .cta {
+          padding: 50px 0;
           text-align: center;
           background: var(--o);
           color: #19351f;
         }
-        .funnel-container .cta h2 {
+        .v8-funnel-root .cta h2 {
           max-width: 800px;
           margin: 0 auto 14px;
-          color: #143321;
         }
-        .funnel-container .cta p {
+        .v8-funnel-root .cta p {
           max-width: 680px;
           margin: 0 auto 22px;
-          font-size: 1.05rem;
-          font-weight: 550;
         }
-        .funnel-container .cta .btn {
+        .v8-funnel-root .cta .btn {
           background: var(--deep);
           color: white;
         }
-        .funnel-container .cta .btn:hover {
-          background: #022712;
-        }
-        .funnel-container footer {
+        .v8-funnel-root footer {
           background: var(--deep);
           padding: 30px 0 90px;
           font-size: 0.9rem;
         }
-        .funnel-container .foot {
+        .v8-funnel-root .foot {
           display: flex;
           justify-content: space-between;
           gap: 20px;
           flex-wrap: wrap;
         }
-        .funnel-container .footlinks {
+        .v8-funnel-root .footlinks {
           display: flex;
           gap: 15px;
           flex-wrap: wrap;
         }
-        .funnel-container .footlinks a {
+        .v8-funnel-root .footlinks a {
           text-decoration: none;
-          color: #a7f3d0;
         }
-        .funnel-container .footlinks a:hover {
-          color: white;
-        }
-        .funnel-container .fine {
+        .v8-funnel-root .fine {
           font-size: 0.8rem;
           color: #cce6d3;
           margin-top: 18px;
-          line-height: 1.55;
-        }
-        .funnel-container .sticky {
-          display: none;
-          position: fixed;
-          z-index: 50;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          padding: 9px 12px;
-          background: rgba(3, 61, 28, 0.97);
-          backdrop-filter: blur(8px);
-          border-top: 1px solid var(--line);
-        }
-        .funnel-container .sticky .wrap {
-          display: flex;
-          gap: 8px;
-        }
-        .funnel-container .sticky .btn {
-          flex: 1;
-          padding: 11px 8px;
-          font-size: 0.88rem;
+          line-height: 1.5;
         }
 
+        /* ── STICKY BOTTOM BAR (NON-SCROLLING CTA) ── */
+        .v8-funnel-root .sticky {
+          display: none;
+          position: fixed !important;
+          z-index: 2147483000;
+          bottom: 0 !important;
+          left: 0;
+          right: 0;
+          width: 100%;
+          visibility: visible;
+          opacity: 1;
+          pointer-events: auto;
+          padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+          background: #033d1c;
+          border-top: 1px solid rgba(255, 255, 255, 0.45);
+          box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.28);
+          transform: translateZ(0);
+          isolation: isolate;
+        }
+        .v8-funnel-root .sticky .wrap {
+          display: flex;
+          gap: 8px;
+          width: 100%;
+          max-width: 1120px;
+        }
+        .v8-funnel-root .sticky .btn {
+          display: inline-flex;
+          visibility: visible;
+          opacity: 1;
+          flex: 1;
+          min-width: 0;
+          padding: 12px 8px;
+          font-size: 0.88rem;
+          line-height: 1.25;
+          white-space: normal;
+          text-align: center;
+        }
+
+        /* ── RESPONSIVE & MOBILE FIRST SCREEN / ABOVE-THE-FOLD GUARANTEE ── */
         @media (max-width: 850px) {
-          .funnel-container .navlinks { display: none; }
-          .funnel-container .hero-grid,
-          .funnel-container .offer-grid { grid-template-columns: 1fr; }
-          .funnel-container .hero { padding: 45px 0; }
-          .funnel-container .grid3 { grid-template-columns: 1fr 1fr; }
-          .funnel-container .journey { grid-template-columns: 1fr 1fr; }
-          .funnel-container .sticky { display: block; }
+          .v8-funnel-root .sticky {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+          }
+          .v8-funnel-root .navlinks {
+            display: none;
+          }
+          .v8-funnel-root .hero-grid,
+          .v8-funnel-root .offer-grid {
+            grid-template-columns: 1fr;
+          }
+          .v8-funnel-root .hero {
+            padding: 24px 0 20px;
+          }
+          .v8-funnel-root .preview {
+            min-height: 140px;
+            padding: 14px;
+          }
+          .v8-funnel-root .preview .play {
+            width: 54px;
+            height: 38px;
+            border-radius: 10px;
+            font-size: 1.25rem;
+            margin: 8px auto 6px;
+          }
+          .v8-funnel-root .preview strong {
+            font-size: 1.05rem;
+            margin-bottom: 6px;
+          }
+          .v8-funnel-root .hero-grid {
+            gap: 16px;
+          }
+          .v8-funnel-root h1 {
+            margin: 12px 0 8px;
+          }
+          .v8-funnel-root .hero p {
+            margin: 8px 0 10px;
+          }
+          .v8-funnel-root .grid3 {
+            grid-template-columns: 1fr 1fr;
+          }
         }
 
         @media (max-width: 560px) {
-          .funnel-container .wrap { width: calc(100% - 26px); }
-          .funnel-container .top .wrap { justify-content: center; text-align: center; }
-          .funnel-container .hero .actions { flex-direction: column; }
-          .funnel-container .hero .actions .btn { width: 100%; }
-          .funnel-container .preview { min-height: 230px; }
-          .funnel-container .section { padding: 52px 0; }
-          .funnel-container .grid3,
-          .funnel-container .grid2,
-          .funnel-container .journey { grid-template-columns: 1fr; }
-          .funnel-container .card { padding: 20px; }
-          .funnel-container .offer { padding: 20px; }
-          .funnel-container footer { padding-bottom: 110px; }
+          .v8-funnel-root body,
+          .v8-funnel-root {
+            padding-bottom: 76px;
+          }
+          .v8-funnel-root .wrap {
+            width: calc(100% - 24px);
+          }
+          .v8-funnel-root .top .wrap {
+            justify-content: center;
+            text-align: center;
+          }
+          .v8-funnel-root .hero {
+            padding: 18px 0 16px;
+          }
+          .v8-funnel-root h1 {
+            font-size: clamp(1.6rem, 7.2vw, 2.1rem);
+            line-height: 1.1;
+            margin: 10px 0 6px;
+          }
+          .v8-funnel-root .hero p {
+            font-size: 0.92rem;
+            line-height: 1.45;
+            margin: 6px 0 10px;
+          }
+          .v8-funnel-root .preview {
+            min-height: 110px;
+            padding: 10px 14px;
+          }
+          .v8-funnel-root .preview .play {
+            width: 48px;
+            height: 32px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            margin: 6px auto 4px;
+          }
+          .v8-funnel-root .actions {
+            flex-direction: column;
+            gap: 8px;
+            margin: 12px 0 8px;
+          }
+          .v8-funnel-root .hero-actions {
+            margin-top: 12px;
+          }
+          .v8-funnel-root .hero-actions .btn {
+            width: 100%;
+            padding: 11px 16px;
+            font-size: 0.92rem;
+          }
+          .v8-funnel-root .section {
+            padding: 44px 0;
+          }
+          .v8-funnel-root .grid3,
+          .v8-funnel-root .grid2 {
+            grid-template-columns: 1fr;
+          }
+          .v8-funnel-root .card {
+            padding: 18px;
+          }
+          .v8-funnel-root .offer {
+            padding: 18px;
+          }
+          .v8-funnel-root footer {
+            padding-bottom: 110px;
+          }
         }
 
-        /* Video Modal Styles */
+        /* ── VIDEO MODAL ── */
         .funnel-video-modal-backdrop {
           position: fixed;
           inset: 0;
           background: rgba(0, 0, 0, 0.88);
-          backdrop-filter: blur(8px);
-          z-index: 9999;
+          z-index: 2147483600;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 16px;
+          backdrop-filter: blur(4px);
         }
-        .funnel-video-modal {
-          width: min(860px, 100%);
-          background: #042e15;
-          border: 1px solid rgba(255, 255, 255, 0.22);
+        .funnel-video-modal-dialog {
+          width: 100%;
+          max-width: 820px;
+          background: #03210f;
           border-radius: 20px;
           overflow: hidden;
-          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          animation: funnelVideoModalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes funnelVideoModalPop {
+          from {
+            opacity: 0;
+            transform: scale(0.96) translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
         }
         .funnel-video-modal-header {
           display: flex;
@@ -1329,7 +1312,7 @@ export const Funnel1: React.FC = () => {
         .funnel-video-frame-wrap {
           position: relative;
           width: 100%;
-          padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+          padding-bottom: 56.25%;
           background: #000;
         }
         .funnel-video-frame-wrap iframe {

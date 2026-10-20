@@ -147,14 +147,14 @@ export const ReferralCampaignTool: React.FC<ReferralCampaignToolProps> = ({
               <Share2 className="w-4 h-4" />
             </span>
             <h2 className="text-base font-bold text-gray-900">
-              Referral Link Generator &amp; Destination Selector
+              Referral Campaign &amp; Link Performance
             </h2>
             <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-[10px]">
               5×7 Linked
             </Badge>
           </div>
           <p className="text-xs text-gray-500 mt-1">
-            Select any AgroHeal page below to automatically append your personal referral code and track prospect clicks in real time.
+            Real-time tracking across all promotional links and enrollees registered under your code.
           </p>
         </div>
 
@@ -172,6 +172,102 @@ export const ReferralCampaignTool: React.FC<ReferralCampaignToolProps> = ({
               <span>{cleanCode}</span>
               {copiedCode ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-emerald-700" />}
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── EARLY UP: REAL-TIME REFERRAL TRAFFIC & PERFORMANCE METRICS ── */}
+      <div className="space-y-3 pb-4 border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700">
+              <MousePointerClick className="w-4 h-4" />
+            </span>
+            <div>
+              <h3 className="text-xs sm:text-sm font-bold text-gray-900">
+                Referral Link Click Counter &amp; Analytics
+              </h3>
+              <p className="text-[11px] text-gray-500">
+                Performance across shared links and prospect conversions.
+              </p>
+            </div>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchAnalytics}
+            disabled={loadingStats}
+            className="text-xs h-7.5 px-2.5 border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${loadingStats ? "animate-spin" : ""}`} />
+            <span>Refresh</span>
+          </Button>
+        </div>
+
+        {/* 4 KPI Metric Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Total Clicks */}
+          <div className="bg-gray-50/80 rounded-xl p-3.5 border border-gray-200/80 flex flex-col justify-between">
+            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
+              <span>Total Clicks</span>
+              <MousePointerClick className="w-3.5 h-3.5 text-emerald-600" />
+            </span>
+            <div className="mt-2">
+              <span className="text-xl sm:text-2xl font-extrabold text-gray-900 font-mono">
+                {analytics?.totalClicks ?? 0}
+              </span>
+              <span className="text-[10px] text-gray-500 block mt-0.5">
+                Across all shared links
+              </span>
+            </div>
+          </div>
+
+          {/* Unique Visitors */}
+          <div className="bg-gray-50/80 rounded-xl p-3.5 border border-gray-200/80 flex flex-col justify-between">
+            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
+              <span>Unique Visitors</span>
+              <Users className="w-3.5 h-3.5 text-blue-600" />
+            </span>
+            <div className="mt-2">
+              <span className="text-xl sm:text-2xl font-extrabold text-gray-900 font-mono">
+                {analytics?.uniqueVisitors ?? 0}
+              </span>
+              <span className="text-[10px] text-gray-500 block mt-0.5">
+                Distinct prospect devices
+              </span>
+            </div>
+          </div>
+
+          {/* All Referrals (Renamed from Direct Signups) */}
+          <div className="bg-gray-50/80 rounded-xl p-3.5 border border-gray-200/80 flex flex-col justify-between">
+            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
+              <span>All Referrals</span>
+              <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+            </span>
+            <div className="mt-2">
+              <span className="text-xl sm:text-2xl font-extrabold text-gray-900 font-mono">
+                {analytics?.totalSignups ?? directReferralsCount}
+              </span>
+              <span className="text-[10px] text-gray-500 block mt-0.5">
+                Enrolled under your code
+              </span>
+            </div>
+          </div>
+
+          {/* Conversion Rate */}
+          <div className="bg-gray-50/80 rounded-xl p-3.5 border border-gray-200/80 flex flex-col justify-between">
+            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
+              <span>Conversion Rate</span>
+              <TrendingUp className="w-3.5 h-3.5 text-amber-600" />
+            </span>
+            <div className="mt-2">
+              <span className="text-xl sm:text-2xl font-extrabold text-gray-900 font-mono">
+                {analytics?.conversionRate ?? 0}%
+              </span>
+              <span className="text-[10px] text-gray-500 block mt-0.5">
+                Clicks turned into members
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -251,169 +347,98 @@ export const ReferralCampaignTool: React.FC<ReferralCampaignToolProps> = ({
               </div>
             </div>
 
-            {/* ── COMPACT ACTIVE DESTINATION PREVIEW STRIP ── */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-50/60 border border-emerald-100/90 text-xs">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="w-6 h-6 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                  <SelectedIcon className="w-3.5 h-3.5" />
+            {/* Selected Destination Preview Card */}
+            <div className="p-3 bg-emerald-50/50 rounded-xl border border-emerald-100/80 flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <span className="p-2 rounded-lg bg-emerald-100 text-emerald-800 shrink-0 mt-0.5">
+                  <SelectedIcon className="w-4 h-4" />
                 </span>
-                <span className="font-bold text-gray-900 truncate">
-                  {selectedPage.title}
-                </span>
-                <span className="font-mono text-[11px] font-bold text-emerald-900 bg-white px-2 py-0.5 rounded-md border border-emerald-200 shrink-0">
-                  {selectedPage.path}
-                </span>
-                {selectedPage.badge && (
-                  <Badge className="bg-amber-100 text-amber-800 border-amber-200 text-[10px] shrink-0">
-                    {selectedPage.badge}
-                  </Badge>
-                )}
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-bold text-gray-900">{selectedPage.title}</span>
+                    <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-emerald-300 text-emerald-800 bg-emerald-100/60">
+                      {selectedPage.category}
+                    </Badge>
+                    {selectedPage.badge && (
+                      <Badge className="bg-amber-100 text-amber-800 border-amber-300 text-[10px] py-0 px-1.5 font-bold">
+                        {selectedPage.badge}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-gray-600 mt-0.5 line-clamp-1">{selectedPage.description}</p>
+                </div>
               </div>
-              <p className="text-[11px] text-gray-600 flex items-center gap-1.5 shrink-0">
-                <Info className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                <span>{selectedPage.description}</span>
-              </p>
+              <a
+                href={selectedPage.path}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Preview Destination Page"
+                className="text-xs text-emerald-700 hover:text-emerald-900 font-semibold inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded-lg hover:bg-emerald-100/60 transition-colors"
+              >
+                <span>View</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
             </div>
           </div>
         )}
       </div>
 
-      {/* ── STEP 2: GENERATED LINK & ACTION BUTTONS ── */}
-      <div className="space-y-2 pt-2">
-        <label className="block text-xs font-bold text-gray-800 uppercase tracking-wide flex items-center justify-between">
-          <span>2. Generated Referral Link</span>
-          <span className="text-[10px] text-gray-400 font-normal lowercase">
-            ready to share
-          </span>
+      {/* ── STEP 2: SHARE & PROMOTE REFERRAL LINK ── */}
+      <div className="space-y-3 pt-2 border-t border-gray-100">
+        <label className="text-xs font-bold text-gray-800 uppercase tracking-wide block">
+          2. Your Generated Referral Link
         </label>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <input
-            type="text"
-            readOnly
-            value={fullReferralLink}
-            onClick={(e) => (e.target as HTMLInputElement).select()}
-            className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-800 select-all"
-          />
+
+        {/* Generated Link Input Box */}
+        <div className="flex items-center gap-2">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              readOnly
+              value={fullReferralLink}
+              onClick={(e) => (e.target as HTMLInputElement).select()}
+              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs font-mono text-gray-800 select-all focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+            />
+          </div>
           <Button
             onClick={handleCopyLink}
-            className="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+            className="bg-emerald-800 hover:bg-emerald-700 text-white text-xs h-10 px-4 rounded-xl cursor-pointer flex items-center gap-1.5 shadow-xs"
           >
-            {copiedLink ? <Check className="w-4 h-4 text-emerald-300" /> : <Copy className="w-4 h-4" />}
+            {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-200" /> : <Copy className="w-3.5 h-3.5" />}
             <span>{copiedLink ? "Copied!" : "Copy Link"}</span>
           </Button>
-          <Button
-            onClick={handleShareWhatsApp}
-            className="bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-semibold px-4 py-2.5 rounded-xl shrink-0 transition-all flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
-          >
-            <Share2 className="w-4 h-4" />
-            <span>WhatsApp</span>
-          </Button>
-          <a
-            href={fullReferralLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Preview destination in new tab"
-            className="inline-flex items-center justify-center p-2.5 rounded-xl border border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 text-gray-600 hover:text-emerald-800 transition-colors"
-          >
-            <ExternalLink className="w-4 h-4" />
-          </a>
         </div>
-      </div>
 
-      {/* ── STEP 3: REAL-TIME REFERRAL CLICK ANALYTICS ── */}
-      <div className="pt-4 border-t border-gray-100 space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <MousePointerClick className="w-4 h-4 text-emerald-700" />
-              <span>Referral Link Click Counter &amp; Basic Analytics</span>
-            </h3>
-            <p className="text-[11px] text-gray-500">
-              Track how many prospective members have clicked your promotional links and converted into signups.
-            </p>
-          </div>
+        {/* Share Buttons */}
+        <div className="flex flex-wrap items-center gap-2 pt-1">
           <Button
             variant="outline"
             size="sm"
-            onClick={fetchAnalytics}
-            disabled={loadingStats}
-            className="text-xs h-8 border-gray-200 hover:bg-gray-50 flex items-center gap-1.5 cursor-pointer"
+            onClick={handleShareWhatsApp}
+            className="text-xs h-8 border-emerald-200 bg-emerald-50/40 hover:bg-emerald-100/60 text-emerald-900 flex items-center gap-1.5 cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-gray-500 ${loadingStats ? "animate-spin" : ""}`} />
-            <span>Refresh</span>
+            <Share2 className="w-3.5 h-3.5 text-emerald-700" />
+            <span>Share on WhatsApp</span>
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(fullReferralLink, "_blank")}
+            className="text-xs h-8 border-gray-200 hover:bg-gray-50 text-gray-700 flex items-center gap-1.5 cursor-pointer"
+          >
+            <ExternalLink className="w-3.5 h-3.5 text-gray-500" />
+            <span>Test Landing Page</span>
           </Button>
         </div>
+      </div>
 
-        {/* 4 KPI Metric Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Total Clicks */}
-          <div className="bg-gray-50/80 rounded-xl p-3.5 border border-gray-200/80 flex flex-col justify-between">
-            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
-              <span>Total Clicks</span>
-              <MousePointerClick className="w-3.5 h-3.5 text-emerald-600" />
-            </span>
-            <div className="mt-2">
-              <span className="text-xl sm:text-2xl font-extrabold text-gray-900 font-mono">
-                {analytics?.totalClicks ?? 0}
-              </span>
-              <span className="text-[10px] text-gray-500 block mt-0.5">
-                Across all shared links
-              </span>
-            </div>
-          </div>
-
-          {/* Unique Visitors */}
-          <div className="bg-gray-50/80 rounded-xl p-3.5 border border-gray-200/80 flex flex-col justify-between">
-            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
-              <span>Unique Visitors</span>
-              <Users className="w-3.5 h-3.5 text-blue-600" />
-            </span>
-            <div className="mt-2">
-              <span className="text-xl sm:text-2xl font-extrabold text-gray-900 font-mono">
-                {analytics?.uniqueVisitors ?? 0}
-              </span>
-              <span className="text-[10px] text-gray-500 block mt-0.5">
-                Distinct prospect devices
-              </span>
-            </div>
-          </div>
-
-          {/* Total Signups */}
-          <div className="bg-gray-50/80 rounded-xl p-3.5 border border-gray-200/80 flex flex-col justify-between">
-            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
-              <span>Direct Signups</span>
-              <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-            </span>
-            <div className="mt-2">
-              <span className="text-xl sm:text-2xl font-extrabold text-gray-900 font-mono">
-                {analytics?.totalSignups ?? directReferralsCount}
-              </span>
-              <span className="text-[10px] text-gray-500 block mt-0.5">
-                Enrolled under your code
-              </span>
-            </div>
-          </div>
-
-          {/* Conversion Rate */}
-          <div className="bg-gray-50/80 rounded-xl p-3.5 border border-gray-200/80 flex flex-col justify-between">
-            <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
-              <span>Conversion Rate</span>
-              <TrendingUp className="w-3.5 h-3.5 text-amber-600" />
-            </span>
-            <div className="mt-2">
-              <span className="text-xl sm:text-2xl font-extrabold text-gray-900 font-mono">
-                {analytics?.conversionRate ?? 0}%
-              </span>
-              <span className="text-[10px] text-gray-500 block mt-0.5">
-                Clicks turned into members
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Page Performance Breakdown & Recent Stream */}
-        {analytics && analytics.clicksByPage.length > 0 ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 pt-2">
+      {/* ── DETAILED CLICKS BREAKDOWN & RECENT STREAM ── */}
+      {analytics && analytics.clicksByPage.length > 0 && (
+        <div className="pt-2 border-t border-gray-100 space-y-3">
+          <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+            Clicks Breakdown &amp; Recent Activity
+          </h4>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             {/* Clicks by Page */}
             <div className="bg-gray-50/60 rounded-xl p-3.5 border border-gray-200/70 space-y-2.5">
               <span className="text-[11px] font-bold text-gray-700 uppercase tracking-wider block">
@@ -479,12 +504,8 @@ export const ReferralCampaignTool: React.FC<ReferralCampaignToolProps> = ({
               </div>
             </div>
           </div>
-        ) : (
-          <div className="text-center py-4 px-3 bg-gray-50/50 rounded-xl border border-dashed border-gray-200 text-xs text-gray-500">
-            No link clicks recorded yet. Copy your <span className="font-semibold text-emerald-800">Mushroom Wealth Video Funnel</span> or <span className="font-semibold text-emerald-800">Direct Sign Up</span> link above and share with prospects to begin tracking clicks in real time!
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };

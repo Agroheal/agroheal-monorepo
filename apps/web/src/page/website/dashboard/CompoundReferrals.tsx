@@ -2070,7 +2070,7 @@ const CompoundReferrals: React.FC = () => {
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-sm transition-all cursor-pointer"
                 >
                   <Users className="w-4 h-4" />
-                  View Direct Referrals ({directReferralsCount})
+                  View All Referrals ({downlineList.filter((d) => !d.isSpillover).length || directReferralsCount})
                 </button>
               </div>
             </div>
@@ -2442,7 +2442,7 @@ const CompoundReferrals: React.FC = () => {
                 },
                 {
                   key: "TREE",
-                  label: "Active in Network",
+                  label: "Active in Matrix",
                   count: downlineList.filter((d) => isThreeStepQualified(d)).length,
                   activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
                   badgeActive: "bg-emerald-800 text-emerald-200",
@@ -2450,7 +2450,7 @@ const CompoundReferrals: React.FC = () => {
                 },
                 {
                   key: "DIRECT",
-                  label: "Direct Personal",
+                  label: "All Referrals",
                   count: downlineList.filter((d) => !d.isSpillover).length,
                   activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
                   badgeActive: "bg-emerald-800 text-emerald-200",
@@ -2458,7 +2458,7 @@ const CompoundReferrals: React.FC = () => {
                 },
                 {
                   key: "UNPAID",
-                  label: "Unpaid / 0 Slots",
+                  label: "Pending Activation",
                   count: downlineList.filter((d) => d.slotsHeld === 0).length,
                   activeClass: "bg-amber-700 text-white shadow-xs font-semibold",
                   badgeActive: "bg-amber-800 text-amber-200",
@@ -2466,7 +2466,7 @@ const CompoundReferrals: React.FC = () => {
                 },
                 {
                   key: "SPILLOVER",
-                  label: "Spillover",
+                  label: "Matrix Spillover",
                   count: downlineList.filter((d) => d.isSpillover).length,
                   activeClass: "bg-emerald-900 text-white shadow-xs font-semibold",
                   badgeActive: "bg-emerald-800 text-emerald-200",
@@ -2691,7 +2691,7 @@ const CompoundReferrals: React.FC = () => {
                             </span>
                           ) : (
                             <span className="bg-amber-50 text-amber-900 px-1 py-0.5 rounded-md border border-amber-300 font-semibold inline-flex items-center gap-0.5 text-[8.5px]">
-                              ⭐ Direct
+                              ⭐ Personal
                             </span>
                           )}
                         </td>

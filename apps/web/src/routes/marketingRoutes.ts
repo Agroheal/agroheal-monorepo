@@ -47,7 +47,7 @@ export const MARKETING_DESTINATIONS: readonly MarketingDestinationRoute[] = [
   },
   {
     id: "signup",
-    title: "Direct Member Sign Up (/signup)",
+    title: "Member Registration (/signup)",
     path: "/signup",
     category: "Registration",
     badge: "Fast Enrolment",
