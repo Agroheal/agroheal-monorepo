@@ -30,7 +30,7 @@ interface ActiveVideo {
   videoId: string;
 }
 
-export const Funnel1: React.FC = () => {
+export const GreenCardCampaign: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [activeVideoModal, setActiveVideoModal] = useState<ActiveVideo | null>(null);
 
@@ -1345,4 +1345,4 @@ export const Funnel1: React.FC = () => {
   );
 };
 
-export default Funnel1;
+export default GreenCardCampaign;

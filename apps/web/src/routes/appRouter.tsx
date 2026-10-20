@@ -46,7 +46,7 @@ import NotificationsPage from "@/page/website/dashboard/NotificationsPage";
 import CoursesBridge from "@/page/website/CoursesBridge";
 import FarmSlotsBridge from "@/page/website/FarmSlotsBridge";
 import AffiliateBridge from "@/page/website/AffiliateBridge";
-import Funnel1 from "@/page/website/funnels/Funnel1";
+import GreenCardCampaign from "@/page/website/funnels/GreenCardCampaign";
 
 export {
   MARKETING_DESTINATIONS,
@@ -61,7 +61,7 @@ export const appRouter = createBrowserRouter([
   // Dedicated Campaign & Marketing Funnel Routes (Standalone full-bleed layout)
   {
     path: "/gc",
-    element: <Funnel1 />,
+    element: <GreenCardCampaign />,
     errorElement: <Error />,
   },
   {
