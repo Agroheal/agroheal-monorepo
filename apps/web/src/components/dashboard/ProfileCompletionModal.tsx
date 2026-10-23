@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { supabase } from "@/lib/supabaseClient";
-import { cleanName, normalizePhoneNumber } from "@shared/dataSanitizers";
+import { cleanName, normalizePhoneNumber, validatePhoneNumber, SUPPORTED_COUNTRY_CODES } from "@shared/dataSanitizers";
 import { NIGERIA_STATES, getLgasForState } from "@shared/nigeriaLocations";
 import { motion, AnimatePresence } from "framer-motion";
 import { useUserStore } from "@/store/useUserStore";
@@ -59,11 +59,13 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
   onClose,
   onComplete,
 }) => {
+  const [countryCode, setCountryCode] = useState("+234");
   const [phone, setPhone] = useState(initialPhone);
   const [country] = useState("Nigeria");
   const [state, setState] = useState(initialState);
   const [lga, setLga] = useState(initialLga);
   const [kinName, setKinName] = useState(initialKin?.kin_name || "");
+  const [kinCountryCode, setKinCountryCode] = useState("+234");
   const [kinPhone, setKinPhone] = useState(initialKin?.kin_number || "");
   const [kinAddress, setKinAddress] = useState(initialKin?.kin_address || "");
 
