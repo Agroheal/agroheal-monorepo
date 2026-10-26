@@ -536,6 +536,8 @@ export const apiClient = {
       isGreenCardOnly?: boolean;
       isStarterPack?: boolean;
       isFirstSlotPurchase?: boolean;
+      isInstalmentInitial?: boolean;
+      isInstalmentRepayment?: boolean;
     }) =>
       apiRequest<{
         success: boolean;
@@ -546,6 +548,11 @@ export const apiClient = {
         orderId?: string;
         starterPackActivated: boolean;
         matrixPlaced: boolean;
+        isInstalmentInitial?: boolean;
+        instalmentPlanId?: string;
+        isInstalmentRepayment?: boolean;
+        instalmentPaymentId?: string;
+        milestonesTriggered?: string[];
       }>("checkout/settle", {
         method: "POST",
         body: JSON.stringify(data),
@@ -573,6 +580,98 @@ export const apiClient = {
         }>;
       }>("checkout/verify-pending", {
         ...options,
+        method: "POST",
+      }),
+  },
+
+  /**
+   * GreenCard Registration Weekly Instalment Plan API
+   * /api/v1/instalments/...
+   */
+  instalments: {
+    getMyPlan: () =>
+      apiRequest<{
+        hasPlan: boolean;
+        plan: {
+          id: string;
+          status: "ACTIVE" | "OVERDUE" | "FULLY_PAID" | "DEFAULTED";
+          totalRegistrationFee: number;
+          cumulativePaid: number;
+          remainingBalance: number;
+          totalOverdueCharges: number;
+          overdueChargesPaid: number;
+          currentWeek: number;
+          nextPaymentDueDate: string;
+          isOverdue: boolean;
+          currentAmountDue: number;
+          standardAmountDue: number;
+          overdueSurcharge: number;
+          milestones: {
+            day1Active: boolean;
+            sponsorBonus5kPaid: boolean;
+            starterPack10kReleased: boolean;
+            farmSlot15kAllocated: boolean;
+          };
+          history: Array<{
+            id: string;
+            amount: number;
+            principalAmount: number;
+            overdueChargeAmount: number;
+            paymentMethod: string;
+            reference: string;
+            createdAt: string;
+          }>;
+        } | null;
+      }>("instalments/my-plan"),
+
+    payWithWallet: (amount: number) =>
+      apiRequest<{
+        plan: any;
+        principalPaid: number;
+        overduePaid: number;
+        remainingBalance: number;
+        isFullyPaid: boolean;
+        triggeredMilestones: string[];
+      }>("instalments/pay-wallet", {
+        method: "POST",
+        body: JSON.stringify({ amount }),
+      }),
+
+    recordGatewayPayment: (data: {
+      amount: number;
+      paymentMethod: "flutterwave" | "bank_transfer";
+      reference: string;
+      transactionId?: number;
+    }) =>
+      apiRequest<{
+        plan: any;
+        principalPaid: number;
+        overduePaid: number;
+        remainingBalance: number;
+        isFullyPaid: boolean;
+        triggeredMilestones: string[];
+      }>("instalments/record-gateway-payment", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+
+    getAdminMetrics: () =>
+      apiRequest<{
+        totalPlans: number;
+        activePlans: number;
+        overduePlans: number;
+        fullyPaidPlans: number;
+        totalPrincipalCollected: number;
+        totalOverdueChargesCollected: number;
+        totalRevenueCollected: number;
+        plans: Array<any>;
+      }>("instalments/admin/metrics"),
+
+    triggerOverdueScan: () =>
+      apiRequest<{
+        scanned: number;
+        updated: number;
+      }>("instalments/admin/trigger-overdue-scan", {
         method: "POST",
       }),
   },
