@@ -8,6 +8,8 @@ import {
   Filter,
   RefreshCw,
   Play,
+  Copy,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +57,18 @@ export default function InstalmentsAdminPage() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [isScanning, setIsScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const handleCopySpecialLink = () => {
+    const origin = window.location.origin;
+    const webOrigin = origin.includes(":5174")
+      ? origin.replace(":5174", ":5173")
+      : origin.replace("admin.", "");
+    const link = `${webOrigin}/checkout?plan=instalment`;
+    navigator.clipboard.writeText(link);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 3000);
+  };
 
   const fetchMetrics = async () => {
     try {
@@ -113,6 +127,20 @@ export default function InstalmentsAdminPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCopySpecialLink}
+            className="text-xs gap-1.5 border-emerald-600/50 text-emerald-800 hover:bg-emerald-50 font-medium"
+          >
+            {copiedLink ? (
+              <Check className="w-3.5 h-3.5 text-emerald-600" />
+            ) : (
+              <Copy className="w-3.5 h-3.5 text-emerald-700" />
+            )}
+            {copiedLink ? "Link Copied!" : "Copy Special Link"}
+          </Button>
+
           <Button
             variant="outline"
             size="sm"

@@ -409,6 +409,8 @@ const Checkout = () => {
   const itemParam = searchParams.get("item") || "";
   const bundleParam = searchParams.get("bundle") || "";
   const codeParam = searchParams.get("code") || "";
+  const planParam = (searchParams.get("plan") || searchParams.get("mode") || "").toLowerCase();
+  const allowInstalment = planParam === "instalment" || planParam === "installment";
 
   const isStarterPack =
     itemParam === "starter_pack" ||
@@ -507,8 +509,19 @@ const Checkout = () => {
   const needsGreenCard = !hasGreenCard && !isStarterPack && !isStarterCompletion;
   const greenCardFee = needsGreenCard ? activeGreenCardRate : 0;
   
-  const [paymentPlanOption, setPaymentPlanOption] = useState<"full" | "instalment">("full");
-  const isInstalmentInitial = needsGreenCard && paymentPlanOption === "instalment";
+  const [paymentPlanOption, setPaymentPlanOption] = useState<"full" | "instalment">(
+    allowInstalment ? "instalment" : "full"
+  );
+
+  useEffect(() => {
+    if (allowInstalment) {
+      setPaymentPlanOption("instalment");
+    } else {
+      setPaymentPlanOption("full");
+    }
+  }, [allowInstalment]);
+
+  const isInstalmentInitial = allowInstalment && needsGreenCard && paymentPlanOption === "instalment";
   const standardTotalPrice = slotsSubtotal + greenCardFee;
   const totalPrice = isInstalmentInitial ? 2000 : standardTotalPrice;
 
@@ -1661,53 +1674,60 @@ const Checkout = () => {
                   {/* SCENARIO 1: Starter Package Selection (Full vs Weekly Instalment) */}
                   {!hasGreenCard && !isStarterPack && !isStarterCompletion && (
                     <div className="space-y-4">
-                      {/* Plan Options Selector */}
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                          Select Registration Plan
-                        </Label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                          {/* Option 1: Full Payment */}
-                          <div
-                            onClick={() => setPaymentPlanOption("full")}
-                            className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                              paymentPlanOption === "full"
-                                ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-1 ring-emerald-600/30"
-                                : "border-gray-200 hover:border-gray-300 bg-card"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-bold text-gray-900">Full Payment</span>
-                              <span className="font-mono text-xs font-black text-emerald-950 bg-emerald-200/70 px-2 py-0.5 rounded-md">
-                                ₦{entryPricing.totalEntryFee.toLocaleString()}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-gray-600 leading-tight">
-                              One-time payment. Instant GreenCard, 1 Farm Slot, &amp; Starter Pack.
-                            </p>
+                      {/* Plan Options Selector - Only rendered when accessed via special instalment link */}
+                      {allowInstalment ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                              Select Registration Plan
+                            </Label>
+                            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                              Special Instalment Link
+                            </span>
                           </div>
-
-                          {/* Option 2: Weekly Instalment */}
-                          <div
-                            onClick={() => setPaymentPlanOption("instalment")}
-                            className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                              paymentPlanOption === "instalment"
-                                ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-1 ring-emerald-600/30"
-                                : "border-gray-200 hover:border-gray-300 bg-card"
-                            }`}
-                          >
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs font-bold text-gray-900">Weekly Instalment</span>
-                              <span className="font-mono text-xs font-black text-emerald-950 bg-emerald-200/70 px-2 py-0.5 rounded-md">
-                                ₦2,000 Today
-                              </span>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            {/* Option 1: Full Payment */}
+                            <div
+                              onClick={() => setPaymentPlanOption("full")}
+                              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                                paymentPlanOption === "full"
+                                  ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-1 ring-emerald-600/30"
+                                  : "border-gray-200 hover:border-gray-300 bg-card"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-bold text-gray-900">Full Payment</span>
+                                <span className="font-mono text-xs font-black text-emerald-950 bg-emerald-200/70 px-2 py-0.5 rounded-md">
+                                  ₦{entryPricing.totalEntryFee.toLocaleString()}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-gray-600 leading-tight">
+                                One-time payment. Instant GreenCard, 1 Farm Slot, &amp; Starter Pack.
+                              </p>
                             </div>
-                            <p className="text-[11px] text-gray-600 leading-tight">
-                              ₦2,000 today, then ₦1,000/week for 13 weeks (₦15,000 total).
-                            </p>
+
+                            {/* Option 2: Weekly Instalment */}
+                            <div
+                              onClick={() => setPaymentPlanOption("instalment")}
+                              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                                paymentPlanOption === "instalment"
+                                  ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-1 ring-emerald-600/30"
+                                  : "border-gray-200 hover:border-gray-300 bg-card"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-bold text-gray-900">Weekly Instalment</span>
+                                <span className="font-mono text-xs font-black text-emerald-950 bg-emerald-200/70 px-2 py-0.5 rounded-md">
+                                  ₦2,000 Today
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-gray-600 leading-tight">
+                                ₦2,000 today, then ₦1,000/week for 13 weeks (₦15,000 total).
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      ) : null}
 
                       {/* Full Payment Details */}
                       {paymentPlanOption === "full" ? (
