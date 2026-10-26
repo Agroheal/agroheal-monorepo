@@ -50,6 +50,7 @@ import {
   type MatrixLevelsData,
 } from "@/components/common/GreenCardFirst5Card";
 import { GreenCardPointsCard } from "@/components/dashboard/GreenCardPointsCard";
+import { InstalmentTrackerWidget } from "@/components/dashboard/InstalmentTrackerWidget";
 import { isLegacyMember, getGreenCardFee, formatNaira, isGreenCardHolder, hasPurchasedStarterPack, isThreeStepQualified } from "@shared/businessRules";
 
 interface ReferralProps {
@@ -846,6 +847,9 @@ const Dashboard = () => {
       </div>
 
       <div className="px-4 md:px-8 -mt-8 pb-12 max-w-[96%] mx-auto">
+        {/* GreenCard Weekly Instalment Plan Tracker (if active or overdue) */}
+        <InstalmentTrackerWidget />
+
         {/* ── HANDOVER: BANNER (BEFORE MILESTONE 2) vs GREEN CARD FIRST 5™ & POINTS SIDE-BY-SIDE (AFTER MILESTONE 2) ── */}
         {!profile?.has_purchased_starter_pack ? (
           <>

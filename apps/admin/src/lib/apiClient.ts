@@ -467,6 +467,27 @@ export const adminApiClient = {
         body: JSON.stringify({ canManageConfigs, customPermissions }),
       }),
   },
+  instalments: {
+    getAdminMetrics: () =>
+      apiRequest<{
+        totalPlans: number;
+        activePlans: number;
+        overduePlans: number;
+        fullyPaidPlans: number;
+        totalPrincipalCollected: number;
+        totalOverdueChargesCollected: number;
+        totalRevenueCollected: number;
+        plans: Array<any>;
+      }>("instalments/admin/metrics"),
+
+    triggerOverdueScan: () =>
+      apiRequest<{
+        scanned: number;
+        updated: number;
+      }>("instalments/admin/trigger-overdue-scan", {
+        method: "POST",
+      }),
+  },
 };
 
 export default adminApiClient;

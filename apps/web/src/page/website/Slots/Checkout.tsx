@@ -16,6 +16,7 @@ import {
   Phone,
   Check,
   MapPin,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -408,6 +409,8 @@ const Checkout = () => {
   const itemParam = searchParams.get("item") || "";
   const bundleParam = searchParams.get("bundle") || "";
   const codeParam = searchParams.get("code") || "";
+  const planParam = (searchParams.get("plan") || searchParams.get("mode") || "").toLowerCase();
+  const allowInstalment = planParam === "instalment" || planParam === "installment";
 
   const isStarterPack =
     itemParam === "starter_pack" ||
@@ -505,7 +508,22 @@ const Checkout = () => {
   const activeGreenCardRate = entryPricing.greenCardFee;
   const needsGreenCard = !hasGreenCard && !isStarterPack && !isStarterCompletion;
   const greenCardFee = needsGreenCard ? activeGreenCardRate : 0;
-  const totalPrice = slotsSubtotal + greenCardFee;
+  
+  const [paymentPlanOption, setPaymentPlanOption] = useState<"full" | "instalment">(
+    allowInstalment ? "instalment" : "full"
+  );
+
+  useEffect(() => {
+    if (allowInstalment) {
+      setPaymentPlanOption("instalment");
+    } else {
+      setPaymentPlanOption("full");
+    }
+  }, [allowInstalment]);
+
+  const isInstalmentInitial = allowInstalment && needsGreenCard && paymentPlanOption === "instalment";
+  const standardTotalPrice = slotsSubtotal + greenCardFee;
+  const totalPrice = isInstalmentInitial ? 2000 : standardTotalPrice;
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"flutterwave" | "wallet">("flutterwave");
@@ -796,7 +814,9 @@ const Checkout = () => {
           status: "pending",
           state: formData.state || null,
           lga: formData.lga || null,
-          project_category: isCombo
+          project_category: isInstalmentInitial
+            ? "GreenCard Instalment Initial"
+            : isCombo
             ? "Green Card + Starter Combo"
             : isGreenCardOnly
             ? "Green Card"
@@ -890,12 +910,13 @@ const Checkout = () => {
             paymentReference: `WALLET_${order.id}_${Date.now()}`,
             paymentMethod: "wallet",
             amount: totalPrice,
-            category: isCombo ? "Mushroom Village" : category,
-            slots: (isGreenCardOnly || isStarterPack) ? 0 : Math.max(1, slotQuantity),
-            isCombo,
+            category: isInstalmentInitial ? "GreenCard Instalment Initial" : (isCombo ? "Mushroom Village" : category),
+            slots: (isGreenCardOnly || isStarterPack || isInstalmentInitial) ? 0 : Math.max(1, slotQuantity),
+            isCombo: isInstalmentInitial ? false : isCombo,
             isGreenCardOnly,
             isStarterPack,
             isFirstSlotPurchase,
+            isInstalmentInitial,
           });
           settled = true;
           break;
@@ -958,6 +979,15 @@ const Checkout = () => {
       }
 
       setWalletBalance((prev) => Math.max(0, prev - totalPrice));
+
+      if (isInstalmentInitial) {
+        toast({
+          title: "Instalment Plan Activated! 🎉",
+          description: "₦2,000 confirmed from your wallet. Your GreenCard ID, Academy, and 5×7 Matrix are now active!",
+        });
+        window.location.href = "/dashboard";
+        return;
+      }
 
       if (isGreenCardOnly) {
         if (slotQuantity > 0) {
@@ -1038,7 +1068,9 @@ const Checkout = () => {
     }
 
     try {
-      const txPrefix = isCombo
+      const txPrefix = isInstalmentInitial
+        ? "INST"
+        : isCombo
         ? "COMBO"
         : isGreenCardOnly
         ? "GC"
@@ -1072,33 +1104,42 @@ const Checkout = () => {
           state: formData.state,
           lga: formData.lga,
           country: "Nigeria",
-          plan: isCombo
+          isInstalmentInitial,
+          plan: isInstalmentInitial
+            ? "greencard_instalment"
+            : isCombo
             ? "green_card_combo"
             : isGreenCardOnly
             ? "green_card"
             : isStarterPack
             ? "starter_pack"
             : "slot",
-          project_category: isCombo
+          project_category: isInstalmentInitial
+            ? "GreenCard Instalment Initial"
+            : isCombo
             ? "Green Card + Starter Combo"
             : isGreenCardOnly
             ? "Green Card"
             : isStarterPack
             ? "Mushroom Power 100g"
             : category,
-          has_combo: isCombo,
-          isCombo: isCombo,
-          slot_quantity: slotQuantity,
+          has_combo: isCombo && !isInstalmentInitial,
+          isCombo: isCombo && !isInstalmentInitial,
+          slot_quantity: isInstalmentInitial ? 0 : slotQuantity,
         },
         customizations: {
-          title: isStarterPack
+          title: isInstalmentInitial
+            ? `AgroHeal GreenCard Instalment (₦${totalPrice.toLocaleString()})`
+            : isStarterPack
             ? `Mushroom Power 100g (SP-MUSH-100G) — ₦${totalPrice.toLocaleString()}`
             : isStarterCompletion
             ? `AgroHeal Package (₦${totalPrice.toLocaleString()} Combo)`
             : isCombo
             ? `AgroHeal Package (₦${totalPrice.toLocaleString()})`
             : "Agroheal Farm Slot",
-          description: isStarterPack
+          description: isInstalmentInitial
+            ? "Initial ₦2,000 Registration: GreenCard ID, Academy & 5×7 Matrix Access"
+            : isStarterPack
             ? "Mushroom Power 100g (Product ID: SP-MUSH-100G)"
             : isStarterCompletion
             ? "1 Farm Slot + Mushroom Power 100g (SP-MUSH-100G)"
@@ -1135,12 +1176,13 @@ const Checkout = () => {
                       paymentReference: String(flwTransactionId),
                       paymentMethod: "flutterwave",
                       amount: totalPrice,
-                      category: isCombo ? "Mushroom Village" : (isStarterPack ? "Mushroom Power 100g" : category),
-                      slots: (isGreenCardOnly || isStarterPack) ? 0 : Math.max(1, slotQuantity),
-                      isCombo,
+                      category: isInstalmentInitial ? "GreenCard Instalment Initial" : (isCombo ? "Mushroom Village" : (isStarterPack ? "Mushroom Power 100g" : category)),
+                      slots: (isGreenCardOnly || isStarterPack || isInstalmentInitial) ? 0 : Math.max(1, slotQuantity),
+                      isCombo: isInstalmentInitial ? false : isCombo,
                       isGreenCardOnly,
                       isStarterPack,
                       isFirstSlotPurchase,
+                      isInstalmentInitial,
                     });
                     settled = true;
                     break;
@@ -1207,6 +1249,15 @@ const Checkout = () => {
                     has_greencard: true,
                     greencard_status: "active",
                   }).eq("id", order.user_id);
+                }
+
+                if (isInstalmentInitial) {
+                  toast({
+                    title: "Instalment Plan Activated! 🎉",
+                    description: "₦2,000 confirmed! Your GreenCard ID, Academy, and 5×7 Matrix are now active.",
+                  });
+                  setTimeout(() => { window.location.href = "/dashboard"; }, 800);
+                  return;
                 }
 
                 if (isGreenCardOnly) {
@@ -1620,42 +1671,135 @@ const Checkout = () => {
                 </div>
 
                 <div className="p-5 sm:p-6 space-y-5">
-                  {/* SCENARIO 1: Full Starter Package for New Members */}
+                  {/* SCENARIO 1: Starter Package Selection (Full vs Weekly Instalment) */}
                   {!hasGreenCard && !isStarterPack && !isStarterCompletion && (
-                    <div className="space-y-3">
-                      <div className="p-4 rounded-xl border-2 border-emerald-700 bg-emerald-50/90 shadow-sm ring-2 ring-emerald-600/30 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="inline-flex items-center gap-1 bg-emerald-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
-                            <Sparkles className="w-3 h-3" /> Required Starting Package
-                          </span>
-                          <span className="font-mono text-sm font-black text-emerald-950 bg-emerald-200/70 px-2.5 py-0.5 rounded-lg border border-emerald-300">
-                            ₦{entryPricing.totalEntryFee.toLocaleString()}
-                          </span>
-                        </div>
+                    <div className="space-y-4">
+                      {/* Plan Options Selector - Only rendered when accessed via special instalment link */}
+                      {allowInstalment ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                              Select Registration Plan
+                            </Label>
+                            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                              Special Instalment Link
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            {/* Option 1: Full Payment */}
+                            <div
+                              onClick={() => setPaymentPlanOption("full")}
+                              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                                paymentPlanOption === "full"
+                                  ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-1 ring-emerald-600/30"
+                                  : "border-gray-200 hover:border-gray-300 bg-card"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-bold text-gray-900">Full Payment</span>
+                                <span className="font-mono text-xs font-black text-emerald-950 bg-emerald-200/70 px-2 py-0.5 rounded-md">
+                                  ₦{entryPricing.totalEntryFee.toLocaleString()}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-gray-600 leading-tight">
+                                One-time payment. Instant GreenCard, 1 Farm Slot, &amp; Starter Pack.
+                              </p>
+                            </div>
 
-                        <div className="space-y-1.5">
-                          <p className="text-sm font-bold text-emerald-950">
-                            AgroHeal Membership &amp; Starter Package
-                          </p>
-                          <div className="text-xs text-emerald-900 font-medium space-y-1">
-                            <p className="flex items-center gap-1.5">
-                              <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                              <span>₦{entryPricing.greenCardFee.toLocaleString()} Digital Green Card Lifetime Pass</span>
+                            {/* Option 2: Weekly Instalment */}
+                            <div
+                              onClick={() => setPaymentPlanOption("instalment")}
+                              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                                paymentPlanOption === "instalment"
+                                  ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-1 ring-emerald-600/30"
+                                  : "border-gray-200 hover:border-gray-300 bg-card"
+                              }`}
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-bold text-gray-900">Weekly Instalment</span>
+                                <span className="font-mono text-xs font-black text-emerald-950 bg-emerald-200/70 px-2 py-0.5 rounded-md">
+                                  ₦2,000 Today
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-gray-600 leading-tight">
+                                ₦2,000 today, then ₦1,000/week for 13 weeks (₦15,000 total).
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {/* Full Payment Details */}
+                      {paymentPlanOption === "full" ? (
+                        <div className="p-4 rounded-xl border-2 border-emerald-700 bg-emerald-50/90 shadow-sm ring-2 ring-emerald-600/30 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="inline-flex items-center gap-1 bg-emerald-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
+                              <Sparkles className="w-3 h-3" /> Full Starting Package
+                            </span>
+                            <span className="font-mono text-sm font-black text-emerald-950 bg-emerald-200/70 px-2.5 py-0.5 rounded-lg border border-emerald-300">
+                              ₦{entryPricing.totalEntryFee.toLocaleString()}
+                            </span>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <p className="text-sm font-bold text-emerald-950">
+                              AgroHeal Membership &amp; Starter Package
                             </p>
-                            <p className="flex items-center gap-1.5">
-                              <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                              <span>₦{entryPricing.farmSlotPrice.toLocaleString()} Initial Farm Slot (2 Bags · Cycle Doubling)</span>
-                            </p>
-                            <p className="flex items-center gap-1.5">
-                              <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                              <span>₦{entryPricing.starterPackPrice.toLocaleString()} Mushroom Power 100g (Product ID: SP-MUSH-100G)</span>
+                            <div className="text-xs text-emerald-900 font-medium space-y-1">
+                              <p className="flex items-center gap-1.5">
+                                <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                <span>₦{entryPricing.greenCardFee.toLocaleString()} Digital Green Card Lifetime Pass</span>
+                              </p>
+                              <p className="flex items-center gap-1.5">
+                                <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                <span>₦{entryPricing.farmSlotPrice.toLocaleString()} Initial Farm Slot (2 Bags · Cycle Doubling)</span>
+                              </p>
+                              <p className="flex items-center gap-1.5">
+                                <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                <span>₦{entryPricing.starterPackPrice.toLocaleString()} Mushroom Power 100g (Product ID: SP-MUSH-100G)</span>
+                              </p>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground pt-1 leading-snug">
+                              Includes membership activation, 5×7 community matrix placement, and unlocked bank withdrawals.
                             </p>
                           </div>
-                          <p className="text-[11px] text-muted-foreground pt-1 leading-snug">
-                            Includes membership activation, 5×7 community matrix placement, and unlocked bank withdrawals.
-                          </p>
                         </div>
-                      </div>
+                      ) : (
+                        /* Instalment Plan Details */
+                        <div className="p-4 rounded-xl border-2 border-emerald-700 bg-emerald-50/90 shadow-sm ring-2 ring-emerald-600/30 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="inline-flex items-center gap-1 bg-emerald-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
+                              <Sparkles className="w-3 h-3" /> Instalment Plan (Day 1)
+                            </span>
+                            <span className="font-mono text-sm font-black text-emerald-950 bg-emerald-200/70 px-2.5 py-0.5 rounded-lg border border-emerald-300">
+                              ₦2,000 Today
+                            </span>
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <p className="text-sm font-bold text-emerald-950">
+                              GreenCard Registration Payment Plan
+                            </p>
+                            <div className="text-xs text-emerald-900 font-medium space-y-1">
+                              <p className="flex items-center gap-1.5">
+                                <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                <span><strong>Day 1 (₦2,000):</strong> GreenCard ID, Training Access, &amp; 5×7 Matrix Placement</span>
+                              </p>
+                              <p className="flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                <span><strong>13 Weekly Instalments:</strong> ₦1,000/week to complete ₦15,000</span>
+                              </p>
+                              <p className="flex items-center gap-1.5">
+                                <Sparkles className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                <span><strong>Milestones:</strong> ₦5k (Sponsor Bonus), ₦10k (Starter Pack Released), ₦15k (Farm Slot &amp; Withdrawals Lifted)</span>
+                              </p>
+                            </div>
+                            <div className="pt-2 text-[11px] text-emerald-800 bg-emerald-100/70 p-2.5 rounded-lg leading-snug border border-emerald-200/80">
+                              <strong>Important Terms:</strong> Weekly instalments are due every 7 days. If not paid on time, a ₦500 late surcharge applies (₦1,500 total). Cash withdrawals are held until full ₦15,000 is settled, but wallet balance can be used to pay weekly instalments.
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -1721,56 +1865,75 @@ const Checkout = () => {
 
                   {/* Tabular Price Breakdown */}
                   <div className="space-y-2 pt-2 text-xs border-t border-border/50">
-                    {greenCardFee > 0 && (
-                      <div className="flex justify-between items-center text-muted-foreground">
-                        <span>Lifetime Green Card Pass</span>
-                        <span className="font-mono font-semibold text-foreground">
-                          ₦{greenCardFee.toLocaleString()}
-                        </span>
-                      </div>
-                    )}
-
-                    {isCombo && (
+                    {isInstalmentInitial ? (
                       <>
                         <div className="flex justify-between items-center text-muted-foreground">
-                          <span>Group Farm Slot (Mushroom Village)</span>
-                          <span className="font-mono font-semibold text-foreground">
-                            ₦{entryPricing.farmSlotPrice.toLocaleString()}
-                          </span>
+                          <span>GreenCard Initial Registration Payment</span>
+                          <span className="font-mono font-semibold text-foreground">₦2,000</span>
                         </div>
                         <div className="flex justify-between items-center text-muted-foreground">
-                          <span>Mushroom Power 100g (SP-MUSH-100G)</span>
-                          <span className="font-mono font-semibold text-foreground">
-                            ₦{entryPricing.starterPackPrice.toLocaleString()}
-                          </span>
+                          <span>Remaining Balance (13 Weekly Instalments)</span>
+                          <span className="font-mono font-semibold text-foreground">₦13,000</span>
                         </div>
-                        {slotQuantity > 1 && (
+                        <div className="flex justify-between items-center text-emerald-800 text-[11px] font-medium">
+                          <span>Instalment Schedule</span>
+                          <span className="font-mono">₦1,000 / week</span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        {greenCardFee > 0 && (
                           <div className="flex justify-between items-center text-muted-foreground">
-                            <span>{slotQuantity - 1} Additional Slot(s) (@ ₦{SLOT_UNIT_PRICE.toLocaleString()})</span>
+                            <span>Lifetime Green Card Pass</span>
                             <span className="font-mono font-semibold text-foreground">
-                              ₦{((slotQuantity - 1) * SLOT_UNIT_PRICE).toLocaleString()}
+                              ₦{greenCardFee.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+
+                        {isCombo && (
+                          <>
+                            <div className="flex justify-between items-center text-muted-foreground">
+                              <span>Group Farm Slot (Mushroom Village)</span>
+                              <span className="font-mono font-semibold text-foreground">
+                                ₦{entryPricing.farmSlotPrice.toLocaleString()}
+                              </span>
+                            </div>
+                            <div className="flex justify-between items-center text-muted-foreground">
+                              <span>Mushroom Power 100g (SP-MUSH-100G)</span>
+                              <span className="font-mono font-semibold text-foreground">
+                                ₦{entryPricing.starterPackPrice.toLocaleString()}
+                              </span>
+                            </div>
+                            {slotQuantity > 1 && (
+                              <div className="flex justify-between items-center text-muted-foreground">
+                                <span>{slotQuantity - 1} Additional Slot(s) (@ ₦{SLOT_UNIT_PRICE.toLocaleString()})</span>
+                                <span className="font-mono font-semibold text-foreground">
+                                  ₦{((slotQuantity - 1) * SLOT_UNIT_PRICE).toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        )}
+
+                        {!isCombo && slotQuantity > 0 && !isStarterPack && (
+                          <div className="flex justify-between items-center text-muted-foreground">
+                            <span>{slotQuantity} Farm Slot(s)</span>
+                            <span className="font-mono font-semibold text-foreground">
+                              ₦{(slotQuantity * SLOT_UNIT_PRICE).toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+
+                        {isStarterPack && (
+                          <div className="flex justify-between items-center text-muted-foreground">
+                            <span>{starterProduct.name}</span>
+                            <span className="font-mono font-semibold text-foreground">
+                              ₦{currentStarterPackPrice.toLocaleString()}
                             </span>
                           </div>
                         )}
                       </>
-                    )}
-
-                    {!isCombo && slotQuantity > 0 && !isStarterPack && (
-                      <div className="flex justify-between items-center text-muted-foreground">
-                        <span>{slotQuantity} Farm Slot(s)</span>
-                        <span className="font-mono font-semibold text-foreground">
-                          ₦{(slotQuantity * SLOT_UNIT_PRICE).toLocaleString()}
-                        </span>
-                      </div>
-                    )}
-
-                    {isStarterPack && (
-                      <div className="flex justify-between items-center text-muted-foreground">
-                        <span>{starterProduct.name}</span>
-                        <span className="font-mono font-semibold text-foreground">
-                          ₦{currentStarterPackPrice.toLocaleString()}
-                        </span>
-                      </div>
                     )}
 
                     {/* Total Row */}

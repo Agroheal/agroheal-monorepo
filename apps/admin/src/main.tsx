@@ -27,6 +27,7 @@ import CoursesAdminPage from "@/pages/CoursesAdminPage";
 import ContentManagementPage from "@/pages/ContentManagementPage";
 import AuditTrailPage from "@/pages/AuditTrailPage";
 import FulfillmentHubPage from "@/pages/FulfillmentHubPage";
+import InstalmentsAdminPage from "@/pages/InstalmentsAdminPage";
 
 import { AdminTierProvider } from "@/context/AdminTierContext";
 
@@ -50,6 +51,7 @@ const router = createBrowserRouter([
           { path: "farm-assignments", element: <FarmAssignmentsPage /> },
           { path: "core-drivers", element: <CoreDriversPage /> },
           { path: "payments", element: <PaymentsPage /> },
+          { path: "instalments", element: <InstalmentsAdminPage /> },
           { path: "audit", element: <AuditTrailPage /> },
           { path: "treasury", element: <TreasuryPage /> },
           { path: "treasury/corporate-revenue", element: <CorporateRevenuePage /> },
