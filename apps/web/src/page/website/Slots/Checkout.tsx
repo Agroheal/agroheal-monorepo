@@ -508,22 +508,57 @@ const Checkout = () => {
   const activeGreenCardRate = entryPricing.greenCardFee;
   const needsGreenCard = !hasGreenCard && !isStarterPack && !isStarterCompletion;
   const greenCardFee = needsGreenCard ? activeGreenCardRate : 0;
-  
+
+  // Instalment Eligibility:
+  // Case A: New registrant (needs Green Card + Farm Slot + Starter Pack = ₦15,000 total)
+  // Case B: Existing Green Card holder (already has Green Card pass, needs Farm Slot + Starter Pack = ₦13,000 total)
+  const isNewRegistrant = !hasGreenCard && !isStarterPack && !isStarterCompletion;
+  const isExistingGcCombo = hasGreenCard && !hasPurchasedStarterPack && !isStarterPack && !isStarterCompletion;
+  const canUseInstalment = allowInstalment && (isNewRegistrant || isExistingGcCombo);
+
   const [paymentPlanOption, setPaymentPlanOption] = useState<"full" | "instalment">(
-    allowInstalment ? "instalment" : "full"
+    canUseInstalment ? "instalment" : "full"
   );
 
   useEffect(() => {
-    if (allowInstalment) {
+    if (canUseInstalment) {
       setPaymentPlanOption("instalment");
     } else {
       setPaymentPlanOption("full");
     }
-  }, [allowInstalment]);
+  }, [canUseInstalment]);
 
-  const isInstalmentInitial = allowInstalment && needsGreenCard && paymentPlanOption === "instalment";
+  // Instalment week multiplier counter (how many instalments to pay upfront today)
+  const [instalmentWeeksCount, setInstalmentWeeksCount] = useState<number>(1);
+
+  const isInstalmentSelected = canUseInstalment && paymentPlanOption === "instalment";
+  const isNewRegistrantInstalment = isInstalmentSelected && isNewRegistrant;
+  const isExistingGcInstalment = isInstalmentSelected && isExistingGcCombo;
+  const isInstalmentInitial = isNewRegistrantInstalment || isExistingGcInstalment;
+
+  // Max weeks allowed for upfront counter
+  const maxInstalmentWeeks = isNewRegistrantInstalment ? 14 : 13;
+
+  // Amount payable today
+  const instalmentAmount = isNewRegistrantInstalment
+    ? 2000 + Math.max(0, instalmentWeeksCount - 1) * 1000
+    : isExistingGcInstalment
+    ? Math.max(1, instalmentWeeksCount) * 1000
+    : 0;
+
+  const totalInstalmentTargetFee = isNewRegistrantInstalment ? 15000 : 13000;
+  const remainingInstalmentBalance = Math.max(0, totalInstalmentTargetFee - instalmentAmount);
+  const remainingInstalmentWeeks = Math.ceil(remainingInstalmentBalance / 1000);
+
   const standardTotalPrice = slotsSubtotal + greenCardFee;
-  const totalPrice = isInstalmentInitial ? 2000 : standardTotalPrice;
+  const totalPrice = isInstalmentInitial ? instalmentAmount : standardTotalPrice;
+
+  const incrementInstalmentWeeks = () => {
+    setInstalmentWeeksCount((prev) => Math.min(maxInstalmentWeeks, prev + 1));
+  };
+  const decrementInstalmentWeeks = () => {
+    setInstalmentWeeksCount((prev) => Math.max(1, prev - 1));
+  };
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"flutterwave" | "wallet">("flutterwave");
@@ -815,7 +850,7 @@ const Checkout = () => {
           state: formData.state || null,
           lga: formData.lga || null,
           project_category: isInstalmentInitial
-            ? "GreenCard Instalment Initial"
+            ? (isExistingGcInstalment ? "Starter Combo Instalment Initial" : "GreenCard Instalment Initial")
             : isCombo
             ? "Green Card + Starter Combo"
             : isGreenCardOnly
@@ -910,7 +945,9 @@ const Checkout = () => {
             paymentReference: `WALLET_${order.id}_${Date.now()}`,
             paymentMethod: "wallet",
             amount: totalPrice,
-            category: isInstalmentInitial ? "GreenCard Instalment Initial" : (isCombo ? "Mushroom Village" : category),
+            category: isInstalmentInitial
+              ? (isExistingGcInstalment ? "Starter Combo Instalment Initial" : "GreenCard Instalment Initial")
+              : (isCombo ? "Mushroom Village" : category),
             slots: (isGreenCardOnly || isStarterPack || isInstalmentInitial) ? 0 : Math.max(1, slotQuantity),
             isCombo: isInstalmentInitial ? false : isCombo,
             isGreenCardOnly,
@@ -983,7 +1020,9 @@ const Checkout = () => {
       if (isInstalmentInitial) {
         toast({
           title: "Instalment Plan Activated! 🎉",
-          description: "₦2,000 confirmed from your wallet. Your GreenCard ID, Academy, and 5×7 Matrix are now active!",
+          description: isExistingGcInstalment
+            ? `₦${totalPrice.toLocaleString()} confirmed from your wallet. Your Starter Combo instalment plan (₦13,000 total) is now active!`
+            : `₦${totalPrice.toLocaleString()} confirmed from your wallet. Your GreenCard ID, Academy, and 5×7 Matrix are now active!`,
         });
         window.location.href = "/dashboard";
         return;
@@ -1069,7 +1108,7 @@ const Checkout = () => {
 
     try {
       const txPrefix = isInstalmentInitial
-        ? "INST"
+        ? (isExistingGcInstalment ? "COMBO_INST" : "GC_INST")
         : isCombo
         ? "COMBO"
         : isGreenCardOnly
@@ -1105,8 +1144,10 @@ const Checkout = () => {
           lga: formData.lga,
           country: "Nigeria",
           isInstalmentInitial,
+          isExistingGcInstalment,
+          instalmentWeeks: instalmentWeeksCount,
           plan: isInstalmentInitial
-            ? "greencard_instalment"
+            ? (isExistingGcInstalment ? "combo_instalment" : "greencard_instalment")
             : isCombo
             ? "green_card_combo"
             : isGreenCardOnly
@@ -1115,7 +1156,7 @@ const Checkout = () => {
             ? "starter_pack"
             : "slot",
           project_category: isInstalmentInitial
-            ? "GreenCard Instalment Initial"
+            ? (isExistingGcInstalment ? "Starter Combo Instalment Initial" : "GreenCard Instalment Initial")
             : isCombo
             ? "Green Card + Starter Combo"
             : isGreenCardOnly
@@ -1129,7 +1170,9 @@ const Checkout = () => {
         },
         customizations: {
           title: isInstalmentInitial
-            ? `AgroHeal GreenCard Instalment (₦${totalPrice.toLocaleString()})`
+            ? (isExistingGcInstalment
+                ? `AgroHeal Combo Instalment (₦${totalPrice.toLocaleString()})`
+                : `AgroHeal GreenCard Instalment (₦${totalPrice.toLocaleString()})`)
             : isStarterPack
             ? `Mushroom Power 100g (SP-MUSH-100G) — ₦${totalPrice.toLocaleString()}`
             : isStarterCompletion
@@ -1138,7 +1181,9 @@ const Checkout = () => {
             ? `AgroHeal Package (₦${totalPrice.toLocaleString()})`
             : "Agroheal Farm Slot",
           description: isInstalmentInitial
-            ? "Initial ₦2,000 Registration: GreenCard ID, Academy & 5×7 Matrix Access"
+            ? (isExistingGcInstalment
+                ? `Starter Combo Registration Plan (₦13,000 total) - ${instalmentWeeksCount} instalment(s) upfront`
+                : `GreenCard Registration Plan (₦15,000 total) - ${instalmentWeeksCount} instalment(s) upfront`)
             : isStarterPack
             ? "Mushroom Power 100g (Product ID: SP-MUSH-100G)"
             : isStarterCompletion
@@ -1176,7 +1221,9 @@ const Checkout = () => {
                       paymentReference: String(flwTransactionId),
                       paymentMethod: "flutterwave",
                       amount: totalPrice,
-                      category: isInstalmentInitial ? "GreenCard Instalment Initial" : (isCombo ? "Mushroom Village" : (isStarterPack ? "Mushroom Power 100g" : category)),
+                      category: isInstalmentInitial
+                        ? (isExistingGcInstalment ? "Starter Combo Instalment Initial" : "GreenCard Instalment Initial")
+                        : (isCombo ? "Mushroom Village" : (isStarterPack ? "Mushroom Power 100g" : category)),
                       slots: (isGreenCardOnly || isStarterPack || isInstalmentInitial) ? 0 : Math.max(1, slotQuantity),
                       isCombo: isInstalmentInitial ? false : isCombo,
                       isGreenCardOnly,
@@ -1254,7 +1301,9 @@ const Checkout = () => {
                 if (isInstalmentInitial) {
                   toast({
                     title: "Instalment Plan Activated! 🎉",
-                    description: "₦2,000 confirmed! Your GreenCard ID, Academy, and 5×7 Matrix are now active.",
+                    description: isExistingGcInstalment
+                      ? `₦${totalPrice.toLocaleString()} confirmed! Your Starter Combo instalment plan (₦13,000 total) is now active.`
+                      : `₦${totalPrice.toLocaleString()} confirmed! Your GreenCard ID, Academy, and 5×7 Matrix are now active.`,
                   });
                   setTimeout(() => { window.location.href = "/dashboard"; }, 800);
                   return;
@@ -1671,15 +1720,15 @@ const Checkout = () => {
                 </div>
 
                 <div className="p-5 sm:p-6 space-y-5">
-                  {/* SCENARIO 1: Starter Package Selection (Full vs Weekly Instalment) */}
-                  {!hasGreenCard && !isStarterPack && !isStarterCompletion && (
+                  {/* SCENARIO 1: Starter Package / Combo Selection (Full vs Weekly Instalment) */}
+                  {(isNewRegistrant || isExistingGcCombo) && !isStarterPack && !isStarterCompletion && (
                     <div className="space-y-4">
                       {/* Plan Options Selector - Only rendered when accessed via special instalment link */}
                       {allowInstalment ? (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <Label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                              Select Registration Plan
+                              Select {isExistingGcCombo ? "Activation Plan" : "Registration Plan"}
                             </Label>
                             <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
                               Special Instalment Link
@@ -1698,11 +1747,13 @@ const Checkout = () => {
                               <div className="flex items-center justify-between mb-1">
                                 <span className="text-xs font-bold text-gray-900">Full Payment</span>
                                 <span className="font-mono text-xs font-black text-emerald-950 bg-emerald-200/70 px-2 py-0.5 rounded-md">
-                                  ₦{entryPricing.totalEntryFee.toLocaleString()}
+                                  ₦{(isExistingGcCombo ? COMBO_PRICE : entryPricing.totalEntryFee).toLocaleString()}
                                 </span>
                               </div>
                               <p className="text-[11px] text-gray-600 leading-tight">
-                                One-time payment. Instant GreenCard, 1 Farm Slot, &amp; Starter Pack.
+                                {isExistingGcCombo
+                                  ? "One-time payment for 1 Farm Slot & Mushroom Power 100g."
+                                  : "One-time payment. Instant GreenCard, 1 Farm Slot, & Starter Pack."}
                               </p>
                             </div>
 
@@ -1718,11 +1769,13 @@ const Checkout = () => {
                               <div className="flex items-center justify-between mb-1">
                                 <span className="text-xs font-bold text-gray-900">Weekly Instalment</span>
                                 <span className="font-mono text-xs font-black text-emerald-950 bg-emerald-200/70 px-2 py-0.5 rounded-md">
-                                  ₦2,000 Today
+                                  {isExistingGcCombo ? "₦1,000 Today" : "₦2,000 Today"}
                                 </span>
                               </div>
                               <p className="text-[11px] text-gray-600 leading-tight">
-                                ₦2,000 today, then ₦1,000/week for 13 weeks (₦15,000 total).
+                                {isExistingGcCombo
+                                  ? "₦1,000 today, then ₦1,000/week for 12 weeks (₦13,000 total)."
+                                  : "₦2,000 today, then ₦1,000/week for 13 weeks (₦15,000 total)."}
                               </p>
                             </div>
                           </div>
@@ -1734,22 +1787,24 @@ const Checkout = () => {
                         <div className="p-4 rounded-xl border-2 border-emerald-700 bg-emerald-50/90 shadow-sm ring-2 ring-emerald-600/30 space-y-3">
                           <div className="flex items-center justify-between">
                             <span className="inline-flex items-center gap-1 bg-emerald-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
-                              <Sparkles className="w-3 h-3" /> Full Starting Package
+                              <Sparkles className="w-3 h-3" /> {isExistingGcCombo ? "Starter Combo Package" : "Full Starting Package"}
                             </span>
                             <span className="font-mono text-sm font-black text-emerald-950 bg-emerald-200/70 px-2.5 py-0.5 rounded-lg border border-emerald-300">
-                              ₦{entryPricing.totalEntryFee.toLocaleString()}
+                              ₦{(isExistingGcCombo ? COMBO_PRICE : entryPricing.totalEntryFee).toLocaleString()}
                             </span>
                           </div>
 
                           <div className="space-y-1.5">
                             <p className="text-sm font-bold text-emerald-950">
-                              AgroHeal Membership &amp; Starter Package
+                              {isExistingGcCombo ? "Farm Slot & Starter Pack Combo" : "AgroHeal Membership & Starter Package"}
                             </p>
                             <div className="text-xs text-emerald-900 font-medium space-y-1">
-                              <p className="flex items-center gap-1.5">
-                                <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                                <span>₦{entryPricing.greenCardFee.toLocaleString()} Digital Green Card Lifetime Pass</span>
-                              </p>
+                              {!isExistingGcCombo && (
+                                <p className="flex items-center gap-1.5">
+                                  <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                  <span>₦{entryPricing.greenCardFee.toLocaleString()} Digital Green Card Lifetime Pass</span>
+                                </p>
+                              )}
                               <p className="flex items-center gap-1.5">
                                 <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                                 <span>₦{entryPricing.farmSlotPrice.toLocaleString()} Initial Farm Slot (2 Bags · Cycle Doubling)</span>
@@ -1769,33 +1824,96 @@ const Checkout = () => {
                         <div className="p-4 rounded-xl border-2 border-emerald-700 bg-emerald-50/90 shadow-sm ring-2 ring-emerald-600/30 space-y-3">
                           <div className="flex items-center justify-between">
                             <span className="inline-flex items-center gap-1 bg-emerald-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
-                              <Sparkles className="w-3 h-3" /> Instalment Plan (Day 1)
+                              <Sparkles className="w-3 h-3" /> Instalment Plan ({isExistingGcCombo ? "₦13,000 Total" : "₦15,000 Total"})
                             </span>
                             <span className="font-mono text-sm font-black text-emerald-950 bg-emerald-200/70 px-2.5 py-0.5 rounded-lg border border-emerald-300">
-                              ₦2,000 Today
+                              ₦{instalmentAmount.toLocaleString()} Today
                             </span>
                           </div>
 
                           <div className="space-y-1.5">
                             <p className="text-sm font-bold text-emerald-950">
-                              GreenCard Registration Payment Plan
+                              {isExistingGcCombo ? "Starter Combo Payment Plan" : "GreenCard Registration Payment Plan"}
                             </p>
                             <div className="text-xs text-emerald-900 font-medium space-y-1">
-                              <p className="flex items-center gap-1.5">
-                                <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                                <span><strong>Day 1 (₦2,000):</strong> GreenCard ID, Training Access, &amp; 5×7 Matrix Placement</span>
-                              </p>
-                              <p className="flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
-                                <span><strong>13 Weekly Instalments:</strong> ₦1,000/week to complete ₦15,000</span>
-                              </p>
+                              {isExistingGcCombo ? (
+                                <>
+                                  <p className="flex items-center gap-1.5">
+                                    <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                    <span><strong>Green Card Pass:</strong> Already active & credited (₦2,000 baseline value).</span>
+                                  </p>
+                                  <p className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                    <span><strong>13 Weekly Instalments:</strong> ₦1,000/week to complete remaining ₦13,000 combo fee.</span>
+                                  </p>
+                                </>
+                              ) : (
+                                <>
+                                  <p className="flex items-center gap-1.5">
+                                    <Check className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                    <span><strong>Day 1 (₦2,000):</strong> GreenCard ID, Training Access, &amp; 5×7 Matrix Placement</span>
+                                  </p>
+                                  <p className="flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                                    <span><strong>13 Weekly Instalments:</strong> ₦1,000/week to complete ₦15,000</span>
+                                  </p>
+                                </>
+                              )}
                               <p className="flex items-center gap-1.5">
                                 <Sparkles className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
                                 <span><strong>Milestones:</strong> ₦5k (Sponsor Bonus), ₦10k (Starter Pack Released), ₦15k (Farm Slot &amp; Withdrawals Lifted)</span>
                               </p>
                             </div>
                             <div className="pt-2 text-[11px] text-emerald-800 bg-emerald-100/70 p-2.5 rounded-lg leading-snug border border-emerald-200/80">
-                              <strong>Important Terms:</strong> Weekly instalments are due every 7 days. If not paid on time, a ₦500 late surcharge applies (₦1,500 total). Cash withdrawals are held until full ₦15,000 is settled, but wallet balance can be used to pay weekly instalments.
+                              <strong>Important Terms:</strong> Weekly instalments are due every 7 days. If not paid on time, a ₦500 late surcharge applies (₦1,500 total). Cash withdrawals are held until full fee is settled, but wallet balance can be used to pay weekly instalments.
+                            </div>
+                          </div>
+
+                          {/* Upfront Instalment Weeks Counter */}
+                          <div className="bg-emerald-100/80 border border-emerald-300 rounded-xl p-3.5 space-y-2 mt-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <Label className="font-bold text-xs text-emerald-950">
+                                  Number of Instalments to Pay Today
+                                </Label>
+                                <p className="text-[11px] text-emerald-800">
+                                  {isNewRegistrantInstalment
+                                    ? `Day 1 Pass (₦2,000)${instalmentWeeksCount > 1 ? ` + ${instalmentWeeksCount - 1} advance weekly instalment(s)` : ""}`
+                                    : `${instalmentWeeksCount} weekly instalment(s) of ₦1,000 towards ₦13,000 combo`}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={decrementInstalmentWeeks}
+                                  disabled={instalmentWeeksCount <= 1}
+                                  className="w-8 h-8 rounded-lg border border-emerald-400 bg-white flex items-center justify-center hover:bg-emerald-50 text-emerald-950 transition-colors disabled:opacity-40 cursor-pointer shadow-2xs"
+                                >
+                                  <Minus className="w-3.5 h-3.5" />
+                                </button>
+                                <div className="w-14 text-center">
+                                  <span className="text-base font-bold font-mono text-emerald-950">
+                                    {instalmentWeeksCount}
+                                  </span>
+                                  <span className="text-[10px] text-emerald-800 block -mt-0.5">
+                                    {instalmentWeeksCount === 1 ? "Instalment" : "Instalments"}
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={incrementInstalmentWeeks}
+                                  disabled={instalmentWeeksCount >= maxInstalmentWeeks}
+                                  className="w-8 h-8 rounded-lg border border-emerald-400 bg-white flex items-center justify-center hover:bg-emerald-50 text-emerald-950 transition-colors disabled:opacity-40 cursor-pointer shadow-2xs"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                            <div className="flex justify-between items-center pt-2 border-t border-emerald-200/80 text-xs font-semibold text-emerald-950">
+                              <span>Amount to Pay Now:</span>
+                              <span className="font-mono font-bold text-sm text-emerald-950 bg-emerald-200 px-2 py-0.5 rounded-md border border-emerald-300">
+                                ₦{instalmentAmount.toLocaleString()}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1829,7 +1947,7 @@ const Checkout = () => {
                   )}
 
                   {/* SCENARIO 3: Additional Farm Slots Counter */}
-                  {!isGreenCardOnly && !isStarterPack && (
+                  {!isGreenCardOnly && !isStarterPack && !isInstalmentInitial && (
                     <div className="space-y-3 pb-3 border-b border-border/50">
                       <Label className="font-semibold text-xs text-foreground">
                         Number of Commercial Farm Slots
@@ -1868,12 +1986,16 @@ const Checkout = () => {
                     {isInstalmentInitial ? (
                       <>
                         <div className="flex justify-between items-center text-muted-foreground">
-                          <span>GreenCard Initial Registration Payment</span>
-                          <span className="font-mono font-semibold text-foreground">₦2,000</span>
+                          <span>
+                            {isExistingGcInstalment
+                              ? `Initial Combo Payment (${instalmentWeeksCount} ${instalmentWeeksCount === 1 ? "instalment" : "instalments"})`
+                              : `GreenCard Initial Registration (${instalmentWeeksCount} ${instalmentWeeksCount === 1 ? "instalment" : "instalments"})`}
+                          </span>
+                          <span className="font-mono font-semibold text-foreground">₦{totalPrice.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between items-center text-muted-foreground">
-                          <span>Remaining Balance (13 Weekly Instalments)</span>
-                          <span className="font-mono font-semibold text-foreground">₦13,000</span>
+                          <span>Remaining Balance ({remainingInstalmentWeeks} Weekly Instalment{remainingInstalmentWeeks === 1 ? "" : "s"})</span>
+                          <span className="font-mono font-semibold text-foreground">₦{remainingInstalmentBalance.toLocaleString()}</span>
                         </div>
                         <div className="flex justify-between items-center text-emerald-800 text-[11px] font-medium">
                           <span>Instalment Schedule</span>
