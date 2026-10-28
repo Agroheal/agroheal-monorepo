@@ -282,6 +282,13 @@ export const apiClient = {
           daysRemaining: number;
           status: string;
         };
+        coreDriverWallet?: {
+          isCoreDriver: boolean;
+          sharePerRegistration: number;
+          totalEarned: number;
+          availableBalance: number;
+          registrationsCount: number;
+        };
         totalEarnings: number;
         qualifications?: {
           hasGreenCard: boolean;

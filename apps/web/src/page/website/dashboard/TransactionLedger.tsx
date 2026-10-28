@@ -108,6 +108,13 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
   const [directReferralEarnings, setDirectReferralEarnings] = useState<number>(0);
   const [matrixEarnings, setMatrixEarnings] = useState<number>(0);
   const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [coreDriverWallet, setCoreDriverWallet] = useState<{
+    isCoreDriver: boolean;
+    sharePerRegistration: number;
+    totalEarned: number;
+    availableBalance: number;
+    registrationsCount: number;
+  } | null>(null);
   const [advanceDebt, setAdvanceDebt] = useState<{
     balance: number;
     total: number;
@@ -236,6 +243,10 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
   // 4. 5 Direct Referrals
   // 5. Minimum ₦2,000 threshold
   const isAllQualificationsMet = hasGreenCard && hasFarmSlot && hasMushroomPower && isDirectsQualified;
+  const isCoreDriver = Boolean(
+    coreDriverWallet?.isCoreDriver ||
+    liveTransactions.some((t) => t.category === "CORE_DRIVER_BONUS")
+  );
 
   // Authoritative financial balances: In live mode, balance is strictly the live liquid walletBalance
   // In legacy mode, it is the legacy pre-migration total
@@ -310,6 +321,9 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           }
           if (apiSummary.advanceDebt) {
             setAdvanceDebt(apiSummary.advanceDebt);
+          }
+          if (apiSummary.coreDriverWallet) {
+            setCoreDriverWallet(apiSummary.coreDriverWallet);
           }
         }
 
@@ -509,8 +523,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           .filter(
             (e: any) =>
               (e.category === "MATRIX_COMMISSION" ||
-                e.category === "SLOT_BONUS" ||
-                e.category === "CORE_DRIVER_BONUS") &&
+                e.category === "SLOT_BONUS") &&
               e.entry_type === "CREDIT" &&
               !e.is_legacy &&
               (e.status || "").toUpperCase() !== "PENDING" &&
@@ -519,6 +532,29 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           .reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
       }
       setMatrixEarnings(matEarnings);
+
+      // Core Driver Growth Pool fallback derivation
+      if (!apiSummary?.coreDriverWallet) {
+        const cdCredits = liveLedgerList.filter(
+          (e: any) =>
+            e.category === "CORE_DRIVER_BONUS" &&
+            e.entry_type === "CREDIT" &&
+            !e.is_legacy &&
+            (e.status || "").toUpperCase() !== "PENDING" &&
+            (e.status || "").toUpperCase() !== "REVERSED"
+        );
+        if (cdCredits.length > 0) {
+          const totalEarned = cdCredits.reduce((sum: number, e: any) => sum + (Number(e.amount) || 0), 0);
+          const share = Number(cdCredits[0]?.amount) || 50;
+          setCoreDriverWallet({
+            isCoreDriver: true,
+            sharePerRegistration: share,
+            totalEarned,
+            availableBalance: totalEarned,
+            registrationsCount: cdCredits.length,
+          });
+        }
+      }
 
       const hasSlot = apiSummary?.qualifications?.hasFarmSlot !== undefined
         ? Boolean(apiSummary.qualifications.hasFarmSlot)
@@ -1201,6 +1237,11 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
       { "Metric": "Total Cumulative Ledger Balance (₦)", "Value": ledgerBalance },
       { "Metric": "Direct Referral Wallet (₦)", "Value": directReferralEarnings },
       { "Metric": "5x7 Matrix Spillover Wallet (₦)", "Value": matrixEarnings },
+      ...(coreDriverWallet?.isCoreDriver ? [
+        { "Metric": "Core Driver Active Pool Balance (₦)", "Value": coreDriverWallet.availableBalance },
+        { "Metric": "Core Driver Lifetime Dividends (₦)", "Value": coreDriverWallet.totalEarned },
+        { "Metric": "Core Driver Activations Shared", "Value": coreDriverWallet.registrationsCount },
+      ] : []),
       { "Metric": "Direct Referrals Count", "Value": directReferralsCount },
       { "Metric": "Active 30-Day PQV (₦)", "Value": activePqv30d },
       { "Metric": "Matrix Qualification Status", "Value": isMatrixQualified ? "QUALIFIED" : "QUALIFICATION REQUIRED" },
@@ -1317,8 +1358,8 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           </div>
         </div>
 
-        {/* ── CENTRALIZED EXECUTIVE MEMBER WALLET (CANONICAL CREDIT CARD ASPECT RATIO) ── */}
-        <div className="w-full max-w-[470px] mx-auto">
+        {/* ── CENTRALIZED EXECUTIVE MEMBER WALLET & CORE DRIVER POOL WALLET ── */}
+        <div className={`w-full ${isCoreDriver && walletMode === "live" ? "max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch" : "max-w-[470px]"} mx-auto`}>
 
           <div className={`flex flex-col justify-between ${
             walletMode === "legacy"
@@ -1604,10 +1645,125 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
               )}
             </div>
           </div>
+
+          {/* Dedicated Core Driver Growth Pool Wallet Card (Rendered for Core Drivers) */}
+          {isCoreDriver && walletMode === "live" && (
+            <div className="flex flex-col justify-between bg-gradient-to-br from-[#1c1808] via-[#2a200a] to-[#0c1f13] border-2 border-amber-500/60 rounded-3xl p-5 sm:p-5.5 text-white shadow-xl relative overflow-hidden space-y-3 transition-all duration-300">
+              {/* Background Ambient Glows */}
+              <div className="absolute top-0 right-0 -mr-16 -mt-16 w-60 h-60 rounded-full bg-amber-400/20 blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-60 h-60 rounded-full bg-emerald-400/10 blur-3xl pointer-events-none" />
+
+              {/* Top Row: Logo + Core Driver Tag + Driver Name & Share Badge */}
+              <div className="relative z-10 flex items-center justify-between pb-2 border-b border-amber-400/20 gap-2">
+                <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
+                  <img
+                    src={AgrohealImages.HeaderLogo}
+                    alt="AgroHeal"
+                    className="h-5 sm:h-6 object-contain brightness-0 invert opacity-95 shrink-0"
+                  />
+                  <div className="h-3.5 w-px bg-amber-400/30 hidden sm:block" />
+                  <span className="text-[10px] font-bold tracking-widest text-amber-300 uppercase font-mono truncate">
+                    CORE DRIVER POOL
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 ml-auto text-right min-w-0">
+                  <div className="min-w-0">
+                    {userProfile?.full_name ? (
+                      <p className="text-xs sm:text-sm font-bold text-white tracking-wide truncate max-w-[150px] sm:max-w-[180px]">
+                        {userProfile.full_name}
+                      </p>
+                    ) : null}
+                    <span className="text-[10px] font-mono font-extrabold text-amber-300 block">
+                      ₦{coreDriverWallet?.sharePerRegistration || 50} / Registration
+                    </span>
+                  </div>
+                  <Award className="w-4 h-4 text-amber-400 shrink-0" />
+                </div>
+              </div>
+
+              {/* Middle: EMV Smart Chip & Driver Tier Badge */}
+              <div className="relative z-10 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="relative w-11 h-7.5 sm:w-12 sm:h-8.5 rounded-md bg-gradient-to-br from-amber-200 via-yellow-400 to-amber-600 border border-amber-300 shadow-md p-0.5 overflow-hidden shrink-0">
+                    <div className="w-full h-full rounded-[3px] border border-amber-800/40 grid grid-cols-3 grid-rows-3 gap-[1px]">
+                      <div className="border-r border-b border-amber-800/40" />
+                      <div className="border-b border-amber-800/40" />
+                      <div className="border-l border-b border-amber-800/40" />
+                      <div className="border-r border-amber-800/40" />
+                      <div className="rounded-full bg-amber-700/40 mx-auto my-auto w-1.5 h-1.5" />
+                      <div className="border-l border-amber-800/40" />
+                      <div className="border-r border-t border-amber-800/40" />
+                      <div className="border-t border-amber-800/40" />
+                      <div className="border-l border-t border-amber-800/40" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide border shadow-xs backdrop-blur-md bg-amber-400/20 text-amber-200 border-amber-400/50">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      Founding Growth Driver
+                    </span>
+                  </div>
+                </div>
+
+                {/* Balances Display Grid */}
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-black/25 backdrop-blur-xs p-3 rounded-2xl border border-amber-500/30 space-y-0.5">
+                    <span className="text-[10px] text-amber-300 font-bold uppercase tracking-wider block">
+                      Active Driver Pool
+                    </span>
+                    <p className="text-xl sm:text-2xl font-black font-mono text-white tracking-tight">
+                      ₦{(coreDriverWallet?.availableBalance || 0).toLocaleString()}
+                    </p>
+                    <span className="text-[9px] text-amber-200/70 block">
+                      Withdrawable Driver Share
+                    </span>
+                  </div>
+
+                  <div className="bg-black/25 backdrop-blur-xs p-3 rounded-2xl border border-amber-500/20 space-y-0.5">
+                    <span className="text-[10px] text-amber-200/80 font-bold uppercase tracking-wider block">
+                      Lifetime Dividends
+                    </span>
+                    <p className="text-xl sm:text-2xl font-black font-mono text-amber-300 tracking-tight">
+                      ₦{(coreDriverWallet?.totalEarned || 0).toLocaleString()}
+                    </p>
+                    <span className="text-[9px] text-gray-300 block truncate">
+                      {coreDriverWallet?.registrationsCount || 0} Activations Shared
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Actions on Driver Card */}
+              <div className="relative z-10 pt-2 border-t border-amber-400/20 space-y-2 mt-auto">
+                <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/25 text-[11px] text-amber-100 flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 truncate">
+                    <Award className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                    <span className="truncate">Statutory ₦{coreDriverWallet?.sharePerRegistration || 50} per verified GreenCard registration.</span>
+                  </span>
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setActiveLedgerTab("wallet_ledger");
+                    setFilterType("CORE_DRIVER_BONUS");
+                    const el = document.getElementById("transaction-history-table");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="w-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-emerald-950 font-black text-xs h-9 rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Search className="w-3.5 h-3.5 mr-1" />
+                  Audit Driver Pool Entries ({coreDriverWallet?.registrationsCount || 0})
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── TRANSACTION HISTORY TABLE ── */}
-        <div className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
+        <div id="transaction-history-table" className="bg-white rounded-3xl border border-gray-200 shadow-sm overflow-hidden">
           {/* Table Header & Search Filter */}
           <div className="p-5 border-b border-gray-100 space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1646,6 +1802,24 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
                   >
                     <Clock className="w-3 h-3 text-amber-700 animate-pulse" />
                     <span>{transactions.filter((t) => t.status === "PENDING").length} Pending</span>
+                  </button>
+                )}
+                {isCoreDriver && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveLedgerTab("wallet_ledger");
+                      setFilterType(filterType === "CORE_DRIVER_BONUS" ? "ALL" : "CORE_DRIVER_BONUS");
+                    }}
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all inline-flex items-center gap-1 cursor-pointer border ${
+                      filterType === "CORE_DRIVER_BONUS"
+                        ? "bg-amber-400 text-emerald-950 border-amber-300 font-black shadow-xs"
+                        : "bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300/70"
+                    }`}
+                    title="Filter to view statutory Core Driver Growth Pool earnings"
+                  >
+                    <Award className="w-3 h-3 text-amber-700" />
+                    <span>Core Driver Pool (₦{coreDriverWallet?.sharePerRegistration || 50})</span>
                   </button>
                 )}
               </div>
