@@ -39,7 +39,7 @@ const RequireSubscription = ({ children }: { children: React.ReactNode }) => {
           .maybeSingle(),
         supabase
           .from("profiles")
-          .select("member_id")
+          .select("member_id, role, is_legacy")
           .eq("id", user.id)
           .maybeSingle(),
       ]);
@@ -47,7 +47,8 @@ const RequireSubscription = ({ children }: { children: React.ReactNode }) => {
       const isSubActive = Boolean(
         sub && (!sub.expires_at || new Date(sub.expires_at).getTime() > Date.now())
       );
-      const isCardHolder = Boolean(profile?.member_id || isSubActive);
+      const isPrivileged = profile?.role === "coordinator" || profile?.role === "admin" || profile?.role === "super_admin";
+      const isCardHolder = Boolean(profile?.member_id || isSubActive || isPrivileged);
       setHasActiveSubscription(isCardHolder);
       setLoading(false);
     };

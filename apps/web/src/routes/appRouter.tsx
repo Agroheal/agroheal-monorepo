@@ -23,6 +23,7 @@ import Checkout from "@/page/website/Slots/Checkout";
 import DashboardError from "@/page/error/DashboardError";
 import ForgotPasswordForm from "@/page/ForgotPassword";
 import UpdatePasswordForm from "@/page/UpdatePassword";
+import LegacyLogin from "@/page/website/LegacyLogin";
 import ConfirmEmail from "@/page/ConfirmEmail";
 import ProfileComponent from "@/page/website/dashboard/Profile";
 import Legal from "@/page/website/Legal";
@@ -71,6 +72,18 @@ export const appRouter = createBrowserRouter([
   {
     path: "/join/funnel1",
     element: <Navigate to="/gc" replace />,
+  },
+  {
+    path: "/in",
+    element: <Navigate to="/dashboard/checkout?plan=instalment&bundle=starter" replace />,
+  },
+  {
+    path: "/legacy/login",
+    element: <LegacyLogin />,
+  },
+  {
+    path: "/farm/login",
+    element: <Navigate to="/legacy/login" replace />,
   },
 
   // Public Marketing & Informational Routes
@@ -209,6 +222,7 @@ export const appRouter = createBrowserRouter([
           { path: "how-it-works/presentation", element: <PresentationGuide /> },
           { path: "locked-withdrawals", element: <Navigate to="/how-it-works/locked-withdrawals" replace /> },
           { path: "locked-reserves", element: <Navigate to="/how-it-works/locked-withdrawals" replace /> },
+          { path: "in", element: <Navigate to="/dashboard/checkout?plan=instalment&bundle=starter" replace /> },
         ],
       },
 
@@ -221,11 +235,7 @@ export const appRouter = createBrowserRouter([
           { index: true, element: <Navigate to="/legacy/group-farm-accounts" replace /> },
           {
             path: "group-farm-accounts",
-            element: (
-              <RequireSubscription>
-                <FarmRecordsView />
-              </RequireSubscription>
-            ),
+            element: <FarmRecordsView />,
           },
           { path: "create-farm-group", element: <CreateFarmGroup /> },
           { path: "farm-admin", element: <FarmRecordsView /> },

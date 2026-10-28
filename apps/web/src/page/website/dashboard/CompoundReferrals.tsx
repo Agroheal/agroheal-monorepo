@@ -957,7 +957,7 @@ const CompoundReferrals: React.FC = () => {
             memberId: cp.member_id ? formatAgcId(cp.member_id) : "Pending Green Card",
             parentId: cp.placement_parent_id || targetId,
             placementParentId: cp.placement_parent_id || null,
-            placementStatus: cp.placement_status || (isPlaced ? "PLACED" : "HOLDING_TANK"),
+            placementStatus: isPlaced ? "PLACED" : "PENDING_ACTIVATION",
             position: cp.placement_parent_id === targetId ? cp.matrix_position || 0 : 0,
             level: 1,
             slotsHeld: cSlotCount,

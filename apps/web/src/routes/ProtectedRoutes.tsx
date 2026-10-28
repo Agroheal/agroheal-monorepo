@@ -25,7 +25,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // sessions
   if (!session) {
     const redirectTarget = location.pathname + location.search;
-    return <Navigate to={`/signin?redirect=${encodeURIComponent(redirectTarget)}`} replace />;
+    const isLegacy = location.pathname.startsWith("/legacy") || location.pathname.startsWith("/farm");
+    const loginPath = isLegacy ? "/legacy/login" : "/signin";
+    return <Navigate to={`${loginPath}?redirect=${encodeURIComponent(redirectTarget)}`} replace />;
   }
 
   return <>{children}</>;
