@@ -24,6 +24,7 @@ import {
   getGreenCardFee,
   formatNaira,
 } from "@shared/businessRules";
+import { getEntryPricing } from "@shared/cutover";
 
 export interface NextStepConfig {
   enabled: boolean;
@@ -67,7 +68,7 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
       title: "Activate Your Starter Package",
       subtitle:
         "Your official key to organic farming education, verified digital membership, farm slots, and community dividends.",
-      priceText: "₦12,000 Complete Starter Package",
+      priceText: "₦15,000 Complete Starter Package",
       badgeText: "Milestone 1 of 3 · Foundation",
       benefits: [
         "Lifetime access to Organic Farming Academy & practical masterclasses",
@@ -75,14 +76,14 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
         "Group farm slot (2 Bags · Cycle Doubling) in Mushroom Village",
         "100g Mushroom Power organic extract pack",
       ],
-      buttonText: "Activate Starter Package (₦12,000)",
+      buttonText: "Activate Starter Package (₦15,000)",
       targetRoute: "/dashboard/checkout?bundle=starter",
     },
     step2: {
       title: "Secure Your Starter Commercial Farm Slot",
       subtitle:
-        "Your ₦10,000 starter combo includes a ₦5,000 Mushroom Farm Slot (2 Bags · Cycle Doubling) and a ₦5,000 Mushroom Power 100g pack. This establishes your biological oyster mushroom production in our shared community farms.",
-      priceText: "₦10,000 Complete Starter Package · Mushroom Village Flagship",
+        "Your ₦13,000 starter combo includes a ₦5,000 Mushroom Farm Slot (2 Bags · Cycle Doubling) and a ₦8,000 Mushroom Power 100g pack. This establishes your biological oyster mushroom production in our shared community farms.",
+      priceText: "₦13,000 Complete Starter Package · Mushroom Village Flagship",
       badgeText: "Milestone 2 of 3 · Production",
       benefits: [
         "2 physical fruiting bags allocated directly to your member account",
@@ -90,7 +91,7 @@ export const DEFAULT_NEXT_STEP_CONFIG: NextStepConfig = {
         "Up to 40% projected quarterly community harvest dividends from Cycle 2 onward",
         "Secures your locked placement in the 5×7 Community Matrix",
       ],
-      buttonText: "Secure Complete Starter (₦10,000)",
+      buttonText: "Secure Complete Starter (₦13,000)",
       targetRoute: "/dashboard/checkout?category=Mushroom%20Village&slots=1",
     },
     step3: {
@@ -207,7 +208,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
           "Activates full commercial bank withdrawal rights on cleared balance",
           "Satisfies rolling PQV requirement without recurring maintenance fees",
         ],
-        buttonText: "Activate Mushroom Power (₦5,000)",
+        buttonText: `Activate Mushroom Power (${formatNaira(getEntryPricing().starterPackPrice)})`,
         targetRoute: "/dashboard/checkout?product=SP-MUSH-100G",
       };
     }
@@ -215,11 +216,11 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
     if (hasGreenCard && (!hasPurchasedStarterPack || totalSlots === 0)) {
       return {
         ...config.steps.step2,
-        title: "Secure Your Starter Package (₦10,000)",
+        title: `Secure Your Starter Package (${formatNaira(getEntryPricing().comboPrice)})`,
         subtitle:
-          "Your ₦10,000 starter combo includes a ₦5,000 Mushroom Farm Slot (2 Bags · Cycle Doubling) and a ₦5,000 Mushroom Power 100g pack.",
-        priceText: "₦10,000 Complete Starter Package",
-        buttonText: "Secure Starter Package (₦10,000)",
+          `Your ${formatNaira(getEntryPricing().comboPrice)} starter combo includes a ${formatNaira(getEntryPricing().farmSlotPrice)} Mushroom Farm Slot (2 Bags · Cycle Doubling) and a ${formatNaira(getEntryPricing().starterPackPrice)} Mushroom Power 100g pack.`, 
+        priceText: `${formatNaira(getEntryPricing().comboPrice)} Complete Starter Package`, 
+        buttonText: `Secure Starter Package (${formatNaira(getEntryPricing().comboPrice)})`, 
         targetRoute: "/dashboard/checkout?bundle=starter_completion",
       };
     }
@@ -455,7 +456,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                 <ShieldCheck className="w-4 h-4 text-emerald-700 shrink-0" />
                 <span>
                   {currentStep === 1 && bundleSlot
-                    ? `Green Card (${formatNaira(activeFee)}) + Starter Package (₦10,000) Bundled at Checkout`
+                    ? `Green Card (${formatNaira(activeFee)}) + Starter Package (${formatNaira(getEntryPricing().comboPrice)}) Bundled at Checkout`
                     : currentStep === 1
                     ? `${formatNaira(activeFee)} One-Time Lifetime Membership${isLegacy ? " (Founding Rate)" : ""}`
                     : "priceText" in currentData
@@ -497,7 +498,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-600 mt-1 leading-snug">
-                    Can afford both at a go? Bundle your Green Card ({formatNaira(activeFee)}) and Producer-Consumer Starter Package (₦10,000) together for {formatNaira(activeFee + 10000)} in one seamless checkout session.
+                    Can afford both at a go? Bundle your Green Card ({formatNaira(activeFee)}) and Producer-Consumer Starter Package ({formatNaira(getEntryPricing().comboPrice)}) together for {formatNaira(getEntryPricing().totalEntryFee)} in one seamless checkout session.
                   </p>
                 </div>
               </div>
@@ -522,7 +523,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                   <div className="flex items-start gap-2.5 p-2.5 rounded-xl bg-emerald-50/80 border border-emerald-200/70 text-xs text-emerald-950 font-medium leading-snug">
                     <Sprout className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                     <span>
-                      <strong>Milestone 2 Bundled:</strong> Complete Producer-Consumer Starter Package (₦10,000) with Mushroom Farm Slot, Mushroom Power 100g, cycle doubling &amp; quarterly harvest dividends!
+                      <strong>Milestone 2 Bundled:</strong> Complete Producer-Consumer Starter Package ({formatNaira(getEntryPricing().comboPrice)}) with Mushroom Farm Slot, Mushroom Power 100g, cycle doubling &amp; quarterly harvest dividends!
                     </span>
                   </div>
                 )}
@@ -547,7 +548,7 @@ export const NextStepModal: React.FC<NextStepModalProps> = ({
                   )
                 ) : currentStep === 1 && bundleSlot ? (
                   <>
-                    <span>Get Green Card + Starter Package ({formatNaira(activeFee + 10000)})</span>
+                    <span>Get Green Card + Starter Package ({formatNaira(getEntryPricing().totalEntryFee)})</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 ) : currentStep === 1 ? (

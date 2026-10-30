@@ -50,7 +50,8 @@ import { formatAgcId } from "@/components/greencard/DigitalGreenCard";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import OrganogramSkeleton from "@/components/dashboard/OrganogramSkeleton";
 import RegulatoryNotice from "@/components/webComponents/RegulatoryNotice";
-import { isLegacyMember, isGreenCardHolder, hasPurchasedStarterPack } from "@shared/businessRules";
+import { isLegacyMember, isGreenCardHolder, hasPurchasedStarterPack, formatNaira } from "@shared/businessRules";
+import { getEntryPricing } from "@shared/cutover";
 import { SITE_URL } from "@/config/Index";
 import ReferralCampaignTool from "@/components/network/ReferralCampaignTool";
 
@@ -1730,15 +1731,15 @@ const CompoundReferrals: React.FC = () => {
     treeBannerSubtitle =
       "Register your official digital Green Card and activate your 1st Farm Slot to enter the 5×7 community matrix and receive spillovers.";
     treeBannerCta = {
-      label: "Activate Membership (₦12,000 Combo)",
+      label: `Activate Membership (${formatNaira(getEntryPricing().totalEntryFee)} Combo)`,
       path: "/dashboard/checkout?bundle=starter",
     };
   } else if (!hasPurchasedStarter && userSlotsHeld === 0) {
-    treeBannerTitle = "Complete Starter Package (₦10,000) to enter the tree";
+    treeBannerTitle = `Complete Starter Package (${formatNaira(getEntryPricing().comboPrice)}) to enter the tree`;
     treeBannerSubtitle =
       "Add your 1st Farm Slot and Mushroom Power superfood to complete your starter package and unlock your matrix position.";
     treeBannerCta = {
-      label: "Complete Starter Pack (₦10,000)",
+      label: `Complete Starter Pack (${formatNaira(getEntryPricing().comboPrice)})`,
       path: "/dashboard/checkout?bundle=starter_completion",
     };
   }
@@ -1829,9 +1830,9 @@ const CompoundReferrals: React.FC = () => {
           const unlockedLvl = getUnlockedMatrixLevel(directReferralsCount);
 
           let statusBadge = "Next Step";
-          let headline = "Activate ₦12,000 Starter Package";
-          let shortSummary = "Includes Green Card (₦2,000), Mushroom Power 100g (₦5,000), and 1st Farm Slot (₦5,000) to lock your permanent node.";
-          let ctaText = "Activate ₦12,000 Package";
+          let headline = `Activate ${formatNaira(getEntryPricing().totalEntryFee)} Starter Package`;
+          let shortSummary = `Includes Green Card (${formatNaira(getEntryPricing().greenCardFee)}), Mushroom Power 100g (${formatNaira(getEntryPricing().starterPackPrice)}), and 1st Farm Slot (${formatNaira(getEntryPricing().farmSlotPrice)}) to lock your permanent node.`;
+          let ctaText = `Activate ${formatNaira(getEntryPricing().totalEntryFee)} Package`;
           let ctaLink = "/dashboard/checkout?bundle=starter";
           let isWarning = true;
           let detailsList = [
@@ -1855,9 +1856,9 @@ const CompoundReferrals: React.FC = () => {
             ];
           } else if (!isLegacy && (!hasCard || !hasSlots || !hasPurchasedStarterPack)) {
             statusBadge = "Starter Package Pending";
-            headline = "Activate ₦12,000 Starter Package";
+            headline = `Activate ${formatNaira(getEntryPricing().totalEntryFee)} Starter Package`;
             shortSummary = "Complete all 3 constituents to lock your permanent node in the 5×7 community matrix.";
-            ctaText = "Activate ₦12,000 Package";
+            ctaText = `Activate ${formatNaira(getEntryPricing().totalEntryFee)} Package`;
             ctaLink = "/dashboard/checkout?bundle=starter";
             isWarning = true;
             detailsList = [
@@ -1869,13 +1870,13 @@ const CompoundReferrals: React.FC = () => {
           } else if (directReferralsCount < 5) {
             statusBadge = `Tier Progress • ${directReferralsCount}/5 Directs`;
             headline = `Sponsor ${5 - directReferralsCount} More Direct Partner(s)`;
-            shortSummary = "Sponsor 5 active members with the ₦12,000 package to unlock all 7 matrix commission tiers.";
+            shortSummary = `Sponsor 5 active members with the ${formatNaira(getEntryPricing().totalEntryFee)} package to unlock all 7 matrix commission tiers.`;
             ctaText = "Copy Affiliate Link";
             ctaLink = "";
             isWarning = false;
             detailsList = [
               `Currently unlocked: Tier ${unlockedLvl} matrix commission access.`,
-              "Earn ₦1,000 direct referral bounty + ₦500 farm slot commission immediately on each ₦12,000 partner activation.",
+              `Earn ₦2,500 total direct sponsor rewards immediately on each ${formatNaira(getEntryPricing().totalEntryFee)} partner activation.`, 
               `Sponsor ${5 - directReferralsCount} more direct partner(s) to unlock all 7 downline commission tiers.`,
             ];
           } else if (!hasActivePqv) {
@@ -2040,7 +2041,7 @@ const CompoundReferrals: React.FC = () => {
                       Your <strong>₦2,000 Green Card</strong> entitles you to lifetime educational curriculum access and <strong>₦1,000 direct referral rewards</strong>.
                     </p>
                     <p className="text-xs text-gray-500 leading-relaxed max-w-lg mx-auto">
-                      The <strong>5×7 Matrix</strong> is reserved for members who have subscribed to the <strong>₦12,000 Starter Package (Green Card + 1 Farm Slot + Mushroom Power 100g)</strong>. Once secured, you will be assigned an active node in the tree with automated spillover and 7-level commissions.
+                      The <strong>5×7 Matrix</strong> is reserved for members who have subscribed to the <strong>₦15,000 Starter Package (Green Card + 1 Farm Slot + Mushroom Power 100g)</strong>. Once secured, you will be assigned an active node in the tree with automated spillover and 7-level commissions.
                     </p>
                   </>
                 )}
@@ -2061,7 +2062,7 @@ const CompoundReferrals: React.FC = () => {
                     className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-sm shadow-md transition-all"
                   >
                     <Sprout className="w-4 h-4" />
-                    Secure Starter Package (₦12,000)
+                    Secure Starter Package (₦15,000)
                   </Link>
                 )}
                 <button

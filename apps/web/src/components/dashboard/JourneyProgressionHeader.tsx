@@ -13,7 +13,8 @@ import {
   Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { isLegacyMember } from "@shared/businessRules";
+import { isLegacyMember, formatNaira } from "@shared/businessRules";
+import { getEntryPricing } from "@shared/cutover";
 
 export interface JourneyProgressionHeaderProps {
   hasGreenCard: boolean;
@@ -75,32 +76,40 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
     return null;
   }
 
+  // Dynamic pricing for cutover accuracy
+  const entryPricing = getEntryPricing();
+  const totalStarterFee = formatNaira(entryPricing.totalEntryFee);
+  const starterPackFee = formatNaira(entryPricing.starterPackPrice);
+  const farmSlotFee = formatNaira(entryPricing.farmSlotPrice);
+  const greenCardFee = formatNaira(entryPricing.greenCardFee);
+  const comboFee = formatNaira(entryPricing.comboPrice);
+
   // Determine concise folded status summary
   let statusBadge = "Starter Package Pending";
-  let headline = "Activate ₦12,000 Starter Package";
-  let shortSummary = "Includes Green Card (₦2,000), Mushroom Power 100g (₦5,000), and 1st Farm Slot (₦5,000) to lock your matrix node.";
-  let ctaText = "Activate ₦12,000 Package";
+  let headline = `Activate ${totalStarterFee} Starter Package`;
+  let shortSummary = `Includes Green Card (${greenCardFee}), Mushroom Power 100g (${starterPackFee}), and 1st Farm Slot (${farmSlotFee}) to lock your matrix node.`;
+  let ctaText = `Activate ${totalStarterFee} Package`;
   let onCtaClick = () => navigate("/dashboard/checkout?bundle=starter");
   let isWarning = true;
 
   if (isMemberLegacy && !hasPurchasedStarterPack) {
     statusBadge = "Founding Member";
-    headline = "Activate Mushroom Power 100g (₦5,000)";
+    headline = `Activate Mushroom Power 100g (${starterPackFee})`;
     shortSummary = "Green Card is free. Activate welcome product to unlock full withdrawals & 5×7 community tree.";
-    ctaText = "Activate (₦5,000)";
+    ctaText = `Activate (${starterPackFee})`;
     onCtaClick = () => navigate("/dashboard/checkout?product=SP-MUSH-100G");
     isWarning = true;
   } else if (!isMemberLegacy && (!isStep1Done || !isStep2Done)) {
     statusBadge = "Starter Package Pending";
-    headline = "Activate ₦12,000 Starter Package";
-    shortSummary = "Green Card (₦2k), Mushroom Power 100g (₦5k) & 1st Farm Slot (₦5k) to lock your permanent node.";
-    ctaText = "Activate (₦12,000)";
+    headline = `Activate ${totalStarterFee} Starter Package`;
+    shortSummary = `Green Card (${greenCardFee}), Mushroom Power 100g (${starterPackFee}) & 1st Farm Slot (${farmSlotFee}) to lock your permanent node.`;
+    ctaText = `Activate (${totalStarterFee})`;
     onCtaClick = () => navigate("/dashboard/checkout?bundle=starter");
     isWarning = true;
   } else if (directReferralsCount < 5) {
     statusBadge = `${directReferralsCount}/5 Directs`;
     headline = `Sponsor ${5 - directReferralsCount} More Direct Partner(s)`;
-    shortSummary = `Refer 5 friends with the ₦12,000 package to unlock all 7 matrix commission tiers (${directReferralsCount}/5 reached).`;
+    shortSummary = `Refer 5 friends with the ${totalStarterFee} package to unlock all 7 matrix commission tiers (${directReferralsCount}/5 reached).`;
     ctaText = "Share Link";
     onCtaClick = onOpenShareModal ? onOpenShareModal : () => navigate("/dashboard/my-network");
     isWarning = false;
@@ -227,7 +236,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               <p className="text-[11.5px] text-slate-700 dark:text-slate-200 leading-relaxed mb-2.5 font-medium">
                 {isMemberLegacy
                   ? "Free lifetime pass for founding members. Enables personal AGC affiliate ID."
-                  : "₦2,000 digital lifetime credentials included in ₦12,000 package. Unlocks personal AGC ID & ₦1,000 direct referral bounty."}
+                  : `${greenCardFee} digital lifetime credentials included in ${totalStarterFee} package. Unlocks personal AGC ID & ₦1,000 direct referral bounty.`}
               </p>
             </div>
 
@@ -293,14 +302,14 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
 
               <p className="text-[11.5px] text-slate-700 dark:text-slate-200 leading-relaxed mb-2.5 font-medium">
                 {isMemberLegacy
-                  ? "Activate Mushroom Power 100g (₦5,000) to unlock full withdrawals & 5×7 matrix organogram."
-                  : "Included in ₦12,000 package: Mushroom Power 100g (₦5,000) + 1st Farm Slot (₦5,000) locking your permanent matrix placement & bank withdrawals."}
+                  ? `Activate Mushroom Power 100g (${starterPackFee}) to unlock full withdrawals & 5×7 matrix organogram.`
+                  : `Included in ${totalStarterFee} package: Mushroom Power 100g (${starterPackFee}) + 1st Farm Slot (${farmSlotFee}) locking your permanent matrix placement & bank withdrawals.`}
               </p>
             </div>
 
             <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
               <span className="text-[11px] text-slate-700 dark:text-slate-300 font-bold">
-                {totalSlots > 0 ? `${totalSlots} Farm Slot${totalSlots > 1 ? "s" : ""}` : "₦10,000 Value"}
+                {totalSlots > 0 ? `${totalSlots} Farm Slot${totalSlots > 1 ? "s" : ""}` : `${comboFee} Value`}
               </span>
               {isStep2Done ? (
                 <Link
@@ -321,7 +330,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                   }
                   className="text-amber-700 dark:text-amber-400 hover:underline font-bold inline-flex items-center gap-0.5 text-[11px] cursor-pointer"
                 >
-                  {isMemberLegacy ? "Activate ₦5k" : "Activate ₦12k"} <ArrowRight className="w-3 h-3" />
+                  {isMemberLegacy ? `Activate ${starterPackFee}` : `Activate ${totalStarterFee}`} <ArrowRight className="w-3 h-3" />
                 </button>
               )}
             </div>
@@ -361,7 +370,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               </div>
 
               <p className="text-[11.5px] text-slate-700 dark:text-slate-200 leading-relaxed mb-2.5 font-medium">
-                Sponsor 5 active members with the ₦12,000 package to unlock all 7 tiers of community matrix commissions. Earn ₦1,000 bounty + ₦500 slot commission per partner.
+                Sponsor 5 active members with the ${totalStarterFee} package to unlock all 7 tiers of community matrix commissions. Earn ₦2,500 total direct sponsor rewards per partner.
               </p>
             </div>
 

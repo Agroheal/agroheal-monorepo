@@ -8,6 +8,8 @@ import { Sprout, Minus, Plus, ShoppingCart, Leaf, Wheat, PackageCheck, ShieldChe
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabaseClient';
 import { AgrohealImages } from '@/constant/Image';
+import { isLegacyMember, formatNaira, hasPurchasedStarterPack as checkHasStarterPack } from '@shared/businessRules';
+import { getEntryPricing } from '@shared/cutover';
 
 const BuySlots: React.FC = () => {
   const navigate = useNavigate();
@@ -15,31 +17,43 @@ const BuySlots: React.FC = () => {
   const [mushroomQty, setMushroomQty] = useState(1);
   const [hasPriorSlots, setHasPriorSlots] = useState(false);
 
-  const isLegacy = Boolean(profile?.is_legacy);
-  const hasPurchasedStarterPack = Boolean(profile?.has_purchased_starter_pack);
-  const isLegacyNeedsStarterPack = isLegacy && !hasPurchasedStarterPack;
+  const entryPricing = getEntryPricing();
+  const isLegacy = Boolean(profile?.is_legacy) || isLegacyMember(profile?.created_at as string | undefined);
+  const hasStarterPack = Boolean(checkHasStarterPack(profile) || profile?.is_wealth_creation_active);
+  const isLegacyNeedsStarterPack = isLegacy && !hasStarterPack;
+  const isAlreadyActivated = hasPriorSlots || hasStarterPack || (Number(profile?.farm_slots || 0) > 0);
 
   useEffect(() => {
     if (!user) return;
     const checkPriorSlots = async () => {
-      const { count } = await supabase
-        .from('slot_subscriptions')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('status', 'active');
-      setHasPriorSlots(Boolean(count && count > 0));
+      const [slotSubRes, profileRes] = await Promise.all([
+        supabase
+          .from('slot_subscriptions')
+          .select('id, slots')
+          .or(`user_id.eq.${user.id}${user.email ? `,member_email.ilike.${user.email.trim()}` : ""}`),
+        supabase
+          .from('profiles')
+          .select('has_purchased_starter_pack, farm_slots, is_wealth_creation_active')
+          .eq('id', user.id)
+          .maybeSingle(),
+      ]);
+
+      const hasSlotsInTable = Boolean(slotSubRes.data && slotSubRes.data.length > 0);
+      const hasSlotsInProfile = Number(profileRes.data?.farm_slots || 0) > 0;
+      const hasPack = Boolean(profileRes.data?.has_purchased_starter_pack || profileRes.data?.is_wealth_creation_active);
+      setHasPriorSlots(hasSlotsInTable || hasSlotsInProfile || hasPack);
     };
     checkPriorSlots();
   }, [user]);
 
-  // Calculate price dynamically based on prior slots
+  // Calculate price dynamically based on activation status
   const calculatePrice = (qty: number) => {
     if (qty === 0) return 0;
-    if (hasPriorSlots) {
-      return qty * 5000;
+    if (isAlreadyActivated) {
+      return qty * entryPricing.farmSlotPrice;
     } else {
-      // First slot is 10000, additional slots are 5000
-      return 10000 + (qty - 1) * 5000;
+      // First slot combo is entryPricing.comboPrice, additional slots scale at entryPricing.farmSlotPrice
+      return entryPricing.comboPrice + (qty - 1) * entryPricing.farmSlotPrice;
     }
   };
 
@@ -93,13 +107,13 @@ const BuySlots: React.FC = () => {
                 </div>
                 <p className="text-xs text-gray-600 leading-relaxed">
                   As a verified Founding Member, your pre-launch farm slots are already secured and productive in the physical farms! 
-                  To activate your <strong>5×7 Compound Network Organogram</strong>, unlock <strong>Level 1–7 compound referral commissions</strong>, and enable <strong>external bank withdrawals</strong>, please complete your one-time <strong>₦5,000 Mushroom Starter Pack (100g)</strong> purchase.
+                  To activate your <strong>5×7 Compound Network Organogram</strong>, unlock <strong>Level 1–7 compound referral commissions</strong>, and enable <strong>external bank withdrawals</strong>, please complete your one-time <strong>{formatNaira(entryPricing.starterPackPrice)} Mushroom Starter Pack (100g)</strong> purchase.
                 </p>
                 <div className="border-t border-amber-100 pt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <span className="text-xs font-semibold text-gray-500 uppercase">Package Fee</span>
                     <div className="text-2xl font-black text-amber-900 font-mono">
-                      ₦5,000 <span className="text-xs font-normal text-gray-500">one-time</span>
+                      {formatNaira(entryPricing.starterPackPrice)} <span className="text-xs font-normal text-gray-500">one-time</span>
                     </div>
                   </div>
                   <Button
@@ -108,7 +122,7 @@ const BuySlots: React.FC = () => {
                     onClick={() => navigate('/dashboard/checkout?item=starter_pack')}
                   >
                     <ShoppingCart className="mr-2 h-4 w-4" />
-                    Purchase Starter Pack (₦5,000)
+                    Purchase Starter Pack ({formatNaira(entryPricing.starterPackPrice)})
                   </Button>
                 </div>
               </div>
@@ -174,21 +188,21 @@ const BuySlots: React.FC = () => {
                   Pricing
                 </span>
                 <div className="text-right">
-                  {hasPriorSlots ? (
+                  {isAlreadyActivated ? (
                     <div className="flex items-baseline justify-end gap-1">
-                      <span className="text-base font-black text-emerald-950 font-mono">₦5,000</span>
+                      <span className="text-base font-black text-emerald-950 font-mono">{formatNaira(entryPricing.farmSlotPrice)}</span>
                       <span className="text-xs text-gray-500 font-normal">/ slot</span>
                     </div>
                   ) : (
                     <div className="space-y-0.5">
                       <div className="flex items-center justify-end gap-1.5">
-                        <span className="text-base font-black text-emerald-950 font-mono">₦10,000</span>
+                        <span className="text-base font-black text-emerald-950 font-mono">{formatNaira(entryPricing.comboPrice)}</span>
                         <span className="text-[9.5px] font-bold uppercase bg-emerald-200 text-emerald-950 px-1.5 py-0.5 rounded-md">
                           Starter Slot
                         </span>
                       </div>
                       <p className="text-[10px] text-gray-500 font-medium">
-                        Subsequent slots scale at ₦5,000 each
+                        Subsequent slots scale at {formatNaira(entryPricing.farmSlotPrice)} each
                       </p>
                     </div>
                   )}
@@ -196,23 +210,23 @@ const BuySlots: React.FC = () => {
               </div>
             </div>
 
-            {/* ₦10,000 Wealth Creation Activation Breakdown (Mushroom Power 100g + 1 Farm Slot) */}
-            {!hasPriorSlots && (
+            {/* Starter Activation Breakdown (Mushroom Power 100g + 1 Farm Slot) */}
+            {!isAlreadyActivated && (
               <div className="bg-gradient-to-br from-emerald-50 via-white to-emerald-50/50 border border-emerald-200/90 rounded-2xl p-3.5 space-y-2 text-xs text-emerald-950 shadow-2xs">
                 <div className="flex items-center gap-1.5">
                   <PackageCheck className="w-3.5 h-3.5 text-emerald-700" />
                   <span className="font-extrabold text-emerald-950 text-[11px] uppercase tracking-wide">
-                    ₦10,000 Starter Activation Breakdown
+                    {formatNaira(entryPricing.comboPrice)} Starter Activation Breakdown
                   </span>
                 </div>
                 <div className="space-y-1.5 text-[11px] bg-white/80 p-2.5 rounded-xl border border-emerald-100">
                   <div className="flex justify-between items-center text-gray-700">
                     <span className="font-medium">• Mushroom Power (100g Welcome Pack):</span>
-                    <strong className="text-emerald-950 font-mono font-bold">₦5,000</strong>
+                    <strong className="text-emerald-950 font-mono font-bold">{formatNaira(entryPricing.starterPackPrice)}</strong>
                   </div>
                   <div className="flex justify-between items-center text-gray-700">
                     <span className="font-medium">• 1 Farm Slot (2 Biological Bags):</span>
-                    <strong className="text-emerald-950 font-mono font-bold">₦5,000</strong>
+                    <strong className="text-emerald-950 font-mono font-bold">{formatNaira(entryPricing.farmSlotPrice)}</strong>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 text-[10px] text-emerald-800 font-medium pt-0.5">

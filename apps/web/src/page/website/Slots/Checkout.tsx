@@ -514,19 +514,17 @@ const Checkout = () => {
   // Case B: Existing Green Card holder (already has Green Card pass, needs Farm Slot + Starter Pack = ₦13,000 total)
   const isNewRegistrant = !hasGreenCard && !isStarterPack && !isStarterCompletion;
   const isExistingGcCombo = hasGreenCard && !hasPurchasedStarterPack && !isStarterPack && !isStarterCompletion;
-  const canUseInstalment = allowInstalment && (isNewRegistrant || isExistingGcCombo);
+  const canUseInstalment = isNewRegistrant || isExistingGcCombo;
 
   const [paymentPlanOption, setPaymentPlanOption] = useState<"full" | "instalment">(
-    canUseInstalment ? "instalment" : "full"
+    allowInstalment ? "instalment" : "full"
   );
 
   useEffect(() => {
-    if (canUseInstalment) {
+    if (allowInstalment) {
       setPaymentPlanOption("instalment");
-    } else {
-      setPaymentPlanOption("full");
     }
-  }, [canUseInstalment]);
+  }, [allowInstalment]);
 
   // Instalment week multiplier counter (how many instalments to pay upfront today)
   const [instalmentWeeksCount, setInstalmentWeeksCount] = useState<number>(1);
@@ -1045,9 +1043,15 @@ const Checkout = () => {
       } else if (isStarterPack) {
         toast({
           title: "Mushroom Power 100g Activated!",
-          description: "Your ₦5,000 Mushroom Power 100g (SP-MUSH-100G) has been activated via wallet. 5×7 Matrix & withdrawals unlocked!",
+          description: `Your ₦${currentStarterPackPrice.toLocaleString()} Mushroom Power 100g (SP-MUSH-100G) has been activated via wallet. 5×7 Matrix & withdrawals unlocked!`,
         });
-        window.location.href = "/dashboard/my-network";
+        window.location.href = "/dashboard?payment_confirmed=true";
+      } else if (isCombo || isFirstSlotPurchase || isNewStarter || isStarterCompletion) {
+        toast({
+          title: "Starter Package Activated! 🚀",
+          description: `₦${totalPrice.toLocaleString()} paid from wallet. Your Green Card, Farm Slot, and Mushroom Power 100g are active!`,
+        });
+        window.location.href = "/dashboard?payment_confirmed=true";
       } else {
         toast({
           title: "Slot Secured Successfully!",
@@ -1328,7 +1332,13 @@ const Checkout = () => {
                     title: "Starter Pack Activated!",
                     description: `Your ₦${currentStarterPackPrice.toLocaleString()} Mushroom Starter Pack has been activated.`,
                   });
-                  setTimeout(() => { window.location.href = "/dashboard/my-network"; }, 800);
+                  setTimeout(() => { window.location.href = "/dashboard?payment_confirmed=true"; }, 800);
+                } else if (isCombo || isFirstSlotPurchase || isNewStarter || isStarterCompletion) {
+                  toast({
+                    title: "Starter Package Activated! 🚀",
+                    description: "Your Green Card, Farm Slot, and Mushroom Power 100g are confirmed!",
+                  });
+                  setTimeout(() => { window.location.href = "/dashboard?payment_confirmed=true"; }, 800);
                 } else {
                   toast({
                     title: "Payment Successful!",
@@ -1723,64 +1733,92 @@ const Checkout = () => {
                   {/* SCENARIO 1: Starter Package / Combo Selection (Full vs Weekly Instalment) */}
                   {(isNewRegistrant || isExistingGcCombo) && !isStarterPack && !isStarterCompletion && (
                     <div className="space-y-4">
-                      {/* Plan Options Selector - Only rendered when accessed via special instalment link */}
-                      {allowInstalment ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                              Select {isExistingGcCombo ? "Activation Plan" : "Registration Plan"}
-                            </Label>
+                      {/* Plan Options Selector - Available across normal checkout and special instalment links */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                            Select Payment Structure
+                          </Label>
+                          {allowInstalment ? (
                             <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
                               Special Instalment Link
                             </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                              Choose Payment Option
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {/* Option 1: Full Payment Radio Box */}
+                          <div
+                            onClick={() => setPaymentPlanOption("full")}
+                            className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                              paymentPlanOption === "full"
+                                ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-1 ring-emerald-600/30"
+                                : "border-gray-200 hover:border-gray-300 bg-card"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  name="paymentPlanOption"
+                                  id="plan-full"
+                                  checked={paymentPlanOption === "full"}
+                                  onChange={() => setPaymentPlanOption("full")}
+                                  className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
+                                />
+                                <label htmlFor="plan-full" className="text-xs font-bold text-gray-900 cursor-pointer">
+                                  Full Payment
+                                </label>
+                              </div>
+                              <span className="font-mono text-xs font-black text-emerald-950 bg-emerald-200/70 px-2 py-0.5 rounded-md">
+                                ₦{(isExistingGcCombo ? COMBO_PRICE : entryPricing.totalEntryFee).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-gray-600 leading-tight pl-6">
+                              {isExistingGcCombo
+                                ? "One-time payment for 1 Farm Slot & Mushroom Power 100g."
+                                : "One-time payment. Instant GreenCard, 1 Farm Slot, & Starter Pack."}
+                            </p>
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                            {/* Option 1: Full Payment */}
-                            <div
-                              onClick={() => setPaymentPlanOption("full")}
-                              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                                paymentPlanOption === "full"
-                                  ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-1 ring-emerald-600/30"
-                                  : "border-gray-200 hover:border-gray-300 bg-card"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs font-bold text-gray-900">Full Payment</span>
-                                <span className="font-mono text-xs font-black text-emerald-950 bg-emerald-200/70 px-2 py-0.5 rounded-md">
-                                  ₦{(isExistingGcCombo ? COMBO_PRICE : entryPricing.totalEntryFee).toLocaleString()}
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-gray-600 leading-tight">
-                                {isExistingGcCombo
-                                  ? "One-time payment for 1 Farm Slot & Mushroom Power 100g."
-                                  : "One-time payment. Instant GreenCard, 1 Farm Slot, & Starter Pack."}
-                              </p>
-                            </div>
 
-                            {/* Option 2: Weekly Instalment */}
-                            <div
-                              onClick={() => setPaymentPlanOption("instalment")}
-                              className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
-                                paymentPlanOption === "instalment"
-                                  ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-1 ring-emerald-600/30"
-                                  : "border-gray-200 hover:border-gray-300 bg-card"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs font-bold text-gray-900">Weekly Instalment</span>
-                                <span className="font-mono text-xs font-black text-emerald-950 bg-emerald-200/70 px-2 py-0.5 rounded-md">
-                                  {isExistingGcCombo ? "₦1,000 Today" : "₦2,000 Today"}
-                                </span>
+                          {/* Option 2: Weekly Instalment Radio Box */}
+                          <div
+                            onClick={() => setPaymentPlanOption("instalment")}
+                            className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex flex-col justify-between ${
+                              paymentPlanOption === "instalment"
+                                ? "border-emerald-600 bg-emerald-50/80 shadow-xs ring-1 ring-emerald-600/30"
+                                : "border-gray-200 hover:border-gray-300 bg-card"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="radio"
+                                  name="paymentPlanOption"
+                                  id="plan-instalment"
+                                  checked={paymentPlanOption === "instalment"}
+                                  onChange={() => setPaymentPlanOption("instalment")}
+                                  className="w-4 h-4 text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-emerald-600"
+                                />
+                                <label htmlFor="plan-instalment" className="text-xs font-bold text-gray-900 cursor-pointer">
+                                  Weekly Instalment
+                                </label>
                               </div>
-                              <p className="text-[11px] text-gray-600 leading-tight">
-                                {isExistingGcCombo
-                                  ? "₦1,000 today, then ₦1,000/week for 12 weeks (₦13,000 total)."
-                                  : "₦2,000 today, then ₦1,000/week for 13 weeks (₦15,000 total)."}
-                              </p>
+                              <span className="font-mono text-xs font-black text-emerald-950 bg-emerald-200/70 px-2 py-0.5 rounded-md">
+                                {isExistingGcCombo ? "₦1,000 Today" : "₦2,000 Today"}
+                              </span>
                             </div>
+                            <p className="text-[11px] text-gray-600 leading-tight pl-6">
+                              {isExistingGcCombo
+                                ? "₦1,000 today, then ₦1,000/week for 12 weeks (₦13,000 total)."
+                                : "₦2,000 today, then ₦1,000/week for 13 weeks (₦15,000 total)."}
+                            </p>
                           </div>
                         </div>
-                      ) : null}
+                      </div>
 
                       {/* Full Payment Details */}
                       {paymentPlanOption === "full" ? (

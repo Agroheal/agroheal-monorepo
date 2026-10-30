@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Link, useNavigate, useOutletContext } from "react-router-dom";
+import { Link, useNavigate, useOutletContext, useSearchParams } from "react-router-dom";
 import {
   BookOpen,
   Sprout,
@@ -52,6 +52,7 @@ import {
 import { GreenCardPointsCard } from "@/components/dashboard/GreenCardPointsCard";
 import { InstalmentTrackerWidget } from "@/components/dashboard/InstalmentTrackerWidget";
 import { isLegacyMember, getGreenCardFee, formatNaira, isGreenCardHolder, hasPurchasedStarterPack, isThreeStepQualified } from "@shared/businessRules";
+import { getEntryPricing } from "@shared/cutover";
 
 interface ReferralProps {
   id: string;
@@ -91,6 +92,8 @@ interface KinDetails {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isPaymentConfirmed = searchParams.get("payment_confirmed") === "true";
   const outletContext = useOutletContext<{ openHowItWorks?: () => void; setHowItWorksOpen?: (open: boolean) => void } | null>();
   const [profile, setProfile] = useState<DashboardProfile | null>(null);
   const [totalSlotsPurchased, setTotalSlotsPurchased] = useState(0);
@@ -203,8 +206,28 @@ const Dashboard = () => {
       const isSubActive = Boolean(
         greenCardSub && (!greenCardSub.expires_at || new Date(greenCardSub.expires_at).getTime() > Date.now())
       );
-      const isCardHolder = Boolean(profileData.member_id || isSubActive);
+      const isCardHolder = Boolean(isGreenCardHolder(profileData) || isSubActive);
       setHasGreenCard(isCardHolder);
+
+      // Intelligent post-payment profile re-query:
+      // If user is a verified cardholder or payment confirmed, but member_id is still finalizing, poll after 1.5s
+      if ((isCardHolder || isPaymentConfirmed) && !profileData.member_id) {
+        setTimeout(async () => {
+          try {
+            const { data: updatedProfile } = await supabase
+              .from("profiles")
+              .select("*")
+              .eq("id", user.id)
+              .maybeSingle();
+            if (updatedProfile?.member_id) {
+              setProfile(updatedProfile);
+              setHasGreenCard(true);
+            }
+          } catch (e) {
+            // Non-blocking background sync
+          }
+        }, 1500);
+      }
 
       if (!kinError) {
         setKinDetails(
@@ -603,6 +626,7 @@ const Dashboard = () => {
   const availableWalletBalance = Number(profile?.wallet_balance || profile?.referral_earnings || 0);
 
   // Dynamic Intelligent Quick Checkout Tile based on member standing
+  const entryPricing = getEntryPricing();
   const isLegacy = Boolean(profile?.is_legacy) || isLegacyMember(profile?.created_at);
   const hasStarterPack = hasPurchasedStarterPack(profile);
   const isCardHolder = Boolean(hasGreenCard || isGreenCardHolder(profile));
@@ -612,7 +636,7 @@ const Dashboard = () => {
     checkoutTile = {
       id: "quick-checkout",
       title: "Activate Mushroom Power",
-      metricValue: "₦5,000 • 100g Extract",
+      metricValue: `${formatNaira(entryPricing.starterPackPrice)} • 100g Extract`,
       subtitle: "Unlocks 5×7 community matrix commissions & bank withdrawals",
       badge: "Legacy Required",
       badgeColor: "bg-amber-400 text-emerald-950 border-amber-300",
@@ -626,7 +650,7 @@ const Dashboard = () => {
     checkoutTile = {
       id: "quick-checkout",
       title: "Activate Membership",
-      metricValue: "₦12k Combo or ₦2k Pass",
+      metricValue: `${formatNaira(entryPricing.totalEntryFee)} Starter Combo`,
       subtitle: "Digital Green Card + 1st Farm Slot + Mushroom Power",
       badge: "Step 1: Activate",
       badgeColor: "bg-amber-400 text-emerald-950 border-amber-300",
@@ -640,7 +664,7 @@ const Dashboard = () => {
     checkoutTile = {
       id: "quick-checkout",
       title: "Complete Starter Pack",
-      metricValue: "₦10,000 • Slot + Product",
+      metricValue: `${formatNaira(entryPricing.comboPrice)} • Slot + Product`,
       subtitle: "Add 1st Farm Slot & Mushroom Power to activate matrix earnings",
       badge: "Step 2: Complete",
       badgeColor: "bg-amber-400 text-emerald-950 border-amber-300",
@@ -654,7 +678,7 @@ const Dashboard = () => {
     checkoutTile = {
       id: "quick-checkout",
       title: "Expand Production",
-      metricValue: "₦5,000 / Farm Slot",
+      metricValue: `${formatNaira(entryPricing.farmSlotPrice)} / Farm Slot`,
       subtitle: "Secure additional production units in Pacesetters Farm",
       badge: "Add Slots",
       badgeColor: "bg-amber-400 text-emerald-950 border-amber-300",
@@ -748,25 +772,25 @@ const Dashboard = () => {
     {
       id: "academy",
       title: "Learning Academy",
-      metricValue: "Agribusiness Courses",
-      subtitle: "Practical agronomy video masterclasses",
-      badge: "LEAP Academy",
-      badgeColor: "bg-teal-100 text-teal-950 border-teal-300",
-      path: "/dashboard/courses",
+      metricValue: isCardHolder ? "Agribusiness Courses" : "Green Card Required",
+      subtitle: isCardHolder ? "Practical agronomy video masterclasses" : "Activate membership to unlock masterclasses",
+      badge: isCardHolder ? "LEAP Academy" : "Locked",
+      badgeColor: isCardHolder ? "bg-teal-100 text-teal-950 border-teal-300" : "bg-amber-100 text-amber-950 border-amber-300",
+      path: isCardHolder ? "/dashboard/courses" : "/dashboard/checkout?bundle=starter",
       icon: BookOpen,
-      iconBg: "bg-teal-700 text-white",
+      iconBg: isCardHolder ? "bg-teal-700 text-white" : "bg-slate-600 text-white",
       tag: "Courses",
     },
     {
       id: "green-card",
       title: "My Green Card",
-      metricValue: profile?.member_id ? formatAgcId(profile?.member_id as string) : "NO CARD YET",
-      subtitle: "Verified digital ID card & credentials",
-      badge: profile?.member_id ? "Verified Pass" : "Activate Pass",
-      badgeColor: profile?.member_id ? "bg-emerald-100 text-emerald-950 border-emerald-300" : "bg-amber-100 text-amber-950 border-amber-300",
-      path: profile?.member_id ? "/dashboard/profile/green-card" : "/dashboard/checkout?bundle=starter",
+      metricValue: profile?.member_id ? formatAgcId(profile?.member_id as string) : (isCardHolder ? "Active (Issuing ID)" : "NO CARD YET"),
+      subtitle: isCardHolder ? "Verified digital ID card & credentials" : "Activate your lifetime member ID pass",
+      badge: profile?.member_id ? "Verified Pass" : (isCardHolder ? "Card Active" : "Activate Pass"),
+      badgeColor: isCardHolder ? "bg-emerald-100 text-emerald-950 border-emerald-300" : "bg-amber-100 text-amber-950 border-amber-300",
+      path: isCardHolder ? "/dashboard/profile/green-card" : "/dashboard/checkout?bundle=starter",
       icon: IdCard,
-      iconBg: "bg-[#0c2415] text-emerald-300",
+      iconBg: isCardHolder ? "bg-[#0c2415] text-emerald-300" : "bg-amber-700 text-white",
       tag: "ID Card",
     },
     {
@@ -798,7 +822,7 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Toaster />
-      <FarmingInitiativePopup />
+      {isCardHolder && <FarmingInitiativePopup />}
       <ForcePasswordChangeModal
         isOpen={mustChangePassword}
         onSuccess={() => setMustChangePassword(false)}
@@ -829,6 +853,16 @@ const Dashboard = () => {
               >
                 <Award className="w-4 h-4 text-emerald-300" />
                 <span className="font-mono">{formatAgcId(profile?.member_id as string)}</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              </Link>
+            ) : isCardHolder ? (
+              <Link
+                to="/dashboard/profile/green-card"
+                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-500/25 hover:bg-emerald-500/35 text-emerald-200 text-xs sm:text-sm font-bold backdrop-blur-sm border border-emerald-400/40 transition-colors shadow-xs"
+                title="Green Card Active — ID Generating"
+              >
+                <Award className="w-4 h-4 text-emerald-300" />
+                <span>GREEN CARD ACTIVE</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               </Link>
             ) : (
@@ -981,34 +1015,49 @@ const Dashboard = () => {
                         </p>
                       </div>
 
-                      {/* 2 Interactive Buttons: Telegram & WhatsApp */}
-                      <div className="grid grid-cols-2 gap-2 mb-2">
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            window.open("https://t.me/+8a7pjUluliZjNTg0", "_blank", "noreferrer");
-                          }}
-                          className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold bg-[#229ED9] hover:bg-[#1e8ec3] text-white shadow-xs hover:shadow-sm transition-all cursor-pointer"
-                        >
-                          <Send className="w-3.5 h-3.5 fill-current" />
-                          <span>Telegram</span>
-                        </button>
+                      {isCardHolder ? (
+                        /* 2 Interactive Buttons: Telegram & WhatsApp */
+                        <div className="grid grid-cols-2 gap-2 mb-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              window.open("https://t.me/+8a7pjUluliZjNTg0", "_blank", "noreferrer");
+                            }}
+                            className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold bg-[#229ED9] hover:bg-[#1e8ec3] text-white shadow-xs hover:shadow-sm transition-all cursor-pointer"
+                          >
+                            <Send className="w-3.5 h-3.5 fill-current" />
+                            <span>Telegram</span>
+                          </button>
 
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            window.open("https://chat.whatsapp.com/JNekCCmjxVq28tnhIz5vyy?s=cl&p=a&mlu=4&ilr=4", "_blank", "noreferrer");
-                          }}
-                          className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20b858] text-white shadow-xs hover:shadow-sm transition-all cursor-pointer"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          <span>WhatsApp</span>
-                        </button>
-                      </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              window.open("https://chat.whatsapp.com/JNekCCmjxVq28tnhIz5vyy?s=cl&p=a&mlu=4&ilr=4", "_blank", "noreferrer");
+                            }}
+                            className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-xl text-xs font-bold bg-[#25D366] hover:bg-[#20b858] text-white shadow-xs hover:shadow-sm transition-all cursor-pointer"
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            <span>WhatsApp</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="mb-2">
+                          <p className="text-[11px] text-gray-600 mb-2 leading-relaxed">
+                            Official channels are reserved for verified Green Card members.
+                          </p>
+                          <Link
+                            to="/dashboard/checkout?bundle=starter"
+                            className="w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-xl text-xs font-bold bg-emerald-700 hover:bg-emerald-800 text-white shadow-xs transition-colors"
+                          >
+                            <Award className="w-3.5 h-3.5" />
+                            <span>Activate Membership</span>
+                          </Link>
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-500 mt-1">

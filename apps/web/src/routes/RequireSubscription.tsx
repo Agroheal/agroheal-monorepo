@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { isGreenCardHolder } from "@shared/businessRules";
 
 /**
  * Gates access on an active Green Card subscription, separately from
@@ -39,7 +40,7 @@ const RequireSubscription = ({ children }: { children: React.ReactNode }) => {
           .maybeSingle(),
         supabase
           .from("profiles")
-          .select("member_id, role, is_legacy")
+          .select("id, member_id, role, is_legacy, is_green_card_holder, has_greencard, greencard_status")
           .eq("id", user.id)
           .maybeSingle(),
       ]);
@@ -48,7 +49,7 @@ const RequireSubscription = ({ children }: { children: React.ReactNode }) => {
         sub && (!sub.expires_at || new Date(sub.expires_at).getTime() > Date.now())
       );
       const isPrivileged = profile?.role === "coordinator" || profile?.role === "admin" || profile?.role === "super_admin";
-      const isCardHolder = Boolean(profile?.member_id || isSubActive || isPrivileged);
+      const isCardHolder = Boolean(isPrivileged || isSubActive || isGreenCardHolder(profile));
       setHasActiveSubscription(isCardHolder);
       setLoading(false);
     };
