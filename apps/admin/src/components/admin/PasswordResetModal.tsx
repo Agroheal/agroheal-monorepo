@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, KeyRound, Copy, Check, MessageCircle, Loader2 } from "lucide-react";
 import {
   Dialog,
@@ -25,6 +25,24 @@ export function PasswordResetModal({ member, onOpenChange, onSuccess, onError }:
   const [loadingTemp, setLoadingTemp] = useState(false);
   const [generatedTemp, setGeneratedTemp] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Unconditionally reset all credentials and states when target member switches or modal opens/closes
+  useEffect(() => {
+    setGeneratedTemp(null);
+    setLoadingEmail(false);
+    setLoadingTemp(false);
+    setCopied(false);
+  }, [member?.id]);
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setGeneratedTemp(null);
+      setLoadingEmail(false);
+      setLoadingTemp(false);
+      setCopied(false);
+    }
+    onOpenChange(open);
+  };
 
   if (!member) return null;
 
@@ -69,7 +87,7 @@ export function PasswordResetModal({ member, onOpenChange, onSuccess, onError }:
   };
 
   return (
-    <Dialog open={Boolean(member)} onOpenChange={onOpenChange}>
+    <Dialog open={Boolean(member)} onOpenChange={handleOpenChange}>
       <DialogContent className="w-[95vw] sm:max-w-md p-4 sm:p-6 bg-card border-border">
         <DialogHeader>
           <div className="flex items-center gap-2">
@@ -184,7 +202,7 @@ export function PasswordResetModal({ member, onOpenChange, onSuccess, onError }:
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => onOpenChange(false)}
+            onClick={() => handleOpenChange(false)}
             className="text-xs"
           >
             Close

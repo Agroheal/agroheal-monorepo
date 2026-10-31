@@ -46,6 +46,8 @@ export function AssignSlotModal({
   useEffect(() => {
     if (gap && open) {
       setSlotsToAssign(gap.shortfall > 0 ? gap.shortfall : 1);
+      setState("");
+      setLga("");
 
       // Match category farm groups
       const matchingFarms = farmGroups.filter(
@@ -55,6 +57,8 @@ export function AssignSlotModal({
         setSelectedFarmId(matchingFarms[0].id);
       } else if (farmGroups.length > 0) {
         setSelectedFarmId(farmGroups[0].id);
+      } else {
+        setSelectedFarmId("");
       }
 
       // Fetch member state and LGA from profiles
@@ -66,16 +70,21 @@ export function AssignSlotModal({
             .select("state, lga")
             .eq("id", gap.memberId)
             .maybeSingle();
-          if (data) {
-            setState(data.state || "");
-            setLga(data.lga || "");
-          }
+          setState(data?.state || "");
+          setLga(data?.lga || "");
         } finally {
           setProfileLoading(false);
         }
       })();
+    } else if (!open) {
+      setSelectedFarmId("");
+      setSlotsToAssign(1);
+      setState("");
+      setLga("");
+      setLoading(false);
+      setProfileLoading(false);
     }
-  }, [gap, open, farmGroups]);
+  }, [gap?.memberId, open, farmGroups]);
 
   if (!gap) return null;
 

@@ -418,6 +418,7 @@ export default function TreasuryPage() {
     setModalStartDate("");
     setModalEndDate("");
     setModalSearch("");
+    setModalRecords([]);
     setModalOpen(true);
     fetchModalHistory("wallet", walletKey);
   };
@@ -2540,7 +2541,7 @@ export default function TreasuryPage() {
       )}
 
       {/* ── SECTION 4: DRILL-DOWN AUDIT TRAIL MODAL ── */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+      <Dialog open={modalOpen} onOpenChange={(open) => { setModalOpen(open); if (!open) { setModalRecords([]); setModalStartDate(""); setModalEndDate(""); setModalSearch(""); } }}>
         <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] flex flex-col p-6 overflow-hidden">
           <DialogHeader className="space-y-1.5 pb-2 border-b border-border/40">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pr-6">

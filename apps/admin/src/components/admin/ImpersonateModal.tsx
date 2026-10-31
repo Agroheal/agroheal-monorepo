@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ShieldAlert, ExternalLink, KeyRound, Copy, Check, Loader2 } from "lucide-react";
 import {
   Dialog,
@@ -31,6 +31,26 @@ export function ImpersonateModal({ member, onOpenChange, onSuccess, onError }: P
   } | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedOtp, setCopiedOtp] = useState(false);
+
+  // Unconditionally reset session credentials when target member changes
+  useEffect(() => {
+    setResult(null);
+    setLoading(false);
+    setCopiedLink(false);
+    setCopiedOtp(false);
+    setReason("Investigating member dashboard and First 5 matrix progression");
+  }, [member?.id]);
+
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setResult(null);
+      setLoading(false);
+      setCopiedLink(false);
+      setCopiedOtp(false);
+      setReason("Investigating member dashboard and First 5 matrix progression");
+    }
+    onOpenChange(open);
+  };
 
   if (!member) return null;
 
@@ -74,13 +94,9 @@ export function ImpersonateModal({ member, onOpenChange, onSuccess, onError }: P
     }
   };
 
-  const handleClose = () => {
-    setResult(null);
-    onOpenChange(false);
-  };
 
   return (
-    <Dialog open={Boolean(member)} onOpenChange={handleClose}>
+    <Dialog open={Boolean(member)} onOpenChange={handleOpenChange}>
       <DialogContent className="w-[95vw] sm:max-w-lg p-5 sm:p-6 bg-card border-border">
         <DialogHeader>
           <div className="flex items-center gap-2">
@@ -218,7 +234,7 @@ export function ImpersonateModal({ member, onOpenChange, onSuccess, onError }: P
         </div>
 
         <DialogFooter className="pt-2 border-t border-border/50">
-          <Button type="button" variant="ghost" size="sm" onClick={handleClose} className="text-xs">
+          <Button type="button" variant="ghost" size="sm" onClick={() => handleOpenChange(false)} className="text-xs">
             Close
           </Button>
         </DialogFooter>

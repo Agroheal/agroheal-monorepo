@@ -660,6 +660,7 @@ export default function MembersPage() {
       )}
 
       <EditMemberDialog
+        key={editingMember?.id || "none"}
         member={editingMember}
         onOpenChange={(open) => !open && setEditingMember(null)}
         onSave={handleSaveMemberProfile}
@@ -671,6 +672,7 @@ export default function MembersPage() {
       />
 
       <IssueGreenCardDialog
+        key={isIssueModalOpen ? "open" : "closed"}
         open={isIssueModalOpen}
         onOpenChange={setIsIssueModalOpen}
         members={members}
@@ -679,12 +681,14 @@ export default function MembersPage() {
       />
 
       <IssuedGreenCardSuccessDialog
+        key={issuedGreenCardDetails?.memberId || "none"}
         details={issuedGreenCardDetails}
         onOpenChange={(open) => !open && setIssuedGreenCardDetails(null)}
         onCopied={() => flash(setSuccessMessage, "Confirmation message copied to clipboard!", 3000)}
       />
 
       <MassAssignLocationDialog
+        key={isAssignLocationOpen ? `loc-${selectedIds.size}` : "closed"}
         open={isAssignLocationOpen}
         onOpenChange={setIsAssignLocationOpen}
         selectedCount={selectedIds.size}
@@ -693,6 +697,7 @@ export default function MembersPage() {
       />
 
       <MassAssignRoleDialog
+        key={isAssignRoleOpen ? `role-${selectedIds.size}` : "closed"}
         open={isAssignRoleOpen}
         onOpenChange={setIsAssignRoleOpen}
         selectedCount={selectedIds.size}
@@ -701,6 +706,7 @@ export default function MembersPage() {
       />
 
       <MassIssueGreenCardDialog
+        key={isMassGreenCardOpen ? `mass-gc-${selectedMembers.length}` : "closed"}
         open={isMassGreenCardOpen}
         onOpenChange={setIsMassGreenCardOpen}
         selectedMembers={selectedMembers}
@@ -710,6 +716,7 @@ export default function MembersPage() {
       />
 
       <ImpersonateModal
+        key={impersonatingMember?.id || "none"}
         member={impersonatingMember}
         onOpenChange={(open) => !open && setImpersonatingMember(null)}
         onSuccess={(msg) => flash(setSuccessMessage, msg)}
@@ -717,6 +724,7 @@ export default function MembersPage() {
       />
 
       <PasswordResetModal
+        key={passwordResetMember?.id || "none"}
         member={passwordResetMember}
         onOpenChange={(open) => !open && setPasswordResetMember(null)}
         onSuccess={(msg) => flash(setSuccessMessage, msg)}
@@ -724,6 +732,7 @@ export default function MembersPage() {
       />
 
       <CreateMemberDialog
+        key={isCreateMemberOpen ? "open" : "closed"}
         open={isCreateMemberOpen}
         onOpenChange={setIsCreateMemberOpen}
         onRegistered={refetch}

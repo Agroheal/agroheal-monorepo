@@ -98,6 +98,7 @@ export default function PaymentsPage() {
       )}
 
       <VerifyFlwPaymentModal
+        key={showVerifyModal ? "open" : "closed"}
         open={showVerifyModal}
         onOpenChange={setShowVerifyModal}
       />

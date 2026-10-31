@@ -425,6 +425,7 @@ export default function DashboardPage() {
             </DialogDescription>
           </DialogHeader>
           <SlotCreditorForm
+            key={showCreditorModal ? "open" : "closed"}
             members={members}
             onCredited={() => {
               refetch();
@@ -446,6 +447,7 @@ export default function DashboardPage() {
             </DialogDescription>
           </DialogHeader>
           <OfflineRegistrationForm
+            key={showRegisterModal ? "open" : "closed"}
             onRegistered={() => {
               refetch();
               setShowRegisterModal(false);
@@ -458,6 +460,7 @@ export default function DashboardPage() {
 
       {/* Modal: Verify Flutterwave Payment */}
       <VerifyFlwPaymentModal
+        key={showVerifyFlwModal ? "open" : "closed"}
         open={showVerifyFlwModal}
         onOpenChange={setShowVerifyFlwModal}
       />

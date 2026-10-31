@@ -61,15 +61,18 @@ export function VerifyFlwPaymentModal({
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (initialReference) {
-      setReference(initialReference);
-      if (open) {
-        handleVerify(initialReference);
-      }
-    } else if (!open) {
+    if (!open) {
       setResult(null);
       setError(null);
       setShowRawJson(false);
+      setCopied(false);
+      setLoading(false);
+      if (!initialReference) {
+        setReference("");
+      }
+    } else if (initialReference) {
+      setReference(initialReference);
+      handleVerify(initialReference);
     }
   }, [initialReference, open]);
 

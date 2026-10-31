@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { IdCard, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,19 @@ export function IssueGreenCardDialog({ open, onOpenChange, members, activatingMe
   const [notes, setNotes] = useState("");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  // Reset form inputs whenever the dialog closes
+  useEffect(() => {
+    if (!open) {
+      setSelectedId("");
+      setTransactionRef("");
+      setPaymentDate(new Date().toISOString().split("T")[0]);
+      setReceiptFile(null);
+      setNotes("");
+      setUploadError(null);
+      setUploading(false);
+    }
+  }, [open]);
 
   const selected = members.find((m) => m.id === selectedId);
   const isLegacy = selected ? isLegacyMember(selected.created_at) : false;

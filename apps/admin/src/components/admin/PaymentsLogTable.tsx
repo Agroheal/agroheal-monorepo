@@ -654,6 +654,7 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
 
       {/* Force Settle & Allotment Dialog */}
       <ForceSettleDialog
+        key={remediatingTx?.id || "none"}
         transaction={remediatingTx}
         open={Boolean(remediatingTx)}
         onOpenChange={(open) => !open && setRemediatingTx(null)}
@@ -670,6 +671,7 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
 
       {/* Verify Flutterwave Payment Modal */}
       <VerifyFlwPaymentModal
+        key={verifyRef || "none"}
         open={verifyRef !== null}
         onOpenChange={(open) => !open && setVerifyRef(null)}
         initialReference={verifyRef || ""}

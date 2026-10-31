@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapPin, Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +28,13 @@ export function MassAssignLocationDialog({
 }: Props) {
   const [selectedState, setSelectedState] = useState<string>("");
   const [selectedLga, setSelectedLga] = useState<string>("");
+
+  useEffect(() => {
+    if (!open) {
+      setSelectedState("");
+      setSelectedLga("");
+    }
+  }, [open]);
 
   const availableLgas = selectedState ? getLgasForState(selectedState) : [];
 

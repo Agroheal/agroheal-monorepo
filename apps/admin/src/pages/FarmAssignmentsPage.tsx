@@ -1027,6 +1027,7 @@ export default function FarmAssignmentsPage() {
 
       {/* Modal for Assigning Slots */}
       <AssignSlotModal
+        key={assignModalGap?.memberId ? `${assignModalGap.memberId}-${assignModalGap.category}` : "none"}
         gap={assignModalGap}
         farmGroups={farmGroups}
         open={Boolean(assignModalGap)}

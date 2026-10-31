@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserCheck, Loader2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +30,12 @@ export function MassAssignRoleDialog({
 }: Props) {
   const { canAssignRoles, allowedAssignableRoles } = useAdminAuth();
   const [selectedRole, setSelectedRole] = useState<string>("member");
+
+  useEffect(() => {
+    if (!open) {
+      setSelectedRole("member");
+    }
+  }, [open]);
 
   const availableRoleOptions = allowedAssignableRoles.map((r) => {
     switch (r) {

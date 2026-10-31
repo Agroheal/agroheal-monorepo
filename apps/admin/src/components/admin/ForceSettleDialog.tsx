@@ -51,7 +51,15 @@ export function ForceSettleDialog({
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (open && transaction?.id) {
+    if (!open) {
+      setPreviewData(null);
+      setPreviewError(null);
+      setSubmitting(false);
+      setNotes("Confirmed valid payment via Flutterwave / Bank statement; manually force settled and allotted.");
+      return;
+    }
+
+    if (transaction?.id) {
       setPreviewData(null);
       setPreviewError(null);
       setLoadingPreview(true);
@@ -71,7 +79,7 @@ export function ForceSettleDialog({
           setLoadingPreview(false);
         });
     }
-  }, [open, transaction]);
+  }, [open, transaction?.id]);
 
   if (!transaction) return null;
 

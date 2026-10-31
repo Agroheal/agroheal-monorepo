@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { Loader2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,6 +36,19 @@ export function CreateMemberDialog({ open, onOpenChange, onRegistered, onSuccess
   const [role, setRole] = useState("member");
   const [loading, setLoading] = useState(false);
   const [tempCredentials, setTempCredentials] = useState<OfflineRegistrationCredentials | null>(null);
+
+  // Clear all form fields whenever the dialog is closed or dismissed
+  useEffect(() => {
+    if (!open) {
+      setName("");
+      setEmail("");
+      setPhone("");
+      setReferrer("");
+      setRole("member");
+      setLoading(false);
+      setTempCredentials(null);
+    }
+  }, [open]);
 
   const availableRoleOptions = allowedAssignableRoles.map((r) => {
     switch (r) {
