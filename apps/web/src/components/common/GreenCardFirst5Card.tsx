@@ -87,6 +87,11 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
   const completedDirects = Math.min(5, Math.max(directReferralsCount, directLeaders.length));
   const hasCompletedFirst5 = completedDirects >= 5;
 
+  // Active view level toggle: Level 1 (First 5) vs Level 2 (Team 25 Duplication)
+  const [activeLevelTab, setActiveLevelTab] = useState<"L1" | "L2">(
+    hasCompletedFirst5 ? "L2" : "L1"
+  );
+
   // Calculate total Tier 2 duplication across all 5 leaders (Capacity: 25)
   const totalTier2Count = useMemo(() => {
     return directLeaders.reduce((acc, r) => {
@@ -122,18 +127,25 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
   };
 
   // WhatsApp Nudge for specific direct partner
-  const handleNudgePartner = (member: DirectReferralInfo, e: React.MouseEvent) => {
+  const handleNudgePartner = (member: DirectReferralInfo, e: React.MouseEvent, isL1View: boolean) => {
     e.stopPropagation();
     const firstName = member.fullName ? member.fullName.trim().split(" ")[0] : "Partner";
     const directs = member.directsCount || 0;
     const remaining = Math.max(0, 5 - directs);
 
-    const message = remaining === 0
-      ? `Hi ${firstName}! Huge congratulations on completing all 5 of your direct partners on AgroHeal! 🎉 Let's keep supporting your team to duplicate!`
-      : `Hi ${firstName}! Checking in on your AgroHeal Green Card progress. You currently have ${directs}/5 direct partners active (${remaining} to go to complete your First 5). Let me know how I can support you or if you'd like me to join an onboarding chat with your prospects! 🌾🌱`;
+    let message = "";
+    if (isL1View) {
+      message = `Hi ${firstName}! Great having you on my AgroHeal frontline! Let's connect on your progress and growing your farming cooperative team! 🌾🌱`;
+    } else {
+      message = remaining === 0
+        ? `Hi ${firstName}! Huge congratulations on completing all 5 of your direct partners on AgroHeal! 🎉 Let's keep supporting your team to duplicate!`
+        : `Hi ${firstName}! Checking in on your AgroHeal Green Card progress. You currently have ${directs}/5 direct partners active (${remaining} to go to complete your First 5). Let me know how I can support you or if you'd like me to join an onboarding chat with your prospects! 🌾🌱`;
+    }
 
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
+
+  const isL1Active = !hasCompletedFirst5 || activeLevelTab === "L1";
 
   return (
     <div
@@ -149,14 +161,40 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
             <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight whitespace-nowrap">
               GREEN CARD FIRST 5™
             </h3>
+
+            {/* Level Switcher: Toggle between L1 (First 5) and L2 (Team 25 Duplication) */}
             {hasCompletedFirst5 ? (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1">
-                <Sparkles className="w-2.5 h-2.5 text-amber-300" />
-                <span>Phase 2: Duplication</span>
-              </span>
+              <div className="inline-flex items-center gap-1 bg-black/40 p-0.5 rounded-lg border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setActiveLevelTab("L1")}
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                    activeLevelTab === "L1"
+                      ? "bg-emerald-500 text-white shadow-xs"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                  title="Switch to Level 1 (First 5) view"
+                >
+                  <Check className="w-2.5 h-2.5 text-emerald-200" />
+                  <span>L1: First 5 (5/5)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveLevelTab("L2")}
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                    activeLevelTab === "L2"
+                      ? "bg-emerald-500 text-white shadow-xs"
+                      : "text-white/60 hover:text-white"
+                  }`}
+                  title="Switch to Level 2 (Team 25 Duplication) view"
+                >
+                  <Sparkles className="w-2.5 h-2.5 text-amber-300" />
+                  <span>L2: Duplication ({totalTier2Count}/25)</span>
+                </button>
+              </div>
             ) : (
               <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                Phase 1: Build Your 5
+                L1: Build Your 5
               </span>
             )}
           </div>
@@ -178,26 +216,27 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
 
       {/* ── PROGRESS & TARGET SUMMARY BAR ── */}
       <div className="mb-2.5 bg-black/45 rounded-xl px-3 py-2 border border-white/10 flex items-center justify-between gap-2 text-[10px]">
-        {hasCompletedFirst5 ? (
+        {isL1Active ? (
           <>
             <div className="flex items-center gap-1.5 truncate">
               <span className="font-bold text-white uppercase tracking-wider">
-                Team 25:
+                Level 1:
               </span>
               <span className="font-mono font-bold text-emerald-300">
-                {totalTier2Count}/25
+                {completedDirects}/5
               </span>
               <span className="text-white/30 hidden sm:inline">•</span>
               <span className="text-emerald-200/80 truncate hidden sm:inline">
-                {leadersWith5} of 5 direct leaders recruited their 5
-                {totalTier2Count < 25 && ` (${25 - totalTier2Count} to go)`}
+                {hasCompletedFirst5
+                  ? "All 5 direct frontline seats completed! Full matrix bonuses unlocked 🎉"
+                  : `${5 - completedDirects} more direct recruits to unlock full matrix commissions`}
               </span>
             </div>
 
             <div className="w-24 sm:w-36 bg-white/10 rounded-full h-1.5 overflow-hidden shrink-0">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${Math.min(100, (totalTier2Count / 25) * 100)}%` }}
+                animate={{ width: `${Math.min(100, (completedDirects / 5) * 100)}%` }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
                 className="h-full bg-gradient-to-r from-emerald-400 to-green-300 rounded-full"
               />
@@ -207,23 +246,24 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
           <>
             <div className="flex items-center gap-1.5 truncate">
               <span className="font-bold text-white uppercase tracking-wider">
-                First 5:
+                Level 2:
               </span>
-              <span className="font-mono font-bold text-amber-300">
-                {completedDirects}/5
+              <span className="font-mono font-bold text-emerald-300">
+                {totalTier2Count}/25
               </span>
               <span className="text-white/30 hidden sm:inline">•</span>
               <span className="text-emerald-200/80 truncate hidden sm:inline">
-                {5 - completedDirects} more direct recruits to unlock full matrix commissions
+                {leadersWith5} of 5 direct leaders recruited their 5
+                {totalTier2Count < 25 && ` (${25 - totalTier2Count} to go for full L2)`}
               </span>
             </div>
 
             <div className="w-24 sm:w-36 bg-white/10 rounded-full h-1.5 overflow-hidden shrink-0">
               <motion.div
                 initial={{ width: 0 }}
-                animate={{ width: `${Math.min(100, (completedDirects / 5) * 100)}%` }}
+                animate={{ width: `${Math.min(100, (totalTier2Count / 25) * 100)}%` }}
                 transition={{ duration: 0.4, ease: "easeOut" }}
-                className="h-full bg-gradient-to-r from-amber-400 to-emerald-400 rounded-full"
+                className="h-full bg-gradient-to-r from-emerald-400 to-green-300 rounded-full"
               />
             </div>
           </>
@@ -260,14 +300,16 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
 
                   <span
                     className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold shrink-0 ${
-                      isDone5
+                      isL1Active
+                        ? "bg-emerald-400 text-emerald-950 font-black"
+                        : isDone5
                         ? "bg-emerald-400 text-emerald-950 font-black"
                         : directs > 0
                         ? "bg-emerald-500/30 text-emerald-300 border border-emerald-400/30"
                         : "bg-white/10 text-white/50"
                     }`}
                   >
-                    {directs}/5
+                    {isL1Active ? "✓ Active" : `${directs}/5`}
                   </span>
                 </div>
 
@@ -275,21 +317,33 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
                 <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden mb-1.5">
                   <div
                     className={`h-full rounded-full transition-all ${
-                      isDone5 ? "bg-emerald-300" : "bg-emerald-400/80"
+                      isL1Active || isDone5 ? "bg-emerald-300" : "bg-emerald-400/80"
                     }`}
-                    style={{ width: `${Math.min(100, (directs / 5) * 100)}%` }}
+                    style={{
+                      width: isL1Active ? "100%" : `${Math.min(100, (directs / 5) * 100)}%`,
+                    }}
                   />
                 </div>
 
                 {/* 1-Tap Nudge / Follow-up Action */}
                 <button
                   type="button"
-                  onClick={(e) => handleNudgePartner(leader, e)}
+                  onClick={(e) => handleNudgePartner(leader, e, isL1Active)}
                   className="w-full inline-flex items-center justify-center gap-1 py-0.5 rounded-md bg-white/5 hover:bg-emerald-600/30 text-[9.5px] font-medium text-emerald-300 hover:text-white border border-white/10 hover:border-emerald-400/40 transition-all cursor-pointer"
-                  title={`Follow up with ${leader.fullName} on WhatsApp`}
+                  title={
+                    isL1Active
+                      ? `Chat with ${leader.fullName} on WhatsApp`
+                      : `Follow up with ${leader.fullName} on WhatsApp`
+                  }
                 >
                   <MessageCircle className="w-2.5 h-2.5 text-emerald-400" />
-                  <span>{isDone5 ? "Congratulate" : "Follow Up"}</span>
+                  <span>
+                    {isL1Active
+                      ? "Chat Partner"
+                      : isDone5
+                      ? "Congratulate"
+                      : "Follow Up"}
+                  </span>
                 </button>
               </div>
             );
@@ -323,7 +377,9 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
 
       {/* ── STATUTORY QUALIFICATION FOOTNOTE ── */}
       <p className="text-[9px] text-emerald-300/70 italic mb-2 leading-tight line-clamp-1">
-        * Note: Direct recruits with active Green Card, Starter Pack (100g), and 1 Farm Slot count toward First 5 progression.
+        {isL1Active
+          ? "* Level 1: Direct recruits with active Green Card, Starter Pack (100g), and 1 Farm Slot count toward First 5 qualification."
+          : "* Level 2 Duplication: Help each of your 5 direct frontline leaders enroll their 5 to complete your 25 Level 2 seats."}
       </p>
 
       {/* ── COMPACT ACTION ROW (WHATSAPP SHARE & COPY LINK) ── */}
