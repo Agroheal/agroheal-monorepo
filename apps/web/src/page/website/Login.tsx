@@ -46,7 +46,7 @@ const Login = () => {
         type: "signup",
         email: email.trim().toLowerCase(),
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: `${window.location.origin}/dashboard/checkout?bundle=starter&welcome=true`,
         },
       });
       if (error) {

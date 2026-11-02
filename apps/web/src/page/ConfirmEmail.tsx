@@ -41,11 +41,12 @@ export default function ConfirmEmail() {
   useEffect(() => {
     const handleUrlVerification = async () => {
       // 1. If user already has an active authenticated session
+      const targetDestination = searchParams.get("redirect") || "/dashboard/checkout?bundle=starter&welcome=true";
       const { data: sessionData } = await supabase.auth.getSession();
       if (sessionData?.session?.user) {
         setIsSuccess(true);
         setTimeout(() => {
-          navigate("/dashboard", { replace: true });
+          navigate(targetDestination, { replace: true });
         }, 1500);
         return;
       }
@@ -66,8 +67,9 @@ export default function ConfirmEmail() {
               title: "Email confirmed",
               description: "Your email has been verified successfully.",
             });
+            const targetDest = searchParams.get("redirect") || "/dashboard/checkout?bundle=starter&welcome=true";
             setTimeout(() => {
-              navigate("/dashboard", { replace: true });
+              navigate(targetDest, { replace: true });
             }, 1800);
             return;
           }
@@ -78,8 +80,9 @@ export default function ConfirmEmail() {
           });
           if (!retryError) {
             setIsSuccess(true);
+            const targetDest = searchParams.get("redirect") || "/dashboard/checkout?bundle=starter&welcome=true";
             setTimeout(() => {
-              navigate("/dashboard", { replace: true });
+              navigate(targetDest, { replace: true });
             }, 1800);
             return;
           }
@@ -149,8 +152,9 @@ export default function ConfirmEmail() {
         description: "Redirecting to your dashboard...",
       });
 
+      const targetDest = searchParams.get("redirect") || "/dashboard/checkout?bundle=starter&welcome=true";
       setTimeout(() => {
-        navigate("/dashboard", { replace: true });
+        navigate(targetDest, { replace: true });
       }, 1500);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to verify code.";
@@ -177,7 +181,7 @@ export default function ConfirmEmail() {
         type: "signup",
         email: formattedEmail,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: `${window.location.origin}/dashboard/checkout?bundle=starter&welcome=true`,
         },
       });
 

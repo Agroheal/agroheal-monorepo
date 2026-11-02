@@ -196,7 +196,7 @@ const Signup = () => {
       email: formattedEmail,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}/dashboard/checkout?bundle=starter&welcome=true`,
         data: {
           full_name: cleanedName,
           phone: formattedPhone,

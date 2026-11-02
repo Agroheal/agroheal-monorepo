@@ -1395,20 +1395,7 @@ const Checkout = () => {
       }
     }
 
-    // Validate State and LGA for community farm anchoring
-    if (!formData.state || !formData.lga) {
-      toast({
-        title: "Jurisdiction Required",
-        description: "Please select the State and Local Government Area (LGA) for this community farm subscription.",
-        variant: "destructive",
-      });
-      const locEl = document.getElementById("checkout-state-select");
-      if (locEl) {
-        locEl.focus();
-        locEl.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-      return;
-    }
+    // State and LGA are optional on initial activation checkout and can be completed later in member profile
 
     if (!category) {
       setCategory(DEFAULT_CATEGORY);
@@ -1444,6 +1431,22 @@ const Checkout = () => {
 
           {/* ── SCHEDULED COMPENSATION TRANSITION COUNTDOWN ── */}
           <CutoverCountdownBanner variant="compact" className="mb-6" />
+
+          {searchParams.get("welcome") === "true" && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-start gap-3"
+            >
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-bold text-sm text-foreground">Email Verified Successfully! 🎉</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Welcome to AgroHeal! Complete your ₦{entryPricing.comboPrice.toLocaleString()} Starter Combo activation below (or select the flexible installment plan) to receive your official Member ID and farm allotment.
+                </p>
+              </div>
+            </motion.div>
+          )}
 
           <motion.div
             initial={{ opacity: 0, y: 15 }}
@@ -1483,7 +1486,7 @@ const Checkout = () => {
                     </div>
                     <div>
                       <h2 className="font-bold text-base text-foreground">
-                        Community Farm Jurisdiction
+                        Community Farm Jurisdiction <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
                       </h2>
                       <p className="text-xs text-muted-foreground">
                         Select the State &amp; LGA where your farm operations will be anchored.
@@ -1498,7 +1501,7 @@ const Checkout = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="text-xs font-bold uppercase tracking-wider text-gray-700 block mb-1.5">
-                      Target State <span className="text-rose-500">*</span>
+                      Target State <span className="text-muted-foreground text-[10px] font-normal lowercase">(optional)</span>
                     </label>
                     <select
                       id="checkout-state-select"
@@ -1514,9 +1517,8 @@ const Checkout = () => {
                         }));
                       }}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 text-foreground disabled:opacity-75 disabled:bg-muted"
-                      required
                     >
-                      <option value="" disabled>Select State</option>
+                      <option value="">Select State (Optional)</option>
                       {NIGERIA_STATES.map((st) => (
                         <option key={st} value={st}>
                           {st}
@@ -1527,17 +1529,16 @@ const Checkout = () => {
 
                   <div>
                     <label className="text-xs font-bold uppercase tracking-wider text-gray-700 block mb-1.5">
-                      Local Government (LGA) <span className="text-rose-500">*</span>
+                      Local Government (LGA) <span className="text-muted-foreground text-[10px] font-normal lowercase">(optional)</span>
                     </label>
                     <select
                       value={formData.lga}
                       onChange={(e) => setFormData((prev) => ({ ...prev, lga: e.target.value }))}
                       disabled={(!formData.state) || (!hasResidenceSlot && Boolean(profileResidenceState && profileResidenceLga))}
                       className="w-full px-3.5 py-2.5 rounded-xl border border-border bg-background text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-700 text-foreground disabled:opacity-75 disabled:bg-muted"
-                      required
                     >
-                      <option value="" disabled>
-                        {formData.state ? "Select LGA" : "Select State First"}
+                      <option value="">
+                        {formData.state ? "Select LGA (Optional)" : "Select State First (Optional)"}
                       </option>
                       {getLgasForState(formData.state).map((lg) => (
                         <option key={lg} value={lg}>
