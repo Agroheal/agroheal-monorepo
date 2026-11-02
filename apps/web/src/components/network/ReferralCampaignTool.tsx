@@ -241,7 +241,7 @@ export const ReferralCampaignTool: React.FC<ReferralCampaignToolProps> = ({
           {/* All Referrals (Renamed from Direct Signups) */}
           <div className="bg-gray-50/80 rounded-xl p-3.5 border border-gray-200/80 flex flex-col justify-between">
             <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider flex items-center justify-between">
-              <span>All Referrals</span>
+              <span>Direct Referrals</span>
               <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
             </span>
             <div className="mt-2">
@@ -249,7 +249,7 @@ export const ReferralCampaignTool: React.FC<ReferralCampaignToolProps> = ({
                 {analytics?.totalSignups ?? directReferralsCount}
               </span>
               <span className="text-[10px] text-gray-500 block mt-0.5">
-                Enrolled under your code
+                Personally sponsored enrollees
               </span>
             </div>
           </div>

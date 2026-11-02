@@ -146,7 +146,7 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
             <Flame className="w-3 h-3 text-emerald-400" />
           </div>
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-            <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight truncate">
+            <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight whitespace-nowrap">
               GREEN CARD FIRST 5™
             </h3>
             {hasCompletedFirst5 ? (
