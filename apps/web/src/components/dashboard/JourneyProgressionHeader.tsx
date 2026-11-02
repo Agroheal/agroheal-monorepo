@@ -61,8 +61,9 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   else if (isStep1Done && isStep2Done && !isStep3Done) currentStep = 3;
   else if (isStep3Done) currentStep = 4;
 
-  // User Specification: Anyone who has completed all 3 milestones should no longer see the milestone component
-  if (isStep3Done) {
+  // User Specification: Once Step 2 is completed (Green Card + Starter Pack + Slot),
+  // First 5 direct referrals & duplication are actively tracked by GreenCardFirst5Card above to avoid duplicate prompts.
+  if (isStep2Done) {
     return null;
   }
 

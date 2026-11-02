@@ -265,7 +265,7 @@ export const ReferralCampaignTool: React.FC<ReferralCampaignToolProps> = ({
                 {analytics?.conversionRate ?? 0}%
               </span>
               <span className="text-[10px] text-gray-500 block mt-0.5">
-                Clicks turned into members
+                Tracked link conversions
               </span>
             </div>
           </div>

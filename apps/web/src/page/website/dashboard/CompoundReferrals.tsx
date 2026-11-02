@@ -959,7 +959,7 @@ const CompoundReferrals: React.FC = () => {
             parentId: cp.placement_parent_id || targetId,
             placementParentId: cp.placement_parent_id || null,
             placementStatus: isPlaced ? "PLACED" : "PENDING_ACTIVATION",
-            position: cp.placement_parent_id === targetId ? cp.matrix_position || 0 : 0,
+            position: cp.matrix_position || 0,
             level: 1,
             slotsHeld: cSlotCount,
             directReferralsCount: grandChildrenCount,
@@ -1024,7 +1024,15 @@ const CompoundReferrals: React.FC = () => {
             }
           }
 
-          if (!allRoster.some((r) => r.id === np.id)) {
+          const existing = allRoster.find((r) => r.id === np.id);
+          if (existing) {
+            existing.parentId = np.placement_parent_id || existing.parentId;
+            existing.placementParentId = np.placement_parent_id;
+            existing.placementStatus = np.placement_status || "LOCKED";
+            existing.position = np.matrix_position || existing.position;
+            existing.level = currentDepth;
+            existing.isSpillover = np.referred_by !== targetId;
+          } else {
             allRoster.push({
               id: np.id,
               fullName: np.full_name || "Downline Partner",
