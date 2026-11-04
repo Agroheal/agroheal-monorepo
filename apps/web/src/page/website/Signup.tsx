@@ -17,6 +17,7 @@ import AuthSidebar from "@/components/webComponents/authSidebar";
 import { cleanName, cleanEmail, normalizePhoneNumber, cleanReferralCode, validatePhoneNumber, SUPPORTED_COUNTRY_CODES } from "@shared/dataSanitizers";
 import { PasswordRequirementsTracker, checkPasswordRequirements } from "@/components/common/PasswordRequirementsTracker";
 import { API_BASE_URL } from "@/config/Index";
+import { apiClient } from "@/lib/apiClient";
 import { getActiveReferral, clearStoredReferral, DEFAULT_ROOT_SPONSOR_CODE } from "@/lib/referralManager";
 
 interface SponsorInfo {
@@ -257,6 +258,32 @@ const Signup = () => {
         navigate(redirectUrl);
       }, 1000);
     } else {
+      // Soft Verification flow: Auto-confirm in Supabase Auth to bypass blocking verification
+      try {
+        await apiClient.member.autoConfirm(user.id);
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+          email: formattedEmail,
+          password,
+        });
+
+        if (!loginError) {
+          showToast({
+            variant: "success",
+            title: "Signup successful!",
+            description: "Your account has been created. Redirecting...",
+          });
+
+          Sentry.metrics.count("signup_completed", 1);
+          clearStoredReferral();
+          setTimeout(() => {
+            navigate(redirectUrl);
+          }, 1000);
+          return;
+        }
+      } catch (autoErr) {
+        console.warn("[Signup] Auto-confirm bypass failed, showing fallback confirmation screen:", autoErr);
+      }
+
       // Email confirmation is required by Supabase Auth
       setIsEmailConfirmationPending(true);
       clearStoredReferral();

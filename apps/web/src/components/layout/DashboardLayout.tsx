@@ -31,6 +31,7 @@ import UserAvatar from "@/components/ui/UserAvatar";
 import ProfileCompletionModal from "@/components/dashboard/ProfileCompletionModal";
 import BroadcastAnnouncementModal from "@/components/dashboard/BroadcastAnnouncementModal";
 import { CutoverCountdownBanner } from "@/components/common/CutoverCountdownBanner";
+import EmailVerificationBanner from "@/components/dashboard/EmailVerificationBanner";
 
 const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
 
@@ -1048,6 +1049,9 @@ const DashboardLayout = () => {
             </button>
           </div>
         </header>
+
+        {/* Soft-Verification Non-Blocking Email Banner */}
+        <EmailVerificationBanner />
 
         {/* Global Cutover Notice on all dashboard sub-pages */}
         {normalizedPath !== "/dashboard" && (

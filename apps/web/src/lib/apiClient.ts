@@ -151,6 +151,20 @@ export const apiClient = {
         method: "POST",
         body: JSON.stringify({ newEmail }),
       }),
+    sendVerificationEmail: () =>
+      apiRequest<{ email: string }>("member/send-verification-email", {
+        method: "POST",
+      }),
+    confirmEmail: (token: string) =>
+      apiRequest<{ success: boolean; email: string }>("member/confirm-email", {
+        method: "POST",
+        body: JSON.stringify({ token }),
+      }),
+    autoConfirm: (userId: string) =>
+      apiRequest<{ confirmed: boolean }>("member/auto-confirm", {
+        method: "POST",
+        body: JSON.stringify({ userId }),
+      }),
     verifyCard: (memberId: string) =>
       apiRequest<{
         id: string;

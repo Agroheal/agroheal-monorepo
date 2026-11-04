@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Toaster } from "react-hot-toast";
 import { showToast } from "@/components/ui/ToastComponent";
 import { supabase } from "@/lib/supabaseClient";
+import { apiClient } from "@/lib/apiClient";
 import AuthSidebar from "@/components/webComponents/authSidebar";
 import { cleanEmail } from "@shared/dataSanitizers";
 import * as Sentry from "@sentry/react";
@@ -40,10 +41,35 @@ export default function ConfirmEmail() {
   // Check if session already active or if URL contains hash/token_hash for automatic verification
   useEffect(() => {
     const handleUrlVerification = async () => {
+      // 1. If signed verification token is in URL query
+      if (queryCode) {
+        setIsLoading(true);
+        try {
+          const res = await apiClient.member.confirmEmail(queryCode);
+          if (res?.success) {
+            setIsSuccess(true);
+            showToast({
+              variant: "success",
+              title: "Email confirmed",
+              description: "Your email has been verified successfully.",
+            });
+            const targetDest = searchParams.get("redirect") || "/dashboard";
+            setTimeout(() => {
+              navigate(targetDest, { replace: true });
+            }, 1800);
+            return;
+          }
+        } catch (err: any) {
+          console.warn("[ConfirmEmail] Direct token verification error, falling back:", err);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+
       // 1. If user already has an active authenticated session
       const targetDestination = searchParams.get("redirect") || "/dashboard/checkout?bundle=starter&welcome=true";
       const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData?.session?.user) {
+      if (sessionData?.session?.user && !queryCode && !tokenHash) {
         setIsSuccess(true);
         setTimeout(() => {
           navigate(targetDestination, { replace: true });
@@ -118,6 +144,26 @@ export default function ConfirmEmail() {
     setIsLoading(true);
 
     try {
+      // 1. First attempt verification using backend signed token
+      try {
+        const res = await apiClient.member.confirmEmail(cleanedCode);
+        if (res?.success) {
+          setIsSuccess(true);
+          showToast({
+            variant: "success",
+            title: "Email confirmed successfully",
+            description: "Redirecting to your dashboard...",
+          });
+          const targetDest = searchParams.get("redirect") || "/dashboard";
+          setTimeout(() => {
+            navigate(targetDest, { replace: true });
+          }, 1500);
+          return;
+        }
+      } catch {
+        // Fall back to Supabase OTP
+      }
+
       // First attempt with type 'signup'
       let { error } = await supabase.auth.verifyOtp({
         email: formattedEmail,
