@@ -146,6 +146,11 @@ export const apiClient = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    updateEmail: (newEmail: string) =>
+      apiRequest<{ email: string }>("member/update-email", {
+        method: "POST",
+        body: JSON.stringify({ newEmail }),
+      }),
     verifyCard: (memberId: string) =>
       apiRequest<{
         id: string;

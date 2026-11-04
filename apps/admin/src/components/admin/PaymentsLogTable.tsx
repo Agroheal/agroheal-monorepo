@@ -1,12 +1,13 @@
 import { useMemo, useState } from "react";
 import { useAdminTierFilter } from "@/context/AdminTierContext";
-import { Search, FileSpreadsheet, CreditCard, Landmark, Check, Copy, Zap } from "lucide-react";
+import { Search, FileSpreadsheet, CreditCard, Landmark, Check, Copy, Zap, UserCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { exportToExcel } from "@shared/excelExport";
 import { ForceSettleDialog } from "@/components/admin/ForceSettleDialog";
+import { ReassignPaymentDialog } from "@/components/admin/ReassignPaymentDialog";
 import { VerifyFlwPaymentModal } from "@/components/admin/VerifyFlwPaymentModal";
 import { StatusBanner } from "@/components/admin/StatusBanner";
 import {
@@ -130,6 +131,7 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
   const [page, setPage] = useState(1);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [remediatingTx, setRemediatingTx] = useState<PaymentLog | null>(null);
+  const [reassigningTx, setReassigningTx] = useState<PaymentLog | null>(null);
   const [verifyRef, setVerifyRef] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -566,6 +568,17 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
                   {/* Actions */}
                   <TableCell className="py-2.5 px-3 text-right">
                     <div className="flex items-center justify-end gap-1.5">
+                                            {/* Reassign Payment to Member */}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setReassigningTx(p)}
+                        className="h-6 px-2 text-[10px] gap-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                        title="Reassign this transaction to a member"
+                      >
+                        <UserCheck className="w-2.5 h-2.5" /> Reassign
+                      </Button>
                       {/* Verify FLW: ONLY for PENDING online transactions */}
                       {!isOffline && isPending && (
                         <Button
@@ -651,6 +664,23 @@ export function PaymentsLogTable({ logs, onRefresh }: { logs: PaymentLog[]; onRe
           </PaginationContent>
         </Pagination>
       )}
+
+            {/* Reassign Payment Modal */}
+      <ReassignPaymentDialog
+        key={reassigningTx?.id || "none"}
+        transaction={reassigningTx}
+        open={Boolean(reassigningTx)}
+        onOpenChange={(open) => !open && setReassigningTx(null)}
+        onSuccess={(msg) => {
+          setSuccessMessage(msg);
+          setTimeout(() => setSuccessMessage(""), 5000);
+        }}
+        onError={(err) => {
+          setErrorMessage(err);
+          setTimeout(() => setErrorMessage(""), 5000);
+        }}
+        onRefresh={() => onRefresh?.()}
+      />
 
       {/* Force Settle & Allotment Dialog */}
       <ForceSettleDialog

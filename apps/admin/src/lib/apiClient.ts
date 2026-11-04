@@ -181,6 +181,39 @@ export const adminApiClient = {
         method: "POST",
         body: JSON.stringify({ reason }),
       }),
+    updateMemberEmail: (memberId: string, newEmail: string, notes?: string) =>
+      apiRequest<{ memberId: string; oldEmail: string; newEmail: string }>(
+        `admin/members/${encodeURIComponent(memberId)}/update-email`,
+        {
+          method: "POST",
+          body: JSON.stringify({ newEmail, notes }),
+        }
+      ),
+    setMemberPassword: (memberId: string, newPassword?: string) =>
+      apiRequest<{
+        memberId: string;
+        email: string;
+        fullName: string;
+        phone: string;
+        tempPassword: string;
+      }>(`admin/members/${encodeURIComponent(memberId)}/set-password`, {
+        method: "POST",
+        body: JSON.stringify({ newPassword }),
+      }),
+    reassignPayment: (data: {
+      transactionId: number | string;
+      targetUserId: string;
+      triggerSettlement?: boolean;
+    }) =>
+      apiRequest<{
+        transactionId: number | string;
+        targetUserId: string;
+        targetEmail: string;
+        settlementResult?: any;
+      }>("admin/payments/reassign", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
     verifyFlwPayment: (reference: string) =>
       apiRequest<{
         gateway: {
@@ -280,6 +313,20 @@ export const adminApiClient = {
           matrixPlacement: boolean;
         };
       }>(`admin/transactions/${encodeURIComponent(String(txId))}/allotment-preview`),
+    reassignPayment: (data: {
+      transactionId: number | string;
+      targetUserId: string;
+      triggerSettlement?: boolean;
+    }) =>
+      apiRequest<{
+        transactionId: number | string;
+        targetUserId: string;
+        targetEmail: string;
+        settlementResult?: any;
+      }>("admin/payments/reassign", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
     forceSettle: (txId: string | number, notes?: string) =>
       apiRequest<{
         success: boolean;
@@ -315,6 +362,39 @@ export const adminApiClient = {
       apiRequest<any>("admin/members/issue-gift", {
         method: "POST",
         body: JSON.stringify(payload),
+      }),
+    updateMemberEmail: (memberId: string, newEmail: string, notes?: string) =>
+      apiRequest<{ memberId: string; oldEmail: string; newEmail: string }>(
+        `admin/members/${encodeURIComponent(memberId)}/update-email`,
+        {
+          method: "POST",
+          body: JSON.stringify({ newEmail, notes }),
+        }
+      ),
+    setMemberPassword: (memberId: string, newPassword?: string) =>
+      apiRequest<{
+        memberId: string;
+        email: string;
+        fullName: string;
+        phone: string;
+        tempPassword: string;
+      }>(`admin/members/${encodeURIComponent(memberId)}/set-password`, {
+        method: "POST",
+        body: JSON.stringify({ newPassword }),
+      }),
+    reassignPayment: (data: {
+      transactionId: number | string;
+      targetUserId: string;
+      triggerSettlement?: boolean;
+    }) =>
+      apiRequest<{
+        transactionId: number | string;
+        targetUserId: string;
+        targetEmail: string;
+        settlementResult?: any;
+      }>("admin/payments/reassign", {
+        method: "POST",
+        body: JSON.stringify(data),
       }),
     resetBankLock: (memberId: string) =>
       apiRequest<{ memberId: string }>(`admin/members/${encodeURIComponent(memberId)}/reset-bank-lock`, {

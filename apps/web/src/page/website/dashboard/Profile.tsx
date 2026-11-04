@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
+import { apiClient } from "@/lib/apiClient";
 import { SITE_URL } from "@/config/Index";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -64,6 +65,29 @@ interface KinData {
 
 export const ProfileComponent: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [newEmailInput, setNewEmailInput] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
+
+  const handleUpdateEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const clean = newEmailInput.trim().toLowerCase();
+    if (!clean || !clean.includes("@")) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    setSavingEmail(true);
+    try {
+      await apiClient.member.updateEmail(clean);
+      setProfile((prev) => (prev ? { ...prev, email: clean } : prev));
+      toast.success("Email address updated successfully!");
+      setEditingEmail(false);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to update email address");
+    } finally {
+      setSavingEmail(false);
+    }
+  };
   const [kin, setKin] = useState<KinData | null>(null);
   const [loading, setLoading] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);
@@ -365,7 +389,20 @@ export const ProfileComponent: React.FC = () => {
             </div>
             <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
               <span className="text-gray-500 font-medium">Email Address</span>
-              <span className="font-mono font-medium text-gray-900 text-right">{profile?.email}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-mono font-medium text-gray-900 text-right">{profile?.email}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingEmail(true);
+                    setNewEmailInput(profile?.email || "");
+                  }}
+                  className="text-[11px] font-bold text-emerald-700 hover:text-emerald-900 underline"
+                  title="Correct email address"
+                >
+                  Edit
+                </button>
+              </div>
             </div>
             <div className="flex justify-between items-center py-1.5 border-b border-gray-50">
               <span className="text-gray-500 font-medium">Phone Number</span>
@@ -728,6 +765,58 @@ export const ProfileComponent: React.FC = () => {
             fetchProfile();
           }}
         />
+      )}
+      {/* ── MEMBER EMAIL SELF-SERVICE EDIT MODAL ── */}
+      {editingEmail && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <h3 className="font-bold text-gray-900 text-base">Update Your Email Address</h3>
+              <button
+                type="button"
+                onClick={() => setEditingEmail(false)}
+                className="text-gray-400 hover:text-gray-600 text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">
+              Made a typo during checkout? Enter your correct email below. Your login credentials and receipts will immediately be updated.
+            </p>
+            <form onSubmit={handleUpdateEmail} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-gray-700 block mb-1">
+                  New Email Address
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={newEmailInput}
+                  onChange={(e) => setNewEmailInput(e.target.value)}
+                  placeholder="e.g. name@gmail.com"
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-xs"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingEmail(false)}
+                  disabled={savingEmail}
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEmail}
+                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md disabled:opacity-60"
+                >
+                  {savingEmail ? "Saving..." : "Save Email"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
