@@ -8,6 +8,9 @@ import {
   FileText,
   HelpCircle,
   Building2,
+  Zap,
+  CreditCard,
+  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 
@@ -35,6 +38,36 @@ export interface MarketingDestinationRoute {
  * Directly synchronized with appRouter to ensure zero routing drift.
  */
 export const MARKETING_DESTINATIONS: readonly MarketingDestinationRoute[] = [
+  {
+    id: "pay",
+    title: "Instant Pay-First Checkout (/pay)",
+    path: "/pay",
+    category: "Campaigns",
+    badge: "Fast Enrolment",
+    icon: Zap,
+    description: "1-click checkout drawer that lets prospects pay before signing up, automatically capturing their referral and provisioned account.",
+    shareMessage: "Activate your AgroHeal Green Card or Combo package instantly with 1-click checkout:",
+  },
+  {
+    id: "pay-starter",
+    title: "₦15,000 Starter Combo Instant Pay (/pay?plan=starter)",
+    path: "/pay?plan=starter",
+    category: "Campaigns",
+    badge: "Recommended",
+    icon: Sparkles,
+    description: "Pre-selects the complete ₦15,000 Starter Combo (Green Card + Farm Slot + Mushroom Starter Pack) in the 1-click drawer.",
+    shareMessage: "Join our AgroHeal Mushroom Farm with the full ₦15,000 Starter Combo package:",
+  },
+  {
+    id: "pay-installment",
+    title: "₦2,000 Instalment Pay Link (/pay?plan=installment)",
+    path: "/pay?plan=installment",
+    category: "Campaigns",
+    badge: "New",
+    icon: CreditCard,
+    description: "Pre-selects the flexible ₦2,000 weekly instalment payment plan in the 1-click drawer.",
+    shareMessage: "Start your AgroHeal Green Card with just ₦2,000 weekly instalment:",
+  },
   {
     id: "gc",
     title: "Green Card Video Funnel (/gc)",

@@ -54,7 +54,7 @@ export const GreenCardCampaign: React.FC = () => {
       searchParams.get("action") === "checkout" ||
       searchParams.get("checkout") === "true";
     if (shouldOpen) {
-      const p = searchParams.get("plan");
+      const p = searchParams.get("plan") || searchParams.get("bundle");
       const chosenPlan = p === "combo" || p === "starter" ? "combo" : "green_card";
       openPaymentDrawer(chosenPlan);
     }
