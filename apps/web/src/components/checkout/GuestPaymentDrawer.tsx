@@ -11,8 +11,8 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
-  Gift,
   CreditCard,
+  Check,
 } from "lucide-react";
 import { apiClient } from "@/lib/apiClient";
 import { supabase } from "@/lib/supabaseClient";
@@ -89,14 +89,16 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
 }) => {
   const navigate = useNavigate();
 
-  // Navigation & stages: "form" | "claim" | "success"
-  const [stage, setStage] = useState<"form" | "claim" | "success">("form");
+  // Navigation & stages: "form" | "processing" | "claim" | "success"
+  const [stage, setStage] = useState<"form" | "processing" | "claim" | "success">("form");
 
   // Step 1 Guest Form State
   const [plan, setPlan] = useState<GuestPlanType>(defaultPlan);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [emailSuggestion, setEmailSuggestion] = useState<string | null>(null);
 
   // Sponsor resolution info
@@ -114,13 +116,11 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
     defaultPlan === "combo" ? 15000 : 2000
   );
 
-  // Step 2 Account Claim State
+  // Fallback Manual Claim State (Only used if auto-creation encounters conflict)
   const [claimEmail, setClaimEmail] = useState("");
   const [claimFullName, setClaimFullName] = useState("");
   const [claimPhone, setClaimPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [claimPassword, setClaimPassword] = useState("");
 
   // Final Success State
   const [claimedMemberId, setClaimedMemberId] = useState("");
@@ -129,7 +129,6 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
   // Loading & Submitting
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
-  const [isClaiming, setIsClaiming] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Sync default plan prop changes
@@ -166,9 +165,92 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
 
   // Close & reset
   const handleClose = () => {
-    if (isSubmitting || isClaiming) return;
+    if (isSubmitting) return;
     setErrorMessage(null);
     onClose();
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // AUTO-PROVISION ACCOUNT & REDIRECT DIRECTLY TO DASHBOARD
+  // ─────────────────────────────────────────────────────────────
+  const executeAutoProvisionAndRedirect = async (
+    targetTxRef: string,
+    userEmail: string,
+    userName: string,
+    userPhone: string,
+    userPassword?: string
+  ) => {
+    setIsSubmitting(true);
+    setStage("processing");
+
+    const cleanEmail = userEmail.trim().toLowerCase();
+    const cleanName = userName.trim();
+    const cleanPhone = userPhone.trim();
+    const effectivePassword =
+      userPassword && userPassword.trim().length >= 6
+        ? userPassword.trim()
+        : cleanPhone.length >= 6
+        ? cleanPhone
+        : "Agroheal@2026";
+
+    try {
+      // 1. Auto-claim account (Supabase Auth admin createUser with email_confirm: true)
+      const claimRes = await apiClient.checkout.claimAccount({
+        txRef: targetTxRef,
+        email: cleanEmail,
+        password: effectivePassword,
+        fullName: cleanName,
+        phone: cleanPhone,
+      });
+
+      const memberId =
+        claimRes.memberId ||
+        claimRes.settlement?.memberId ||
+        "GC-2026-MEMBER";
+      setClaimedMemberId(memberId);
+      setSlotsAllocated(
+        claimRes.settlement?.slotsAllocated || (plan === "combo" ? 1 : 0)
+      );
+
+      // 2. Direct client sign-in (email is pre-confirmed, zero verification link required)
+      try {
+        await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: effectivePassword,
+        });
+      } catch (authErr) {
+        console.warn("[GuestCheckout] Auto sign-in notice:", authErr);
+      }
+
+      showToast({
+        variant: "success",
+        title: "Account Created! 🎉",
+        description: `Welcome to AgroHeal! Your Green Card ID is ${memberId}. Redirecting to your dashboard...`,
+      });
+
+      setStage("success");
+      if (onClaimSuccess) onClaimSuccess(claimRes);
+
+      // 3. Seamless auto-redirect to dashboard
+      setTimeout(() => {
+        onClose();
+        navigate("/dashboard");
+      }, 1500);
+    } catch (claimErr: any) {
+      console.error("[GuestPaymentDrawer] Auto-provisioning error:", claimErr);
+      // Fallback: If an edge case occurs (e.g. existing email conflict), allow user to view fallback form
+      setClaimEmail(cleanEmail);
+      setClaimFullName(cleanName);
+      setClaimPhone(cleanPhone);
+      setClaimPassword(effectivePassword);
+      setErrorMessage(
+        claimErr.message ||
+          "Payment was received! Please confirm your details below to finish setup."
+      );
+      setStage("claim");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // ─────────────────────────────────────────────────────────────
@@ -222,11 +304,6 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
         });
       }
 
-      // Initialize prefilled claim details
-      setClaimEmail(cleanEmail);
-      setClaimFullName(cleanName);
-      setClaimPhone(cleanPhone);
-
       const flwKey =
         initRes.flwPublicKey ||
         (typeof window !== "undefined" && (window as any).FLUTTERWAVE_PUBLIC_KEY) ||
@@ -253,20 +330,22 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
           description: "Organic Health & Wealth Food Revolution",
           logo: "https://ptowfacejneezksyhntk.supabase.co/storage/v1/object/sign/agroheal-%20buckets/logo.png",
         },
-        callback: (response: any) => {
+        callback: async (response: any) => {
           if (
             response.status === "successful" ||
             response.status === "completed"
           ) {
-            showToast({
-              variant: "success",
-              title: "Payment Received! 🎉",
-              description:
-                "Confirm your details and set your password to claim your Green Card.",
-            });
-            setStage("claim");
+            // Automatically provision account and redirect straight to dashboard
+            await executeAutoProvisionAndRedirect(
+              txRef,
+              cleanEmail,
+              cleanName,
+              cleanPhone,
+              password
+            );
+          } else {
+            setIsSubmitting(false);
           }
-          setIsSubmitting(false);
         },
         onclose: () => {
           setIsSubmitting(false);
@@ -292,15 +371,24 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
     try {
       const statusRes = await apiClient.checkout.claimStatus(currentTxRef);
       if (statusRes.isPaid) {
-        showToast({
-          variant: "success",
-          title: "Payment Confirmed! 🎉",
-          description: "Your payment was verified. Set your password to claim your account.",
-        });
-        setClaimEmail(statusRes.email || email);
-        setClaimFullName(statusRes.fullName || fullName);
-        setClaimPhone(statusRes.phone || phone);
-        setStage("claim");
+        if (statusRes.isClaimed) {
+          showToast({
+            variant: "success",
+            title: "Account Already Active! 🎉",
+            description: "Redirecting to your dashboard...",
+          });
+          onClose();
+          navigate("/dashboard");
+        } else {
+          // Auto-provision immediately!
+          await executeAutoProvisionAndRedirect(
+            currentTxRef,
+            statusRes.email || email,
+            statusRes.fullName || fullName,
+            statusRes.phone || phone,
+            password
+          );
+        }
       } else {
         showToast({
           variant: "warning",
@@ -317,81 +405,18 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
   };
 
   // ─────────────────────────────────────────────────────────────
-  // 3. CLAIM ACCOUNT (Create User, Unified Settlement, Auto-login)
+  // 3. FALLBACK MANUAL CLAIM SUBMISSION
   // ─────────────────────────────────────────────────────────────
-  const handleClaimAccount = async (e: React.FormEvent) => {
+  const handleFallbackClaimSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(null);
-
-    const cleanEmail = claimEmail.trim().toLowerCase();
-    const cleanName = claimFullName.trim();
-    const cleanPhone = claimPhone.trim();
-
-    if (!cleanEmail || !cleanEmail.includes("@")) {
-      setErrorMessage("Please enter a valid email address.");
-      return;
-    }
-    if (cleanName.length < 2) {
-      setErrorMessage("Please enter your full name.");
-      return;
-    }
-    if (cleanPhone.length < 10) {
-      setErrorMessage("Please enter a valid phone number.");
-      return;
-    }
-    if (!password || password.length < 6) {
-      setErrorMessage("Password must be at least 6 characters long.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setErrorMessage("Passwords do not match. Please re-enter.");
-      return;
-    }
-
-    setIsClaiming(true);
-
-    try {
-      const claimRes = await apiClient.checkout.claimAccount({
-        txRef: currentTxRef,
-        email: cleanEmail,
-        password,
-        fullName: cleanName,
-        phone: cleanPhone,
-      });
-
-      const memberId =
-        claimRes.memberId ||
-        claimRes.settlement?.memberId ||
-        "GC-2026-MEMBER";
-      setClaimedMemberId(memberId);
-      setSlotsAllocated(claimRes.settlement?.slotsAllocated || (plan === "combo" ? 1 : 0));
-
-      // Attempt immediate login into client session
-      try {
-        await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
-      } catch (loginErr) {
-        console.warn("[GuestCheckout] Auto-login notice:", loginErr);
-      }
-
-      showToast({
-        variant: "success",
-        title: "Account Activated! 🌿",
-        description: `Your Green Card ID is ${memberId}. Welcome aboard!`,
-      });
-
-      setStage("success");
-      if (onClaimSuccess) onClaimSuccess(claimRes);
-    } catch (err: any) {
-      console.error("[GuestPaymentDrawer] Claim error:", err);
-      setErrorMessage(
-        err.message || "Failed to claim account. Please check your details."
-      );
-    } finally {
-      setIsClaiming(false);
-    }
+    await executeAutoProvisionAndRedirect(
+      currentTxRef,
+      claimEmail,
+      claimFullName,
+      claimPhone,
+      claimPassword
+    );
   };
 
   if (!isOpen) return null;
@@ -414,13 +439,15 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
             <div>
               <h2 className="text-xl font-extrabold text-gray-900 tracking-tight leading-tight">
                 {stage === "form" && "Instant Green Card Checkout"}
-                {stage === "claim" && "Payment Verified! Set Password"}
+                {stage === "processing" && "Activating Your Account..."}
+                {stage === "claim" && "Complete Account Setup"}
                 {stage === "success" && "Welcome to AgroHeal!"}
               </h2>
               <p className="text-xs text-gray-500 font-medium">
-                {stage === "form" && "Fast 60-second activation. No upfront password required."}
-                {stage === "claim" && "Confirm your account details to claim your Green Card."}
-                {stage === "success" && "Your Green Card is activated and ready to use."}
+                {stage === "form" && "Auto account creation. Zero email verification needed."}
+                {stage === "processing" && "Verifying payment & minting Green Card..."}
+                {stage === "claim" && "Confirm your details to enter dashboard."}
+                {stage === "success" && "Your Green Card is activated. Redirecting..."}
               </p>
             </div>
           </div>
@@ -606,7 +633,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                     </div>
                   )}
                   <span className="text-[11px] text-gray-400 mt-1 block">
-                    Your payment receipt & Green Card verification will be sent here.
+                    Your Green Card receipt and account will be linked to this email.
                   </span>
                 </div>
 
@@ -622,6 +649,41 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                     placeholder="e.g. 08012345678"
                     className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm transition-all"
                   />
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-gray-700">
+                      Choose Password (Optional)
+                    </label>
+                    <span className="text-[11px] text-gray-400 font-medium">
+                      Defaults to your phone number
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Leave blank to use phone number"
+                      className="w-full px-4 py-3 pr-11 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm transition-all"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Instant Automated Registration Promise */}
+              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200/70 text-xs text-emerald-900 flex items-start space-x-2.5">
+                <Check className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <strong>Instant Dashboard Access:</strong> Upon successful payment, your account is automatically created and logged in. No email verification link required.
                 </div>
               </div>
 
@@ -639,9 +701,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                 ) : (
                   <>
                     <CreditCard className="w-5 h-5" />
-                    <span>
-                      Pay ₦{amountPaid.toLocaleString()} Now
-                    </span>
+                    <span>Pay ₦{amountPaid.toLocaleString()} Now</span>
                     <ArrowRight className="w-4 h-4 ml-1" />
                   </>
                 )}
@@ -664,7 +724,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                     <RefreshCw
                       className={`w-3.5 h-3.5 ${isCheckingStatus ? "animate-spin" : ""}`}
                     />
-                    <span>Already completed payment via transfer? Check Status</span>
+                    <span>Paid via Bank Transfer? Click to Auto-Activate</span>
                   </button>
                 </div>
               )}
@@ -672,46 +732,59 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
           )}
 
           {/* ─────────────────────────────────────────────────────────────
-              STAGE 2: POST-PAYMENT ACCOUNT CLAIM & PASSWORD CREATION
+              STAGE: PROCESSING (AUTOMATIC PROVISIONING)
+             ───────────────────────────────────────────────────────────── */}
+          {stage === "processing" && (
+            <div className="py-12 text-center space-y-6">
+              <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-inner animate-pulse">
+                <RefreshCw className="w-10 h-10 animate-spin" />
+              </div>
+
+              <div className="space-y-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                  PAYMENT RECEIVED
+                </span>
+                <h3 className="text-2xl font-black text-gray-900">
+                  Setting Up Your Account...
+                </h3>
+                <p className="text-sm text-gray-600 max-w-sm mx-auto">
+                  We are automatically creating your account, minting your Digital Green Card, and logging you into your member dashboard.
+                </p>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 max-w-sm mx-auto text-xs text-gray-500 font-mono">
+                Ref: {currentTxRef}
+              </div>
+            </div>
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────
+              STAGE: FALLBACK CLAIM (Only if automated race condition occurs)
              ───────────────────────────────────────────────────────────── */}
           {stage === "claim" && (
-            <form onSubmit={handleClaimAccount} className="space-y-6">
-              {/* Payment Success Confirmation Banner */}
+            <form onSubmit={handleFallbackClaimSubmit} className="space-y-6">
               <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-lg space-y-2">
                 <div className="flex items-center space-x-2 font-black text-lg">
                   <CheckCircle2 className="w-6 h-6 text-emerald-200" />
-                  <span>Payment of ₦{amountPaid.toLocaleString()} Received!</span>
+                  <span>Payment of ₦{amountPaid.toLocaleString()} Confirmed!</span>
                 </div>
                 <p className="text-xs text-emerald-50 leading-relaxed">
-                  Your transaction is verified on the blockchain and ledger. Set a secure password below to activate your Green Card and gain instant dashboard access.
+                  Please confirm your login details below to complete your dashboard activation.
                 </p>
-                <div className="pt-2 border-t border-emerald-500/40 flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-emerald-200">Ref:</span>
-                  <span className="font-bold text-white tracking-wider">{currentTxRef}</span>
-                </div>
               </div>
 
               <div className="space-y-4">
-                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-900">
-                  💡 <strong>Typo Protection:</strong> You can confirm or correct your email and name below before your account is permanently registered.
-                </div>
-
                 <div>
                   <label className="text-xs font-bold text-gray-700 block mb-1">
-                    Confirmed Email Address *
+                    Confirmed Email *
                   </label>
                   <input
                     type="email"
                     required
                     value={claimEmail}
                     onChange={(e) => setClaimEmail(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm"
                   />
-                  {claimEmail !== email && (
-                    <span className="text-[11px] text-emerald-600 font-semibold mt-1 block">
-                      ✓ Email corrected from original payment entry ({email}).
-                    </span>
-                  )}
                 </div>
 
                 <div>
@@ -723,86 +796,36 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                     required
                     value={claimFullName}
                     onChange={(e) => setClaimFullName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm transition-all"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm"
                   />
                 </div>
 
                 <div>
                   <label className="text-xs font-bold text-gray-700 block mb-1">
-                    Confirmed Phone Number *
+                    Password *
                   </label>
                   <input
-                    type="tel"
+                    type="text"
                     required
-                    value={claimPhone}
-                    onChange={(e) => setClaimPhone(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-gray-700 block mb-1">
-                    Create Secure Password *
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      required
-                      minLength={6}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="At least 6 characters"
-                      className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-gray-700 block mb-1">
-                    Confirm Password *
-                  </label>
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    required
-                    minLength={6}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Repeat password"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm transition-all"
+                    value={claimPassword}
+                    onChange={(e) => setClaimPassword(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm"
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                disabled={isClaiming}
-                className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-base shadow-lg shadow-emerald-200 transition-all flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={isSubmitting}
+                className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-base shadow-lg"
               >
-                {isClaiming ? (
-                  <>
-                    <RefreshCw className="w-5 h-5 animate-spin" />
-                    <span>Activating Green Card & Setting Up Account...</span>
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-5 h-5" />
-                    <span>Activate Account & Access Dashboard</span>
-                    <ArrowRight className="w-4 h-4 ml-1" />
-                  </>
-                )}
+                {isSubmitting ? "Activating..." : "Confirm & Enter Dashboard →"}
               </button>
             </form>
           )}
 
           {/* ─────────────────────────────────────────────────────────────
-              STAGE 3: CLAIM SUCCESS
+              STAGE: SUCCESS CELEBRATION
              ───────────────────────────────────────────────────────────── */}
           {stage === "success" && (
             <div className="py-6 text-center space-y-6">
@@ -815,10 +838,10 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                   OFFICIALLY ACTIVATED
                 </span>
                 <h3 className="text-2xl font-black text-gray-900 mt-3">
-                  Congratulations, {claimFullName}!
+                  Welcome, {fullName}!
                 </h3>
                 <p className="text-sm text-gray-600 mt-1">
-                  Your Digital Green Card has been officially minted and your statutory bonuses have been distributed.
+                  Your account has been created and your Digital Green Card is ready.
                 </p>
               </div>
 
@@ -841,7 +864,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                 <div className="pt-2 border-t border-emerald-700/50 flex items-center justify-between text-xs">
                   <div>
                     <span className="text-[10px] text-emerald-400 block">MEMBER</span>
-                    <span className="font-bold">{claimFullName}</span>
+                    <span className="font-bold">{fullName}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] text-emerald-400 block">FARM SLOTS</span>
@@ -858,7 +881,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                 }}
                 className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-base shadow-lg shadow-emerald-200 transition-all flex items-center justify-center space-x-2"
               >
-                <span>Enter Member Dashboard</span>
+                <span>Enter Member Dashboard Now</span>
                 <ArrowRight className="w-5 h-5 ml-1" />
               </button>
             </div>
@@ -883,4 +906,3 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
 };
 
 export default GuestPaymentDrawer;
-

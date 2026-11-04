@@ -636,7 +636,7 @@ export const apiClient = {
     claimAccount: (data: {
       txRef: string;
       email: string;
-      password: string;
+      password?: string;
       fullName: string;
       phone: string;
     }) =>

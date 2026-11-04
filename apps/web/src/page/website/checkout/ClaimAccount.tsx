@@ -116,14 +116,20 @@ export const ClaimAccount: React.FC = () => {
       setErrorMsg("Please enter a valid phone number.");
       return;
     }
-    if (!password || password.length < 6) {
+    if (password && password.length < 6) {
       setErrorMsg("Password must be at least 6 characters long.");
       return;
     }
-    if (password !== confirmPassword) {
+    if (password && password !== confirmPassword) {
       setErrorMsg("Passwords do not match. Please re-enter.");
       return;
     }
+
+    const effectivePassword = password && password.trim().length >= 6
+      ? password.trim()
+      : cleanPhone.length >= 6
+      ? cleanPhone
+      : "Agroheal@2026";
 
     setIsClaiming(true);
 
@@ -131,7 +137,7 @@ export const ClaimAccount: React.FC = () => {
       const claimRes = await apiClient.checkout.claimAccount({
         txRef: activeTxRef,
         email: cleanEmail,
-        password,
+        password: effectivePassword,
         fullName: cleanName,
         phone: cleanPhone,
       });
@@ -146,7 +152,7 @@ export const ClaimAccount: React.FC = () => {
       try {
         await supabase.auth.signInWithPassword({
           email: cleanEmail,
-          password,
+          password: effectivePassword,
         });
       } catch (authErr) {
         console.warn("[ClaimAccount] Auto-signin notice:", authErr);
@@ -422,16 +428,14 @@ export const ClaimAccount: React.FC = () => {
 
                 <div>
                   <label className="text-xs font-bold text-gray-700 block mb-1">
-                    Create Password *
+                    Create Password (Optional - defaults to phone number)
                   </label>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
-                      required
-                      minLength={6}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="At least 6 characters"
+                      placeholder="Leave blank to use your phone number"
                       className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm transition-all"
                     />
                     <button
@@ -446,12 +450,10 @@ export const ClaimAccount: React.FC = () => {
 
                 <div>
                   <label className="text-xs font-bold text-gray-700 block mb-1">
-                    Confirm Password *
+                    Confirm Password (Optional)
                   </label>
                   <input
                     type={showPassword ? "text" : "password"}
-                    required
-                    minLength={6}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Repeat password"
