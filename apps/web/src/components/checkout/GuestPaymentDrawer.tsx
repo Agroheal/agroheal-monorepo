@@ -120,14 +120,75 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
     }
   }, [defaultPlan]);
 
-  // Keep sponsor display updated with prop
+  const [isResolvingSponsor, setIsResolvingSponsor] = useState(false);
+
+  // Lock body scroll when drawer is open to guarantee absolute mobile isolation
   useEffect(() => {
-    if (sponsorCode) {
-      setSponsorDisplay((prev) => ({
-        ...prev,
-        code: sponsorCode,
-      }));
+    if (isOpen) {
+      const prevOverflow = document.body.style.overflow;
+      const prevTouchAction = document.body.style.touchAction;
+      document.body.style.overflow = "hidden";
+      document.body.style.touchAction = "none";
+      return () => {
+        document.body.style.overflow = prevOverflow;
+        document.body.style.touchAction = prevTouchAction;
+      };
     }
+  }, [isOpen]);
+
+  // Dynamically resolve sponsor details on mount and prop change
+  useEffect(() => {
+    let isMounted = true;
+    const cleanCode = (sponsorCode || "356FV1").trim();
+
+    const resolveSponsor = async () => {
+      setIsResolvingSponsor(true);
+      try {
+        const { data, error } = await supabase.rpc("resolve_referral_sponsor", {
+          sponsor_input: cleanCode,
+        });
+
+        if (!error && data && (data as any).found && (data as any).sponsor) {
+          if (isMounted) {
+            setSponsorDisplay({
+              name: (data as any).sponsor.full_name || "Adetola Esther",
+              code: (data as any).sponsor.referral_code || cleanCode,
+            });
+          }
+          return;
+        }
+
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("full_name, referral_code")
+          .or(`referral_code.eq.${cleanCode.toUpperCase()},member_id.eq.${cleanCode}`)
+          .maybeSingle();
+
+        if (prof && isMounted) {
+          setSponsorDisplay({
+            name: prof.full_name || "Adetola Esther",
+            code: prof.referral_code || cleanCode,
+          });
+          return;
+        }
+
+        if (isMounted) {
+          setSponsorDisplay({
+            name: "Adetola Esther",
+            code: cleanCode,
+          });
+        }
+      } catch (err) {
+        console.warn("[GuestPaymentDrawer] Could not resolve sponsor:", err);
+      } finally {
+        if (isMounted) setIsResolvingSponsor(false);
+      }
+    };
+
+    resolveSponsor();
+    return () => {
+      isMounted = false;
+    };
   }, [sponsorCode]);
 
   // Check email typo suggestion on the fly
@@ -388,15 +449,15 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+      className="fixed inset-0 z-[2147483647] flex justify-end bg-black/80 backdrop-blur-sm sm:backdrop-blur-md transition-opacity animate-in fade-in duration-200 overflow-hidden"
       onClick={handleClose}
     >
       <div
-        className="w-full max-w-lg bg-white h-full shadow-2xl flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300"
+        className="w-full h-full min-h-[100dvh] sm:h-full sm:min-h-0 sm:max-w-lg bg-white sm:shadow-2xl flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300 sm:rounded-l-3xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur z-10">
+        <div className="p-4 sm:p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur z-20">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-200">
               🌿
@@ -426,7 +487,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="p-6 space-y-6 flex-1">
+        <div className="p-4 sm:p-6 space-y-6 flex-1">
           {errorMessage && (
             <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start space-x-3 text-rose-700 text-sm">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-600" />
@@ -448,7 +509,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                       Direct Sponsor Attribution
                     </span>
                     <span className="text-sm font-bold text-emerald-950">
-                      {sponsorDisplay.name}
+                      {isResolvingSponsor ? "Verifying Referrer..." : sponsorDisplay.name}
                     </span>
                   </div>
                 </div>
@@ -567,7 +628,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="e.g. Samuel Adekunle"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm transition-all"
+                    className="w-full px-4 py-3 sm:py-2.5 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-base sm:text-sm transition-all h-12 sm:h-11"
                   />
                 </div>
 
@@ -581,7 +642,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                     value={email}
                     onChange={(e) => handleEmailChange(e.target.value)}
                     placeholder="e.g. samuel@gmail.com"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm transition-all"
+                    className="w-full px-4 py-3 sm:py-2.5 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-base sm:text-sm transition-all h-12 sm:h-11"
                   />
                   {emailSuggestion && (
                     <div className="mt-1.5 p-2 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-between text-xs text-amber-900">
@@ -612,7 +673,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="e.g. 08012345678"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm transition-all"
+                    className="w-full px-4 py-3 sm:py-2.5 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-base sm:text-sm transition-all h-12 sm:h-11"
                   />
                 </div>
 
@@ -631,7 +692,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Leave blank to use phone number"
-                      className="w-full px-4 py-3 pr-11 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm transition-all"
+                      className="w-full px-4 py-3 sm:py-2.5 pr-11 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-base sm:text-sm transition-all h-12 sm:h-11"
                     />
                     <button
                       type="button"
@@ -682,7 +743,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
 
               <div className="flex items-center justify-center space-x-2 text-[12px] text-gray-500 font-medium">
                 <Lock className="w-3.5 h-3.5 text-gray-400" />
-                <span>256-Bit Encrypted • Card, Bank Transfer, USSD via Flutterwave & Nomba</span>
+                <span>256-Bit Encrypted • Card, Bank Transfer, USSD via Flutterwave</span>
               </div>
 
               {/* Re-check status button if user previously started payment */}
@@ -756,7 +817,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                     required
                     value={claimEmail}
                     onChange={(e) => setClaimEmail(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm"
+                    className="w-full px-4 py-3 sm:py-2.5 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-base sm:text-sm transition-all h-12 sm:h-11"
                   />
                 </div>
 
@@ -769,7 +830,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                     required
                     value={claimFullName}
                     onChange={(e) => setClaimFullName(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm"
+                    className="w-full px-4 py-3 sm:py-2.5 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-base sm:text-sm transition-all h-12 sm:h-11"
                   />
                 </div>
 
@@ -782,7 +843,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                     required
                     value={claimPassword}
                     onChange={(e) => setClaimPassword(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-sm"
+                    className="w-full px-4 py-3 sm:py-2.5 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-base sm:text-sm transition-all h-12 sm:h-11"
                   />
                 </div>
               </div>

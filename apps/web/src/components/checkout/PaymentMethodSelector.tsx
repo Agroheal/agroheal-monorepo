@@ -142,7 +142,8 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
           </div>
         </div>
 
-        {/* Nomba Option */}
+        {/* Nomba Option (UI commented out for now as requested) */}
+        {/*
         <div
           onClick={() => !disabled && onSelectMethod("nomba")}
           className={`relative p-3.5 rounded-xl border transition-all cursor-pointer ${
@@ -186,6 +187,7 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
             </div>
           </div>
         </div>
+        */}
       </div>
     </div>
   );

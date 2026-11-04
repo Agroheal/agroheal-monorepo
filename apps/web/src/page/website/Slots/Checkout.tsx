@@ -1628,7 +1628,8 @@ const Checkout = () => {
                     />
                   </div>
 
-                  {/* Nomba Option */}
+                  {/* Nomba Option (UI commented out for now as requested) */}
+                  {/*
                   <div
                     onClick={() => setPaymentMethod("nomba")}
                     className={`cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between gap-3 select-none ${
@@ -1664,6 +1665,7 @@ const Checkout = () => {
                       className="w-4 h-4 text-emerald-800 focus:ring-emerald-800 accent-emerald-800 cursor-pointer"
                     />
                   </div>
+                  */}
 
                   {/* Pay from Wallet Balance (Temporarily disabled/commented out as requested) */}
                   {/*
@@ -2167,7 +2169,7 @@ const Checkout = () => {
                       ) : (
                         <>
                           <Lock className="w-4 h-4 shrink-0" />
-                          <span>Pay ₦{totalPrice.toLocaleString()} with {paymentMethod === "nomba" ? "Nomba" : "Flutterwave"}</span>
+                          <span>Pay ₦{totalPrice.toLocaleString()} with Flutterwave</span>
                         </>
                       )}
                     </Button>

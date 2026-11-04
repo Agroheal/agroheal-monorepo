@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { showToast } from "@/components/ui/ToastComponent";
 import { captureReferral, getActiveReferral } from "@/lib/referralManager";
+import { supabase } from "@/lib/supabaseClient";
 import AgrohealLogo from "@/assets/Image/logo.png";
 import GuestPaymentDrawer from "@/components/checkout/GuestPaymentDrawer";
 
@@ -9,7 +10,7 @@ const GREEN_CARD_CONFIG = {
   whatsappUrl:
     "https://wa.me/2349168055000?text=Hello%20Agroheal,%20I%20am%20interested%20in%20the%20Green%20Card%20Organic%20Food%20Revolution",
   defaultOnPageSponsor: "AYEG68",
-  defaultStickySponsor: "V7GK3",
+  defaultStickySponsor: "AYEG68",
   videos: {
     farm: "https://youtu.be/MqQ3sYcPDTE?si=rZRpBGpuWrUZ6r-A",
     launch: "https://youtu.be/vH6_BLQGj0E?si=H6tEBkYHraMnTn7Q",
@@ -63,6 +64,40 @@ export const GreenCardCampaign: React.FC = () => {
   const activeSponsorCode = useMemo(() => {
     return getActiveReferral(searchParams) || GREEN_CARD_CONFIG.defaultOnPageSponsor;
   }, [searchParams]);
+
+  const [sponsorName, setSponsorName] = useState<string | null>(null);
+
+  // Dynamically resolve direct sponsor's full name for header and attribution clarity
+  useEffect(() => {
+    let isMounted = true;
+    const resolveSponsor = async () => {
+      try {
+        const { data, error } = await supabase.rpc("resolve_referral_sponsor", {
+          sponsor_input: activeSponsorCode,
+        });
+        if (!error && data && (data as any).found && (data as any).sponsor) {
+          if (isMounted) {
+            setSponsorName((data as any).sponsor.full_name || null);
+          }
+          return;
+        }
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .or(`referral_code.eq.${activeSponsorCode.toUpperCase()},member_id.eq.${activeSponsorCode}`)
+          .maybeSingle();
+        if (prof && isMounted) {
+          setSponsorName(prof.full_name || null);
+        }
+      } catch (err) {
+        console.warn("[GreenCardCampaign] Could not resolve sponsor name:", err);
+      }
+    };
+    resolveSponsor();
+    return () => {
+      isMounted = false;
+    };
+  }, [activeSponsorCode]);
 
   // Capture incoming referral parameters across localStorage, sessionStorage, and 30-day Cookie
   useEffect(() => {
@@ -129,6 +164,19 @@ export const GreenCardCampaign: React.FC = () => {
                 <span className="brand-sub">GREEN CARD</span>
               </div>
             </a>
+            {/* Direct Sponsor attribution pill in desktop header */}
+            <div className="sponsor-nav-pill hidden lg:inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-xs text-white shadow-inner">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
+              <span className="text-emerald-200 font-medium">Referred by:</span>
+              <strong className="font-bold text-white tracking-wide">
+                {sponsorName ? sponsorName : activeSponsorCode}
+              </strong>
+              {sponsorName && (
+                <span className="font-mono text-[11px] text-emerald-300 bg-emerald-800/60 px-1.5 py-0.5 rounded font-bold">
+                  {activeSponsorCode}
+                </span>
+              )}
+            </div>
             <div className="navlinks">
               <a href="#ecosystem">Ecosystem</a>
               <a href="#videos">Videos</a>
@@ -706,22 +754,24 @@ export const GreenCardCampaign: React.FC = () => {
       </footer>
 
       {/* ── STICKY BOTTOM BAR (NON-SCROLLING CTA ON MOBILE & TABLET) ── */}
-      <div className="sticky">
-        <div className="wrap">
-          <a className="btn register-link" href={stickySignupUrl} onClick={(e) => { e.preventDefault(); openPaymentDrawer("green_card"); }}>
-            GET GREEN CARD
-          </a>
-          <a
-            className="btn whatsapp-link"
-            href={GREEN_CARD_CONFIG.whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ background: "white" }}
-          >
-            WHATSAPP
-          </a>
+      {!isPaymentDrawerOpen && (
+        <div className="sticky">
+          <div className="wrap">
+            <a className="btn register-link" href={stickySignupUrl} onClick={(e) => { e.preventDefault(); openPaymentDrawer("green_card"); }}>
+              GET GREEN CARD
+            </a>
+            <a
+              className="btn whatsapp-link"
+              href={GREEN_CARD_CONFIG.whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ background: "white" }}
+            >
+              WHATSAPP
+            </a>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── RESPONSIVE VIDEO MODAL ── */}
       {activeVideoModal && (
