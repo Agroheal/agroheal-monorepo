@@ -613,7 +613,7 @@ export const apiClient = {
       email: string;
       phone: string;
       amount: number;
-      plan: "green_card" | "combo";
+      plan: "green_card" | "combo" | "installment";
       sponsorCode?: string;
     }) =>
       apiRequest<{
@@ -622,7 +622,7 @@ export const apiClient = {
         email: string;
         phone: string;
         fullName: string;
-        plan: "green_card" | "combo";
+        plan: "green_card" | "combo" | "installment";
         category: string;
         sponsor: {
           name: string;

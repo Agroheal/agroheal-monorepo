@@ -70,7 +70,7 @@ function ensureFlutterwaveScript(): Promise<void> {
   });
 }
 
-export type GuestPlanType = "green_card" | "combo";
+export type GuestPlanType = "combo" | "installment" | "green_card";
 
 export interface GuestPaymentDrawerProps {
   isOpen: boolean;
@@ -83,7 +83,7 @@ export interface GuestPaymentDrawerProps {
 export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
   isOpen,
   onClose,
-  defaultPlan = "green_card",
+  defaultPlan = "combo",
   sponsorCode = "356FV1",
   onClaimSuccess,
 }) => {
@@ -312,7 +312,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
       const title =
         plan === "combo"
           ? "AgroHeal Combo (Green Card + Starter Pack + 1 Farm Slot)"
-          : "AgroHeal Digital Green Card Activation";
+          : "AgroHeal Loan / Instalment Initial Deposit";
 
       (window as any).FlutterwaveCheckout({
         public_key: flwKey,
@@ -529,7 +529,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                       </div>
                       <div>
                         <h4 className="font-bold text-gray-950 text-base flex items-center space-x-2">
-                          <span>Green Card + Starter Combo</span>
+                          <span>Full Payment (Starter Combo)</span>
                         </h4>
                         <p className="text-xs text-gray-600 mt-0.5">
                           Includes <strong>1 Organic Farm Slot</strong> (₦10,000) +{" "}
@@ -540,7 +540,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                     <div className="text-right">
                       <span className="text-lg font-black text-emerald-700">₦15,000</span>
                       <span className="block text-[10px] text-gray-400 uppercase font-semibold">
-                        Full Activation
+                        Full Settlement
                       </span>
                     </div>
                   </div>
@@ -573,17 +573,17 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                       </div>
                       <div>
                         <h4 className="font-bold text-gray-950 text-base">
-                          Green Card Registration Only
+                          Loan / Instalment Option
                         </h4>
                         <p className="text-xs text-gray-600 mt-0.5">
-                          Lifetime membership, 10–30% food discount, 5x7 matrix placement, referral bonuses.
+                          Start with an initial ₦2,000 deposit towards your ₦15,000 package. Balance spread across weekly instalments.
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <span className="text-lg font-black text-emerald-700">₦2,000</span>
                       <span className="block text-[10px] text-gray-400 uppercase font-semibold">
-                        One-Time
+                        Initial Deposit
                       </span>
                     </div>
                   </div>
