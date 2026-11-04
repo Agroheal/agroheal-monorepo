@@ -7,6 +7,8 @@ const footerLinks = {
     { name: "Farm Slots", href: "/farm-slots" },
     { name: "Courses", href: "/courses" },
     { name: "Affiliate Program", href: "/affiliate" },
+    { name: "Quick Pay / Activate", href: "/pay", badge: "Fast" },
+    { name: "Claim Paid Account", href: "/claim" },
   ],
   company: [
     { name: "About Us", href: "/about" },
@@ -80,9 +82,18 @@ export default function Footer() {
                 <li key={link.name}>
                   <Link
                     to={link.href}
-                    className="text-gray-400 hover:text-[#d1ef75] transition-colors text-sm font-light font-sans"
+                    className={`transition-colors text-sm font-sans flex items-center gap-2 ${
+                      "badge" in link
+                        ? "text-emerald-400 hover:text-[#d1ef75] font-medium"
+                        : "text-gray-400 hover:text-[#d1ef75] font-light"
+                    }`}
                   >
-                    {link.name}
+                    <span>{link.name}</span>
+                    {"badge" in link && Boolean((link as any).badge) && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/60 uppercase tracking-wider">
+                        {(link as any).badge}
+                      </span>
+                    )}
                   </Link>
                 </li>
               ))}
@@ -97,9 +108,18 @@ export default function Footer() {
                 <li key={link.name}>
                   <Link
                     to={link.href}
-                    className="text-gray-400 hover:text-[#d1ef75] transition-colors text-sm font-light font-sans"
+                    className={`transition-colors text-sm font-sans flex items-center gap-2 ${
+                      "badge" in link
+                        ? "text-emerald-400 hover:text-[#d1ef75] font-medium"
+                        : "text-gray-400 hover:text-[#d1ef75] font-light"
+                    }`}
                   >
-                    {link.name}
+                    <span>{link.name}</span>
+                    {"badge" in link && Boolean((link as any).badge) && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/60 uppercase tracking-wider">
+                        {(link as any).badge}
+                      </span>
+                    )}
                   </Link>
                 </li>
               ))}
@@ -114,9 +134,18 @@ export default function Footer() {
                 <li key={link.name}>
                   <Link
                     to={link.href}
-                    className="text-gray-400 hover:text-[#d1ef75] transition-colors text-sm font-light font-sans"
+                    className={`transition-colors text-sm font-sans flex items-center gap-2 ${
+                      "badge" in link
+                        ? "text-emerald-400 hover:text-[#d1ef75] font-medium"
+                        : "text-gray-400 hover:text-[#d1ef75] font-light"
+                    }`}
                   >
-                    {link.name}
+                    <span>{link.name}</span>
+                    {"badge" in link && Boolean((link as any).badge) && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800/60 uppercase tracking-wider">
+                        {(link as any).badge}
+                      </span>
+                    )}
                   </Link>
                 </li>
               ))}
