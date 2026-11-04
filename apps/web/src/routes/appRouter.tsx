@@ -1,4 +1,4 @@
-import { createBrowserRouter, Outlet, Navigate } from "react-router-dom";
+import { createBrowserRouter, Outlet, Navigate, useLocation } from "react-router-dom";
 
 // Page & Layout Imports
 import Home from "@/page/website/Home";
@@ -48,6 +48,7 @@ import CoursesBridge from "@/page/website/CoursesBridge";
 import FarmSlotsBridge from "@/page/website/FarmSlotsBridge";
 import AffiliateBridge from "@/page/website/AffiliateBridge";
 import GreenCardCampaign from "@/page/website/funnels/GreenCardCampaign";
+import ClaimAccount from "@/page/website/checkout/ClaimAccount";
 
 export {
   MARKETING_DESTINATIONS,
@@ -58,6 +59,19 @@ export {
   type MarketingCategory,
 } from "./marketingRoutes";
 
+
+const PreservedPayRedirect: React.FC = () => {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  searchParams.set("pay", "true");
+  return <Navigate to={`/gc?${searchParams.toString()}`} replace />;
+};
+
+const PreservedGcRedirect: React.FC = () => {
+  const location = useLocation();
+  return <Navigate to={`/gc${location.search}`} replace />;
+};
+
 export const appRouter = createBrowserRouter([
   // Dedicated Campaign & Marketing Funnel Routes (Standalone full-bleed layout)
   {
@@ -66,12 +80,25 @@ export const appRouter = createBrowserRouter([
     errorElement: <Error />,
   },
   {
+    path: "/pay",
+    element: <PreservedPayRedirect />,
+  },
+  {
+    path: "/join/pay",
+    element: <PreservedPayRedirect />,
+  },
+  {
+    path: "/claim",
+    element: <ClaimAccount />,
+    errorElement: <Error />,
+  },
+  {
     path: "/join/gc",
-    element: <Navigate to="/gc" replace />,
+    element: <PreservedGcRedirect />,
   },
   {
     path: "/join/funnel1",
-    element: <Navigate to="/gc" replace />,
+    element: <PreservedGcRedirect />,
   },
   {
     path: "/in",

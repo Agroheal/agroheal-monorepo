@@ -589,6 +589,67 @@ export const apiClient = {
         ...options,
         method: "POST",
       }),
+    guestInitiate: (data: {
+      fullName: string;
+      email: string;
+      phone: string;
+      amount: number;
+      plan: "green_card" | "combo";
+      sponsorCode?: string;
+    }) =>
+      apiRequest<{
+        txRef: string;
+        amount: number;
+        email: string;
+        phone: string;
+        fullName: string;
+        plan: "green_card" | "combo";
+        category: string;
+        sponsor: {
+          name: string;
+          code: string;
+          id: string | null;
+        };
+        flwPublicKey: string;
+      }>("checkout/guest-initiate", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    claimStatus: (txRef: string) =>
+      apiRequest<{
+        found: boolean;
+        txId: number | string;
+        txRef: string;
+        isPaid: boolean;
+        isClaimed: boolean;
+        claimedUserId: string | null;
+        amount: number;
+        email: string;
+        phone: string;
+        fullName: string;
+        plan: string;
+        category: string;
+        createdAt: string;
+      }>("checkout/claim-status/" + encodeURIComponent(txRef), {
+        method: "GET",
+      }),
+    claimAccount: (data: {
+      txRef: string;
+      email: string;
+      password: string;
+      fullName: string;
+      phone: string;
+    }) =>
+      apiRequest<{
+        userId: string;
+        email: string;
+        fullName: string;
+        memberId?: string;
+        settlement: any;
+      }>("checkout/claim-account", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
   },
 
   /**
