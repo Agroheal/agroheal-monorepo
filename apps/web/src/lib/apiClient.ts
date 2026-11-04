@@ -554,7 +554,7 @@ export const apiClient = {
       userId?: string;
       transactionId?: string;
       paymentReference: string;
-      paymentMethod: "flutterwave" | "wallet";
+      paymentMethod: "flutterwave" | "nomba" | "wallet" | "bank_transfer";
       amount: number;
       category?: string;
       slots?: number;
@@ -615,6 +615,7 @@ export const apiClient = {
       amount: number;
       plan: "green_card" | "combo" | "installment";
       sponsorCode?: string;
+      gateway?: "flutterwave" | "nomba";
     }) =>
       apiRequest<{
         txRef: string;
@@ -624,12 +625,15 @@ export const apiClient = {
         fullName: string;
         plan: "green_card" | "combo" | "installment";
         category: string;
+        gateway?: "flutterwave" | "nomba";
+        checkoutUrl?: string;
+        flwPublicKey?: string;
+        orderId?: string;
         sponsor: {
           name: string;
           code: string;
           id: string | null;
         };
-        flwPublicKey: string;
       }>("checkout/guest-initiate", {
         method: "POST",
         body: JSON.stringify(data),
@@ -726,7 +730,7 @@ export const apiClient = {
 
     recordGatewayPayment: (data: {
       amount: number;
-      paymentMethod: "flutterwave" | "bank_transfer";
+      paymentMethod: "flutterwave" | "nomba" | "bank_transfer";
       reference: string;
       transactionId?: number;
     }) =>

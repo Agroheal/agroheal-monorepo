@@ -17,6 +17,8 @@ import {
 import { apiClient } from "@/lib/apiClient";
 import { supabase } from "@/lib/supabaseClient";
 import { showToast } from "@/components/ui/ToastComponent";
+import { PaymentMethodSelector } from "./PaymentMethodSelector";
+import { usePaymentGateway } from "@/hooks/usePaymentGateway";
 
 const COMMON_TYPOS: Record<string, string> = {
   "gmil.com": "gmail.com",
@@ -47,29 +49,6 @@ function suggestEmailCorrection(email: string): string | null {
   return null;
 }
 
-function ensureFlutterwaveScript(): Promise<void> {
-  if (typeof window !== "undefined" && (window as any).FlutterwaveCheckout) {
-    return Promise.resolve();
-  }
-  return new Promise((resolve, reject) => {
-    const existing = document.getElementById("flutterwave-script");
-    if (existing) {
-      if ((window as any).FlutterwaveCheckout) return resolve();
-      existing.addEventListener("load", () => resolve());
-      existing.addEventListener("error", () =>
-        reject(new Error("Failed to load payment gateway"))
-      );
-    }
-    const script = document.createElement("script");
-    script.id = "flutterwave-script-guest";
-    script.src = "https://checkout.flutterwave.com/v3.js";
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("Could not load payment gateway"));
-    document.body.appendChild(script);
-  });
-}
-
 export type GuestPlanType = "combo" | "installment" | "green_card";
 
 export interface GuestPaymentDrawerProps {
@@ -94,6 +73,8 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
 
   // Step 1 Guest Form State
   const [plan, setPlan] = useState<GuestPlanType>(defaultPlan);
+  const [selectedGateway, setSelectedGateway] = useState<"flutterwave" | "nomba">("flutterwave");
+  const { launchPayment } = usePaymentGateway();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -281,8 +262,6 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
     setIsSubmitting(true);
 
     try {
-      await ensureFlutterwaveScript();
-
       // Call backend to pre-register pending guest transaction and freeze email
       const initRes = await apiClient.checkout.guestInitiate({
         fullName: cleanName,
@@ -291,6 +270,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
         amount: price,
         plan,
         sponsorCode: sponsorCode || "356FV1",
+        gateway: selectedGateway,
       });
 
       const txRef = initRes.txRef;
@@ -304,51 +284,36 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
         });
       }
 
-      const flwKey =
-        initRes.flwPublicKey ||
-        (typeof window !== "undefined" && (window as any).FLUTTERWAVE_PUBLIC_KEY) ||
-        "FLWPUBK-20fafa986173a9b4507c82992f53055b-X";
-
       const title =
         plan === "combo"
           ? "AgroHeal Combo (Green Card + Starter Pack + 1 Farm Slot)"
           : "AgroHeal Loan / Instalment Initial Deposit";
 
-      (window as any).FlutterwaveCheckout({
-        public_key: flwKey,
-        tx_ref: txRef,
+      await launchPayment({
+        gateway: selectedGateway,
         amount: initRes.amount,
-        currency: "NGN",
-        payment_options: "card, banktransfer, ussd",
-        customer: {
-          email: cleanEmail,
-          phone_number: cleanPhone,
-          name: cleanName,
+        txRef,
+        customerEmail: cleanEmail,
+        customerName: cleanName,
+        customerPhone: cleanPhone,
+        title,
+        publicKey: initRes.flwPublicKey,
+        checkoutUrl: initRes.checkoutUrl,
+        onSuccess: async (payRes) => {
+          await executeAutoProvisionAndRedirect(
+            payRes.reference,
+            cleanEmail,
+            cleanName,
+            cleanPhone,
+            password
+          );
         },
-        customizations: {
-          title,
-          description: "Organic Health & Wealth Food Revolution",
-          logo: "https://ptowfacejneezksyhntk.supabase.co/storage/v1/object/sign/agroheal-%20buckets/logo.png",
-        },
-        callback: async (response: any) => {
-          if (
-            response.status === "successful" ||
-            response.status === "completed"
-          ) {
-            // Automatically provision account and redirect straight to dashboard
-            await executeAutoProvisionAndRedirect(
-              txRef,
-              cleanEmail,
-              cleanName,
-              cleanPhone,
-              password
-            );
-          } else {
-            setIsSubmitting(false);
-          }
-        },
-        onclose: () => {
+        onClose: () => {
           setIsSubmitting(false);
+        },
+        onError: (err) => {
+          setIsSubmitting(false);
+          setErrorMessage(err.message || "Payment initialization failed.");
         },
       });
     } catch (err: any) {
@@ -679,6 +644,14 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                 </div>
               </div>
 
+              {/* Payment Gateway Rail Selector (Flutterwave / Nomba) */}
+              <PaymentMethodSelector
+                selectedMethod={selectedGateway}
+                onSelectMethod={(m) => setSelectedGateway(m as "flutterwave" | "nomba")}
+                amount={plan === "combo" ? 15000 : 2000}
+                disabled={isSubmitting}
+              />
+
               {/* Instant Automated Registration Promise */}
               <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200/70 text-xs text-emerald-900 flex items-start space-x-2.5">
                 <Check className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
@@ -709,7 +682,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
 
               <div className="flex items-center justify-center space-x-2 text-[12px] text-gray-500 font-medium">
                 <Lock className="w-3.5 h-3.5 text-gray-400" />
-                <span>256-Bit Encrypted • Card, Bank Transfer, USSD via Flutterwave</span>
+                <span>256-Bit Encrypted • Card, Bank Transfer, USSD via Flutterwave & Nomba</span>
               </div>
 
               {/* Re-check status button if user previously started payment */}

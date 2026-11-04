@@ -17,6 +17,7 @@ import {
   Check,
   MapPin,
   Clock,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -559,7 +560,7 @@ const Checkout = () => {
   };
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"flutterwave" | "wallet">("flutterwave");
+  const [paymentMethod, setPaymentMethod] = useState<"flutterwave" | "nomba" | "wallet">("flutterwave");
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [lockedLedgerBalance, setLockedLedgerBalance] = useState<number>(0);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true);
@@ -786,7 +787,7 @@ const Checkout = () => {
   const incrementSlot = () => setSlotQuantity((q) => Math.min(q + 1, 100));
   const decrementSlot = () => setSlotQuantity((q) => Math.max(q - 1, 1));
 
-  const createCheckout = async (method: "flutterwave" | "wallet" = "flutterwave") => {
+  const createCheckout = async (method: "flutterwave" | "nomba" | "wallet" = "flutterwave") => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -1123,7 +1124,7 @@ const Checkout = () => {
       const txRef = `${txPrefix}_${order.id}_${Date.now()}`;
       await supabase
         .from("transactions")
-        .update({ transaction_ref: txRef })
+        .update({ transaction_ref: txRef, payment_method: paymentMethod })
         .eq("id", order.id);
 
       window.FlutterwaveCheckout({
@@ -1223,7 +1224,7 @@ const Checkout = () => {
                       userId: order.user_id,
                       transactionId: order.id,
                       paymentReference: String(flwTransactionId),
-                      paymentMethod: "flutterwave",
+                      paymentMethod: paymentMethod,
                       amount: totalPrice,
                       category: isInstalmentInitial
                         ? (isExistingGcInstalment ? "Starter Combo Instalment Initial" : "GreenCard Instalment Initial")
@@ -1623,6 +1624,43 @@ const Checkout = () => {
                       name="paymentMethod"
                       checked={paymentMethod === "flutterwave"}
                       onChange={() => setPaymentMethod("flutterwave")}
+                      className="w-4 h-4 text-emerald-800 focus:ring-emerald-800 accent-emerald-800 cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Nomba Option */}
+                  <div
+                    onClick={() => setPaymentMethod("nomba")}
+                    className={`cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between gap-3 select-none ${
+                      paymentMethod === "nomba"
+                        ? "border-emerald-700 bg-emerald-50/50 shadow-xs"
+                        : "border-border hover:border-gray-300 bg-card"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center transition-colors ${
+                          paymentMethod === "nomba"
+                            ? "bg-emerald-800 text-white"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        <Zap className="w-5 h-5 shrink-0" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm text-foreground">
+                          Pay Online with Nomba
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Instant Virtual Account, Transfer, Card, or QR
+                        </p>
+                      </div>
+                    </div>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      checked={paymentMethod === "nomba"}
+                      onChange={() => setPaymentMethod("nomba")}
                       className="w-4 h-4 text-emerald-800 focus:ring-emerald-800 accent-emerald-800 cursor-pointer"
                     />
                   </div>
@@ -2129,7 +2167,7 @@ const Checkout = () => {
                       ) : (
                         <>
                           <Lock className="w-4 h-4 shrink-0" />
-                          <span>Pay ₦{totalPrice.toLocaleString()} with Flutterwave</span>
+                          <span>Pay ₦{totalPrice.toLocaleString()} with {paymentMethod === "nomba" ? "Nomba" : "Flutterwave"}</span>
                         </>
                       )}
                     </Button>

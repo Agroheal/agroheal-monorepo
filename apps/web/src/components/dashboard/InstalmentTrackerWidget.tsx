@@ -18,8 +18,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/apiClient";
-import { FLUTTERWAVE_KEYS } from "@/config/Index";
 import { supabase } from "@/lib/supabaseClient";
+import { PaymentMethodSelector } from "../checkout/PaymentMethodSelector";
+import { usePaymentGateway } from "@/hooks/usePaymentGateway";
 
 interface InstalmentPlanData {
   id: string;
@@ -62,7 +63,8 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [userProfile, setUserProfile] = useState<{ id: string; email: string; full_name?: string; phone?: string } | null>(null);
   const [showPayModal, setShowPayModal] = useState(false);
-  const [selectedMethod, setSelectedMethod] = useState<"wallet" | "flutterwave">("wallet");
+  const [selectedMethod, setSelectedMethod] = useState<"wallet" | "flutterwave" | "nomba">("wallet");
+  const { launchPayment } = usePaymentGateway();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -170,89 +172,68 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
     }
   };
 
-  const handlePayWithFlutterwave = async () => {
+  const handlePayOnline = async () => {
     if (!userProfile) return;
 
-    if (typeof window !== "undefined" && !(window as any).FlutterwaveCheckout) {
-      toast({
-        title: "Payment Gateway Loading",
-        description: "Flutterwave is still loading. Please wait a moment and try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const flwKey =
-      (typeof FLUTTERWAVE_KEYS === "string" ? FLUTTERWAVE_KEYS : (FLUTTERWAVE_KEYS as any)?.publicKey) ||
-      import.meta.env.VITE_FLUTTERWAVE_PUBLIC_KEY ||
-      "FLWPUBK-20fafa986173a9b4507c82992f53055b-X";
-
+    const gateway = selectedMethod === "nomba" ? "nomba" : "flutterwave";
     const txRef = `INST_REPAY_${plan.id}_${Date.now()}`;
     const amountToPay = plan.currentAmountDue;
 
     setIsSubmitting(true);
 
     try {
-      (window as any).FlutterwaveCheckout({
-        public_key: flwKey,
-        tx_ref: txRef,
+      await launchPayment({
+        gateway,
         amount: amountToPay,
-        currency: "NGN",
-        payment_options: "card, banktransfer, ussd",
-        customer: {
-          email: userProfile.email,
-          phone_number: userProfile.phone || "",
-          name: userProfile.full_name || userProfile.email,
-        },
-        meta: {
-          plan_id: plan.id,
-          user_id: userProfile.id,
-          isInstalmentRepayment: true,
-          type: "instalment_repayment",
-        },
-        customizations: {
-          title: `AgroHeal GreenCard Instalment (₦${amountToPay.toLocaleString()})`,
-          description: isOverdue
-            ? `Weekly Instalment + Overdue Surcharge (Week ${plan.currentWeek})`
-            : `Weekly Instalment (Week ${plan.currentWeek})`,
-          logo: "https://ptowfacejneezksyhntk.supabase.co/storage/v1/object/sign/agroheal-%20buckets/logo.png",
-        },
-        onclose: () => {
-          setIsSubmitting(false);
-        },
-        callback: async (response: any) => {
-          if (response.status === "successful" || response.status === "completed") {
-            const flwTransactionId = response.transaction_id || response.id || response.flw_ref;
-            try {
-              await apiClient.instalments.recordGatewayPayment({
-                amount: amountToPay,
-                paymentMethod: "flutterwave",
-                reference: String(flwTransactionId || txRef),
-              });
+        txRef,
+        customerEmail: userProfile.email,
+        customerName: userProfile.full_name || userProfile.email,
+        customerPhone: userProfile.phone || "",
+        title: `AgroHeal GreenCard Instalment (₦${amountToPay.toLocaleString()})`,
+        description: isOverdue
+          ? `Weekly Instalment + Overdue Surcharge (Week ${plan.currentWeek})`
+          : `Weekly Instalment (Week ${plan.currentWeek})`,
+        onSuccess: async (payRes) => {
+          try {
+            await apiClient.instalments.recordGatewayPayment({
+              amount: amountToPay,
+              paymentMethod: gateway,
+              reference: payRes.reference,
+            });
 
-              toast({
-                title: "Instalment Paid! 🎉",
-                description: `Your payment of ₦${amountToPay.toLocaleString()} has been confirmed.`,
-              });
+            toast({
+              title: "Instalment Paid! 🎉",
+              description: `Your payment of ₦${amountToPay.toLocaleString()} has been confirmed.`,
+            });
 
-              setShowPayModal(false);
-              await fetchPlanData();
-              if (onPlanUpdated) onPlanUpdated();
-            } catch (recordErr: any) {
-              console.warn("[Instalment] Repayment settlement record notice:", recordErr.message);
-              // Fallback verification
-              await fetchPlanData();
-              setShowPayModal(false);
-            }
+            setShowPayModal(false);
+            await fetchPlanData();
+            if (onPlanUpdated) onPlanUpdated();
+          } catch (recordErr: any) {
+            console.warn("[Instalment] Repayment settlement record notice:", recordErr.message);
+            await fetchPlanData();
+            setShowPayModal(false);
+          } finally {
+            setIsSubmitting(false);
           }
+        },
+        onClose: () => {
           setIsSubmitting(false);
+        },
+        onError: (err) => {
+          setIsSubmitting(false);
+          toast({
+            title: "Payment Error",
+            description: err.message || "Failed to initialize payment gateway.",
+            variant: "destructive",
+          });
         },
       });
     } catch (err: any) {
       setIsSubmitting(false);
       toast({
         title: "Payment Error",
-        description: err.message || "Failed to initialize Flutterwave.",
+        description: err.message || "Failed to initialize payment gateway.",
         variant: "destructive",
       });
     }
@@ -488,71 +469,14 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                    Select Payment Method
-                  </label>
-
-                  {/* Wallet Balance Option */}
-                  <div
-                    onClick={() => setSelectedMethod("wallet")}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
-                      selectedMethod === "wallet"
-                        ? "border-emerald-600 bg-emerald-50/50 shadow-sm"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700">
-                        <Wallet className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-gray-900">Available Wallet Balance</div>
-                        <div className="text-xs text-gray-500 font-mono">
-                          Balance: ₦{walletBalance.toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                      selectedMethod === "wallet" ? "border-emerald-600 bg-emerald-600" : "border-gray-300"
-                    }`}>
-                      {selectedMethod === "wallet" && <div className="w-2 h-2 rounded-full bg-white" />}
-                    </div>
-                  </div>
-
-                  {/* Flutterwave Option */}
-                  <div
-                    onClick={() => setSelectedMethod("flutterwave")}
-                    className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-center justify-between ${
-                      selectedMethod === "flutterwave"
-                        ? "border-emerald-600 bg-emerald-50/50 shadow-sm"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                        <CreditCard className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-gray-900">Flutterwave</div>
-                        <div className="text-xs text-gray-500">
-                          Debit Card, Bank Transfer, or USSD
-                        </div>
-                      </div>
-                    </div>
-                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                      selectedMethod === "flutterwave" ? "border-emerald-600 bg-emerald-600" : "border-gray-300"
-                    }`}>
-                      {selectedMethod === "flutterwave" && <div className="w-2 h-2 rounded-full bg-white" />}
-                    </div>
-                  </div>
-                </div>
-
-                {selectedMethod === "wallet" && walletBalance < plan.currentAmountDue && (
-                  <div className="text-xs text-red-600 bg-red-50 p-3 rounded-xl border border-red-100">
-                    Your available balance (₦{walletBalance.toLocaleString()}) is insufficient for this ₦{plan.currentAmountDue.toLocaleString()} payment. Please choose Flutterwave.
-                  </div>
-                )}
+                <PaymentMethodSelector
+                  selectedMethod={selectedMethod}
+                  onSelectMethod={setSelectedMethod}
+                  amount={plan.currentAmountDue}
+                  showWallet={true}
+                  walletBalance={walletBalance}
+                  disabled={isSubmitting}
+                />
               </div>
 
               <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-3">
@@ -568,7 +492,7 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
                 <Button
                   size="sm"
                   disabled={isSubmitting || (selectedMethod === "wallet" && walletBalance < plan.currentAmountDue)}
-                  onClick={selectedMethod === "wallet" ? handlePayWithWallet : handlePayWithFlutterwave}
+                  onClick={selectedMethod === "wallet" ? handlePayWithWallet : handlePayOnline}
                   className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                 >
                   {isSubmitting ? (
