@@ -46,6 +46,8 @@ import { AgrohealImages } from "@/constant/Image";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { Skeleton } from "@/components/ui/skeleton";
 import WithdrawalModal from "@/components/wallet/WithdrawalModal";
+import ProfileCompletionModal from "@/components/dashboard/ProfileCompletionModal";
+import { useAuth } from "@/hooks/useAuth";
 import { ReleaseConditionsModal } from "@/components/wallet/ReleaseConditionsModal";
 import { DataPagination } from "@/components/ui/pagination";
 
@@ -88,6 +90,8 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
     }
   }, [location.pathname, defaultMode]);
 
+  const { profile: authProfile, kinDetails, isProfileIncomplete, refreshProfile } = useAuth();
+  const [showProfileCompletionModal, setShowProfileCompletionModal] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [memberId, setMemberId] = useState<string>("NO GREENCARD YET");
   const [userProfile, setUserProfile] = useState<{
@@ -134,6 +138,14 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
   const [showRequeryModal, setShowRequeryModal] = useState<boolean>(false);
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState<boolean>(false);
   const [isReleaseModalOpen, setIsReleaseModalOpen] = useState<boolean>(false);
+
+  const handleInitiateWithdrawal = () => {
+    if (isProfileIncomplete) {
+      setShowProfileCompletionModal(true);
+      return;
+    }
+    setIsWithdrawModalOpen(true);
+  };
   const [isProjectSubscribed, setIsProjectSubscribed] = useState<boolean>(false);
   const [hasFarmSlotState, setHasFarmSlotState] = useState<boolean>(false);
   const [hasMushroomPowerState, setHasMushroomPowerState] = useState<boolean>(false);
@@ -1571,9 +1583,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
 
                   <Button
                     disabled={availableBalance < 2000}
-                    onClick={() => {
-                      setIsWithdrawModalOpen(true);
-                    }}
+                    onClick={handleInitiateWithdrawal}
                     className={`w-full h-9 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-1.5 ${
                       availableBalance >= 2000
                         ? "bg-emerald-700 hover:bg-emerald-600 text-white shadow-xs cursor-pointer"
@@ -2279,9 +2289,38 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           advanceDebt={advanceDebt}
           onOpenWithdrawal={() => {
             setIsReleaseModalOpen(false);
-            setIsWithdrawModalOpen(true);
+            handleInitiateWithdrawal();
           }}
         />
+
+        {/* Profile & Next of Kin Completion Gate on Withdrawal Initiation */}
+        {showProfileCompletionModal && (authProfile || userProfile) && (
+          <ProfileCompletionModal
+            userId={authProfile?.id || (userProfile as any)?.id || ""}
+            initialPhone={authProfile?.phone || (userProfile as any)?.phone}
+            initialCountry={authProfile?.country || "Nigeria"}
+            initialState={authProfile?.state || (userProfile as any)?.state || ""}
+            initialLga={authProfile?.lga || (userProfile as any)?.lga || ""}
+            initialKin={kinDetails}
+            initialBank={{
+              bank_name: userProfile?.bank_name,
+              bank_account_number: userProfile?.bank_account_number,
+              bank_account_name: userProfile?.bank_account_name,
+              bank_code: userProfile?.bank_code,
+              bank_updated_at: userProfile?.bank_updated_at,
+              bank_verified: userProfile?.bank_verified,
+            }}
+            defaultOpenBankSection={!userProfile?.bank_name}
+            canDismiss={true}
+            onClose={() => setShowProfileCompletionModal(false)}
+            onComplete={async () => {
+              setShowProfileCompletionModal(false);
+              await refreshProfile();
+              await loadLedger();
+              setIsWithdrawModalOpen(true);
+            }}
+          />
+        )}
     </div>
   );
 };

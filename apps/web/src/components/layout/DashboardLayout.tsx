@@ -28,7 +28,6 @@ import { useAuth } from "@/hooks/useAuth";
 import NotificationBell from "./NotificationBell";
 import HowItWorksContent from "@/components/webComponents/HowItWorksContent";
 import UserAvatar from "@/components/ui/UserAvatar";
-import ProfileCompletionModal from "@/components/dashboard/ProfileCompletionModal";
 import BroadcastAnnouncementModal from "@/components/dashboard/BroadcastAnnouncementModal";
 import { CutoverCountdownBanner } from "@/components/common/CutoverCountdownBanner";
 import EmailVerificationBanner from "@/components/dashboard/EmailVerificationBanner";
@@ -650,12 +649,7 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [howItWorksOpen, setHowItWorksOpen] = useState(false);
-  const { session, profile, kinDetails, isProfileIncomplete } = useAuth();
-  const [profileIncomplete, setProfileIncomplete] = useState<boolean>(false);
-
-  useEffect(() => {
-    setProfileIncomplete(isProfileIncomplete);
-  }, [isProfileIncomplete]);
+  const { session, profile } = useAuth();
 
   const normalizedPath = normalizePath(pathname);
 
@@ -1071,20 +1065,6 @@ const DashboardLayout = () => {
         </main>
       </div>
 
-      {profileIncomplete && profile && (
-        <ProfileCompletionModal
-          userId={profile.id}
-          initialPhone={profile.phone}
-          initialCountry={profile.country || "Nigeria"}
-          initialState={profile.state || ""}
-          initialLga={profile.lga || ""}
-          initialKin={kinDetails}
-          canDismiss={false}
-          onComplete={() => {
-            setProfileIncomplete(false);
-          }}
-        />
-      )}
 
       {/* Unskippable 5-Second Broadcast Announcement Modal */}
       <BroadcastAnnouncementModal />
