@@ -13,7 +13,7 @@ import {
   Share2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { isLegacyMember, formatNaira } from "@shared/businessRules";
+import { isLegacyMember, formatNaira, isGreenCardHolder, hasPurchasedStarterPack as checkHasPurchasedStarterPack, isThreeStepQualified } from "@shared/businessRules";
 import { getEntryPricing } from "@shared/cutover";
 
 export interface JourneyProgressionHeaderProps {
@@ -93,6 +93,18 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   let onCtaClick = () => navigate("/dashboard/checkout?bundle=starter");
   let isWarning = true;
 
+  const handleMilestone2Click = () => {
+    if (isMemberLegacy) {
+      navigate("/dashboard/checkout?product=SP-MUSH-100G");
+    } else if (hasPurchasedStarterPack && totalSlots === 0) {
+      navigate("/dashboard/farm-operations/buy-slots");
+    } else if (totalSlots > 0 && !hasPurchasedStarterPack) {
+      navigate("/dashboard/checkout?product=SP-MUSH-100G");
+    } else {
+      navigate("/dashboard/checkout?bundle=starter");
+    }
+  };
+
   if (isMemberLegacy && !hasPurchasedStarterPack) {
     statusBadge = "Founding Member";
     headline = `Activate Mushroom Power 100g (${starterPackFee})`;
@@ -100,13 +112,36 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
     ctaText = `Activate (${starterPackFee})`;
     onCtaClick = () => navigate("/dashboard/checkout?product=SP-MUSH-100G");
     isWarning = true;
-  } else if (!isMemberLegacy && (!isStep1Done || !isStep2Done)) {
+  } else if (!isMemberLegacy && !isStep1Done) {
     statusBadge = "Starter Package Pending";
     headline = `Activate ${totalStarterFee} Starter Package`;
     shortSummary = `Green Card (${greenCardFee}), Mushroom Power 100g (${starterPackFee}) & 1st Farm Slot (${farmSlotFee}) to lock your permanent node.`;
     ctaText = `Activate (${totalStarterFee})`;
     onCtaClick = () => navigate("/dashboard/checkout?bundle=starter");
     isWarning = true;
+  } else if (!isMemberLegacy && isStep1Done && !isStep2Done) {
+    if (hasPurchasedStarterPack && totalSlots === 0) {
+      statusBadge = "1st Farm Slot Pending";
+      headline = `Subscribe to 1st Farm Slot (${farmSlotFee})`;
+      shortSummary = `Green Card & welcome product are active. Subscribe to your 1st Farm Slot (${farmSlotFee}) to lock your permanent matrix placement.`;
+      ctaText = `Subscribe (${farmSlotFee})`;
+      onCtaClick = () => navigate("/dashboard/farm-operations/buy-slots");
+      isWarning = true;
+    } else if (totalSlots > 0 && !hasPurchasedStarterPack) {
+      statusBadge = "Welcome Product Pending";
+      headline = `Activate Mushroom Power 100g (${starterPackFee})`;
+      shortSummary = `Green Card & farm slot are active. Order Mushroom Power 100g (${starterPackFee}) to unlock matrix commissions & bank withdrawals.`;
+      ctaText = `Order Now (${starterPackFee})`;
+      onCtaClick = () => navigate("/dashboard/checkout?product=SP-MUSH-100G");
+      isWarning = true;
+    } else {
+      statusBadge = "Milestone 2 Incomplete";
+      headline = `Complete Starter Package Upgrade (${comboFee})`;
+      shortSummary = `Green Card is active! Complete Milestone 2 with Mushroom Power 100g (${starterPackFee}) & 1st Farm Slot (${farmSlotFee}) to lock your matrix node.`;
+      ctaText = `Complete Setup (${comboFee})`;
+      onCtaClick = () => navigate("/dashboard/checkout?bundle=starter");
+      isWarning = true;
+    }
   } else if (directReferralsCount < 5) {
     statusBadge = `${directReferralsCount}/5 Directs`;
     headline = `Sponsor ${5 - directReferralsCount} More Direct Partner(s)`;
@@ -304,6 +339,10 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               <p className="text-[11.5px] text-slate-700 dark:text-slate-200 leading-relaxed mb-2.5 font-medium">
                 {isMemberLegacy
                   ? `Activate Mushroom Power 100g (${starterPackFee}) to unlock full withdrawals & 5×7 matrix organogram.`
+                  : hasPurchasedStarterPack && totalSlots === 0
+                  ? `Welcome product is active! Subscribe to your 1st Farm Slot (${farmSlotFee}) to lock your permanent matrix placement & bank withdrawals.`
+                  : totalSlots > 0 && !hasPurchasedStarterPack
+                  ? `Farm slot is active! Order Mushroom Power 100g (${starterPackFee}) to unlock full matrix commissions & bank withdrawals.`
                   : `Included in ${totalStarterFee} package: Mushroom Power 100g (${starterPackFee}) + 1st Farm Slot (${farmSlotFee}) locking your permanent matrix placement & bank withdrawals.`}
               </p>
             </div>
@@ -322,16 +361,16 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               ) : (
                 <button
                   type="button"
-                  onClick={() =>
-                    navigate(
-                      isMemberLegacy
-                        ? "/dashboard/checkout?product=SP-MUSH-100G"
-                        : "/dashboard/checkout?bundle=starter"
-                    )
-                  }
+                  onClick={handleMilestone2Click}
                   className="text-amber-700 dark:text-amber-400 hover:underline font-bold inline-flex items-center gap-0.5 text-[11px] cursor-pointer"
                 >
-                  {isMemberLegacy ? `Activate ${starterPackFee}` : `Activate ${totalStarterFee}`} <ArrowRight className="w-3 h-3" />
+                  {isMemberLegacy
+                    ? `Activate ${starterPackFee}`
+                    : hasPurchasedStarterPack && totalSlots === 0
+                    ? `Subscribe ${farmSlotFee}`
+                    : totalSlots > 0 && !hasPurchasedStarterPack
+                    ? `Activate ${starterPackFee}`
+                    : `Activate ${comboFee}`} <ArrowRight className="w-3 h-3" />
                 </button>
               )}
             </div>
