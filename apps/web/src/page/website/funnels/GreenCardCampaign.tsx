@@ -42,9 +42,9 @@ export const GreenCardCampaign: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [activeVideoModal, setActiveVideoModal] = useState<ActiveVideo | null>(null);
   const [isPaymentDrawerOpen, setIsPaymentDrawerOpen] = useState(false);
-  const [drawerPlan, setDrawerPlan] = useState<"green_card" | "combo">("green_card");
+  const [drawerPlan, setDrawerPlan] = useState<"green_card" | "combo">("combo");
 
-  const openPaymentDrawer = (planToOpen: "green_card" | "combo" = "green_card") => {
+  const openPaymentDrawer = (planToOpen: "green_card" | "combo" = "combo") => {
     setDrawerPlan(planToOpen);
     setIsPaymentDrawerOpen(true);
   };
@@ -55,8 +55,8 @@ export const GreenCardCampaign: React.FC = () => {
       searchParams.get("action") === "checkout" ||
       searchParams.get("checkout") === "true";
     if (shouldOpen) {
-      const p = searchParams.get("plan") || searchParams.get("bundle");
-      const chosenPlan = p === "combo" || p === "starter" ? "combo" : "green_card";
+      const p = (searchParams.get("plan") || searchParams.get("bundle") || "").toLowerCase();
+      const chosenPlan = (p === "installment" || p === "instalment" || p === "loan" || p === "deposit") ? "green_card" : "combo";
       openPaymentDrawer(chosenPlan);
     }
   }, [searchParams]);
@@ -192,7 +192,7 @@ export const GreenCardCampaign: React.FC = () => {
               >
                 WhatsApp
               </a>
-              <a className="btn small register-link" href={onPageSignupUrl} onClick={(e) => { e.preventDefault(); openPaymentDrawer("green_card"); }}>
+              <a className="btn small register-link" href={onPageSignupUrl} onClick={(e) => { e.preventDefault(); openPaymentDrawer("combo"); }}>
                 Get Green Card
               </a>
             </div>
@@ -245,7 +245,7 @@ export const GreenCardCampaign: React.FC = () => {
 
             {/* CTAs Placed Immediately Below Hero & Explainer - Above the Fold */}
             <div className="actions hero-actions">
-              <a className="btn register-link" href={onPageSignupUrl} onClick={(e) => { e.preventDefault(); openPaymentDrawer("green_card"); }}>
+              <a className="btn register-link" href={onPageSignupUrl} onClick={(e) => { e.preventDefault(); openPaymentDrawer("combo"); }}>
                 GET THE GREENCARD →
               </a>
               <a
@@ -623,7 +623,7 @@ export const GreenCardCampaign: React.FC = () => {
                 <div className="ico">🟠</div>
                 <h3>Ready to register?</h3>
                 <p>Use the official registration link and review the programme terms.</p>
-                <a className="btn register-link" href={onPageSignupUrl} style={{ marginTop: "15px" }} onClick={(e) => { e.preventDefault(); openPaymentDrawer("green_card"); }}>
+                <a className="btn register-link" href={onPageSignupUrl} style={{ marginTop: "15px" }} onClick={(e) => { e.preventDefault(); openPaymentDrawer("combo"); }}>
                   GET MY GREEN CARD
                 </a>
               </article>
@@ -700,7 +700,7 @@ export const GreenCardCampaign: React.FC = () => {
               Producer–Consumer Organic Food Ecosystem.
             </p>
             <div className="actions" style={{ justifyContent: "center" }}>
-              <a className="btn register-link" href={onPageSignupUrl} onClick={(e) => { e.preventDefault(); openPaymentDrawer("green_card"); }}>
+              <a className="btn register-link" href={onPageSignupUrl} onClick={(e) => { e.preventDefault(); openPaymentDrawer("combo"); }}>
                 GET MY GREEN CARD NOW →
               </a>
               <a
@@ -757,7 +757,7 @@ export const GreenCardCampaign: React.FC = () => {
       {!isPaymentDrawerOpen && (
         <div className="sticky">
           <div className="wrap">
-            <a className="btn register-link" href={stickySignupUrl} onClick={(e) => { e.preventDefault(); openPaymentDrawer("green_card"); }}>
+            <a className="btn register-link" href={stickySignupUrl} onClick={(e) => { e.preventDefault(); openPaymentDrawer("combo"); }}>
               GET GREEN CARD
             </a>
             <a
@@ -804,7 +804,7 @@ export const GreenCardCampaign: React.FC = () => {
             </div>
             <div className="funnel-video-modal-footer">
               <span>Agroheal Green Card Experience</span>
-              <a href={onPageSignupUrl} onClick={(e) => { e.preventDefault(); setActiveVideoModal(null); openPaymentDrawer("green_card"); }}>Get Green Card Now →</a>
+              <a href={onPageSignupUrl} onClick={(e) => { e.preventDefault(); setActiveVideoModal(null); openPaymentDrawer("combo"); }}>Get Green Card Now →</a>
             </div>
           </div>
         </div>
