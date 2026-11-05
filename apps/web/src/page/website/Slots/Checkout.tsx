@@ -1394,6 +1394,52 @@ const Checkout = () => {
     }
   };
 
+  const handleNomba = async () => {
+    setIsProcessing(true);
+    const order = await createCheckout("nomba");
+    if (!order) {
+      setIsProcessing(false);
+      return;
+    }
+
+    try {
+      const plan = isInstalmentInitial
+        ? "installment"
+        : isCombo
+        ? "combo"
+        : "green_card";
+
+      const initRes = await apiClient.checkout.guestInitiate({
+        fullName: `${cleanName(formData.firstName)} ${cleanName(formData.lastName)}`.trim(),
+        email: cleanEmail(formData.email) || currentUser?.email || "",
+        phone: normalizePhoneNumber(formData.phone) || "",
+        amount: totalPrice,
+        plan,
+        sponsorCode: codeParam || searchParams.get("ref") || "356FV1",
+        gateway: "nomba",
+      });
+
+      if (initRes.checkoutUrl) {
+        window.location.href = initRes.checkoutUrl;
+      } else {
+        toast({
+          title: "Gateway Initializing",
+          description: "Unable to retrieve Nomba checkout link. Please try again or use Flutterwave.",
+          variant: "destructive",
+        });
+        setIsProcessing(false);
+      }
+    } catch (error: any) {
+      Sentry.captureException(error);
+      toast({
+        title: "Payment Error",
+        description: error instanceof Error ? error.message : "Failed to initialize Nomba payment.",
+        variant: "destructive",
+      });
+      setIsProcessing(false);
+    }
+  };
+
   const handlePayClick = () => {
     // Only enforce phone number for guests without an authenticated session
     if (!currentUser) {
@@ -1424,6 +1470,8 @@ const Checkout = () => {
 
     if (paymentMethod === "wallet") {
       handleWalletPayment();
+    } else if (paymentMethod === "nomba") {
+      handleNomba();
     } else {
       handleFlutterwave();
     }
@@ -1646,8 +1694,7 @@ const Checkout = () => {
                     />
                   </div>
 
-                  {/* Nomba Option (UI commented out for now as requested) */}
-                  {/*
+                  {/* Nomba Option */}
                   <div
                     onClick={() => setPaymentMethod("nomba")}
                     className={`cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between gap-3 select-none ${
@@ -1683,7 +1730,6 @@ const Checkout = () => {
                       className="w-4 h-4 text-emerald-800 focus:ring-emerald-800 accent-emerald-800 cursor-pointer"
                     />
                   </div>
-                  */}
 
                   {/* Pay from Wallet Balance (Temporarily disabled/commented out as requested) */}
                   {/*
@@ -2188,6 +2234,11 @@ const Checkout = () => {
                         <>
                           <Wallet className="w-4 h-4 shrink-0" />
                           <span>Pay ₦{totalPrice.toLocaleString()} from Wallet</span>
+                        </>
+                      ) : paymentMethod === "nomba" ? (
+                        <>
+                          <Zap className="w-4 h-4 shrink-0" />
+                          <span>Pay ₦{totalPrice.toLocaleString()} with Nomba</span>
                         </>
                       ) : (
                         <>
