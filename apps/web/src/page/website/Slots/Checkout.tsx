@@ -834,6 +834,17 @@ const Checkout = () => {
       return null;
     }
 
+    const txPrefix = isInstalmentInitial
+      ? (isExistingGcInstalment ? "COMBO_INST" : "GC_INST")
+      : isCombo
+      ? "COMBO"
+      : isGreenCardOnly
+      ? "GC"
+      : isStarterPack
+      ? "SP"
+      : "SLOT";
+    const initialTxRef = `${txPrefix}_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+
     const { data, error } = await supabase
       .from("transactions")
       .insert([
@@ -843,8 +854,9 @@ const Checkout = () => {
           last_name: cleanLastName,
           email: normalizedEmail,
           phone: normalizedPhone,
-          amount: totalPrice,
+          amount: String(totalPrice),
           payment_method: method,
+          transaction_ref: initialTxRef,
           status: "pending",
           state: formData.state || null,
           lga: formData.lga || null,
@@ -1121,11 +1133,17 @@ const Checkout = () => {
         : isStarterPack
         ? "SP"
         : "SLOT";
-      const txRef = `${txPrefix}_${order.id}_${Date.now()}`;
-      await supabase
-        .from("transactions")
-        .update({ transaction_ref: txRef, payment_method: paymentMethod })
-        .eq("id", order.id);
+      const txRef = order.transaction_ref || `${txPrefix}_${order.id}_${Date.now()}`;
+      if (!order.transaction_ref) {
+        try {
+          await supabase
+            .from("transactions")
+            .update({ transaction_ref: txRef, payment_method: paymentMethod })
+            .eq("id", order.id);
+        } catch (upErr) {
+          console.warn("Non-blocking txRef update notice:", upErr);
+        }
+      }
 
       window.FlutterwaveCheckout({
         public_key: flwKey,
@@ -1823,6 +1841,11 @@ const Checkout = () => {
                                 ? "One-time payment for 1 Farm Slot & Mushroom Power 100g."
                                 : "One-time payment. Instant GreenCard, 1 Farm Slot, & Starter Pack."}
                             </p>
+                            <div className="pl-6 pt-1.5">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
+                                ⚡ Installment payment available
+                              </span>
+                            </div>
                           </div>
 
                           {/* Option 2: Weekly Instalment Radio Box */}

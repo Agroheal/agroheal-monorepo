@@ -561,6 +561,9 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                           Includes <strong>1 Organic Farm Slot</strong> (₦10,000) +{" "}
                           <strong>Starter Product Pack</strong> (₦3,000) + Green Card (₦2,000).
                         </p>
+                        <span className="inline-block mt-1.5 text-[10px] font-bold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded border border-emerald-300">
+                          ⚡ Installment payment available below (from ₦2,000 today)
+                        </span>
                       </div>
                     </div>
                     <div className="text-right">
