@@ -1,6 +1,10 @@
 # AgroHeal Development & Enhancement TODO
 
 ## High Priority (Immediate / ASAP)
+- [ ] **Default Payment Gateway & Non-Default Installment Policy**:
+  - **Nomba Default Gateway**: Position Nomba as the first payment option and select it by default across all checkout and registration drawers/flows (over Flutterwave).
+  - **Installment Non-Default Invariant**: Payment in installments must NEVER be the default option; full upfront payment (Starter Combo or Green Card) must strictly remain default across all forms, checkout flows, and drawers unless explicitly opted into by the user.
+
 - [ ] **Universal ₦10,000 30-Day PQV Withdrawal Requirement (Policy Consideration)**:
   - Minimum ₦10,000 rolling 30-day PQV (personal product purchases or farm slot renewals) may be established as a mandatory requirement for **all** external bank withdrawals, rather than applying solely to 5×7 matrix spillover and product network commissions.
   - Evaluate cooperative cashflow and communicate to community leadership prior to enforcing on direct sponsor referrals.

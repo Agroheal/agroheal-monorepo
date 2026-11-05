@@ -560,7 +560,7 @@ const Checkout = () => {
   };
 
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"flutterwave" | "nomba" | "wallet">("flutterwave");
+  const [paymentMethod, setPaymentMethod] = useState<"flutterwave" | "nomba" | "wallet">("nomba");
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [lockedLedgerBalance, setLockedLedgerBalance] = useState<number>(0);
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true);
@@ -1657,43 +1657,6 @@ const Checkout = () => {
                 </div>
 
                 <div className="space-y-3">
-                  {/* Flutterwave Option */}
-                  <div
-                    onClick={() => setPaymentMethod("flutterwave")}
-                    className={`cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between gap-3 select-none ${
-                      paymentMethod === "flutterwave"
-                        ? "border-emerald-700 bg-emerald-50/50 shadow-xs"
-                        : "border-border hover:border-gray-300 bg-card"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div
-                        className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center transition-colors ${
-                          paymentMethod === "flutterwave"
-                            ? "bg-emerald-800 text-white"
-                            : "bg-muted text-muted-foreground"
-                        }`}
-                      >
-                        <CreditCard className="w-5 h-5 shrink-0" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-bold text-sm text-foreground">
-                          Pay Online with Flutterwave
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Instant Card, Bank Transfer, or USSD
-                        </p>
-                      </div>
-                    </div>
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      checked={paymentMethod === "flutterwave"}
-                      onChange={() => setPaymentMethod("flutterwave")}
-                      className="w-4 h-4 text-emerald-800 focus:ring-emerald-800 accent-emerald-800 cursor-pointer"
-                    />
-                  </div>
-
                   {/* Nomba Option */}
                   <div
                     onClick={() => setPaymentMethod("nomba")}
@@ -1727,6 +1690,43 @@ const Checkout = () => {
                       name="paymentMethod"
                       checked={paymentMethod === "nomba"}
                       onChange={() => setPaymentMethod("nomba")}
+                      className="w-4 h-4 text-emerald-800 focus:ring-emerald-800 accent-emerald-800 cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Flutterwave Option */}
+                  <div
+                    onClick={() => setPaymentMethod("flutterwave")}
+                    className={`cursor-pointer rounded-xl border-2 p-4 transition-all flex items-center justify-between gap-3 select-none ${
+                      paymentMethod === "flutterwave"
+                        ? "border-emerald-700 bg-emerald-50/50 shadow-xs"
+                        : "border-border hover:border-gray-300 bg-card"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center transition-colors ${
+                          paymentMethod === "flutterwave"
+                            ? "bg-emerald-800 text-white"
+                            : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        <CreditCard className="w-5 h-5 shrink-0" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-bold text-sm text-foreground">
+                          Pay Online with Flutterwave
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Instant Card, Bank Transfer, or USSD
+                        </p>
+                      </div>
+                    </div>
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      checked={paymentMethod === "flutterwave"}
+                      onChange={() => setPaymentMethod("flutterwave")}
                       className="w-4 h-4 text-emerald-800 focus:ring-emerald-800 accent-emerald-800 cursor-pointer"
                     />
                   </div>

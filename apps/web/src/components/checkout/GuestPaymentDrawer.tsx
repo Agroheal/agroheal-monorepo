@@ -73,7 +73,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
 
   // Step 1 Guest Form State
   const [plan, setPlan] = useState<GuestPlanType>(defaultPlan);
-  const [selectedGateway, setSelectedGateway] = useState<"flutterwave" | "nomba">("flutterwave");
+  const [selectedGateway, setSelectedGateway] = useState<"flutterwave" | "nomba">("nomba");
   const { launchPayment } = usePaymentGateway();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");

@@ -99,49 +99,6 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
           </div>
         )}
 
-        {/* Flutterwave Option */}
-        <div
-          onClick={() => !disabled && onSelectMethod("flutterwave")}
-          className={`relative p-3.5 rounded-xl border transition-all cursor-pointer ${
-            selectedMethod === "flutterwave"
-              ? "border-emerald-600 bg-emerald-50/70 shadow-sm ring-1 ring-emerald-500"
-              : "border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/30"
-          }`}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
-                  selectedMethod === "flutterwave"
-                    ? "bg-emerald-600 text-white"
-                    : "bg-orange-50 text-orange-600 border border-orange-200"
-                }`}
-              >
-                <CreditCard className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-gray-900">Flutterwave</span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-800">
-                    Card • Transfer • USSD
-                  </span>
-                </div>
-                <p className="text-xs text-gray-500">Pay via ATM Card, Bank Transfer, or USSD</p>
-              </div>
-            </div>
-
-            <div
-              className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
-                selectedMethod === "flutterwave"
-                  ? "border-emerald-600 bg-emerald-600 text-white"
-                  : "border-gray-300 bg-white"
-              }`}
-            >
-              {selectedMethod === "flutterwave" && <Check className="w-3 h-3 stroke-[3]" />}
-            </div>
-          </div>
-        </div>
-
         {/* Nomba Option */}
         <div
           onClick={() => !disabled && onSelectMethod("nomba")}
@@ -183,6 +140,49 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
               }`}
             >
               {selectedMethod === "nomba" && <Check className="w-3 h-3 stroke-[3]" />}
+            </div>
+          </div>
+        </div>
+
+        {/* Flutterwave Option */}
+        <div
+          onClick={() => !disabled && onSelectMethod("flutterwave")}
+          className={`relative p-3.5 rounded-xl border transition-all cursor-pointer ${
+            selectedMethod === "flutterwave"
+              ? "border-emerald-600 bg-emerald-50/70 shadow-sm ring-1 ring-emerald-500"
+              : "border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/30"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+                  selectedMethod === "flutterwave"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-orange-50 text-orange-600 border border-orange-200"
+                }`}
+              >
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-gray-900">Flutterwave</span>
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-100 text-orange-800">
+                    Card • Transfer • USSD
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500">Pay via ATM Card, Bank Transfer, or USSD</p>
+              </div>
+            </div>
+
+            <div
+              className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+                selectedMethod === "flutterwave"
+                  ? "border-emerald-600 bg-emerald-600 text-white"
+                  : "border-gray-300 bg-white"
+              }`}
+            >
+              {selectedMethod === "flutterwave" && <Check className="w-3 h-3 stroke-[3]" />}
             </div>
           </div>
         </div>
