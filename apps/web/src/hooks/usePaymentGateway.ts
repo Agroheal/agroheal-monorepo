@@ -15,7 +15,7 @@ export interface LaunchPaymentOptions {
   logoUrl?: string;
   publicKey?: string;
   checkoutUrl?: string; // Nomba hosted checkout link
-  onSuccess: (data: { reference: string; gateway: SupportedPaymentGateway; raw?: any }) => void;
+  onSuccess: (data: { reference: string; gatewayRef?: string; gateway: SupportedPaymentGateway; raw?: any }) => void;
   onClose?: () => void;
   onError?: (error: Error) => void;
 }
@@ -108,10 +108,17 @@ export function usePaymentGateway() {
               (response.data && response.data.status === "successful");
 
             if (isSuccess) {
+              const flwNumericId = response.transaction_id || response.id || response.flw_ref;
+              // Prioritize our business transaction reference (tx_ref) so downstream lookups and claim account find the pending transaction immediately
               const confirmedRef = String(
-                response.transaction_id || response.tx_ref || response.flw_ref || txRef
+                response.tx_ref || txRef || flwNumericId
               );
-              onSuccess({ reference: confirmedRef, gateway: "flutterwave", raw: response });
+              onSuccess({
+                reference: confirmedRef,
+                gatewayRef: flwNumericId ? String(flwNumericId) : undefined,
+                gateway: "flutterwave",
+                raw: response,
+              });
             } else {
               onError?.(new Error("Payment was not completed successfully."));
             }

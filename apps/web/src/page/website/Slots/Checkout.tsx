@@ -1274,28 +1274,37 @@ const Checkout = () => {
                 }
 
                 if (!settled) {
-                  console.warn("[Checkout] Centralized settlement unavailable after 3 attempts; falling back to direct database state update.");
+                  console.warn("[Checkout] Centralized settlement unavailable after 3 attempts; invoking server verification fallback.");
+                  try {
+                    await apiClient.checkout.verify(order.id);
+                  } catch (vErr) {
+                    console.warn("[Checkout] Verify fallback notice:", vErr);
+                  }
                   await supabase
                     .from("transactions")
                     .update({
                       status: "paid",
-                      transaction_ref: String(flwTransactionId),
+                      payment_reference: String(flwTransactionId),
                     })
                     .eq("id", order.id);
 
                   if (!isGreenCardOnly && !isStarterPack && (slotQuantity > 0 || isCombo)) {
-                    await recordSubscriptionWithFarmGroupSplit({
-                      userId: order.user_id,
-                      checkoutId: order.id,
-                      amount: isCombo ? entryPricing.farmSlotPrice : totalPrice,
-                      slotPrice: SLOT_UNIT_PRICE,
-                      slots: (isGreenCardOnly || isStarterPack) ? 0 : Math.max(1, slotQuantity),
-                      category: isCombo ? "Mushroom Village" : category,
-                      isStarterPack,
-                      isCombo,
-                      isGreenCardOnly,
-                      isFirstSlotPurchase,
-                    });
+                    try {
+                      await recordSubscriptionWithFarmGroupSplit({
+                        userId: order.user_id,
+                        checkoutId: order.id,
+                        amount: isCombo ? entryPricing.farmSlotPrice : totalPrice,
+                        slotPrice: SLOT_UNIT_PRICE,
+                        slots: (isGreenCardOnly || isStarterPack) ? 0 : Math.max(1, slotQuantity),
+                        category: isCombo ? "Mushroom Village" : category,
+                        isStarterPack,
+                        isCombo,
+                        isGreenCardOnly,
+                        isFirstSlotPurchase,
+                      });
+                    } catch (splitErr) {
+                      console.warn("[Checkout] Direct split notice:", splitErr);
+                    }
                   }
                 }
 
