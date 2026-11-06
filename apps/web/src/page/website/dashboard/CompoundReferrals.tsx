@@ -1839,7 +1839,7 @@ const CompoundReferrals: React.FC = () => {
 
           let statusBadge = "Next Step";
           let headline = `Activate ${formatNaira(getEntryPricing().totalEntryFee)} Starter Package`;
-          let shortSummary = `Includes Green Card (${formatNaira(getEntryPricing().greenCardFee)}), Mushroom Power 100g (${formatNaira(getEntryPricing().starterPackPrice)}), and 1st Farm Slot (${formatNaira(getEntryPricing().farmSlotPrice)}) to lock your permanent node.`;
+          let shortSummary = `Includes Green Card (${formatNaira(getEntryPricing().greenCardFee)}), Mushroom Power 100g (${formatNaira(getEntryPricing().starterPackPrice)}), and 1st Farm Slot (${formatNaira(getEntryPricing().farmSlotPrice)}) to lock your permanent node. Installments available from ₦2,000.`;
           let ctaText = `Activate ${formatNaira(getEntryPricing().totalEntryFee)} Package`;
           let ctaLink = "/dashboard/checkout?bundle=starter";
           let isWarning = true;
@@ -1865,7 +1865,7 @@ const CompoundReferrals: React.FC = () => {
           } else if (!isLegacy && (!hasCard || !hasSlots || !hasPurchasedStarterPack)) {
             statusBadge = "Starter Package Pending";
             headline = `Activate ${formatNaira(getEntryPricing().totalEntryFee)} Starter Package`;
-            shortSummary = "Complete all 3 constituents to lock your permanent node in the 5×7 community matrix.";
+            shortSummary = "Complete all 3 constituents to lock your permanent node in the 5×7 community matrix. Installments available from ₦2,000.";
             ctaText = `Activate ${formatNaira(getEntryPricing().totalEntryFee)} Package`;
             ctaLink = "/dashboard/checkout?bundle=starter";
             isWarning = true;
@@ -1873,6 +1873,7 @@ const CompoundReferrals: React.FC = () => {
               "Digital Green Card credentials (₦2,000).",
               "100g Mushroom Power Welcome Product (₦5,000).",
               "1st Farm Slot in Mushroom Village (₦5,000) to lock your permanent matrix node.",
+              "Flexible weekly installments available starting with a ₦2,000 deposit.",
               "Unlocks direct sponsor bonuses (₦1,000) and Level 1 & 2 commission earnings.",
             ];
           } else if (directReferralsCount < 5) {
@@ -1957,6 +1958,16 @@ const CompoundReferrals: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                  {!isLegacy && (!hasCard || !hasSlots) && (
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="hidden sm:inline-flex text-xs h-7 sm:h-8 px-2.5 rounded-xl border-amber-400/40 bg-slate-800/80 text-amber-300 hover:bg-slate-700 font-bold shadow-xs cursor-pointer"
+                    >
+                      <Link to="/dashboard/checkout?bundle=starter&plan=instalment">Installments (from ₦2k)</Link>
+                    </Button>
+                  )}
                   {ctaLink ? (
                     <Button
                       asChild

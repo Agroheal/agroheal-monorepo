@@ -11,6 +11,7 @@ import {
   ChevronUp,
   Compass,
   Share2,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { isLegacyMember, formatNaira, isGreenCardHolder, hasPurchasedStarterPack as checkHasPurchasedStarterPack, isThreeStepQualified } from "@shared/businessRules";
@@ -115,7 +116,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   } else if (!isMemberLegacy && !isStep1Done) {
     statusBadge = "Starter Package Pending";
     headline = `Activate ${totalStarterFee} Starter Package`;
-    shortSummary = `Green Card (${greenCardFee}), Mushroom Power 100g (${starterPackFee}) & 1st Farm Slot (${farmSlotFee}) to lock your permanent node.`;
+    shortSummary = `Green Card (${greenCardFee}), Mushroom Power 100g (${starterPackFee}) & 1st Farm Slot (${farmSlotFee}) to lock your permanent node. Installments available from ₦2,000.`;
     ctaText = `Activate (${totalStarterFee})`;
     onCtaClick = () => navigate("/dashboard/checkout?bundle=starter");
     isWarning = true;
@@ -137,7 +138,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
     } else {
       statusBadge = "Milestone 2 Incomplete";
       headline = `Complete Starter Package Upgrade (${comboFee})`;
-      shortSummary = `Green Card is active! Complete Milestone 2 with Mushroom Power 100g (${starterPackFee}) & 1st Farm Slot (${farmSlotFee}) to lock your matrix node.`;
+      shortSummary = `Green Card is active! Complete Milestone 2 with Mushroom Power 100g (${starterPackFee}) & 1st Farm Slot (${farmSlotFee}) to lock your matrix node. Installments available from ₦1,000/week.`;
       ctaText = `Complete Setup (${comboFee})`;
       onCtaClick = () => navigate("/dashboard/checkout?bundle=starter");
       isWarning = true;
@@ -202,6 +203,11 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
               >
                 {statusBadge}
               </span>
+              {(!isStep1Done || (!isStep2Done && !isMemberLegacy && totalSlots === 0 && !hasPurchasedStarterPack)) && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-950/80 text-blue-900 dark:text-blue-200 border border-blue-300 dark:border-blue-700 hidden sm:inline-flex items-center gap-1">
+                  <span>⚡</span> Installment Plan Available
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-800 dark:text-slate-200 truncate mt-0.5 font-medium">
               <strong className="text-slate-950 dark:text-white font-extrabold">{headline}</strong> • {shortSummary}
@@ -210,6 +216,23 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
         </div>
 
         <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+          {(!isStep1Done || (!isStep2Done && !isMemberLegacy && totalSlots === 0 && !hasPurchasedStarterPack)) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate("/dashboard/checkout?bundle=starter&plan=instalment");
+              }}
+              className="text-xs h-7 sm:h-8 px-2.5 rounded-xl border-amber-300 dark:border-amber-700 bg-white/90 dark:bg-slate-800 text-amber-950 dark:text-amber-200 hover:bg-amber-100 dark:hover:bg-slate-700 font-bold shadow-2xs cursor-pointer"
+              title="Pay in weekly installments"
+            >
+              <CreditCard className="w-3.5 h-3.5 mr-1 text-amber-600 dark:text-amber-400" />
+              <span className="hidden md:inline">Installments (from {!isStep1Done ? "₦2,000" : "₦1,000"})</span>
+              <span className="md:hidden">Installment</span>
+            </Button>
+          )}
+
           <Button
             size="sm"
             onClick={onCtaClick}
@@ -240,6 +263,35 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
       {/* ── EXPANDABLE 3-MILESTONE PATHWAY DETAILS ── */}
       {!isFolded && (
         <div className="p-4 md:p-5 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-3.5 animate-in fade-in duration-200">
+          {/* Intelligent Installment Callout Banner */}
+          {(!isStep1Done || (!isStep2Done && !isMemberLegacy && totalSlots === 0 && !hasPurchasedStarterPack)) && (
+            <div className="col-span-1 md:col-span-3 p-3 sm:p-3.5 rounded-xl bg-gradient-to-r from-blue-50/90 via-indigo-50/80 to-emerald-50/70 dark:from-blue-950/40 dark:via-indigo-950/40 dark:to-emerald-950/30 border border-blue-200 dark:border-blue-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-2xs">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0 font-bold shadow-xs">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="font-extrabold text-blue-950 dark:text-blue-100 text-xs sm:text-[12.5px]">
+                    Flexible Weekly Installment Option Available
+                  </p>
+                  <p className="text-[11px] text-blue-800 dark:text-blue-300 font-medium mt-0.5">
+                    {!isStep1Done
+                      ? "Don't want to pay ₦15,000 upfront? Start your Starter Package with a ₦2,000 initial down payment and spread the rest over weekly payments."
+                      : "Upgrade your Green Card to the full Starter Package with flexible weekly installments of ₦1,000."}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate("/dashboard/checkout?bundle=starter&plan=instalment")}
+                className="text-xs h-7 sm:h-8 px-3 rounded-lg border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-900 text-blue-900 dark:text-blue-200 hover:bg-blue-100 font-bold shrink-0 shadow-2xs cursor-pointer self-start sm:self-auto"
+              >
+                Pay in Installments <ArrowRight className="w-3 h-3 ml-1" />
+              </Button>
+            </div>
+          )}
+
           {/* MILESTONE 1: GREEN CARD */}
           <div
             className={`rounded-xl p-3.5 border-2 flex flex-col justify-between shadow-2xs ${
@@ -288,13 +340,24 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                   View Pass <ArrowRight className="w-3 h-3" />
                 </Link>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => navigate("/dashboard/checkout?bundle=starter")}
-                  className="text-emerald-700 dark:text-emerald-400 hover:underline font-bold inline-flex items-center gap-0.5 text-[11px] cursor-pointer"
-                >
-                  Activate <ArrowRight className="w-3 h-3" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => navigate("/dashboard/checkout?bundle=starter&plan=instalment")}
+                    className="text-blue-700 dark:text-blue-400 hover:underline font-bold text-[10.5px] cursor-pointer"
+                    title="Start with ₦2,000 weekly installment"
+                  >
+                    Installment
+                  </button>
+                  <span className="text-slate-300 dark:text-slate-700">•</span>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/dashboard/checkout?bundle=starter")}
+                    className="text-emerald-700 dark:text-emerald-400 hover:underline font-bold inline-flex items-center gap-0.5 text-[11px] cursor-pointer"
+                  >
+                    Activate <ArrowRight className="w-3 h-3" />
+                  </button>
+                </div>
               )}
             </div>
           </div>
