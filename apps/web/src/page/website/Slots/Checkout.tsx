@@ -1426,6 +1426,8 @@ const Checkout = () => {
         plan,
         sponsorCode: codeParam || searchParams.get("ref") || "356FV1",
         gateway: "nomba",
+        txRef: order.transaction_ref,
+        userId: order.user_id,
       });
 
       if (initRes.checkoutUrl) {

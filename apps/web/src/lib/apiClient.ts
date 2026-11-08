@@ -616,6 +616,8 @@ export const apiClient = {
       plan: "green_card" | "combo" | "installment";
       sponsorCode?: string;
       gateway?: "flutterwave" | "nomba";
+      txRef?: string;
+      userId?: string;
     }) =>
       apiRequest<{
         txRef: string;
