@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Search, Filter, IdCard, LayoutGrid, Table as TableIcon, FileSpreadsheet, MapPin, RotateCcw, UserPlus } from "lucide-react";
+import { Search, Filter, IdCard, LayoutGrid, Table as TableIcon, FileSpreadsheet, MapPin, RotateCcw, UserPlus, Gift } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -33,6 +33,7 @@ interface Props {
   viewMode: MemberViewMode;
   onViewModeChange: (v: MemberViewMode) => void;
   onIssueGreenCard: () => void;
+  onIssueCorporateProvision?: () => void;
   onCreateMember?: () => void;
   onExportExcel?: () => void;
 }
@@ -60,6 +61,7 @@ export function MembersToolbar({
   viewMode,
   onViewModeChange,
   onIssueGreenCard,
+  onIssueCorporateProvision,
   onCreateMember,
   onExportExcel,
 }: Props) {
@@ -137,6 +139,18 @@ export function MembersToolbar({
               className="h-9 gap-1.5 whitespace-nowrap text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium"
             >
               <UserPlus className="h-3.5 w-3.5" /> New Member
+            </Button>
+          )}
+
+          {onIssueCorporateProvision && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={onIssueCorporateProvision}
+              className="h-9 gap-1.5 whitespace-nowrap text-xs border-purple-500/40 text-purple-400 hover:bg-purple-500/10 font-semibold"
+            >
+              <Gift className="h-3.5 w-3.5 text-purple-400" /> Advance / Gift
             </Button>
           )}
 

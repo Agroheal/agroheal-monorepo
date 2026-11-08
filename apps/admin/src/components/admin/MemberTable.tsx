@@ -1,4 +1,4 @@
-import { Edit3, KeyRound, Phone, MapPin, ShieldAlert, GitMerge } from "lucide-react";
+import { Edit3, KeyRound, Phone, MapPin, ShieldAlert, GitMerge, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { GreenCardBadge, ProgramPills, RoleBadge, TotalSlotsBadge } from "@/components/admin/MemberBadges";
@@ -17,6 +17,7 @@ interface Props {
   onToggleSuspend?: (m: Member) => void;
   onImpersonate?: (m: Member) => void;
   onAutoPlaceMatrix?: (m: Member) => void;
+  onIssueProvision?: (m: Member) => void;
   isSuperAdmin?: boolean;
 }
 
@@ -31,6 +32,7 @@ export function MemberTable({
   onToggleSuspend,
   onImpersonate,
   onAutoPlaceMatrix,
+  onIssueProvision,
   isSuperAdmin,
 }: Props) {
   const allSelected = members.length > 0 && members.every((m) => selectedIds.has(m.id));
@@ -182,6 +184,18 @@ export function MemberTable({
                         title="Place member into 5x7 matrix (BFS)"
                       >
                         <GitMerge className="h-3 w-3 text-amber-400" /> Place Matrix
+                      </Button>
+                    )}
+                    {onIssueProvision && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 gap-1 px-2 text-xs border-purple-500/40 text-purple-400 hover:bg-purple-500/10 cursor-pointer font-semibold"
+                        onClick={() => onIssueProvision(m)}
+                        title="Issue Corporate Advance (Loan) or Promotional Gift"
+                      >
+                        <Gift className="h-3 w-3 text-purple-400" /> Advance / Gift
                       </Button>
                     )}
                     <Button type="button" size="sm" variant="outline" className="h-7 gap-1 px-2 text-xs" onClick={() => onEdit(m)}>

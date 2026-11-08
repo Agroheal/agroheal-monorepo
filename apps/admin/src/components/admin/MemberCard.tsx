@@ -1,4 +1,4 @@
-import { Edit3, KeyRound, Mail, Phone, MapPin, ShieldAlert, GitMerge } from "lucide-react";
+import { Edit3, KeyRound, Mail, Phone, MapPin, ShieldAlert, GitMerge, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GreenCardBadge, ProgramPills, RoleBadge } from "@/components/admin/MemberBadges";
 import { formatWATDateTime } from "@/lib/dateTimeFormat";
@@ -16,6 +16,7 @@ interface Props {
   onToggleSuspend?: (m: Member) => void;
   onImpersonate?: (m: Member) => void;
   onAutoPlaceMatrix?: (m: Member) => void;
+  onIssueProvision?: (m: Member) => void;
   isSuperAdmin?: boolean;
 }
 
@@ -29,6 +30,7 @@ export function MemberCard({
   onToggleSuspend,
   onImpersonate,
   onAutoPlaceMatrix,
+  onIssueProvision,
   isSuperAdmin,
 }: Props) {
   return (
@@ -153,6 +155,18 @@ export function MemberCard({
             title="Place member into 5x7 matrix (BFS)"
           >
             <GitMerge className="h-3.5 w-3.5 text-amber-400" /> Place Matrix
+          </Button>
+        )}
+        {onIssueProvision && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1 px-2.5 text-xs border-purple-500/40 text-purple-400 hover:bg-purple-500/10 cursor-pointer font-semibold"
+            onClick={() => onIssueProvision(m)}
+            title="Issue Corporate Advance (Loan) or Promotional Gift"
+          >
+            <Gift className="h-3.5 w-3.5 text-purple-400" /> Advance / Gift
           </Button>
         )}
         <Button type="button" size="sm" variant="outline" className="h-8 flex-1 gap-1.5 text-xs" onClick={() => onEdit(m)}>

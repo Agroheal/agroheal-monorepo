@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { AlertCircle, CreditCard, Lock, Save, Shield, ShieldCheck, UserCog, Building2, Unlock, MapPin } from "lucide-react";
+import { AlertCircle, CreditCard, Lock, Save, Shield, ShieldCheck, UserCog, Building2, Unlock, MapPin, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -46,6 +46,7 @@ interface Props {
   onSave: (values: EditMemberValues) => Promise<void> | void;
   saving: boolean;
   onRequestIssueGreenCard?: (member: Member) => void;
+  onRequestIssueProvision?: (member: Member) => void;
 }
 
 export function EditMemberDialog({
@@ -54,6 +55,7 @@ export function EditMemberDialog({
   onSave,
   saving,
   onRequestIssueGreenCard,
+  onRequestIssueProvision,
 }: Props) {
   const { isSuperDeveloper, canAssignRoles, allowedAssignableRoles } = useAdminAuth();
   const [resettingBankLock, setResettingBankLock] = useState(false);
@@ -239,17 +241,36 @@ export function EditMemberDialog({
                     ? `Member ID: ${member.member_id}`
                     : "User registered but has not completed Green Card subscription payment."}
                 </span>
+                {Number(member.advance_debt_balance || 0) > 0 && (
+                  <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded">
+                    Advance Debt: ₦{Number(member.advance_debt_balance).toLocaleString()} (100% sweep)
+                  </span>
+                )}
               </div>
-              {!member.has_green_card && onRequestIssueGreenCard && (
-                <Button
-                  type="button"
-                  size="sm"
-                  className="gap-1.5 whitespace-nowrap bg-emerald-500/20 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/30"
-                  onClick={() => onRequestIssueGreenCard(member)}
-                >
-                  <CreditCard className="h-3.5 w-3.5" /> Issue Green Card (With Proof)
-                </Button>
-              )}
+              <div className="flex flex-wrap items-center gap-2">
+                {!member.has_green_card && onRequestIssueGreenCard && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="gap-1.5 whitespace-nowrap bg-emerald-500/20 text-xs font-semibold text-emerald-400 hover:bg-emerald-500/30"
+                    onClick={() => onRequestIssueGreenCard(member)}
+                  >
+                    <CreditCard className="h-3.5 w-3.5" /> Issue Green Card (With Proof)
+                  </Button>
+                )}
+                {onRequestIssueProvision && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 whitespace-nowrap text-xs font-semibold border-purple-500/40 text-purple-400 hover:bg-purple-500/10"
+                    onClick={() => onRequestIssueProvision(member)}
+                    title="Issue Corporate Advance (Loan) or Promotional Gift"
+                  >
+                    <Gift className="h-3.5 w-3.5 text-purple-400" /> Issue Advance / Gift
+                  </Button>
+                )}
+              </div>
             </div>
 
             <FormField

@@ -17,6 +17,7 @@ import { MemberTable } from "@/components/admin/MemberTable";
 import { MemberCard } from "@/components/admin/MemberCard";
 import { EditMemberDialog, type EditMemberValues } from "@/components/admin/EditMemberDialog";
 import { IssueGreenCardDialog } from "@/components/admin/IssueGreenCardDialog";
+import { IssueCorporateProvisionDialog } from "@/components/admin/IssueCorporateProvisionDialog";
 import { IssuedGreenCardSuccessDialog } from "@/components/admin/IssuedGreenCardSuccessDialog";
 import { PasswordResetModal } from "@/components/admin/PasswordResetModal";
 import { ImpersonateModal } from "@/components/admin/ImpersonateModal";
@@ -74,6 +75,8 @@ export default function MembersPage() {
   );
   const [passwordResetMember, setPasswordResetMember] = useState<Member | null>(null);
   const [isCreateMemberOpen, setIsCreateMemberOpen] = useState(false);
+  const [corporateProvisionMember, setCorporateProvisionMember] = useState<Member | null>(null);
+  const [isCorporateProvisionOpen, setIsCorporateProvisionOpen] = useState(false);
 
   const hasActiveFilters =
     Boolean(searchQuery.trim()) ||
@@ -589,6 +592,10 @@ export default function MembersPage() {
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         onIssueGreenCard={() => setIsIssueModalOpen(true)}
+        onIssueCorporateProvision={() => {
+          setCorporateProvisionMember(null);
+          setIsCorporateProvisionOpen(true);
+        }}
         onCreateMember={() => setIsCreateMemberOpen(true)}
         onExportExcel={handleExportExcel}
       />
@@ -628,6 +635,10 @@ export default function MembersPage() {
               onToggleSuspend={handleToggleSuspend}
               onImpersonate={(m) => setImpersonatingMember(m)}
               onAutoPlaceMatrix={handleAutoPlaceMatrix}
+              onIssueProvision={(m) => {
+                setCorporateProvisionMember(m);
+                setIsCorporateProvisionOpen(true);
+              }}
               isSuperAdmin={isSuperDeveloper}
             />
           )}
@@ -646,6 +657,10 @@ export default function MembersPage() {
                   onToggleSuspend={handleToggleSuspend}
                   onImpersonate={(m) => setImpersonatingMember(m)}
                   onAutoPlaceMatrix={handleAutoPlaceMatrix}
+                  onIssueProvision={(m) => {
+                    setCorporateProvisionMember(m);
+                    setIsCorporateProvisionOpen(true);
+                  }}
                   isSuperAdmin={isSuperDeveloper}
                 />
               ))}
@@ -668,6 +683,11 @@ export default function MembersPage() {
         onRequestIssueGreenCard={() => {
           setEditingMember(null);
           setIsIssueModalOpen(true);
+        }}
+        onRequestIssueProvision={(m) => {
+          setEditingMember(null);
+          setCorporateProvisionMember(m);
+          setIsCorporateProvisionOpen(true);
         }}
       />
 
@@ -738,6 +758,17 @@ export default function MembersPage() {
         onRegistered={refetch}
         onSuccess={(msg) => flash(setSuccessMessage, msg)}
         onError={(msg) => setErrorMessage(msg)}
+      />
+
+      <IssueCorporateProvisionDialog
+        key={isCorporateProvisionOpen ? "open" : "closed"}
+        open={isCorporateProvisionOpen}
+        onOpenChange={setIsCorporateProvisionOpen}
+        members={members}
+        initialMember={corporateProvisionMember}
+        onSuccess={(msg) => flash(setSuccessMessage, msg, 6000)}
+        onError={(msg) => setErrorMessage(msg)}
+        onComplete={refetch}
       />
     </div>
   );
