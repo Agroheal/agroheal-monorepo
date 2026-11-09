@@ -31,6 +31,8 @@ import UserAvatar from "@/components/ui/UserAvatar";
 import BroadcastAnnouncementModal from "@/components/dashboard/BroadcastAnnouncementModal";
 import { CutoverCountdownBanner } from "@/components/common/CutoverCountdownBanner";
 import EmailVerificationBanner from "@/components/dashboard/EmailVerificationBanner";
+import { InstalmentTrackerWidget } from "@/components/dashboard/InstalmentTrackerWidget";
+import { InstalmentReminderModal } from "@/components/dashboard/InstalmentReminderModal";
 
 const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
 
@@ -1054,6 +1056,11 @@ const DashboardLayout = () => {
           </div>
         )}
 
+        {/* Active Instalment Plan Tracker Widget (Renders on all pages, auto-leaves when fully paid) */}
+        <div className="px-4 sm:px-6 lg:px-8 pt-3">
+          <InstalmentTrackerWidget />
+        </div>
+
         {/* Page Content Viewport */}
         <main className="flex-1 overflow-y-auto bg-gray-50/60">
           <Outlet
@@ -1068,6 +1075,9 @@ const DashboardLayout = () => {
 
       {/* Unskippable 5-Second Broadcast Announcement Modal */}
       <BroadcastAnnouncementModal />
+
+      {/* Instalment Payment Reminder Modal (Pops up on refresh & sign-in while uncompleted, leaves when fully paid) */}
+      <InstalmentReminderModal />
     </div>
   );
 };

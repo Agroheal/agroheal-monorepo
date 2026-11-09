@@ -101,34 +101,22 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
 
   useEffect(() => {
     fetchPlanData();
+    const handleUpdate = () => {
+      fetchPlanData();
+    };
+    window.addEventListener("agroheal:instalment_updated", handleUpdate);
+    return () => {
+      window.removeEventListener("agroheal:instalment_updated", handleUpdate);
+    };
   }, []);
 
   if (loading || !plan) {
     return null; // Do not render if member has no instalment plan
   }
 
-  // If already fully paid, we only render a subtle completion badge or skip
+  // If already fully paid, completely leave
   if (plan.status === "FULLY_PAID") {
-    return (
-      <div className="w-full bg-emerald-50/80 border border-emerald-200/60 rounded-2xl p-4 sm:p-5 flex items-center justify-between mb-6 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700">
-            <CheckCircle2 className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h4 className="text-sm font-bold text-emerald-950">GreenCard Registration Plan</h4>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 uppercase tracking-wider">
-                Fully Paid
-              </span>
-            </div>
-            <p className="text-xs text-emerald-700 mt-0.5">
-              ₦15,000 total settled. 1 Farm Slot allocated & all withdrawal restrictions lifted.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   const percentComplete = Math.min(100, Math.round((plan.cumulativePaid / plan.totalRegistrationFee) * 100));
