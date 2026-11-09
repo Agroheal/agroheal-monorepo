@@ -675,6 +675,16 @@ export const apiClient = {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    resolveSponsor: (code: string) =>
+      apiRequest<{
+        found: boolean;
+        id?: string;
+        fullName?: string;
+        referralCode?: string;
+        memberId?: string;
+      }>("auth/resolve-sponsor/" + encodeURIComponent(code.trim().toUpperCase()), {
+        method: "GET",
+      }),
   },
 
   /**

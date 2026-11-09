@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { showToast } from "@/components/ui/ToastComponent";
 import { captureReferral, getActiveReferral } from "@/lib/referralManager";
 import { supabase } from "@/lib/supabaseClient";
+import { apiClient } from "@/lib/apiClient";
 import AgrohealLogo from "@/assets/Image/logo.png";
 import GuestPaymentDrawer from "@/components/checkout/GuestPaymentDrawer";
 
@@ -39,7 +40,7 @@ interface ActiveVideo {
 }
 
 export const GreenCardCampaign: React.FC = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeVideoModal, setActiveVideoModal] = useState<ActiveVideo | null>(null);
   const [isPaymentDrawerOpen, setIsPaymentDrawerOpen] = useState(false);
   const [drawerPlan, setDrawerPlan] = useState<"green_card" | "combo">("combo");
@@ -72,6 +73,14 @@ export const GreenCardCampaign: React.FC = () => {
     let isMounted = true;
     const resolveSponsor = async () => {
       try {
+        const serverRes = await apiClient.checkout.resolveSponsor(activeSponsorCode).catch(() => null);
+        if (serverRes && serverRes.found && serverRes.fullName) {
+          if (isMounted) {
+            setSponsorName(serverRes.fullName);
+          }
+          return;
+        }
+
         const { data, error } = await supabase.rpc("resolve_referral_sponsor", {
           sponsor_input: activeSponsorCode,
         });
@@ -1602,7 +1611,16 @@ export const GreenCardCampaign: React.FC = () => {
       {/* ── GUEST INSTANT CHECKOUT DRAWER ── */}
       <GuestPaymentDrawer
         isOpen={isPaymentDrawerOpen}
-        onClose={() => setIsPaymentDrawerOpen(false)}
+        onClose={() => {
+          setIsPaymentDrawerOpen(false);
+          if (searchParams.has("pay") || searchParams.has("checkout") || searchParams.has("action")) {
+            const next = new URLSearchParams(searchParams);
+            next.delete("pay");
+            next.delete("checkout");
+            next.delete("action");
+            setSearchParams(next, { replace: true });
+          }
+        }}
         defaultPlan={drawerPlan}
         sponsorCode={activeSponsorCode}
       />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import {
   X,
@@ -126,12 +127,9 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
   useEffect(() => {
     if (isOpen) {
       const prevOverflow = document.body.style.overflow;
-      const prevTouchAction = document.body.style.touchAction;
       document.body.style.overflow = "hidden";
-      document.body.style.touchAction = "none";
       return () => {
         document.body.style.overflow = prevOverflow;
-        document.body.style.touchAction = prevTouchAction;
       };
     }
   }, [isOpen]);
@@ -144,6 +142,19 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
     const resolveSponsor = async () => {
       setIsResolvingSponsor(true);
       try {
+        // 1. Authoritative Express backend endpoint
+        const serverRes = await apiClient.checkout.resolveSponsor(cleanCode).catch(() => null);
+        if (serverRes && serverRes.found && serverRes.fullName) {
+          if (isMounted) {
+            setSponsorDisplay({
+              name: serverRes.fullName,
+              code: serverRes.referralCode || cleanCode,
+            });
+          }
+          return;
+        }
+
+        // 2. Direct Supabase RPC
         const { data, error } = await supabase.rpc("resolve_referral_sponsor", {
           sponsor_input: cleanCode,
         });
@@ -445,31 +456,36 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
     );
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[2147483647] flex justify-end bg-black/80 backdrop-blur-sm sm:backdrop-blur-md transition-opacity animate-in fade-in duration-200 overflow-hidden"
+      className="fixed inset-0 z-[2147483647] flex justify-end overflow-hidden transition-opacity duration-200"
+      style={{ backgroundColor: "rgba(0, 0, 0, 0.72)", backdropFilter: "blur(4px)" }}
       onClick={handleClose}
     >
       <div
-        className="w-full h-full min-h-[100dvh] sm:h-full sm:min-h-0 sm:max-w-lg bg-white sm:shadow-2xl flex flex-col justify-between overflow-y-auto animate-in slide-in-from-right duration-300 sm:rounded-l-3xl"
+        className="w-full h-full max-h-[100dvh] sm:max-w-lg shadow-2xl flex flex-col justify-between sm:rounded-l-3xl relative overflow-hidden"
+        style={{ backgroundColor: "#ffffff", color: "#111827" }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top Header */}
-        <div className="p-4 sm:p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur z-20">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-200">
+        <div
+          className="flex-shrink-0 p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between sticky top-0 z-20"
+          style={{ backgroundColor: "#ffffff" }}
+        >
+          <div className="flex items-center space-x-3 min-w-0 flex-1 mr-2">
+            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-black text-lg shadow-md shadow-emerald-200 flex-shrink-0">
               🌿
             </div>
-            <div>
-              <h2 className="text-xl font-extrabold text-gray-900 tracking-tight leading-tight">
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight leading-snug truncate">
                 {stage === "form" && "Instant Green Card Checkout"}
                 {stage === "processing" && "Activating Your Account..."}
                 {stage === "claim" && "Complete Account Setup"}
                 {stage === "success" && "Welcome to AgroHeal!"}
               </h2>
-              <p className="text-xs text-gray-500 font-medium">
+              <p className="text-xs text-gray-500 font-medium truncate">
                 {stage === "form" && "Auto account creation. Zero email verification needed."}
                 {stage === "processing" && "Verifying payment & minting Green Card..."}
                 {stage === "claim" && "Confirm your details to enter dashboard."}
@@ -479,7 +495,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
           </div>
           <button
             onClick={handleClose}
-            className="p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors flex-shrink-0"
             aria-label="Close drawer"
           >
             <X className="w-5 h-5" />
@@ -487,7 +503,10 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
         </div>
 
         {/* Content Body */}
-        <div className="p-4 sm:p-6 space-y-6 flex-1">
+        <div
+          className="p-4 sm:p-6 space-y-6 flex-1 overflow-y-auto overscroll-contain"
+          style={{ WebkitOverflowScrolling: "touch" }}
+        >
           {errorMessage && (
             <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-start space-x-3 text-rose-700 text-sm">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5 text-rose-600" />
@@ -926,7 +945,10 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
         </div>
 
         {/* Footer Note */}
-        <div className="p-4 bg-gray-50 border-t border-gray-100 text-center text-xs text-gray-500">
+        <div
+          className="flex-shrink-0 p-3.5 bg-gray-50 border-t border-gray-100 text-center text-xs text-gray-500"
+          style={{ backgroundColor: "#f9fafb" }}
+        >
           Need assistance with checkout? Call or WhatsApp{" "}
           <a
             href="https://wa.me/2349168055000"
@@ -938,7 +960,8 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
           </a>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
