@@ -93,6 +93,10 @@ export const appRouter = createBrowserRouter([
     errorElement: <Error />,
   },
   {
+    path: "/join",
+    element: <PreservedGcRedirect />,
+  },
+  {
     path: "/join/gc",
     element: <PreservedGcRedirect />,
   },

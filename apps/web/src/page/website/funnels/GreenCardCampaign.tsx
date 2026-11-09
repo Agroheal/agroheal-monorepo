@@ -174,7 +174,7 @@ export const GreenCardCampaign: React.FC = () => {
               </div>
             </a>
             {/* Direct Sponsor attribution pill in desktop header */}
-            <div className="sponsor-nav-pill hidden lg:inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-xs text-white shadow-inner">
+            <div className="sponsor-nav-pill hidden xl:inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-xs text-white shadow-inner">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0" />
               <span className="text-emerald-200 font-medium">Referred by:</span>
               <strong className="font-bold text-white tracking-wide">
@@ -198,8 +198,12 @@ export const GreenCardCampaign: React.FC = () => {
                 href={GREEN_CARD_CONFIG.whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="AgroHeal WhatsApp Support"
               >
-                WhatsApp
+                <svg className="btn-icon" viewBox="0 0 24 24" width="14" height="14" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                </svg>
+                <span>WhatsApp</span>
               </a>
               <a className="btn small register-link" href={onPageSignupUrl} onClick={(e) => { e.preventDefault(); openPaymentDrawer("combo"); }}>
                 Get Green Card
@@ -717,9 +721,11 @@ export const GreenCardCampaign: React.FC = () => {
                 href={GREEN_CARD_CONFIG.whatsappUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{ background: "white", color: "#064e25" }}
               >
-                WHATSAPP GUIDANCE
+                <svg className="btn-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                </svg>
+                <span>WHATSAPP GUIDANCE</span>
               </a>
             </div>
           </div>
@@ -774,9 +780,11 @@ export const GreenCardCampaign: React.FC = () => {
               href={GREEN_CARD_CONFIG.whatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ background: "white" }}
             >
-              WHATSAPP
+              <svg className="btn-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+              </svg>
+              <span>WHATSAPP</span>
             </a>
           </div>
         </div>
@@ -830,7 +838,7 @@ export const GreenCardCampaign: React.FC = () => {
           --w: #fff;
           --ink: #143321;
           --line: rgba(255, 255, 255, 0.22);
-          --soft: #f5fff7;
+          --soft: #f8faf8;
           --shadow: 0 18px 48px rgba(0, 0, 0, 0.18);
           --r: 20px;
         }
@@ -864,11 +872,11 @@ export const GreenCardCampaign: React.FC = () => {
           flex-wrap: wrap;
         }
         .v8-funnel-root .funnel-header {
-          padding: 12px 0;
-          background: rgba(3, 61, 28, 0.85);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          border-bottom: 1px solid var(--line);
+          padding: 10px 0;
+          background: rgba(3, 38, 17, 0.94);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.15);
           position: sticky;
           top: 0;
           z-index: 1000;
@@ -877,22 +885,25 @@ export const GreenCardCampaign: React.FC = () => {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 16px;
+          gap: 14px;
         }
         .v8-funnel-root .brand {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
           text-decoration: none;
+          flex-shrink: 0;
+          min-width: 0;
         }
         .v8-funnel-root .brand-logo {
-          width: 40px;
-          height: 40px;
+          width: 38px;
+          height: 38px;
           object-fit: contain;
           border-radius: 10px;
           background: #ffffff;
-          padding: 4px;
-          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+          padding: 3px;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+          flex-shrink: 0;
         }
         .v8-funnel-root .footer-logo {
           width: 44px;
@@ -902,6 +913,7 @@ export const GreenCardCampaign: React.FC = () => {
           display: flex;
           flex-direction: column;
           line-height: 1.15;
+          flex-shrink: 0;
         }
         .v8-funnel-root .brand-main {
           font-size: 1.05rem;
@@ -910,14 +922,14 @@ export const GreenCardCampaign: React.FC = () => {
           color: #ffffff;
         }
         .v8-funnel-root .brand-sub {
-          font-size: 0.76rem;
+          font-size: 0.74rem;
           font-weight: 800;
           letter-spacing: 0.12em;
           color: #ffb15e;
         }
         .v8-funnel-root .navlinks {
           display: flex;
-          gap: 22px;
+          gap: 20px;
           font-weight: 700;
           font-size: 0.92rem;
         }
@@ -932,7 +944,9 @@ export const GreenCardCampaign: React.FC = () => {
         .v8-funnel-root .header-actions {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
+          flex-shrink: 0;
+          flex-wrap: nowrap;
         }
         .v8-funnel-root .btn {
           display: inline-flex;
@@ -942,27 +956,62 @@ export const GreenCardCampaign: React.FC = () => {
           padding: 12px 20px;
           border-radius: 999px;
           background: var(--o);
-          color: #18321e;
+          color: #072111;
           text-decoration: none;
           font-weight: 900;
           border: 0;
           cursor: pointer;
-          box-shadow: 0 8px 22px rgba(0, 0, 0, 0.13);
-          transition: transform 0.18s ease, background 0.18s ease;
+          box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+          transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+          white-space: nowrap !important;
+          flex-shrink: 0;
+          line-height: 1.2;
         }
         .v8-funnel-root .btn:hover {
           background: #ffa64e;
           transform: translateY(-2px);
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.24);
         }
         .v8-funnel-root .btn.outline {
-          background: transparent;
-          color: white;
-          border: 2px solid rgba(255, 255, 255, 0.75);
+          background: rgba(255, 255, 255, 0.12);
+          color: #ffffff;
+          border: 1.5px solid rgba(255, 255, 255, 0.35);
           box-shadow: none;
         }
+        .v8-funnel-root .btn.outline:hover {
+          background: rgba(255, 255, 255, 0.22);
+          color: #ffffff;
+          border-color: rgba(255, 255, 255, 0.6);
+        }
         .v8-funnel-root .btn.small {
-          padding: 8px 15px;
-          font-size: 0.86rem;
+          padding: 8px 16px;
+          font-size: 0.84rem;
+        }
+        .v8-funnel-root .btn-icon {
+          display: inline-block;
+          vertical-align: middle;
+          flex-shrink: 0;
+        }
+        .v8-funnel-root .header-actions .btn.register-link {
+          background: #ff8a1d;
+          color: #072111;
+          font-weight: 900;
+          box-shadow: 0 4px 14px rgba(255, 138, 29, 0.35);
+        }
+        .v8-funnel-root .header-actions .btn.register-link:hover {
+          background: #ffa64e;
+          transform: translateY(-1px);
+        }
+        .v8-funnel-root .header-actions .btn.whatsapp-link {
+          background: rgba(255, 255, 255, 0.12);
+          color: #ffffff;
+          border: 1.5px solid rgba(255, 255, 255, 0.32);
+          gap: 6px;
+        }
+        .v8-funnel-root .header-actions .btn.whatsapp-link:hover {
+          background: #25D366;
+          color: #ffffff;
+          border-color: #25D366;
         }
 
         /* ── HERO OPTIMIZED FOR FIRST SCREEN (ABOVE-THE-FOLD) VISIBILITY ── */
@@ -1119,8 +1168,18 @@ export const GreenCardCampaign: React.FC = () => {
           background: var(--soft);
           color: var(--ink);
         }
+        .v8-funnel-root .light .head .kicker {
+          color: #d96200;
+        }
+        .v8-funnel-root .light h2 {
+          color: #082914;
+        }
+        .v8-funnel-root .light p {
+          color: #274833;
+        }
         .v8-funnel-root .dark {
-          background: var(--gd);
+          background: #04401d;
+          color: #ffffff;
         }
         .v8-funnel-root .head {
           text-align: center;
@@ -1161,9 +1220,24 @@ export const GreenCardCampaign: React.FC = () => {
           background: rgba(255, 255, 255, 0.08);
         }
         .v8-funnel-root .light .card {
-          background: white;
-          border-color: #d8eadc;
-          box-shadow: 0 8px 24px rgba(10, 70, 30, 0.05);
+          background: #ffffff;
+          border: 1px solid #d2e4d6;
+          box-shadow: 0 8px 24px rgba(10, 70, 30, 0.06);
+          color: #1b3d26;
+        }
+        .v8-funnel-root .light .card h3 {
+          color: #0b2e17;
+          font-weight: 900;
+        }
+        .v8-funnel-root .light .card .price {
+          color: #05662a !important;
+          font-weight: 950;
+        }
+        .v8-funnel-root .light .card .kicker {
+          color: #d96200;
+        }
+        .v8-funnel-root .light .card p {
+          color: #385b43;
         }
         .v8-funnel-root .ico {
           font-size: 1.5rem;
@@ -1177,9 +1251,29 @@ export const GreenCardCampaign: React.FC = () => {
           margin: 0;
           opacity: 0.9;
         }
+
+        /* ── VIDEOS SECTION ── */
+        .v8-funnel-root .videos {
+          background: #033216;
+        }
         .v8-funnel-root .videos .card {
           padding: 0;
           overflow: hidden;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+        .v8-funnel-root .videos .card:hover {
+          transform: translateY(-3px);
+          border-color: rgba(255, 177, 94, 0.4);
+        }
+        .v8-funnel-root .videos .vbody h3 {
+          color: #ffffff;
+          font-weight: 900;
+        }
+        .v8-funnel-root .videos .vbody p {
+          color: #d8f5df;
+          font-size: 0.94rem;
         }
         .v8-funnel-root .thumb {
           position: relative;
@@ -1243,15 +1337,23 @@ export const GreenCardCampaign: React.FC = () => {
         .v8-funnel-root .offer {
           padding: 30px;
           border-radius: 25px;
-          background: linear-gradient(135deg, #064e25, #087b35);
-          border: 1px solid var(--line);
-          box-shadow: var(--shadow);
+          background: linear-gradient(135deg, #054822, #086d30);
+          border: 1px solid rgba(255, 255, 255, 0.22);
+          box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+          color: #ffffff;
         }
         .v8-funnel-root .offer-grid {
           display: grid;
           grid-template-columns: 0.88fr 1.12fr;
           gap: 28px;
           align-items: start;
+        }
+        .v8-funnel-root .offer .kicker {
+          color: #ffb15e;
+          font-weight: 900;
+        }
+        .v8-funnel-root .offer h2 {
+          color: #ffffff;
         }
         .v8-funnel-root .price {
           font-size: clamp(2.4rem, 4.8vw, 3.6rem);
@@ -1260,83 +1362,151 @@ export const GreenCardCampaign: React.FC = () => {
           line-height: 1.05;
           margin: 10px 0;
         }
-        .v8-funnel-root .breakdown {
+        .v8-funnel-root .offer p {
+          color: #f0fff4;
+        }
+        .v8-funnel-root .offer h3 {
+          color: #ffffff;
+          font-weight: 900;
+        }
+        .v8-funnel-root .offer .breakdown {
           padding-left: 20px;
           margin: 10px 0;
+          color: #f0fff4;
         }
-        .v8-funnel-root .breakdown li {
+        .v8-funnel-root .offer .breakdown li {
           margin: 7px 0;
         }
-        .v8-funnel-root .callout {
-          background: rgba(255, 255, 255, 0.09);
-          border: 1px solid var(--line);
-          border-radius: 15px;
-          padding: 16px;
-          margin-top: 14px;
+        .v8-funnel-root .offer .breakdown b {
+          color: #ffffff;
         }
-        .v8-funnel-root .callout strong {
+        .v8-funnel-root .offer .callout {
+          background: rgba(0, 0, 0, 0.22);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          border-radius: 14px;
+          padding: 14px 16px;
+          margin-top: 14px;
+          color: #f0fff4;
+        }
+        .v8-funnel-root .offer .callout strong {
           color: #ffb15e;
         }
+
+        /* ── 5x7 MATRIX TABLE ── */
         .v8-funnel-root .tablewrap {
           overflow-x: auto;
           margin-top: 15px;
+          border-radius: 12px;
+          border: 1px solid #d2e4d6;
         }
-        .v8-funnel-root table {
+        .v8-funnel-root .light table {
           border-collapse: collapse;
           width: 100%;
           min-width: 470px;
           font-size: 0.94rem;
         }
-        .v8-funnel-root th,
-        .v8-funnel-root td {
+        .v8-funnel-root .light th {
+          color: #064e25 !important;
+          font-weight: 900;
+          font-size: 0.84rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          border-bottom: 2px solid #c8ded0;
+          background: #f0f7f2;
+          padding: 12px 14px;
           text-align: left;
-          padding: 10px 12px;
-          border-bottom: 1px solid var(--line);
         }
-        .v8-funnel-root th {
-          color: #ffb15e;
+        .v8-funnel-root .light td {
+          color: #1a3c26;
+          padding: 11px 14px;
+          border-bottom: 1px solid #e7f0e9;
+          font-weight: 600;
+          text-align: left;
         }
-        .v8-funnel-root td:last-child,
-        .v8-funnel-root th:last-child {
+        .v8-funnel-root .light tr:last-child td {
+          border-bottom: 0;
+        }
+        .v8-funnel-root .light tr:hover td {
+          background: #f4faf5;
+        }
+        .v8-funnel-root .light td:last-child,
+        .v8-funnel-root .light th:last-child {
           text-align: right;
         }
-        .v8-funnel-root .smallnote {
+        .v8-funnel-root .light .smallnote {
+          color: #4b6e56;
           font-size: 0.84rem;
-          opacity: 0.86;
-          margin-top: 12px;
           line-height: 1.5;
+          margin-top: 14px;
         }
+
+        /* ── FAQ DETAILS ACCORDION ── */
         .v8-funnel-root details {
-          border-bottom: 1px solid var(--line);
-          padding: 16px 0;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 14px;
+          padding: 16px 20px;
+          margin-bottom: 12px;
+          transition: background 0.15s ease, border-color 0.15s ease;
+        }
+        .v8-funnel-root details:hover,
+        .v8-funnel-root details[open] {
+          background: rgba(255, 255, 255, 0.1);
+          border-color: rgba(255, 255, 255, 0.24);
         }
         .v8-funnel-root summary {
           cursor: pointer;
           font-weight: 850;
+          font-size: 1.05rem;
+          color: #ffffff;
+          user-select: none;
         }
         .v8-funnel-root details p {
-          opacity: 0.9;
+          color: #d6f2dc;
           margin-bottom: 0;
-          margin-top: 8px;
+          margin-top: 10px;
+          line-height: 1.55;
+          font-size: 0.96rem;
         }
+
+        /* ── CTA BOTTOM SECTION ── */
         .v8-funnel-root .cta {
-          padding: 50px 0;
+          padding: 60px 0;
           text-align: center;
-          background: var(--o);
-          color: #19351f;
+          background: linear-gradient(135deg, #033216 0%, #064e25 50%, #04381a 100%);
+          color: #ffffff;
+          border-top: 1px solid rgba(255, 255, 255, 0.12);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.12);
         }
         .v8-funnel-root .cta h2 {
+          font-size: clamp(2rem, 3.8vw, 3rem);
+          color: #ffffff;
+          font-weight: 950;
           max-width: 800px;
           margin: 0 auto 14px;
         }
         .v8-funnel-root .cta p {
+          color: #e2f5e7;
+          font-size: 1.05rem;
           max-width: 680px;
-          margin: 0 auto 22px;
+          margin: 0 auto 24px;
+          line-height: 1.55;
         }
-        .v8-funnel-root .cta .btn {
-          background: var(--deep);
-          color: white;
+        .v8-funnel-root .cta .btn.register-link {
+          background: #ff8a1d;
+          color: #072111;
+          font-weight: 900;
+          box-shadow: 0 8px 24px rgba(255, 138, 29, 0.4);
         }
+        .v8-funnel-root .cta .btn.whatsapp-link {
+          background: #25D366;
+          color: #ffffff;
+          font-weight: 850;
+          box-shadow: 0 8px 24px rgba(37, 211, 102, 0.3);
+          gap: 6px;
+        }
+
+        /* ── FOOTER ── */
         .v8-funnel-root footer {
           background: var(--deep);
           padding: 30px 0 90px;
@@ -1377,7 +1547,7 @@ export const GreenCardCampaign: React.FC = () => {
           pointer-events: auto;
           padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
           background: #033d1c;
-          border-top: 1px solid rgba(255, 255, 255, 0.45);
+          border-top: 1px solid rgba(255, 255, 255, 0.35);
           box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.28);
           transform: translateZ(0);
           isolation: isolate;
@@ -1387,22 +1557,45 @@ export const GreenCardCampaign: React.FC = () => {
           gap: 8px;
           width: 100%;
           max-width: 1120px;
+          align-items: center;
         }
         .v8-funnel-root .sticky .btn {
           display: inline-flex;
+          align-items: center;
+          justify-content: center;
           visibility: visible;
           opacity: 1;
           flex: 1;
           min-width: 0;
-          padding: 12px 8px;
-          font-size: 0.88rem;
+          padding: 12px 10px;
+          font-size: clamp(0.78rem, 3.2vw, 0.88rem);
           line-height: 1.25;
-          white-space: normal;
+          white-space: nowrap !important;
           text-align: center;
+          border-radius: 999px;
+        }
+        .v8-funnel-root .sticky .btn.register-link {
+          background: #ff8a1d;
+          color: #072111;
+          font-weight: 900;
+          box-shadow: 0 4px 12px rgba(255, 138, 29, 0.35);
+        }
+        .v8-funnel-root .sticky .btn.whatsapp-link {
+          background: #25D366;
+          color: #ffffff;
+          font-weight: 850;
+          box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+          gap: 6px;
         }
 
-        /* ── RESPONSIVE & MOBILE FIRST SCREEN / ABOVE-THE-FOLD GUARANTEE ── */
+        /* ── RESPONSIVE BREAKPOINTS ── */
         @media (max-width: 850px) {
+          .v8-funnel-root .funnel-header {
+            padding: 8px 0;
+          }
+          .v8-funnel-root nav {
+            gap: 10px;
+          }
           .v8-funnel-root .sticky {
             display: block !important;
             visibility: visible !important;
@@ -1419,25 +1612,13 @@ export const GreenCardCampaign: React.FC = () => {
             padding: 24px 0 20px;
           }
           .v8-funnel-root .preview {
-            min-height: 140px;
-            padding: 14px;
-          }
-          .v8-funnel-root .preview .play {
-            width: 54px;
-            height: 38px;
-            border-radius: 10px;
-            font-size: 1.25rem;
-            margin: 8px auto 6px;
-          }
-          .v8-funnel-root .preview strong {
-            font-size: 1.05rem;
-            margin-bottom: 6px;
+            max-height: 240px;
           }
           .v8-funnel-root .hero-grid {
             gap: 16px;
           }
           .v8-funnel-root h1 {
-            margin: 12px 0 8px;
+            margin: 10px 0 8px;
           }
           .v8-funnel-root .hero p {
             margin: 8px 0 10px;
@@ -1447,41 +1628,57 @@ export const GreenCardCampaign: React.FC = () => {
           }
         }
 
+        @media (max-width: 640px) {
+          .v8-funnel-root .brand-logo {
+            width: 34px;
+            height: 34px;
+          }
+          .v8-funnel-root .brand-main {
+            font-size: 0.96rem;
+          }
+          .v8-funnel-root .brand-sub {
+            font-size: 0.68rem;
+            letter-spacing: 0.08em;
+          }
+          .v8-funnel-root .header-actions {
+            gap: 6px;
+          }
+          .v8-funnel-root .header-actions .btn.small {
+            padding: 6px 12px;
+            font-size: 0.78rem;
+            border-radius: 999px;
+            white-space: nowrap !important;
+          }
+          .v8-funnel-root .header-actions .btn-icon {
+            width: 13px;
+            height: 13px;
+          }
+        }
+
         @media (max-width: 560px) {
           .v8-funnel-root body,
           .v8-funnel-root {
             padding-bottom: 76px;
           }
           .v8-funnel-root .wrap {
-            width: calc(100% - 24px);
+            width: calc(100% - 20px);
           }
           .v8-funnel-root .top .wrap {
             justify-content: center;
             text-align: center;
           }
           .v8-funnel-root .hero {
-            padding: 18px 0 16px;
+            padding: 16px 0 14px;
           }
           .v8-funnel-root h1 {
-            font-size: clamp(1.6rem, 7.2vw, 2.1rem);
-            line-height: 1.1;
-            margin: 10px 0 6px;
+            font-size: clamp(1.5rem, 6.8vw, 2rem);
+            line-height: 1.15;
+            margin: 8px 0 6px;
           }
           .v8-funnel-root .hero p {
             font-size: 0.92rem;
             line-height: 1.45;
             margin: 6px 0 10px;
-          }
-          .v8-funnel-root .preview {
-            min-height: 110px;
-            padding: 10px 14px;
-          }
-          .v8-funnel-root .preview .play {
-            width: 48px;
-            height: 32px;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            margin: 6px auto 4px;
           }
           .v8-funnel-root .actions {
             flex-direction: column;
@@ -1493,11 +1690,12 @@ export const GreenCardCampaign: React.FC = () => {
           }
           .v8-funnel-root .hero-actions .btn {
             width: 100%;
-            padding: 11px 16px;
+            padding: 12px 16px;
             font-size: 0.92rem;
+            white-space: nowrap !important;
           }
           .v8-funnel-root .section {
-            padding: 44px 0;
+            padding: 40px 0;
           }
           .v8-funnel-root .grid3,
           .v8-funnel-root .grid2 {
@@ -1507,10 +1705,37 @@ export const GreenCardCampaign: React.FC = () => {
             padding: 18px;
           }
           .v8-funnel-root .offer {
-            padding: 18px;
+            padding: 20px 16px;
           }
           .v8-funnel-root footer {
             padding-bottom: 110px;
+          }
+        }
+
+        @media (max-width: 400px) {
+          .v8-funnel-root .brand-sub {
+            display: none;
+          }
+          .v8-funnel-root .brand-logo {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            padding: 2px;
+          }
+          .v8-funnel-root .brand-main {
+            font-size: 0.88rem;
+          }
+          .v8-funnel-root .header-actions {
+            gap: 4px;
+          }
+          .v8-funnel-root .header-actions .btn.small {
+            padding: 5px 8px;
+            font-size: 0.72rem;
+          }
+          .v8-funnel-root .sticky .btn {
+            padding: 10px 6px;
+            font-size: 0.76rem;
+            gap: 4px;
           }
         }
 
