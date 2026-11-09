@@ -468,7 +468,8 @@ const Checkout = () => {
     productParam === "combo" ||
     productParam === "green_card_combo" ||
     bundleParam === "starter" ||
-    bundleParam === "starter_completion";
+    bundleParam === "starter_completion" ||
+    allowInstalment;
 
   // Per Management Decision: No more standalone ₦2,000 Green Card payment.
   // Starting requires the full ₦12,000 Starter Combo (Green Card + 1 Slot + Mushroom Power 100g).
@@ -510,12 +511,25 @@ const Checkout = () => {
   const needsGreenCard = !hasGreenCard && !isStarterPack && !isStarterCompletion;
   const greenCardFee = needsGreenCard ? activeGreenCardRate : 0;
 
+  // Explicit Starter Bundle / Instalment request from URL params (?bundle=starter or ?plan=instalment)
+  const isExplicitStarterBundle =
+    (bundleParam === "starter" || allowInstalment || isComboRequested) &&
+    !isStarterPack &&
+    !isStarterCompletion;
+
   // Instalment Eligibility:
   // Case A: New registrant (needs Green Card + Farm Slot + Starter Pack = ₦15,000 total)
   // Case B: Existing Green Card holder (already has Green Card pass, needs Farm Slot + Starter Pack = ₦13,000 total)
-  const isNewRegistrant = !hasGreenCard && !isStarterPack && !isStarterCompletion;
-  const isExistingGcCombo = hasGreenCard && !hasPurchasedStarterPack && !isStarterPack && !isStarterCompletion;
-  const canUseInstalment = isNewRegistrant || isExistingGcCombo;
+  // Case C: Explicit URL request (?bundle=starter or ?plan=instalment)
+  const isNewRegistrant =
+    (!hasGreenCard && !isStarterPack && !isStarterCompletion) ||
+    (isExplicitStarterBundle && !hasGreenCard);
+
+  const isExistingGcCombo =
+    (hasGreenCard && !hasPurchasedStarterPack && !isStarterPack && !isStarterCompletion) ||
+    (isExplicitStarterBundle && hasGreenCard);
+
+  const canUseInstalment = isNewRegistrant || isExistingGcCombo || allowInstalment || isExplicitStarterBundle;
 
   const [paymentPlanOption, setPaymentPlanOption] = useState<"full" | "instalment">(
     allowInstalment ? "instalment" : "full"
@@ -1526,6 +1540,29 @@ const Checkout = () => {
             </motion.div>
           )}
 
+          {allowInstalment && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border-2 border-emerald-500/40 flex items-start gap-3"
+            >
+              <Sparkles className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-bold text-sm text-foreground">Flexible Weekly Instalment Plan Selected</h3>
+                  <span className="text-[10px] font-bold text-emerald-800 bg-emerald-200/80 px-2.5 py-0.5 rounded-full">
+                    {hasGreenCard ? "₦1,000/week (₦13,000 total)" : "₦2,000 Today (₦15,000 total)"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                  {hasGreenCard
+                    ? "Your Green Card is already active! Pay ₦1,000 today to start your 13-week commercial farm slot & starter pack combo plan (₦13,000 total)."
+                    : "Pay ₦2,000 today for instant GreenCard ID & 5×7 Matrix placement, then ₦1,000/week for 13 weeks to complete your full starter package (₦15,000 total)."}
+                </p>
+              </div>
+            </motion.div>
+          )}
+
           <motion.div
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1546,14 +1583,14 @@ const Checkout = () => {
             </p>
           </motion.div>
 
-          {/* 2-Column Responsive Layout (Side-by-Side from md: upward) */}
+          {/* 2-Column Responsive Layout (Side-by-Side from md: upward, Order-swapped on mobile for instant visibility) */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start">
-            {/* ── LEFT COLUMN: PAYMENT METHOD (6-7 Cols) ──────────────────────────────── */}
+            {/* ── LEFT COLUMN: PAYMENT METHOD (6-7 Cols on desktop, order-2 on mobile) ──── */}
             <motion.div
               initial={{ opacity: 0, x: -15 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4 }}
-              className="md:col-span-6 lg:col-span-7 space-y-6"
+              className="order-2 md:order-1 md:col-span-6 lg:col-span-7 space-y-6"
             >
               {/* Community Farm Jurisdiction (State & LGA) */}
               <div className="bg-card rounded-2xl p-5 sm:p-6 shadow-sm border border-border/70 space-y-4">
@@ -1820,12 +1857,12 @@ const Checkout = () => {
               </div>
             </motion.div>
 
-            {/* ── RIGHT COLUMN: WHAT YOU'RE BUYING & INSTANT CTA (5-6 Cols) ─────────── */}
+            {/* ── RIGHT COLUMN: WHAT YOU'RE BUYING & INSTANT CTA (5-6 Cols on desktop, order-1 on mobile) ──── */}
             <motion.div
               initial={{ opacity: 0, x: 15 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
-              className="md:col-span-6 lg:col-span-5 space-y-6 md:sticky md:top-6 lg:top-8"
+              className="order-1 md:order-2 md:col-span-6 lg:col-span-5 space-y-6 md:sticky md:top-6 lg:top-8"
             >
               <div className="bg-card rounded-2xl overflow-hidden shadow-sm border border-border/80">
                 {/* Header */}
@@ -1847,7 +1884,7 @@ const Checkout = () => {
 
                 <div className="p-5 sm:p-6 space-y-5">
                   {/* SCENARIO 1: Starter Package / Combo Selection (Full vs Weekly Instalment) */}
-                  {(isNewRegistrant || isExistingGcCombo) && !isStarterPack && !isStarterCompletion && (
+                  {(isNewRegistrant || isExistingGcCombo || isExplicitStarterBundle) && !isStarterPack && !isStarterCompletion && (
                     <div className="space-y-4">
                       {/* Plan Options Selector - Available across normal checkout and special instalment links */}
                       <div className="space-y-2">
@@ -2106,7 +2143,7 @@ const Checkout = () => {
                   )}
 
                   {/* SCENARIO 3: Additional Farm Slots Counter */}
-                  {!isGreenCardOnly && !isStarterPack && !isInstalmentInitial && (
+                  {!isGreenCardOnly && !isStarterPack && !isInstalmentInitial && !isCombo && !isExplicitStarterBundle && (
                     <div className="space-y-3 pb-3 border-b border-border/50">
                       <Label className="font-semibold text-xs text-foreground">
                         Number of Commercial Farm Slots
