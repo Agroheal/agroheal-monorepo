@@ -103,6 +103,15 @@ const STATIC_CORE_PARTICIPANTS = [
   },
   {
     id: "driver-9",
+    name: "Olubunmi Aluko",
+    email: "bunmialuko2010@gmail.com",
+    roleTitle: "Green Card Project Consultant & Core Driver",
+    driverType: "operational" as const,
+    sharePerCard: 50,
+    termNotice: "Commenced from Oct 1, 2026 Launch",
+  },
+  {
+    id: "driver-10",
     name: "Oluwafemi Olaleye",
     email: "femmaleye@gmail.com",
     roleTitle: "Core Partner (Finance)",

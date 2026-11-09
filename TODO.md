@@ -41,6 +41,7 @@
   - Reconciled core driver wallet balances; drivers retain only genuine referral earnings and historical balances.
   - Created auth account for the 7th driver (`gkygmr56@gmail.com` / Nathaniel Omokanye) to ensure clean distribution.
   - Integrated 8th Core Driver Juliana Chikaodi Obinwanne (`shekinahexcellency@gmail.com`, ₦25 share effective Oct 1, 2026 launch) across server distribution engine, ledger backfill, and admin roster.
+  - Integrated 9th Core Driver Olubunmi Aluko (`bunmialuko2010@gmail.com`, ₦50 share effective Oct 1, 2026) across server distribution engine, 120-event historical ledger backfill (₦6,000 credited with zero leakage), and admin roster.
 
 - [ ] **Custom SMTP & Reliable Transactional Email Delivery (Top Priority)**:
 
