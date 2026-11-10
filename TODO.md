@@ -153,4 +153,10 @@
     - If `farm` query parameter exists in the signup/checkout URL, bind directly to that specific farm group (Option B).
     - If `farm` parameter is omitted, fall back to the dynamic auto-assignment resolver following the sponsor's lineage (Option A).
 
+- [ ] **Intelligent Existing User Checkout & Auto-Settlement Flow**:
+  - Pre-payment email debounce detection on `/checkout` to recognize existing members and associate transactions automatically.
+  - Smart claim routing on `/claim` to bypass password creation for existing accounts and route directly to dashboard or quick login.
+  - Zero redundant claim screens and seamless automatic recovery for corporate advance balances.
+
+
 
