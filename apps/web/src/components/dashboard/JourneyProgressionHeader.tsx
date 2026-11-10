@@ -193,7 +193,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
       headline = `Pay Week ${instalmentPlan.currentWeek} Instalment (${formatNaira(instalmentPlan.currentAmountDue)})`;
       shortSummary = `Payment is overdue by ${Math.max(1, Math.abs(daysUntilDue))} day(s). Includes ₦200 surcharge. Pay now to protect your matrix node (${formatNaira(instalmentPlan.cumulativePaid)}/₦15,000 paid).`;
       ctaText = `Pay Overdue (${formatNaira(instalmentPlan.currentAmountDue)})`;
-      onCtaClick = () => window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal"));
+      onCtaClick = () => { window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal")); };
       isWarning = true;
     } else if (isDueSoon) {
       // Stage B: Due Today / Due in <= 2 Days
@@ -202,7 +202,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
       headline = `Week ${instalmentPlan.currentWeek} Payment Due (${formatNaira(instalmentPlan.currentAmountDue)})`;
       shortSummary = `Due ${dueLabel} (${dueDateFormatted}). Pay ${formatNaira(instalmentPlan.currentAmountDue)} to maintain your active streak (${formatNaira(instalmentPlan.cumulativePaid)}/₦15,000 paid).`;
       ctaText = `Pay Week ${instalmentPlan.currentWeek} (${formatNaira(instalmentPlan.currentAmountDue)})`;
-      onCtaClick = () => window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal"));
+      onCtaClick = () => { window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal")); };
       isWarning = true;
     } else if (instalmentPlan.cumulativePaid < 5000) {
       // Stage C: Initial Stage (₦2,000 - ₦4,000 paid, targeting ₦5k milestone)
@@ -211,7 +211,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
       headline = `Next Instalment: Week ${instalmentPlan.currentWeek} (${formatNaira(instalmentPlan.currentAmountDue)})`;
       shortSummary = `Next ₦1,000 due ${dueDateFormatted}. Only ${formatNaira(toMilestone1)} to reach Milestone 1 (₦5,000) & unlock sponsor rewards (${formatNaira(instalmentPlan.cumulativePaid)}/₦15,000 paid).`;
       ctaText = `Pay Week ${instalmentPlan.currentWeek} (${formatNaira(instalmentPlan.currentAmountDue)})`;
-      onCtaClick = () => window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal"));
+      onCtaClick = () => { window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal")); };
       isWarning = false;
     } else if (instalmentPlan.cumulativePaid < 10000) {
       // Stage D: Mid-Plan (₦5,000 - ₦9,000 paid, targeting ₦10k welcome product unlock)
@@ -220,7 +220,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
       headline = `Unlock Welcome Product at ₦10,000 (${formatNaira(toProduct)} left)`;
       shortSummary = `Next ₦1,000 due ${dueDateFormatted}. ${formatNaira(toProduct)} remaining to unlock Mushroom Power 100g product delivery! (${formatNaira(instalmentPlan.cumulativePaid)}/₦15,000 paid).`;
       ctaText = `Pay Week ${instalmentPlan.currentWeek} (${formatNaira(instalmentPlan.currentAmountDue)})`;
-      onCtaClick = () => window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal"));
+      onCtaClick = () => { window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal")); };
       isWarning = false;
     } else {
       // Stage E: Final Stretch (₦10,000 - ₦14,000 paid, targeting ₦15k 1st Farm Slot & Withdrawals)
@@ -229,7 +229,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
       headline = `Unlock 1st Farm Slot & Withdrawals (${formatNaira(toFull)} left)`;
       shortSummary = `Next ₦1,000 due ${dueDateFormatted}. ${formatNaira(toFull)} remaining to allocate your 1st Farm Slot & unlock full cash withdrawals! (${formatNaira(instalmentPlan.cumulativePaid)}/₦15,000 paid).`;
       ctaText = `Pay Week ${instalmentPlan.currentWeek} (${formatNaira(instalmentPlan.currentAmountDue)})`;
-      onCtaClick = () => window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal"));
+      onCtaClick = () => { window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal")); };
       isWarning = false;
     }
   } else if (!isMemberLegacy && !isStep1Done) {

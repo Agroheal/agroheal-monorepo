@@ -58,6 +58,7 @@ export interface DirectReferralInfo {
   memberId?: string;
   directsCount: number;
   tier2Members?: Tier2MemberInfo[];
+  isActivated?: boolean;
 }
 
 interface GreenCardFirst5CardProps {
@@ -79,12 +80,29 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
   const [copiedLink, setCopiedLink] = useState(false);
 
   // ── 1. CORE RECRUITS & DUPLICATION DATA ──
-  // The 5 key frontline leaders (slots 1 to 5)
-  const directLeaders = useMemo(() => {
-    return referralsList.slice(0, 5);
+  // Separate verified active cardholders from pending unactivated registrations
+  const activatedLeaders = useMemo(() => {
+    return referralsList.filter(
+      (r) => r.isActivated !== false && (r.isActivated || Boolean(r.memberId))
+    );
   }, [referralsList]);
 
-  const completedDirects = Math.min(5, Math.max(directReferralsCount, directLeaders.length));
+  const pendingLeaders = useMemo(() => {
+    return referralsList.filter(
+      (r) => r.isActivated === false || (!r.isActivated && !r.memberId)
+    );
+  }, [referralsList]);
+
+  // The 5 key frontline leaders (slots 1 to 5): Active leaders take front seats, followed by pending recruits
+  const directLeaders = useMemo(() => {
+    return [...activatedLeaders, ...pendingLeaders].slice(0, 5);
+  }, [activatedLeaders, pendingLeaders]);
+
+  // ONLY verified active cardholders count towards First 5 completion
+  const completedDirects = Math.min(
+    5,
+    Math.max(directReferralsCount, activatedLeaders.length)
+  );
   const hasCompletedFirst5 = completedDirects >= 5;
 
   // Active view level toggle: Level 1 (First 5) vs Level 2 (Team 25 Duplication)
@@ -92,16 +110,16 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
     hasCompletedFirst5 ? "L2" : "L1"
   );
 
-  // Calculate total Tier 2 duplication across all 5 leaders (Capacity: 25)
+  // Calculate total Tier 2 duplication across verified direct leaders (Capacity: 25)
   const totalTier2Count = useMemo(() => {
-    return directLeaders.reduce((acc, r) => {
+    return activatedLeaders.slice(0, 5).reduce((acc, r) => {
       return acc + (r.tier2Members?.length || r.directsCount || 0);
     }, 0);
-  }, [directLeaders]);
+  }, [activatedLeaders]);
 
   const leadersWith5 = useMemo(() => {
-    return directLeaders.filter((m) => (m.directsCount || 0) >= 5).length;
-  }, [directLeaders]);
+    return activatedLeaders.slice(0, 5).filter((m) => (m.directsCount || 0) >= 5).length;
+  }, [activatedLeaders]);
 
   // Referral links & sharing
   const origin = typeof window !== "undefined" ? window.location.origin : "https://agroheal.solutions";
@@ -132,9 +150,12 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
     const firstName = member.fullName ? member.fullName.trim().split(" ")[0] : "Partner";
     const directs = member.directsCount || 0;
     const remaining = Math.max(0, 5 - directs);
+    const isMemberActive = member.isActivated !== false && (member.isActivated || Boolean(member.memberId));
 
     let message = "";
-    if (isL1View) {
+    if (!isMemberActive) {
+      message = `Hi ${firstName}! I noticed you started your registration on AgroHeal. Complete your Green Card activation now so we can activate your benefits and welcome you to our farming cooperative team! 🌾🌱`;
+    } else if (isL1View) {
       message = `Hi ${firstName}! Great having you on my AgroHeal frontline! Let's connect on your progress and growing your farming cooperative team! 🌾🌱`;
     } else {
       message = remaining === 0
@@ -276,6 +297,9 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
           const leader = directLeaders[slotIdx - 1];
 
           if (leader) {
+            const isLeaderActive =
+              leader.isActivated !== false &&
+              (leader.isActivated || Boolean(leader.memberId));
             const directs = leader.directsCount || leader.tier2Members?.length || 0;
             const isDone5 = directs >= 5;
 
@@ -283,7 +307,9 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
               <div
                 key={leader.id || slotIdx}
                 className={`p-2 rounded-xl transition-all border flex flex-col justify-between min-h-[58px] min-w-[155px] w-[170px] shrink-0 ${
-                  isDone5
+                  !isLeaderActive
+                    ? "bg-amber-950/20 border-amber-500/30 text-amber-200/90"
+                    : isDone5
                     ? "bg-emerald-500/20 border-emerald-400/50 text-white shadow-xs"
                     : directs > 0
                     ? "bg-white/10 border-emerald-500/30 text-white"
@@ -292,7 +318,9 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
               >
                 <div className="flex items-center justify-between gap-1 mb-1">
                   <span
-                    className="text-[11px] font-bold text-white truncate flex-1"
+                    className={`text-[11px] font-bold truncate flex-1 ${
+                      !isLeaderActive ? "text-amber-200" : "text-white"
+                    }`}
                     title={leader.fullName}
                   >
                     {leader.fullName}
@@ -300,7 +328,9 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
 
                   <span
                     className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold shrink-0 ${
-                      isL1Active
+                      !isLeaderActive
+                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold"
+                        : isL1Active
                         ? "bg-emerald-400 text-emerald-950 font-black"
                         : isDone5
                         ? "bg-emerald-400 text-emerald-950 font-black"
@@ -309,7 +339,11 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
                         : "bg-white/10 text-white/50"
                     }`}
                   >
-                    {isL1Active ? "✓ Active" : `${directs}/5`}
+                    {!isLeaderActive
+                      ? "⏳ Pending"
+                      : isL1Active
+                      ? "✓ Active"
+                      : `${directs}/5`}
                   </span>
                 </div>
 
@@ -317,10 +351,18 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
                 <div className="w-full bg-white/10 rounded-full h-1 overflow-hidden mb-1.5">
                   <div
                     className={`h-full rounded-full transition-all ${
-                      isL1Active || isDone5 ? "bg-emerald-300" : "bg-emerald-400/80"
+                      !isLeaderActive
+                        ? "bg-amber-400/40"
+                        : isL1Active || isDone5
+                        ? "bg-emerald-300"
+                        : "bg-emerald-400/80"
                     }`}
                     style={{
-                      width: isL1Active ? "100%" : `${Math.min(100, (directs / 5) * 100)}%`,
+                      width: !isLeaderActive
+                        ? "0%"
+                        : isL1Active
+                        ? "100%"
+                        : `${Math.min(100, (directs / 5) * 100)}%`,
                     }}
                   />
                 </div>
@@ -329,16 +371,24 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
                 <button
                   type="button"
                   onClick={(e) => handleNudgePartner(leader, e, isL1Active)}
-                  className="w-full inline-flex items-center justify-center gap-1 py-0.5 rounded-md bg-white/5 hover:bg-emerald-600/30 text-[9.5px] font-medium text-emerald-300 hover:text-white border border-white/10 hover:border-emerald-400/40 transition-all cursor-pointer"
+                  className={`w-full inline-flex items-center justify-center gap-1 py-0.5 rounded-md text-[9.5px] font-medium border transition-all cursor-pointer ${
+                    !isLeaderActive
+                      ? "bg-amber-500/10 hover:bg-amber-500/25 text-amber-300 hover:text-white border-amber-500/30 hover:border-amber-400/50"
+                      : "bg-white/5 hover:bg-emerald-600/30 text-emerald-300 hover:text-white border-white/10 hover:border-emerald-400/40"
+                  }`}
                   title={
-                    isL1Active
+                    !isLeaderActive
+                      ? `Remind ${leader.fullName} to complete Green Card activation on WhatsApp`
+                      : isL1Active
                       ? `Chat with ${leader.fullName} on WhatsApp`
                       : `Follow up with ${leader.fullName} on WhatsApp`
                   }
                 >
-                  <MessageCircle className="w-2.5 h-2.5 text-emerald-400" />
+                  <MessageCircle className={`w-2.5 h-2.5 ${!isLeaderActive ? "text-amber-400" : "text-emerald-400"}`} />
                   <span>
-                    {isL1Active
+                    {!isLeaderActive
+                      ? "Nudge to Activate"
+                      : isL1Active
                       ? "Chat Partner"
                       : isDone5
                       ? "Congratulate"

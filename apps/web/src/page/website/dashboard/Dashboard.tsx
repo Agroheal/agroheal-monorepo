@@ -329,10 +329,15 @@ const Dashboard = () => {
             const memberT2 = t2List.filter(
               (t: any) => t.referred_by === d.id || t.sponsor_id === d.id
             );
+            const isActivated = Boolean(
+              isQualifiedDirect(d) ||
+              (d.member_id && (d.has_greencard || d.is_green_card_holder || isGreenCardHolder(d)))
+            );
             return {
               id: d.id,
               fullName: d.full_name || "Member",
               memberId: d.member_id,
+              isActivated,
               directsCount: Math.max(Number(d.total_referrals) || 0, memberT2.length),
               tier2Members: memberT2.map((m: any) => {
                 const memberT3 = t3List.filter(
@@ -364,14 +369,25 @@ const Dashboard = () => {
               }),
             };
           });
+          // Sort activated direct leaders to the frontline slots first
+          enrichedList.sort((a, b) => {
+            const aActive = a.isActivated ? 1 : 0;
+            const bActive = b.isActivated ? 1 : 0;
+            return bActive - aActive;
+          });
         } catch (t2Err) {
           console.warn("Failed to fetch Tier 2 downlines:", t2Err);
           enrichedList = directReferralsList.map((d: any) => ({
             id: d.id,
             fullName: d.full_name || "Member",
             memberId: d.member_id,
+            isActivated: Boolean(
+              isQualifiedDirect(d) ||
+              (d.member_id && (d.has_greencard || d.is_green_card_holder || isGreenCardHolder(d)))
+            ),
             directsCount: Number(d.total_referrals) || 0,
           }));
+          enrichedList.sort((a, b) => (b.isActivated ? 1 : 0) - (a.isActivated ? 1 : 0));
         }
       }
       setEnrichedDirects(enrichedList);

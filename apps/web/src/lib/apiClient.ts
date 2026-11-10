@@ -94,7 +94,10 @@ async function apiRequest<T = any>(
   } catch (err: any) {
     clearTimeout(timeoutId);
     if (err.name === "AbortError") {
-      throw new ApiError(`Request timeout connecting to ${url}`, 408);
+      throw new ApiError(
+        `Connection timed out while reaching the server. The backend may be waking up from sleep — please retry in a few moments.`,
+        408
+      );
     }
     throw err;
   }
