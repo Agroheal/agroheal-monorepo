@@ -742,8 +742,8 @@ const DashboardLayout = () => {
 
   if (isFullscreen) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <main className="flex-1 overflow-auto">
+      <div className="h-screen h-[100dvh] w-full bg-gray-50 flex flex-col overflow-hidden fixed inset-0">
+        <main className="flex-1 overflow-auto overscroll-contain">
           <Outlet
             context={{
               setHowItWorksOpen,
@@ -764,7 +764,7 @@ const DashboardLayout = () => {
   );
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen h-[100dvh] w-full bg-gray-50 overflow-hidden fixed inset-0">
       {/* ── DESKTOP SIDEBAR — collapsible on lg+ (w-20 collapsed vs w-64/72 expanded, zero scrollbar) ── */}
       <aside className={`hidden lg:flex flex-col ${desktopSidebarCollapsed ? "w-20" : "w-64 xl:w-72"} bg-[#0c2415] border-r border-emerald-900/60 shadow-xl shrink-0 h-full overflow-hidden transition-all duration-300 ease-in-out`}>
         <SidebarContent
@@ -885,7 +885,7 @@ const DashboardLayout = () => {
       </AnimatePresence>
 
       {/* ── MAIN CONTENT AREA ── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Super Admin Impersonation Sticky Banner */}
         {isImpersonated && (
           <div className="bg-amber-500 text-amber-950 px-4 py-2 text-xs font-semibold flex items-center justify-between gap-3 shadow-xs z-30 shrink-0">
@@ -1062,7 +1062,7 @@ const DashboardLayout = () => {
         </div>
 
         {/* Page Content Viewport */}
-        <main className="flex-1 overflow-y-auto bg-gray-50/60">
+        <main className="flex-1 overflow-y-auto bg-gray-50/60 overscroll-contain">
           <Outlet
             context={{
               setHowItWorksOpen,
