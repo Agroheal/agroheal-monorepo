@@ -784,37 +784,37 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
           category = "COMBO_PACKAGE";
           const slotCount = linkedSlots.reduce((sum: number, s: any) => sum + (Number(s.slots) || 0), 0);
           const prodNames = linkedOrders.map((o: any) => `${o.quantity > 1 ? `${o.quantity}x ` : ""}${o.product_code === "SP-MUSH-100G" ? "Mushroom Power 100g" : (o.product_code || "Product")}`).join(", ");
-          description = `Secured ${slotCount} Farm Slot(s) + ${prodNames} — ${cleanCat || "Mushroom Village"}`;
+          description = isCCompleted ? `Secured ${slotCount} Farm Slot(s) + ${prodNames} — ${cleanCat || "Mushroom Village"}` : `Pending Checkout: ${slotCount} Farm Slot(s) + ${prodNames}`;
         } else if (linkedOrders.length > 0 && linkedSlots.length === 0) {
           category = "RETAIL_PURCHASE";
           const prodNames = linkedOrders.map((o: any) => `${o.quantity > 1 ? `${o.quantity}x ` : ""}${o.product_code === "SP-MUSH-100G" ? "Mushroom Power 100g" : (o.product_code || "Product")}`).join(", ");
-          description = `Product Purchase: ${prodNames}`;
+          description = isCCompleted ? `Product Purchase: ${prodNames}` : `Pending Product Purchase: ${prodNames}`;
         } else if (linkedSlots.length > 0) {
           category = "SLOT_PURCHASE";
           const slotCount = linkedSlots.reduce((sum: number, s: any) => sum + (Number(s.slots) || 0), 0);
-          description = `Secured ${slotCount} Farm Slot(s) — ${cleanCat || "Mushroom Village"}`;
+          description = isCCompleted ? `Secured ${slotCount} Farm Slot(s) — ${cleanCat || "Mushroom Village"}` : `Pending Checkout: ${slotCount} Farm Slot(s) — ${cleanCat || "Mushroom Village"}`;
         } else if (amount === 12000 || (isComboTx && amount === 12000)) {
           category = "COMBO_PACKAGE";
-          description = "Starter Combo Bundle (1 Farm Slot ₦5,000 + Mushroom Power 100g ₦5,000 + Green Card Pass ₦2,000)";
+          description = isCCompleted ? "Starter Combo Bundle (1 Farm Slot ₦5,000 + Mushroom Power 100g ₦5,000 + Green Card Pass ₦2,000)" : "Pending Combo Bundle (1 Farm Slot + Mushroom Power + Green Card)";
         } else if (amount === 11000 || (isComboTx && amount === 11000)) {
           category = "COMBO_PACKAGE";
-          description = "Starter Combo Bundle (1 Farm Slot ₦5,000 + Mushroom Power 100g ₦5,000 + Legacy Green Card ₦1,000)";
+          description = isCCompleted ? "Starter Combo Bundle (1 Farm Slot ₦5,000 + Mushroom Power 100g ₦5,000 + Legacy Green Card ₦1,000)" : "Pending Combo Bundle (1 Farm Slot + Mushroom Power + Legacy Green Card)";
         } else if (amount === 10000 && (isComboTx || !catLower.includes("slot"))) {
           category = "COMBO_PACKAGE";
-          description = "Starter Combo Bundle (1 Farm Slot ₦5,000 + Mushroom Power 100g ₦5,000 [Free Legacy Green Card])";
+          description = isCCompleted ? "Starter Combo Bundle (1 Farm Slot ₦5,000 + Mushroom Power 100g ₦5,000 [Free Legacy Green Card])" : "Pending Combo Bundle (1 Farm Slot + Mushroom Power)";
         } else if (isComboTx) {
           category = "COMBO_PACKAGE";
-          description = "Starter Combo Bundle (1 Farm Slot ₦5,000 + Mushroom Power 100g ₦5,000 + Green Card)";
+          description = isCCompleted ? "Starter Combo Bundle (1 Farm Slot ₦5,000 + Mushroom Power 100g ₦5,000 + Green Card)" : "Pending Combo Bundle Checkout";
         } else if (isGreenCardTx) {
           category = "SUBSCRIPTION";
-          description = "AgroHeal Green Card Activation (Lifetime Certified Digital Pass)";
+          description = isCCompleted ? "AgroHeal Green Card Activation (Lifetime Certified Digital Pass)" : "Pending Green Card Pass Checkout";
         } else if (catLower.includes("starter pack") || (amount === 5000 && catLower.includes("product"))) {
           category = "RETAIL_PURCHASE";
-          description = "Starter Pack Product: Mushroom Power 100g";
+          description = isCCompleted ? "Starter Pack Product: Mushroom Power 100g" : "Pending Product Purchase: Mushroom Power 100g";
         } else if (catLower.includes("slot") || amount >= 5000) {
           const count = Math.max(1, Math.floor(amount / 5000));
           category = "SLOT_PURCHASE";
-          description = `Secured ${count} Farm Slot(s) — ${cleanCat || "Mushroom Village"}`;
+          description = isCCompleted ? `Secured ${count} Farm Slot(s) — ${cleanCat || "Mushroom Village"}` : `Pending Checkout: ${count} Farm Slot(s) — ${cleanCat || "Mushroom Village"}`;
         }
 
         if (!items.some((i) => i.reference === ref || (c.transaction_ref && i.reference === c.transaction_ref))) {
@@ -1187,11 +1187,11 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
 
   const activeBaseTransactions = walletMode === "live" ? liveTransactions : legacyTransactions;
   const walletLedgerCount = React.useMemo(
-    () => activeBaseTransactions.filter((t) => !isPurchaseCategory(t.category)).length,
+    () => activeBaseTransactions.filter((t) => !isPurchaseCategory(t.category) || t.status !== "COMPLETED").length,
     [activeBaseTransactions]
   );
   const purchaseHistoryCount = React.useMemo(
-    () => activeBaseTransactions.filter((t) => isPurchaseCategory(t.category)).length,
+    () => activeBaseTransactions.filter((t) => isPurchaseCategory(t.category) && t.status === "COMPLETED").length,
     [activeBaseTransactions]
   );
 
@@ -1201,11 +1201,11 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
     if (walletMode === "legacy" && !isLegacy) return false;
 
     // Filter by Active Ledger Tab (Applies exclusively to Live Wallet):
-    // "wallet_ledger" -> Pure internal earnings & disbursements (referrals, matrix commissions, driver bonuses, slot bonuses, withdrawals)
-    // "purchase_history" -> Clear list of external orders and card receipts (combo bundles, starter packs, farm slots, subscriptions)
+    // "wallet_ledger" -> Pure internal earnings, disbursements, and non-completed/pending checkout attempts
+    // "purchase_history" -> Clear list of external orders and card receipts (ONLY verified COMPLETED purchases)
     if (walletMode === "live") {
-      if (activeLedgerTab === "wallet_ledger" && isPurchaseCategory(t.category)) return false;
-      if (activeLedgerTab === "purchase_history" && !isPurchaseCategory(t.category)) return false;
+      if (activeLedgerTab === "wallet_ledger" && isPurchaseCategory(t.category) && t.status === "COMPLETED") return false;
+      if (activeLedgerTab === "purchase_history" && (!isPurchaseCategory(t.category) || t.status !== "COMPLETED")) return false;
     }
 
     if (filterType === "PENDING") {
