@@ -11,10 +11,11 @@
 
 3. **Mandatory Build & Typecheck Gate (Push Only)**:
    - Typecheck, linting, tests, and build checks are to be executed ONLY together with pushing when the user explicitly says "push". Never waste time running heavy typechecks on minor iterative steps.
-   - Before executing any `git push`, ALWAYS run and verify:
-     - `npm run web:typecheck` (must exit with code 0, 0 errors).
-     - `npm run admin:typecheck` (must exit with code 0, 0 errors).
-   - Never push if there is a compiler error or broken build.
+   - **Scope-Specific Verification**: Only typecheck workspaces whose files were actually modified:
+     - Run `npm run web:typecheck` ONLY if `apps/web` or shared code was touched.
+     - Run `npm run admin:typecheck` ONLY if `apps/admin` code was touched. NEVER run admin typecheck if admin code was not modified.
+     - In `agroheal-server`, run `npm run build` ONLY if backend code was touched.
+   - Never push if there is a compiler error or broken build in touched workspaces.
 
 ## 2. Session Memory & Activity Tracking Protocol
 - **Activity & Context Anchor**:
