@@ -180,10 +180,10 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
           </div>
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
             <h3 className="text-xs sm:text-sm font-bold text-white tracking-tight whitespace-nowrap">
-              GREEN CARD FIRST 5™
+              FRONTLINE 5™
             </h3>
 
-            {/* Level Switcher: Toggle between L1 (First 5) and L2 (Team 25 Duplication) */}
+            {/* Level Switcher: Toggle between Your 5 Frontline and Team 25 Duplication */}
             {hasCompletedFirst5 ? (
               <div className="inline-flex items-center gap-1 bg-black/40 p-0.5 rounded-lg border border-white/10">
                 <button
@@ -194,10 +194,10 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
                       ? "bg-emerald-500 text-white shadow-xs"
                       : "text-white/60 hover:text-white"
                   }`}
-                  title="Switch to Level 1 (First 5) view"
+                  title="Switch to Your 5 Frontline view"
                 >
                   <Check className="w-2.5 h-2.5 text-emerald-200" />
-                  <span>L1: First 5 (5/5)</span>
+                  <span>Your 5 Frontline ({completedDirects}/5)</span>
                 </button>
                 <button
                   type="button"
@@ -207,16 +207,24 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
                       ? "bg-emerald-500 text-white shadow-xs"
                       : "text-white/60 hover:text-white"
                   }`}
-                  title="Switch to Level 2 (Team 25 Duplication) view"
+                  title="Switch to Team 25 (5×5) Duplication view"
                 >
                   <Sparkles className="w-2.5 h-2.5 text-amber-300" />
-                  <span>L2: Duplication ({totalTier2Count}/25)</span>
+                  <span>Team 25 ({totalTier2Count}/25)</span>
                 </button>
               </div>
             ) : (
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                L1: Build Your 5
-              </span>
+              <div className="inline-flex items-center gap-1">
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Your 5 Frontline ({completedDirects}/5 Active)
+                </span>
+                <span
+                  className="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-white/5 text-white/40 border border-white/10 flex items-center gap-1"
+                  title="Complete all 5 frontline active partners to unlock Team 25 Duplication tracking"
+                >
+                  <span>🔒 Team 25</span>
+                </span>
+              </div>
             )}
           </div>
         </div>
@@ -241,16 +249,16 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
           <>
             <div className="flex items-center gap-1.5 truncate">
               <span className="font-bold text-white uppercase tracking-wider">
-                Level 1:
+                Frontline:
               </span>
               <span className="font-mono font-bold text-emerald-300">
-                {completedDirects}/5
+                {completedDirects}/5 Active
               </span>
               <span className="text-white/30 hidden sm:inline">•</span>
               <span className="text-emerald-200/80 truncate hidden sm:inline">
                 {hasCompletedFirst5
-                  ? "All 5 direct frontline seats completed! Full matrix bonuses unlocked 🎉"
-                  : `${5 - completedDirects} more direct recruits to unlock full matrix commissions`}
+                  ? "All 5 direct frontline seats active! Team 25 Duplication unlocked 🎉"
+                  : `${5 - completedDirects} more active partner${5 - completedDirects > 1 ? "s" : ""} to unlock full matrix commissions & Team 25`}
               </span>
             </div>
 
@@ -267,15 +275,15 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
           <>
             <div className="flex items-center gap-1.5 truncate">
               <span className="font-bold text-white uppercase tracking-wider">
-                Level 2:
+                Team 25:
               </span>
               <span className="font-mono font-bold text-emerald-300">
-                {totalTier2Count}/25
+                {totalTier2Count}/25 Seats
               </span>
               <span className="text-white/30 hidden sm:inline">•</span>
               <span className="text-emerald-200/80 truncate hidden sm:inline">
-                {leadersWith5} of 5 direct leaders recruited their 5
-                {totalTier2Count < 25 && ` (${25 - totalTier2Count} to go for full L2)`}
+                {leadersWith5} of 5 frontline leaders completed their 5
+                {totalTier2Count < 25 && ` (${25 - totalTier2Count} seats left)`}
               </span>
             </div>
 
@@ -330,9 +338,9 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
                     className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold shrink-0 ${
                       !isLeaderActive
                         ? "bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold"
-                        : isL1Active
-                        ? "bg-emerald-400 text-emerald-950 font-black"
                         : isDone5
+                        ? "bg-emerald-400 text-emerald-950 font-black"
+                        : isL1Active
                         ? "bg-emerald-400 text-emerald-950 font-black"
                         : directs > 0
                         ? "bg-emerald-500/30 text-emerald-300 border border-emerald-400/30"
@@ -340,10 +348,12 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
                     }`}
                   >
                     {!isLeaderActive
-                      ? "⏳ Pending"
+                      ? "⏳ Payment Pending"
+                      : isDone5
+                      ? "⭐ 5/5 Done!"
                       : isL1Active
                       ? "✓ Active"
-                      : `${directs}/5`}
+                      : `${directs}/5 Team`}
                   </span>
                 </div>
 
@@ -399,17 +409,17 @@ export const GreenCardFirst5Card: React.FC<GreenCardFirst5CardProps> = ({
             );
           }
 
-          // Open Slot Placeholder (when leader has fewer than 5 directs)
+          // Open Seat Placeholder (when leader has fewer than 5 directs)
           return (
             <div
               key={`open-slot-${slotIdx}`}
               onClick={handleCopyLink}
               className="p-2 rounded-xl border border-dashed border-white/15 bg-white/[0.02] hover:bg-white/[0.05] flex flex-col justify-between min-h-[58px] min-w-[155px] w-[170px] shrink-0 text-white/30 transition-all cursor-pointer group"
-              title="Click to copy invite link and fill this slot"
+              title="Click to copy invite link and fill this seat"
             >
               <div className="flex items-center justify-between gap-1 mb-1">
                 <span className="text-[10px] font-semibold text-white/50 group-hover:text-emerald-300 transition-colors truncate">
-                  Open Slot #{slotIdx}
+                  Open Seat #{slotIdx}
                 </span>
                 <span className="text-[9px] font-mono font-bold px-1 py-0.5 rounded bg-white/5 text-white/40">
                   0/5
