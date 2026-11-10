@@ -674,6 +674,8 @@ export const apiClient = {
         fullName: string;
         memberId?: string;
         settlement: any;
+        isExistingMember?: boolean;
+        message?: string;
       }>("checkout/claim-account", {
         method: "POST",
         body: JSON.stringify(data),

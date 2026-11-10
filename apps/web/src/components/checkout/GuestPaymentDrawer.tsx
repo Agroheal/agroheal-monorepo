@@ -276,10 +276,20 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
         console.warn("[GuestCheckout] Auto sign-in notice:", authErr);
       }
 
+      const isExisting = claimRes.isExistingMember || claimRes.settlement?.remainingDebt !== undefined;
+      const toastTitle = isExisting ? "Payment Confirmed! 🎉" : "Account Created! 🎉";
+      const toastDesc =
+        claimRes.message ||
+        (claimRes.settlement?.remainingDebt !== undefined
+          ? `Payment applied to your balance! Redirecting to your dashboard...`
+          : isExisting
+          ? `Payment credited to your account! Redirecting to your dashboard...`
+          : `Welcome to AgroHeal! Your Green Card ID is ${memberId}. Redirecting to your dashboard...`);
+
       showToast({
         variant: "success",
-        title: "Account Created! 🎉",
-        description: `Welcome to AgroHeal! Your Green Card ID is ${memberId}. Redirecting to your dashboard...`,
+        title: toastTitle,
+        description: toastDesc,
       });
 
       setStage("success");
