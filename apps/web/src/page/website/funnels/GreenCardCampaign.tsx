@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { apiClient } from "@/lib/apiClient";
 import AgrohealLogo from "@/assets/Image/logo.png";
 import GuestPaymentDrawer from "@/components/checkout/GuestPaymentDrawer";
+import { trackMetaPixel, trackMetaPageView } from "@/lib/metaPixel";
 
 const GREEN_CARD_CONFIG = {
   whatsappUrl:
@@ -46,6 +47,11 @@ export const GreenCardCampaign: React.FC = () => {
   const [drawerPlan, setDrawerPlan] = useState<"green_card" | "combo">("combo");
 
   const openPaymentDrawer = (planToOpen: "green_card" | "combo" = "combo") => {
+    trackMetaPixel("InitiateCheckout", {
+      content_name: planToOpen === "combo" ? "Green Card Starter Combo" : "Green Card Initial Deposit",
+      value: planToOpen === "combo" ? 15000 : 2000,
+      currency: "NGN",
+    });
     setDrawerPlan(planToOpen);
     setIsPaymentDrawerOpen(true);
   };
@@ -115,6 +121,7 @@ export const GreenCardCampaign: React.FC = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+    trackMetaPageView();
   }, []);
 
   useEffect(() => {

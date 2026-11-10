@@ -3,6 +3,7 @@ import Header from "./Header";
 import Footer from "./Footer";
 import { useEffect } from "react";
 import { captureReferral } from "@/lib/referralManager";
+import { trackMetaPageView } from "@/lib/metaPixel";
 
 const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
 
@@ -26,9 +27,10 @@ const Layout = () => {
     }
   }, [pathname, normalizedPath, navigate, location.search]);
 
-  // Ensure window scrolls to top on navigation to any page (e.g. from footer links)
+  // Ensure window scrolls to top on navigation to any page (e.g. from footer links) and track SPA PageView
   useEffect(() => {
     window.scrollTo(0, 0);
+    trackMetaPageView();
   }, [pathname]);
 
   const HIDDENROURES = [

@@ -20,6 +20,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { showToast } from "@/components/ui/ToastComponent";
 import { PaymentMethodSelector } from "./PaymentMethodSelector";
 import { usePaymentGateway } from "@/hooks/usePaymentGateway";
+import { trackMetaPixel } from "@/lib/metaPixel";
 
 const COMMON_TYPOS: Record<string, string> = {
   "gmil.com": "gmail.com",
@@ -372,6 +373,12 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
         publicKey: initRes.flwPublicKey,
         checkoutUrl: initRes.checkoutUrl,
         onSuccess: async (payRes) => {
+          trackMetaPixel("Purchase", {
+            value: initRes.amount,
+            currency: "NGN",
+            content_name: title,
+            transaction_id: payRes.reference || txRef,
+          });
           await executeAutoProvisionAndRedirect(
             payRes.reference,
             cleanEmail,

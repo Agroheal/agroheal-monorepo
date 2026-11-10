@@ -18,6 +18,7 @@ import { cleanName, cleanEmail, normalizePhoneNumber, cleanReferralCode, validat
 import { PasswordRequirementsTracker, checkPasswordRequirements } from "@/components/common/PasswordRequirementsTracker";
 import { API_BASE_URL } from "@/config/Index";
 import { apiClient } from "@/lib/apiClient";
+import { trackMetaPixel } from "@/lib/metaPixel";
 import { getActiveReferral, clearStoredReferral, DEFAULT_ROOT_SPONSOR_CODE } from "@/lib/referralManager";
 
 interface SponsorInfo {
@@ -253,6 +254,7 @@ const Signup = () => {
       });
 
       Sentry.metrics.count("signup_completed", 1);
+      trackMetaPixel("CompleteRegistration");
       clearStoredReferral();
       setTimeout(() => {
         navigate(redirectUrl);
@@ -274,6 +276,7 @@ const Signup = () => {
           });
 
           Sentry.metrics.count("signup_completed", 1);
+          trackMetaPixel("CompleteRegistration");
           clearStoredReferral();
           setTimeout(() => {
             navigate(redirectUrl);
