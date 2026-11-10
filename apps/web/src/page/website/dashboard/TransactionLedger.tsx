@@ -221,7 +221,7 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
       case "WITHDRAWAL":
         return "Bank Withdrawal";
       case "ADVANCE_RECOVERY":
-        return "Advance Auto-Recovery";
+        return "Advance / Loan Repayment";
       case "CORP_PROMO_GRANT":
         return "Corporate Promo Grant";
       default:
@@ -770,7 +770,14 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
         const linkedOrders = (orders || []).filter((o: any) => String(o.transaction_id) === String(c.id));
         const linkedSlots = (slotSubscriptions || []).filter((s: any) => String(s.checkout_id) === String(c.id));
 
-        if (c.notes && (c.notes.toLowerCase().includes("corporate advance") || c.notes.toLowerCase().includes("corporate loan") || c.notes.toLowerCase().includes("advance debt recovery"))) {
+        if (
+          c.notes &&
+          (c.notes.toLowerCase().includes("corporate advance") ||
+            c.notes.toLowerCase().includes("corporate loan") ||
+            c.notes.toLowerCase().includes("advance debt") ||
+            c.notes.toLowerCase().includes("debt recovery") ||
+            c.notes.toLowerCase().includes("loan settlement"))
+        ) {
           category = "ADVANCE_RECOVERY";
           description = c.notes;
         } else if (linkedOrders.length > 0 && linkedSlots.length > 0) {
@@ -2067,6 +2074,8 @@ export default function TransactionLedger({ defaultMode }: { defaultMode?: "live
                                   ? "bg-blue-50 text-blue-900 border border-blue-200"
                                   : t.category === "SUBSCRIPTION"
                                   ? "bg-emerald-50 text-emerald-950 border border-emerald-300"
+                                  : t.category === "ADVANCE_RECOVERY"
+                                  ? "bg-purple-50 text-purple-900 border border-purple-200"
                                   : "bg-gray-100 text-gray-700 border border-gray-200"
                               }`}
                             >
