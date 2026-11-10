@@ -84,6 +84,18 @@ export const InstalmentReminderModal: React.FC = () => {
 
   useEffect(() => {
     fetchPlanData();
+
+    const handleOpen = () => {
+      fetchPlanData();
+      setIsOpen(true);
+    };
+
+    window.addEventListener("agroheal:open_instalment_modal", handleOpen);
+    window.addEventListener("agroheal:instalment_updated", fetchPlanData);
+    return () => {
+      window.removeEventListener("agroheal:open_instalment_modal", handleOpen);
+      window.removeEventListener("agroheal:instalment_updated", fetchPlanData);
+    };
   }, []);
 
   if (!plan || plan.status === "FULLY_PAID" || !isOpen) {
