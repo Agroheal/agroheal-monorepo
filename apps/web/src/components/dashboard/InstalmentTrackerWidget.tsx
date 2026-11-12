@@ -8,6 +8,8 @@ import {
   Wallet,
   CreditCard,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Sparkles,
   Info,
   Clock,
@@ -36,6 +38,24 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
   const { launchPayment } = usePaymentGateway();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  const [isExpanded, setIsExpanded] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem("agroheal_instalment_widget_expanded");
+      if (stored !== null) return stored === "true";
+    } catch {}
+    return false; // Collapsed by default so dashboard overview content is always immediately accessible
+  });
+
+  const toggleExpanded = () => {
+    setIsExpanded((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("agroheal_instalment_widget_expanded", String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   const fetchPlanData = async () => {
     try {
@@ -254,11 +274,11 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <Button
               onClick={() => setShowPayModal(true)}
               size="sm"
-              className={`rounded-xl px-4 font-bold text-xs shadow-sm transition-all ${
+              className={`rounded-xl px-3.5 py-1.5 font-bold text-xs shadow-sm transition-all cursor-pointer ${
                 isOverdue
                   ? "bg-amber-600 hover:bg-amber-700 text-white"
                   : isDueToday
@@ -271,13 +291,55 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
                 : isDueToday
                 ? `Pay ₦${currentAmountDue.toLocaleString()} Due Today`
                 : `Pay ₦${currentAmountDue.toLocaleString()} Early`}
-              <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+              <ArrowRight className="w-3.5 h-3.5 ml-1" />
             </Button>
+
+            <button
+              type="button"
+              onClick={toggleExpanded}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200/90 hover:border-gray-300 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 transition-all cursor-pointer shadow-2xs"
+              title={isExpanded ? "Collapse plan breakdown" : "View full plan breakdown & milestones"}
+            >
+              <span>{isExpanded ? "Hide Details" : "Plan Details"}</span>
+              {isExpanded ? (
+                <ChevronUp className="w-3.5 h-3.5 text-gray-500" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+              )}
+            </button>
           </div>
         </div>
 
-        {/* Core Progress & Metrics */}
-        <div className="p-5 sm:p-7">
+        {/* Compact Overview Progress Bar (When collapsed) */}
+        {!isExpanded && (
+          <div className="px-5 sm:px-7 py-2.5 bg-gray-50/70 border-t border-gray-100 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-xs text-gray-600">
+              <span className="font-semibold text-gray-800">Progress:</span>
+              <span className="font-mono font-bold text-emerald-700">₦{cumulativePaid.toLocaleString()} / ₦15,000</span>
+              <span className="text-gray-400">({percentComplete}%)</span>
+            </div>
+            <div className="flex-1 max-w-[200px] sm:max-w-xs h-2 bg-gray-200/80 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  isOverdue ? "bg-amber-500" : "bg-emerald-600"
+                }`}
+                style={{ width: `${percentComplete}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Core Progress & Metrics (Expandable) */}
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden border-t border-gray-100"
+            >
+              <div className="p-5 sm:p-7">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100/80">
               <span className="text-xs text-gray-500 font-medium">Cumulative Paid</span>
@@ -423,7 +485,10 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+</div>
 
       {/* Pay Instalment Modal */}
       <AnimatePresence>
