@@ -64,7 +64,6 @@ const PreservedPayRedirect: React.FC = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   searchParams.set("pay", "true");
-  searchParams.set("direct", "true");
   return <Navigate to={`/gc?${searchParams.toString()}`} replace />;
 };
 

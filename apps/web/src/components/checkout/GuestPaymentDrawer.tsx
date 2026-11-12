@@ -69,8 +69,6 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
   onClaimSuccess,
 }) => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const isDirectPay = searchParams.get("direct") === "true";
 
   // Navigation & stages: "form" | "processing" | "claim" | "success"
   const [stage, setStage] = useState<"form" | "processing" | "claim" | "success">("form");
@@ -262,9 +260,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
         });
       } catch (claimAttemptErr: any) {
         console.warn("[GuestPaymentDrawer] Settlement notice:", claimAttemptErr?.message);
-        if (!isDirectPay) {
-          throw claimAttemptErr;
-        }
+        throw claimAttemptErr;
       }
 
       const memberId =
@@ -275,19 +271,6 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
       setSlotsAllocated(
         claimRes?.settlement?.slotsAllocated || (plan === "combo" ? 1 : 0)
       );
-
-      // In direct payment mode (/pay), do NOT sign in and do NOT redirect to dashboard
-      if (isDirectPay) {
-        showToast({
-          variant: "success",
-          title: "Payment Confirmed! 🎉",
-          description: claimRes?.message || "Your payment was successfully received and confirmed.",
-        });
-
-        setStage("success");
-        if (onClaimSuccess && claimRes) onClaimSuccess(claimRes);
-        return;
-      }
 
       // 2. Direct client sign-in (email is pre-confirmed, zero verification link required)
       try {
@@ -318,17 +301,13 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
       setStage("success");
       if (onClaimSuccess) onClaimSuccess(claimRes);
 
-      // 3. Seamless auto-redirect to dashboard only for full signup flow
+      // 3. Seamless auto-redirect to dashboard
       setTimeout(() => {
         onClose();
         navigate("/dashboard");
       }, 1500);
     } catch (claimErr: any) {
       console.error("[GuestPaymentDrawer] Auto-provisioning error:", claimErr);
-      if (isDirectPay) {
-        setStage("success");
-        return;
-      }
       // Fallback: If an edge case occurs (e.g. existing email conflict), allow user to view fallback form
       setClaimEmail(cleanEmail);
       setClaimFullName(cleanName);
@@ -935,15 +914,13 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
 
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                  {isDirectPay ? "PAYMENT VERIFIED" : "OFFICIALLY ACTIVATED"}
+                  OFFICIALLY ACTIVATED
                 </span>
                 <h3 className="text-2xl font-black text-gray-900 mt-3">
-                  {isDirectPay ? `Payment Confirmed, ${fullName || "Member"}!` : `Welcome, ${fullName}!`}
+                  Welcome, {fullName || "Member"}!
                 </h3>
                 <p className="text-sm text-gray-600 mt-1">
-                  {isDirectPay
-                    ? `Your payment has been successfully verified and logged.`
-                    : `Your account has been created and your Digital Green Card is ready.`}
+                  Your account has been created and your Digital Green Card is ready.
                 </p>
               </div>
 
@@ -966,7 +943,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                 <div className="pt-2 border-t border-emerald-700/50 flex items-center justify-between text-xs">
                   <div>
                     <span className="text-[10px] text-emerald-400 block">MEMBER</span>
-                    <span className="font-bold">{fullName || "Direct Payment"}</span>
+                    <span className="font-bold">{fullName || "Member"}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] text-emerald-400 block">FARM SLOTS</span>
@@ -975,40 +952,17 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                 </div>
               </div>
 
-              {isDirectPay ? (
-                <div className="space-y-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-base shadow-lg shadow-emerald-200 transition-all flex items-center justify-center space-x-2 cursor-pointer"
-                  >
-                    <span>Done / Close</span>
-                    <Check className="w-5 h-5 ml-1" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      handleClose();
-                      navigate("/login");
-                    }}
-                    className="w-full py-2.5 text-center text-xs font-semibold text-emerald-800 hover:text-emerald-950 transition-colors cursor-pointer"
-                  >
-                    Already have an account? Sign in to Dashboard
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    handleClose();
-                    navigate("/dashboard");
-                  }}
-                  className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-base shadow-lg shadow-emerald-200 transition-all flex items-center justify-center space-x-2"
-                >
-                  <span>Enter Member Dashboard Now</span>
-                  <ArrowRight className="w-5 h-5 ml-1" />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  handleClose();
+                  navigate("/dashboard");
+                }}
+                className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-base shadow-lg shadow-emerald-200 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+              >
+                <span>Enter Member Dashboard Now</span>
+                <ArrowRight className="w-5 h-5 ml-1" />
+              </button>
             </div>
           )}
         </div>
