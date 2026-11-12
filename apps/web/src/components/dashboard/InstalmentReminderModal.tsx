@@ -30,22 +30,68 @@ export const InstalmentReminderModal: React.FC = () => {
   const { launchPayment } = usePaymentGateway();
   const { toast } = useToast();
 
+  const markModalShown = (userId?: string) => {
+    try {
+      const suffix = userId || "member";
+      sessionStorage.setItem(`agroheal_instalment_modal_seen_${suffix}`, "true");
+      localStorage.setItem(`agroheal_instalment_modal_last_shown_${suffix}`, Date.now().toString());
+    } catch {}
+  };
+
+  const shouldAutoPrompt = (planData: InstalmentPlanData, userId?: string): boolean => {
+    const dDate = planData.nextPaymentDueDate ? new Date(planData.nextPaymentDueDate) : null;
+    const diffDays = dDate ? Math.ceil((dDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+    const planOverdue = planData.status === "OVERDUE" || planData.isOverdue || Number(planData.overdueSurcharge || 0) > 0;
+    const isDueToday = !planOverdue && diffDays <= 0;
+
+    // Rule 1: Never auto-popup if upcoming in the future (e.g. 4-5 days away) and not overdue
+    if (!planOverdue && !isDueToday) {
+      return false;
+    }
+
+    const suffix = userId || "member";
+
+    // Rule 2: Fresh Sign-in / Session Prompt
+    // If user just signed in or opened a fresh browser session, show the reminder once!
+    const sessionSeen = sessionStorage.getItem(`agroheal_instalment_modal_seen_${suffix}`);
+    if (!sessionSeen) {
+      return true;
+    }
+
+    // Rule 3: Revisit / Reload After Some Time (Cooldown window)
+    // If overdue: re-prompt if 6 hours have passed since last dismissal
+    // If due today: re-prompt if 12 hours have passed since last dismissal
+    // Prevents aggressive popups across normal dashboard tab navigation or page refreshes.
+    const cooldownMs = planOverdue ? 6 * 60 * 60 * 1000 : 12 * 60 * 60 * 1000;
+    const lastShownRaw = localStorage.getItem(`agroheal_instalment_modal_last_shown_${suffix}`);
+    if (lastShownRaw) {
+      const lastShown = Number(lastShownRaw);
+      if (!isNaN(lastShown) && Date.now() - lastShown < cooldownMs) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  const handleClose = () => {
+    markModalShown(userProfile?.id);
+    setIsOpen(false);
+  };
+
   const fetchPlanData = async (isManualTrigger = false) => {
     try {
       const res = await apiClient.instalments.getMyPlan();
       if (res.hasPlan && res.plan && res.plan.status !== "FULLY_PAID") {
         setPlan(res.plan);
 
-        // Intelligent auto-popup:
-        // Only auto-pop up unprompted if the plan is OVERDUE or DUE TODAY (within 24h).
-        // If upcoming (e.g. 4-5 days away), do NOT interrupt on page load unless manually clicked.
         if (isManualTrigger) {
           setIsOpen(true);
         } else {
-          const dDate = res.plan.nextPaymentDueDate ? new Date(res.plan.nextPaymentDueDate) : null;
-          const diffDays = dDate ? Math.ceil((dDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
-          const planOverdue = res.plan.status === "OVERDUE" || res.plan.isOverdue || Number(res.plan.overdueSurcharge || 0) > 0;
-          if (planOverdue || diffDays <= 0) {
+          const userObj = (await supabase.auth.getUser()).data.user;
+          const autoPrompt = shouldAutoPrompt(res.plan, userObj?.id);
+          if (autoPrompt) {
+            markModalShown(userObj?.id);
             setIsOpen(true);
           } else {
             setIsOpen(false);
@@ -292,7 +338,7 @@ export const InstalmentReminderModal: React.FC = () => {
             </div>
 
             <button
-              onClick={() => setIsOpen(false)}
+              onClick={handleClose}
               className="p-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-colors cursor-pointer"
               title="Close modal"
             >
@@ -413,7 +459,7 @@ export const InstalmentReminderModal: React.FC = () => {
 
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
+                onClick={handleClose}
                 className="w-full py-2 text-center text-xs font-semibold text-gray-500 hover:text-gray-800 transition-colors cursor-pointer"
               >
                 Dismiss / Remind Me Later
