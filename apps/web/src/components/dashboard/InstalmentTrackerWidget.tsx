@@ -93,15 +93,22 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
   const cumulativePaid = Number(plan.cumulativePaid ?? 0);
   const totalRegistrationFee = Number(plan.totalRegistrationFee ?? 15000);
   const currentWeek = Number(plan.currentWeek ?? 1);
-  const isOverdue = plan.status === "OVERDUE" || plan.isOverdue || Boolean((plan as any).unpaidOverdueCharges);
   const percentComplete = Math.min(100, Math.round(((cumulativePaid) / (totalRegistrationFee || 15000)) * 100));
+
+  const dueDate = plan.nextPaymentDueDate ? new Date(plan.nextPaymentDueDate) : null;
+  const now = new Date();
+  const msDiff = dueDate ? dueDate.getTime() - now.getTime() : 0;
+  const daysDiff = Math.ceil(msDiff / (1000 * 60 * 60 * 24));
+  const isOverdue = plan.status === "OVERDUE" || plan.isOverdue || Boolean((plan as any).unpaidOverdueCharges) || (dueDate ? msDiff < 0 && daysDiff < 0 : false);
+  const isDueToday = !isOverdue && daysDiff <= 0;
+  const isUpcoming = !isOverdue && !isDueToday;
 
   const sponsorBonus5kPaid = Boolean(plan.milestones?.sponsorBonus5kPaid ?? (plan.milestones as any)?.m5k?.completed ?? cumulativePaid >= 5000);
   const starterPack10kReleased = Boolean(plan.milestones?.starterPack10kReleased ?? (plan.milestones as any)?.m10k?.completed ?? cumulativePaid >= 10000);
   const farmSlot15kAllocated = Boolean(plan.milestones?.farmSlot15kAllocated ?? (plan.milestones as any)?.m15k?.completed ?? cumulativePaid >= 15000);
 
-  const dueDateFormatted = plan.nextPaymentDueDate
-    ? new Date(plan.nextPaymentDueDate).toLocaleDateString("en-NG", {
+  const dueDateFormatted = dueDate
+    ? dueDate.toLocaleDateString("en-NG", {
         day: "numeric",
         month: "short",
         year: "numeric",
@@ -223,15 +230,25 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-gray-900">GreenCard Registration Payment Plan</span>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                  isOverdue ? "bg-amber-200/80 text-amber-900" : "bg-emerald-100 text-emerald-800"
+                  isOverdue
+                    ? "bg-amber-200/80 text-amber-900"
+                    : isDueToday
+                    ? "bg-amber-100 text-amber-900 font-bold"
+                    : "bg-emerald-100 text-emerald-800"
                 }`}>
-                  {isOverdue ? "Payment Overdue" : `Active · Week ${plan.currentWeek}`}
+                  {isOverdue
+                    ? "Payment Overdue"
+                    : isDueToday
+                    ? "Due Today"
+                    : `Active · Week ${currentWeek} · On Track`}
                 </span>
               </div>
               <p className="text-xs text-gray-600 mt-0.5">
                 {isOverdue
                   ? `Overdue since ${dueDateFormatted}. Late fee of ₦500 applied.`
-                  : `Next instalment due on ${dueDateFormatted}.`}
+                  : isDueToday
+                  ? `Weekly instalment is due today (${dueDateFormatted}).`
+                  : `Next instalment scheduled for ${dueDateFormatted} (in ${daysDiff} day${daysDiff === 1 ? "" : "s"}).`}
               </p>
             </div>
           </div>
@@ -243,10 +260,16 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
               className={`rounded-xl px-4 font-bold text-xs shadow-sm transition-all ${
                 isOverdue
                   ? "bg-amber-600 hover:bg-amber-700 text-white"
+                  : isDueToday
+                  ? "bg-amber-600 hover:bg-amber-700 text-white"
                   : "bg-emerald-600 hover:bg-emerald-700 text-white"
               }`}
             >
-              Pay ₦{currentAmountDue.toLocaleString()}
+              {isOverdue
+                ? `Pay ₦${currentAmountDue.toLocaleString()} Overdue`
+                : isDueToday
+                ? `Pay ₦${currentAmountDue.toLocaleString()} Due Today`
+                : `Pay ₦${currentAmountDue.toLocaleString()} Early`}
               <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
             </Button>
           </div>

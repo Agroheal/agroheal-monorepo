@@ -30,12 +30,27 @@ export const InstalmentReminderModal: React.FC = () => {
   const { launchPayment } = usePaymentGateway();
   const { toast } = useToast();
 
-  const fetchPlanData = async () => {
+  const fetchPlanData = async (isManualTrigger = false) => {
     try {
       const res = await apiClient.instalments.getMyPlan();
       if (res.hasPlan && res.plan && res.plan.status !== "FULLY_PAID") {
         setPlan(res.plan);
-        setIsOpen(true);
+
+        // Intelligent auto-popup:
+        // Only auto-pop up unprompted if the plan is OVERDUE or DUE TODAY (within 24h).
+        // If upcoming (e.g. 4-5 days away), do NOT interrupt on page load unless manually clicked.
+        if (isManualTrigger) {
+          setIsOpen(true);
+        } else {
+          const dDate = res.plan.nextPaymentDueDate ? new Date(res.plan.nextPaymentDueDate) : null;
+          const diffDays = dDate ? Math.ceil((dDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
+          const planOverdue = res.plan.status === "OVERDUE" || res.plan.isOverdue || Number(res.plan.overdueSurcharge || 0) > 0;
+          if (planOverdue || diffDays <= 0) {
+            setIsOpen(true);
+          } else {
+            setIsOpen(false);
+          }
+        }
       } else {
         setPlan(null);
         setIsOpen(false);
@@ -61,18 +76,17 @@ export const InstalmentReminderModal: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchPlanData();
+    fetchPlanData(false);
 
     const handleOpen = () => {
-      fetchPlanData();
-      setIsOpen(true);
+      fetchPlanData(true);
     };
 
     window.addEventListener("agroheal:open_instalment_modal", handleOpen);
-    window.addEventListener("agroheal:instalment_updated", fetchPlanData);
+    window.addEventListener("agroheal:instalment_updated", () => fetchPlanData(false));
     return () => {
       window.removeEventListener("agroheal:open_instalment_modal", handleOpen);
-      window.removeEventListener("agroheal:instalment_updated", fetchPlanData);
+      window.removeEventListener("agroheal:instalment_updated", () => fetchPlanData(false));
     };
   }, []);
 
@@ -87,10 +101,18 @@ export const InstalmentReminderModal: React.FC = () => {
   const cumulativePaid = Number(plan.cumulativePaid ?? 0);
   const totalRegistrationFee = Number(plan.totalRegistrationFee ?? 15000);
   const currentWeek = Number(plan.currentWeek ?? 1);
-  const isOverdue = plan.status === "OVERDUE" || plan.isOverdue || overdueSurcharge > 0;
   const percentComplete = Math.min(100, Math.round(((cumulativePaid) / (totalRegistrationFee || 15000)) * 100));
-  const dueDateFormatted = plan.nextPaymentDueDate
-    ? new Date(plan.nextPaymentDueDate).toLocaleDateString("en-NG", {
+
+  const dueDate = plan.nextPaymentDueDate ? new Date(plan.nextPaymentDueDate) : null;
+  const now = new Date();
+  const msDiff = dueDate ? dueDate.getTime() - now.getTime() : 0;
+  const daysDiff = Math.ceil(msDiff / (1000 * 60 * 60 * 24));
+  const isOverdue = plan.status === "OVERDUE" || plan.isOverdue || overdueSurcharge > 0 || (dueDate ? msDiff < 0 && daysDiff < 0 : false);
+  const isDueToday = !isOverdue && daysDiff <= 0;
+  const isUpcoming = !isOverdue && !isDueToday;
+
+  const dueDateFormatted = dueDate
+    ? dueDate.toLocaleDateString("en-NG", {
         weekday: "short",
         day: "numeric",
         month: "short",
@@ -214,27 +236,57 @@ export const InstalmentReminderModal: React.FC = () => {
         >
           {/* Top Header */}
           <div className={`p-5 sm:p-6 text-white flex items-start justify-between gap-4 ${
-            isOverdue ? "bg-gradient-to-r from-amber-700 via-rose-700 to-red-800" : "bg-gradient-to-r from-emerald-800 via-emerald-900 to-teal-950"
+            isOverdue
+              ? "bg-gradient-to-r from-amber-700 via-rose-700 to-red-800"
+              : isDueToday
+              ? "bg-gradient-to-r from-amber-600 via-amber-700 to-emerald-800"
+              : "bg-gradient-to-r from-emerald-800 via-emerald-900 to-teal-950"
           }`}>
             <div className="flex items-start gap-3.5">
               <div className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
-                isOverdue ? "bg-white/20 text-amber-200" : "bg-white/15 text-emerald-200"
+                isOverdue
+                  ? "bg-white/20 text-amber-200"
+                  : isDueToday
+                  ? "bg-white/20 text-amber-200"
+                  : "bg-white/15 text-emerald-200"
               }`}>
-                {isOverdue ? <AlertTriangle className="w-6 h-6" /> : <Clock className="w-6 h-6" />}
+                {isOverdue ? (
+                  <AlertTriangle className="w-6 h-6" />
+                ) : isDueToday ? (
+                  <Clock className="w-6 h-6" />
+                ) : (
+                  <Sparkles className="w-6 h-6" />
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                    isOverdue ? "bg-amber-300 text-amber-950 font-black" : "bg-emerald-300 text-emerald-950"
+                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${
+                    isOverdue
+                      ? "bg-amber-300 text-amber-950 font-black"
+                      : isDueToday
+                      ? "bg-amber-400 text-amber-950 font-black"
+                      : "bg-emerald-300 text-emerald-950 font-bold"
                   }`}>
-                    {isOverdue ? "Overdue Notice" : `Week ${currentWeek} of 14`}
+                    {isOverdue
+                      ? "Overdue Notice"
+                      : isDueToday
+                      ? `Week ${currentWeek} • Due Today`
+                      : `Week ${currentWeek} of 14 • On Track`}
                   </span>
                   <span className="text-white/80 text-xs font-medium">
-                    Due: {dueDateFormatted}
+                    {isOverdue
+                      ? `Due: ${dueDateFormatted} (${Math.abs(daysDiff)} days late)`
+                      : isDueToday
+                      ? `Due Today (${dueDateFormatted})`
+                      : `Due in ${daysDiff} day${daysDiff === 1 ? "" : "s"} (${dueDateFormatted})`}
                   </span>
                 </div>
                 <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-                  {isOverdue ? "Weekly Instalment Overdue" : "Next Instalment Due"}
+                  {isOverdue
+                    ? "Weekly Instalment Overdue"
+                    : isDueToday
+                    ? "Weekly Instalment Due Today"
+                    : "Upcoming Instalment"}
                 </h3>
               </div>
             </div>
@@ -249,25 +301,35 @@ export const InstalmentReminderModal: React.FC = () => {
           </div>
 
           <div className="p-5 sm:p-6 space-y-5 max-h-[75vh] overflow-y-auto">
-            {/* Urgency Description Callout */}
+            {/* Status / Urgency Description Callout */}
             {isOverdue ? (
               <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs leading-relaxed space-y-1">
                 <p className="font-bold flex items-center gap-1.5 text-amber-900">
                   <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0" />
-                  <span>Late Fee Applied: ₦500 Surcharge</span>
+                  <span>Late Fee Applied: ₦{overdueSurcharge.toLocaleString()} Surcharge</span>
                 </p>
                 <p className="text-amber-900/90">
                   Standard weekly payment of ₦{standardAmountDue.toLocaleString()} plus ₦{overdueSurcharge.toLocaleString()} surcharge. Total amount payable today: <strong className="font-bold text-amber-950">₦{currentAmountDue.toLocaleString()}</strong>. Settle now to prevent forfeiture.
                 </p>
               </div>
+            ) : isDueToday ? (
+              <div className="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-300 text-amber-950 text-xs leading-relaxed space-y-1">
+                <p className="font-semibold text-amber-900 flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-amber-700 shrink-0" />
+                  <span>Due Today: Week {currentWeek} Instalment</span>
+                </p>
+                <p className="text-amber-900/90 mt-0.5">
+                  Your regular ₦{currentAmountDue.toLocaleString()} weekly instalment is due today. Settle today to maintain your on-time streak!
+                </p>
+              </div>
             ) : (
-              <div className="p-3.5 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 text-emerald-950 text-xs leading-relaxed">
+              <div className="p-3.5 rounded-2xl bg-emerald-50/80 border border-emerald-200/80 text-emerald-950 text-xs leading-relaxed space-y-1">
                 <p className="font-semibold text-emerald-900 flex items-center gap-1.5">
                   <Sparkles className="w-4 h-4 text-emerald-700 shrink-0" />
-                  <span>Maintain Your On-Time Streak</span>
+                  <span>You're On Track!</span>
                 </p>
                 <p className="text-emerald-800/90 mt-0.5">
-                  Your regular ₦{currentAmountDue.toLocaleString()} weekly instalment is due. On-time payments unlock your sponsor bonuses, free starter pack, and commercial farm slot.
+                  Your next scheduled ₦{currentAmountDue.toLocaleString()} instalment is due on <strong>{dueDateFormatted}</strong> (in {daysDiff} days). You can pay ahead anytime to stay in front of your schedule.
                 </p>
               </div>
             )}
@@ -328,6 +390,8 @@ export const InstalmentReminderModal: React.FC = () => {
                 className={`w-full h-12 text-white font-bold text-sm sm:text-base rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 ${
                   isOverdue
                     ? "bg-rose-700 hover:bg-rose-800"
+                    : isDueToday
+                    ? "bg-amber-600 hover:bg-amber-700"
                     : "bg-emerald-800 hover:bg-emerald-900"
                 }`}
               >
@@ -336,7 +400,13 @@ export const InstalmentReminderModal: React.FC = () => {
                 ) : (
                   <>
                     <CreditCard className="w-4 h-4" />
-                    <span>Pay ₦{currentAmountDue.toLocaleString()} Now</span>
+                    <span>
+                      {isOverdue
+                        ? `Pay ₦${currentAmountDue.toLocaleString()} (Overdue Surcharge Included)`
+                        : isDueToday
+                        ? `Pay ₦${currentAmountDue.toLocaleString()} Due Today`
+                        : `Pay ₦${currentAmountDue.toLocaleString()} Early`}
+                    </span>
                   </>
                 )}
               </Button>
