@@ -15,32 +15,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/apiClient";
+import { apiClient, type InstalmentPlanData } from "@/lib/apiClient";
 import { supabase } from "@/lib/supabaseClient";
 import { PaymentMethodSelector } from "../checkout/PaymentMethodSelector";
 import { usePaymentGateway } from "@/hooks/usePaymentGateway";
-
-interface InstalmentPlanData {
-  id: string;
-  status: "ACTIVE" | "OVERDUE" | "FULLY_PAID" | "DEFAULTED";
-  totalRegistrationFee: number;
-  cumulativePaid: number;
-  remainingBalance: number;
-  totalOverdueCharges: number;
-  overdueChargesPaid: number;
-  currentWeek: number;
-  nextPaymentDueDate: string;
-  isOverdue: boolean;
-  currentAmountDue: number;
-  standardAmountDue: number;
-  overdueSurcharge: number;
-  milestones: {
-    day1Active: boolean;
-    sponsorBonus5kPaid: boolean;
-    starterPack10kReleased: boolean;
-    farmSlot15kAllocated: boolean;
-  };
-}
 
 export const InstalmentReminderModal: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -102,8 +80,15 @@ export const InstalmentReminderModal: React.FC = () => {
     return null;
   }
 
-  const isOverdue = plan.status === "OVERDUE" || plan.isOverdue;
-  const percentComplete = Math.min(100, Math.round((plan.cumulativePaid / plan.totalRegistrationFee) * 100));
+  const currentAmountDue = Number(plan.currentAmountDue ?? (plan as any).scheduledAmountDue ?? 1000);
+  const standardAmountDue = Number(plan.standardAmountDue ?? 1000);
+  const overdueSurcharge = Number(plan.overdueSurcharge ?? (plan as any).unpaidOverdueCharges ?? 0);
+  const remainingBalance = Number(plan.remainingBalance ?? (plan as any).totalOutstandingBalance ?? (plan as any).outstandingPrincipal ?? 0);
+  const cumulativePaid = Number(plan.cumulativePaid ?? 0);
+  const totalRegistrationFee = Number(plan.totalRegistrationFee ?? 15000);
+  const currentWeek = Number(plan.currentWeek ?? 1);
+  const isOverdue = plan.status === "OVERDUE" || plan.isOverdue || overdueSurcharge > 0;
+  const percentComplete = Math.min(100, Math.round(((cumulativePaid) / (totalRegistrationFee || 15000)) * 100));
   const dueDateFormatted = plan.nextPaymentDueDate
     ? new Date(plan.nextPaymentDueDate).toLocaleDateString("en-NG", {
         weekday: "short",
@@ -114,10 +99,10 @@ export const InstalmentReminderModal: React.FC = () => {
     : "Immediate";
 
   const handlePayWithWallet = async () => {
-    if (walletBalance < plan.currentAmountDue) {
+    if (walletBalance < currentAmountDue) {
       toast({
         title: "Insufficient Wallet Balance",
-        description: `Your available balance (₦${walletBalance.toLocaleString()}) is less than the required amount (₦${plan.currentAmountDue.toLocaleString()}). Please choose an online payment gateway.`,
+        description: `Your available balance (₦${walletBalance.toLocaleString()}) is less than the required amount (₦${currentAmountDue.toLocaleString()}). Please choose an online payment gateway.`,
         variant: "destructive",
       });
       return;
@@ -125,10 +110,10 @@ export const InstalmentReminderModal: React.FC = () => {
 
     try {
       setIsSubmitting(true);
-      await apiClient.instalments.payWithWallet(plan.currentAmountDue);
+      await apiClient.instalments.payWithWallet(currentAmountDue);
       toast({
         title: "Payment Confirmed! 🎉",
-        description: `₦${plan.currentAmountDue.toLocaleString()} paid successfully from your wallet balance.`,
+        description: `₦${currentAmountDue.toLocaleString()} paid successfully from your wallet balance.`,
       });
       setIsOpen(false);
       window.dispatchEvent(new CustomEvent("agroheal:instalment_updated"));
@@ -148,7 +133,7 @@ export const InstalmentReminderModal: React.FC = () => {
 
     const gateway = selectedMethod === "nomba" ? "nomba" : "flutterwave";
     const txRef = `INST_REPAY_${plan.id}_${Date.now()}`;
-    const amountToPay = plan.currentAmountDue;
+    const amountToPay = currentAmountDue;
 
     setIsSubmitting(true);
 
@@ -162,8 +147,8 @@ export const InstalmentReminderModal: React.FC = () => {
         customerPhone: userProfile.phone || "",
         title: `AgroHeal GreenCard Instalment (₦${amountToPay.toLocaleString()})`,
         description: isOverdue
-          ? `Weekly Instalment + Overdue Surcharge (Week ${plan.currentWeek})`
-          : `Weekly Instalment (Week ${plan.currentWeek})`,
+          ? `Weekly Instalment + Overdue Surcharge (Week ${currentWeek})`
+          : `Weekly Instalment (Week ${currentWeek})`,
         onSuccess: async (payRes) => {
           try {
             await apiClient.instalments.recordGatewayPayment({
@@ -242,7 +227,7 @@ export const InstalmentReminderModal: React.FC = () => {
                   <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
                     isOverdue ? "bg-amber-300 text-amber-950 font-black" : "bg-emerald-300 text-emerald-950"
                   }`}>
-                    {isOverdue ? "Overdue Notice" : `Week ${plan.currentWeek} of 14`}
+                    {isOverdue ? "Overdue Notice" : `Week ${currentWeek} of 14`}
                   </span>
                   <span className="text-white/80 text-xs font-medium">
                     Due: {dueDateFormatted}
@@ -272,7 +257,7 @@ export const InstalmentReminderModal: React.FC = () => {
                   <span>Late Fee Applied: ₦500 Surcharge</span>
                 </p>
                 <p className="text-amber-900/90">
-                  Standard weekly payment of ₦{plan.standardAmountDue.toLocaleString()} plus ₦{plan.overdueSurcharge.toLocaleString()} surcharge. Total amount payable today: <strong className="font-bold text-amber-950">₦{plan.currentAmountDue.toLocaleString()}</strong>. Settle now to prevent forfeiture.
+                  Standard weekly payment of ₦{standardAmountDue.toLocaleString()} plus ₦{overdueSurcharge.toLocaleString()} surcharge. Total amount payable today: <strong className="font-bold text-amber-950">₦{currentAmountDue.toLocaleString()}</strong>. Settle now to prevent forfeiture.
                 </p>
               </div>
             ) : (
@@ -282,7 +267,7 @@ export const InstalmentReminderModal: React.FC = () => {
                   <span>Maintain Your On-Time Streak</span>
                 </p>
                 <p className="text-emerald-800/90 mt-0.5">
-                  Your regular ₦{plan.currentAmountDue.toLocaleString()} weekly instalment is due. On-time payments unlock your sponsor bonuses, free starter pack, and commercial farm slot.
+                  Your regular ₦{currentAmountDue.toLocaleString()} weekly instalment is due. On-time payments unlock your sponsor bonuses, free starter pack, and commercial farm slot.
                 </p>
               </div>
             )}
@@ -292,7 +277,7 @@ export const InstalmentReminderModal: React.FC = () => {
               <div className="flex items-center justify-between text-xs font-semibold">
                 <span className="text-gray-600">Total Settled</span>
                 <span className="font-mono text-gray-900 font-bold">
-                  ₦{plan.cumulativePaid.toLocaleString()} / ₦{plan.totalRegistrationFee.toLocaleString()} ({percentComplete}%)
+                  ₦{cumulativePaid.toLocaleString()} / ₦{totalRegistrationFee.toLocaleString()} ({percentComplete}%)
                 </span>
               </div>
 
@@ -308,11 +293,11 @@ export const InstalmentReminderModal: React.FC = () => {
 
               {/* Next Milestone Lock Callout */}
               <div className="pt-1 flex items-center justify-between text-[11px] text-gray-600">
-                <span>Remaining: <strong className="text-gray-900 font-mono">₦{plan.remainingBalance.toLocaleString()}</strong></span>
+                <span>Remaining: <strong className="text-gray-900 font-mono">₦{remainingBalance.toLocaleString()}</strong></span>
                 <span className="text-emerald-700 font-medium">
-                  {plan.cumulativePaid < 5000
+                  {cumulativePaid < 5000
                     ? "Next: ₦5,000 (Sponsor Bonus)"
-                    : plan.cumulativePaid < 10000
+                    : cumulativePaid < 10000
                     ? "Next: ₦10,000 (Starter Pack Released)"
                     : "Final: ₦15,000 (Farm Slot & Full Withdrawals)"}
                 </span>
@@ -327,7 +312,7 @@ export const InstalmentReminderModal: React.FC = () => {
               <PaymentMethodSelector
                 selectedMethod={selectedMethod}
                 onSelectMethod={setSelectedMethod}
-                amount={plan.currentAmountDue}
+                amount={currentAmountDue}
                 showWallet={true}
                 walletBalance={walletBalance}
                 disabled={isSubmitting}
@@ -351,7 +336,7 @@ export const InstalmentReminderModal: React.FC = () => {
                 ) : (
                   <>
                     <CreditCard className="w-4 h-4" />
-                    <span>Pay ₦{plan.currentAmountDue.toLocaleString()} Now</span>
+                    <span>Pay ₦{currentAmountDue.toLocaleString()} Now</span>
                   </>
                 )}
               </Button>

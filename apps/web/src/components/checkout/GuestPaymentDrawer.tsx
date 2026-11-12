@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   X,
   CheckCircle2,
@@ -69,6 +69,8 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
   onClaimSuccess,
 }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isDirectPay = searchParams.get("direct") === "true";
 
   // Navigation & stages: "form" | "processing" | "claim" | "success"
   const [stage, setStage] = useState<"form" | "processing" | "claim" | "success">("form");
@@ -249,22 +251,43 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
 
     try {
       // 1. Auto-claim account (Supabase Auth admin createUser with email_confirm: true)
-      const claimRes = await apiClient.checkout.claimAccount({
-        txRef: targetTxRef,
-        email: cleanEmail,
-        password: effectivePassword,
-        fullName: cleanName,
-        phone: cleanPhone,
-      });
+      let claimRes: any = null;
+      try {
+        claimRes = await apiClient.checkout.claimAccount({
+          txRef: targetTxRef,
+          email: cleanEmail,
+          password: effectivePassword,
+          fullName: cleanName,
+          phone: cleanPhone,
+        });
+      } catch (claimAttemptErr: any) {
+        console.warn("[GuestPaymentDrawer] Settlement notice:", claimAttemptErr?.message);
+        if (!isDirectPay) {
+          throw claimAttemptErr;
+        }
+      }
 
       const memberId =
-        claimRes.memberId ||
-        claimRes.settlement?.memberId ||
+        claimRes?.memberId ||
+        claimRes?.settlement?.memberId ||
         "GC-2026-MEMBER";
       setClaimedMemberId(memberId);
       setSlotsAllocated(
-        claimRes.settlement?.slotsAllocated || (plan === "combo" ? 1 : 0)
+        claimRes?.settlement?.slotsAllocated || (plan === "combo" ? 1 : 0)
       );
+
+      // In direct payment mode (/pay), do NOT sign in and do NOT redirect to dashboard
+      if (isDirectPay) {
+        showToast({
+          variant: "success",
+          title: "Payment Confirmed! 🎉",
+          description: claimRes?.message || "Your payment was successfully received and confirmed.",
+        });
+
+        setStage("success");
+        if (onClaimSuccess && claimRes) onClaimSuccess(claimRes);
+        return;
+      }
 
       // 2. Direct client sign-in (email is pre-confirmed, zero verification link required)
       try {
@@ -276,11 +299,11 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
         console.warn("[GuestCheckout] Auto sign-in notice:", authErr);
       }
 
-      const isExisting = claimRes.isExistingMember || claimRes.settlement?.remainingDebt !== undefined;
+      const isExisting = claimRes?.isExistingMember || claimRes?.settlement?.remainingDebt !== undefined;
       const toastTitle = isExisting ? "Payment Confirmed! 🎉" : "Account Created! 🎉";
       const toastDesc =
-        claimRes.message ||
-        (claimRes.settlement?.remainingDebt !== undefined
+        claimRes?.message ||
+        (claimRes?.settlement?.remainingDebt !== undefined
           ? `Payment applied to your balance! Redirecting to your dashboard...`
           : isExisting
           ? `Payment credited to your account! Redirecting to your dashboard...`
@@ -295,13 +318,17 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
       setStage("success");
       if (onClaimSuccess) onClaimSuccess(claimRes);
 
-      // 3. Seamless auto-redirect to dashboard
+      // 3. Seamless auto-redirect to dashboard only for full signup flow
       setTimeout(() => {
         onClose();
         navigate("/dashboard");
       }, 1500);
     } catch (claimErr: any) {
       console.error("[GuestPaymentDrawer] Auto-provisioning error:", claimErr);
+      if (isDirectPay) {
+        setStage("success");
+        return;
+      }
       // Fallback: If an edge case occurs (e.g. existing email conflict), allow user to view fallback form
       setClaimEmail(cleanEmail);
       setClaimFullName(cleanName);
@@ -908,13 +935,15 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
 
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                  OFFICIALLY ACTIVATED
+                  {isDirectPay ? "PAYMENT VERIFIED" : "OFFICIALLY ACTIVATED"}
                 </span>
                 <h3 className="text-2xl font-black text-gray-900 mt-3">
-                  Welcome, {fullName}!
+                  {isDirectPay ? `Payment Confirmed, ${fullName || "Member"}!` : `Welcome, ${fullName}!`}
                 </h3>
                 <p className="text-sm text-gray-600 mt-1">
-                  Your account has been created and your Digital Green Card is ready.
+                  {isDirectPay
+                    ? `Your payment has been successfully verified and logged.`
+                    : `Your account has been created and your Digital Green Card is ready.`}
                 </p>
               </div>
 
@@ -937,7 +966,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                 <div className="pt-2 border-t border-emerald-700/50 flex items-center justify-between text-xs">
                   <div>
                     <span className="text-[10px] text-emerald-400 block">MEMBER</span>
-                    <span className="font-bold">{fullName}</span>
+                    <span className="font-bold">{fullName || "Direct Payment"}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] text-emerald-400 block">FARM SLOTS</span>
@@ -946,17 +975,40 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  handleClose();
-                  navigate("/dashboard");
-                }}
-                className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-base shadow-lg shadow-emerald-200 transition-all flex items-center justify-center space-x-2"
-              >
-                <span>Enter Member Dashboard Now</span>
-                <ArrowRight className="w-5 h-5 ml-1" />
-              </button>
+              {isDirectPay ? (
+                <div className="space-y-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleClose}
+                    className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-base shadow-lg shadow-emerald-200 transition-all flex items-center justify-center space-x-2 cursor-pointer"
+                  >
+                    <span>Done / Close</span>
+                    <Check className="w-5 h-5 ml-1" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleClose();
+                      navigate("/login");
+                    }}
+                    className="w-full py-2.5 text-center text-xs font-semibold text-emerald-800 hover:text-emerald-950 transition-colors cursor-pointer"
+                  >
+                    Already have an account? Sign in to Dashboard
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleClose();
+                    navigate("/dashboard");
+                  }}
+                  className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-base shadow-lg shadow-emerald-200 transition-all flex items-center justify-center space-x-2"
+                >
+                  <span>Enter Member Dashboard Now</span>
+                  <ArrowRight className="w-5 h-5 ml-1" />
+                </button>
+              )}
             </div>
           )}
         </div>

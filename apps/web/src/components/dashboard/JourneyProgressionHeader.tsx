@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { isLegacyMember, formatNaira, isGreenCardHolder, hasPurchasedStarterPack as checkHasPurchasedStarterPack, isThreeStepQualified } from "@shared/businessRules";
 import { getEntryPricing } from "@shared/cutover";
-import { apiClient } from "@/lib/apiClient";
+import { apiClient, type InstalmentPlanData } from "@/lib/apiClient";
 
 export interface JourneyProgressionHeaderProps {
   hasGreenCard: boolean;
@@ -33,28 +33,6 @@ export interface JourneyProgressionHeaderProps {
   hasPurchasedStarterPack?: boolean;
   isLegacy?: boolean;
   onOpenShareModal?: () => void;
-}
-
-interface InstalmentPlanData {
-  id: string;
-  status: "ACTIVE" | "OVERDUE" | "FULLY_PAID" | "DEFAULTED";
-  totalRegistrationFee: number;
-  cumulativePaid: number;
-  remainingBalance: number;
-  totalOverdueCharges: number;
-  overdueChargesPaid: number;
-  currentWeek: number;
-  nextPaymentDueDate: string;
-  isOverdue: boolean;
-  currentAmountDue: number;
-  standardAmountDue: number;
-  overdueSurcharge: number;
-  milestones: {
-    day1Active: boolean;
-    sponsorBonus5kPaid: boolean;
-    starterPack10kReleased: boolean;
-    farmSlot15kAllocated: boolean;
-  };
 }
 
 export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> = ({
@@ -146,6 +124,8 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
   // Instalment Calculations
   const isInstalmentActive = Boolean(instalmentPlan && instalmentPlan.status !== "FULLY_PAID");
   const isInstalmentOverdue = isInstalmentActive && Boolean(instalmentPlan?.isOverdue || instalmentPlan?.status === "OVERDUE");
+  const planAmountDue = Number(instalmentPlan?.currentAmountDue ?? (instalmentPlan as any)?.scheduledAmountDue ?? 1000);
+  const planCumulativePaid = Number(instalmentPlan?.cumulativePaid ?? 0);
 
   const dueDate = instalmentPlan?.nextPaymentDueDate ? new Date(instalmentPlan.nextPaymentDueDate) : null;
   const daysUntilDue = dueDate ? Math.ceil((dueDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 0;
@@ -190,45 +170,45 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
     if (isInstalmentOverdue) {
       // Stage A: Overdue
       statusBadge = `⚠️ Overdue • Wk ${instalmentPlan.currentWeek}/13`;
-      headline = `Pay Week ${instalmentPlan.currentWeek} Instalment (${formatNaira(instalmentPlan.currentAmountDue)})`;
-      shortSummary = `Payment is overdue by ${Math.max(1, Math.abs(daysUntilDue))} day(s). Includes ₦200 surcharge. Pay now to protect your matrix node (${formatNaira(instalmentPlan.cumulativePaid)}/₦15,000 paid).`;
-      ctaText = `Pay Overdue (${formatNaira(instalmentPlan.currentAmountDue)})`;
+      headline = `Pay Week ${instalmentPlan.currentWeek} Instalment (${formatNaira(planAmountDue)})`;
+      shortSummary = `Payment is overdue by ${Math.max(1, Math.abs(daysUntilDue))} day(s). Includes ₦200 surcharge. Pay now to protect your matrix node (${formatNaira(planCumulativePaid)}/₦15,000 paid).`;
+      ctaText = `Pay Overdue (${formatNaira(planAmountDue)})`;
       onCtaClick = () => { window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal")); };
       isWarning = true;
     } else if (isDueSoon) {
       // Stage B: Due Today / Due in <= 2 Days
       const dueLabel = daysUntilDue <= 0 ? "Today" : daysUntilDue === 1 ? "Tomorrow" : `in ${daysUntilDue} days`;
       statusBadge = `⏰ Due ${dueLabel} • Wk ${instalmentPlan.currentWeek}/13`;
-      headline = `Week ${instalmentPlan.currentWeek} Payment Due (${formatNaira(instalmentPlan.currentAmountDue)})`;
-      shortSummary = `Due ${dueLabel} (${dueDateFormatted}). Pay ${formatNaira(instalmentPlan.currentAmountDue)} to maintain your active streak (${formatNaira(instalmentPlan.cumulativePaid)}/₦15,000 paid).`;
-      ctaText = `Pay Week ${instalmentPlan.currentWeek} (${formatNaira(instalmentPlan.currentAmountDue)})`;
+      headline = `Week ${instalmentPlan.currentWeek} Payment Due (${formatNaira(planAmountDue)})`;
+      shortSummary = `Due ${dueLabel} (${dueDateFormatted}). Pay ${formatNaira(planAmountDue)} to maintain your active streak (${formatNaira(planCumulativePaid)}/₦15,000 paid).`;
+      ctaText = `Pay Week ${instalmentPlan.currentWeek} (${formatNaira(planAmountDue)})`;
       onCtaClick = () => { window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal")); };
       isWarning = true;
-    } else if (instalmentPlan.cumulativePaid < 5000) {
+    } else if (planCumulativePaid < 5000) {
       // Stage C: Initial Stage (₦2,000 - ₦4,000 paid, targeting ₦5k milestone)
-      const toMilestone1 = Math.max(0, 5000 - instalmentPlan.cumulativePaid);
+      const toMilestone1 = Math.max(0, 5000 - planCumulativePaid);
       statusBadge = `Instalment Plan • Wk ${instalmentPlan.currentWeek}/13`;
-      headline = `Next Instalment: Week ${instalmentPlan.currentWeek} (${formatNaira(instalmentPlan.currentAmountDue)})`;
-      shortSummary = `Next ₦1,000 due ${dueDateFormatted}. Only ${formatNaira(toMilestone1)} to reach Milestone 1 (₦5,000) & unlock sponsor rewards (${formatNaira(instalmentPlan.cumulativePaid)}/₦15,000 paid).`;
-      ctaText = `Pay Week ${instalmentPlan.currentWeek} (${formatNaira(instalmentPlan.currentAmountDue)})`;
+      headline = `Next Instalment: Week ${instalmentPlan.currentWeek} (${formatNaira(planAmountDue)})`;
+      shortSummary = `Next ₦1,000 due ${dueDateFormatted}. Only ${formatNaira(toMilestone1)} to reach Milestone 1 (₦5,000) & unlock sponsor rewards (${formatNaira(planCumulativePaid)}/₦15,000 paid).`;
+      ctaText = `Pay Week ${instalmentPlan.currentWeek} (${formatNaira(planAmountDue)})`;
       onCtaClick = () => { window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal")); };
       isWarning = false;
-    } else if (instalmentPlan.cumulativePaid < 10000) {
+    } else if (planCumulativePaid < 10000) {
       // Stage D: Mid-Plan (₦5,000 - ₦9,000 paid, targeting ₦10k welcome product unlock)
-      const toProduct = Math.max(0, 10000 - instalmentPlan.cumulativePaid);
+      const toProduct = Math.max(0, 10000 - planCumulativePaid);
       statusBadge = `Product Pathway • Wk ${instalmentPlan.currentWeek}/13`;
       headline = `Unlock Welcome Product at ₦10,000 (${formatNaira(toProduct)} left)`;
-      shortSummary = `Next ₦1,000 due ${dueDateFormatted}. ${formatNaira(toProduct)} remaining to unlock Mushroom Power 100g product delivery! (${formatNaira(instalmentPlan.cumulativePaid)}/₦15,000 paid).`;
-      ctaText = `Pay Week ${instalmentPlan.currentWeek} (${formatNaira(instalmentPlan.currentAmountDue)})`;
+      shortSummary = `Next ₦1,000 due ${dueDateFormatted}. ${formatNaira(toProduct)} remaining to unlock Mushroom Power 100g product delivery! (${formatNaira(planCumulativePaid)}/₦15,000 paid).`;
+      ctaText = `Pay Week ${instalmentPlan.currentWeek} (${formatNaira(planAmountDue)})`;
       onCtaClick = () => { window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal")); };
       isWarning = false;
     } else {
       // Stage E: Final Stretch (₦10,000 - ₦14,000 paid, targeting ₦15k 1st Farm Slot & Withdrawals)
-      const toFull = Math.max(0, 15000 - instalmentPlan.cumulativePaid);
+      const toFull = Math.max(0, 15000 - planCumulativePaid);
       statusBadge = `Final Stretch • Wk ${instalmentPlan.currentWeek}/13`;
       headline = `Unlock 1st Farm Slot & Withdrawals (${formatNaira(toFull)} left)`;
-      shortSummary = `Next ₦1,000 due ${dueDateFormatted}. ${formatNaira(toFull)} remaining to allocate your 1st Farm Slot & unlock full cash withdrawals! (${formatNaira(instalmentPlan.cumulativePaid)}/₦15,000 paid).`;
-      ctaText = `Pay Week ${instalmentPlan.currentWeek} (${formatNaira(instalmentPlan.currentAmountDue)})`;
+      shortSummary = `Next ₦1,000 due ${dueDateFormatted}. ${formatNaira(toFull)} remaining to allocate your 1st Farm Slot & unlock full cash withdrawals! (${formatNaira(planCumulativePaid)}/₦15,000 paid).`;
+      ctaText = `Pay Week ${instalmentPlan.currentWeek} (${formatNaira(planAmountDue)})`;
       onCtaClick = () => { window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal")); };
       isWarning = false;
     }
@@ -450,8 +430,8 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                     </div>
                     <p className="text-[11.5px] text-slate-700 dark:text-slate-300 font-medium mt-0.5">
                       {isInstalmentOverdue
-                        ? `Overdue payment of ${formatNaira(instalmentPlan.currentAmountDue)} (includes ₦200 surcharge). Pay immediately to protect your matrix node.`
-                        : `Next payment of ${formatNaira(instalmentPlan.currentAmountDue)} due on ${dueDateFormatted} (${
+                        ? `Overdue payment of ${formatNaira(planAmountDue)} (includes ₦200 surcharge). Pay immediately to protect your matrix node.`
+                        : `Next payment of ${formatNaira(planAmountDue)} due on ${dueDateFormatted} (${
                             daysUntilDue <= 0 ? "today" : daysUntilDue === 1 ? "tomorrow" : `in ${daysUntilDue} days`
                           }).`}
                     </p>
@@ -470,7 +450,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                   }`}
                 >
                   <CreditCard className="w-3.5 h-3.5" />
-                  Pay Week {instalmentPlan.currentWeek} ({formatNaira(instalmentPlan.currentAmountDue)})
+                  Pay Week {instalmentPlan.currentWeek} ({formatNaira(planAmountDue)})
                 </Button>
               </div>
 
@@ -747,7 +727,7 @@ export const JourneyProgressionHeader: React.FC<JourneyProgressionHeaderProps> =
                   onClick={() => window.dispatchEvent(new CustomEvent("agroheal:open_instalment_modal"))}
                   className="text-emerald-700 dark:text-emerald-400 hover:underline font-bold inline-flex items-center gap-0.5 text-[11px] cursor-pointer"
                 >
-                  Pay Week {instalmentPlan.currentWeek} ({formatNaira(instalmentPlan.currentAmountDue)}) <ArrowRight className="w-3 h-3" />
+                  Pay Week {instalmentPlan.currentWeek} ({formatNaira(planAmountDue)}) <ArrowRight className="w-3 h-3" />
                 </button>
               ) : (
                 <button

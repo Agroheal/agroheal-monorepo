@@ -107,6 +107,46 @@ async function apiRequest<T = any>(
 // Domain Specific API Modules
 // -------------------------------------------------------------
 
+export interface InstalmentPlanData {
+  id: string;
+  status: "ACTIVE" | "OVERDUE" | "FULLY_PAID" | "DEFAULTED";
+  totalRegistrationFee: number;
+  cumulativePaid: number;
+  remainingBalance?: number;
+  outstandingPrincipal?: number;
+  totalOutstandingBalance?: number;
+  totalOverdueCharges: number;
+  overdueChargesPaid: number;
+  unpaidOverdueCharges?: number;
+  overdueSurcharge?: number;
+  currentWeek: number;
+  totalWeeks?: number;
+  nextPaymentDueDate: string;
+  isOverdue: boolean;
+  currentAmountDue?: number;
+  scheduledAmountDue?: number;
+  standardAmountDue?: number;
+  milestones: {
+    day1Active?: boolean;
+    sponsorBonus5kPaid?: boolean;
+    starterPack10kReleased?: boolean;
+    farmSlot15kAllocated?: boolean;
+    m2k?: { amount: number; completed: boolean; label: string; description: string };
+    m5k?: { amount: number; completed: boolean; label: string; description: string };
+    m10k?: { amount: number; completed: boolean; label: string; description: string };
+    m15k?: { amount: number; completed: boolean; label: string; description: string };
+  };
+  history?: Array<{
+    id: string;
+    amount: number;
+    principalAmount: number;
+    overdueChargeAmount: number;
+    paymentMethod: string;
+    reference: string;
+    createdAt: string;
+  }>;
+}
+
 export const apiClient = {
   /**
    * Health & ping checks
@@ -700,36 +740,7 @@ export const apiClient = {
     getMyPlan: () =>
       apiRequest<{
         hasPlan: boolean;
-        plan: {
-          id: string;
-          status: "ACTIVE" | "OVERDUE" | "FULLY_PAID" | "DEFAULTED";
-          totalRegistrationFee: number;
-          cumulativePaid: number;
-          remainingBalance: number;
-          totalOverdueCharges: number;
-          overdueChargesPaid: number;
-          currentWeek: number;
-          nextPaymentDueDate: string;
-          isOverdue: boolean;
-          currentAmountDue: number;
-          standardAmountDue: number;
-          overdueSurcharge: number;
-          milestones: {
-            day1Active: boolean;
-            sponsorBonus5kPaid: boolean;
-            starterPack10kReleased: boolean;
-            farmSlot15kAllocated: boolean;
-          };
-          history: Array<{
-            id: string;
-            amount: number;
-            principalAmount: number;
-            overdueChargeAmount: number;
-            paymentMethod: string;
-            reference: string;
-            createdAt: string;
-          }>;
-        } | null;
+        plan: InstalmentPlanData | null;
       }>("instalments/my-plan"),
 
     payWithWallet: (amount: number) =>

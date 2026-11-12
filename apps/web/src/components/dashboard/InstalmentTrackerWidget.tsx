@@ -17,41 +17,10 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { apiClient } from "@/lib/apiClient";
+import { apiClient, type InstalmentPlanData } from "@/lib/apiClient";
 import { supabase } from "@/lib/supabaseClient";
 import { PaymentMethodSelector } from "../checkout/PaymentMethodSelector";
 import { usePaymentGateway } from "@/hooks/usePaymentGateway";
-
-interface InstalmentPlanData {
-  id: string;
-  status: "ACTIVE" | "OVERDUE" | "FULLY_PAID" | "DEFAULTED";
-  totalRegistrationFee: number;
-  cumulativePaid: number;
-  remainingBalance: number;
-  totalOverdueCharges: number;
-  overdueChargesPaid: number;
-  currentWeek: number;
-  nextPaymentDueDate: string;
-  isOverdue: boolean;
-  currentAmountDue: number;
-  standardAmountDue: number;
-  overdueSurcharge: number;
-  milestones: {
-    day1Active: boolean;
-    sponsorBonus5kPaid: boolean;
-    starterPack10kReleased: boolean;
-    farmSlot15kAllocated: boolean;
-  };
-  history: Array<{
-    id: string;
-    amount: number;
-    principalAmount: number;
-    overdueChargeAmount: number;
-    paymentMethod: string;
-    reference: string;
-    createdAt: string;
-  }>;
-}
 
 interface InstalmentTrackerWidgetProps {
   onPlanUpdated?: () => void;
@@ -119,8 +88,18 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
     return null;
   }
 
-  const percentComplete = Math.min(100, Math.round((plan.cumulativePaid / plan.totalRegistrationFee) * 100));
-  const isOverdue = plan.status === "OVERDUE" || plan.isOverdue;
+  const currentAmountDue = Number(plan.currentAmountDue ?? (plan as any).scheduledAmountDue ?? 1000);
+  const remainingBalance = Number(plan.remainingBalance ?? (plan as any).totalOutstandingBalance ?? (plan as any).outstandingPrincipal ?? 0);
+  const cumulativePaid = Number(plan.cumulativePaid ?? 0);
+  const totalRegistrationFee = Number(plan.totalRegistrationFee ?? 15000);
+  const currentWeek = Number(plan.currentWeek ?? 1);
+  const isOverdue = plan.status === "OVERDUE" || plan.isOverdue || Boolean((plan as any).unpaidOverdueCharges);
+  const percentComplete = Math.min(100, Math.round(((cumulativePaid) / (totalRegistrationFee || 15000)) * 100));
+
+  const sponsorBonus5kPaid = Boolean(plan.milestones?.sponsorBonus5kPaid ?? (plan.milestones as any)?.m5k?.completed ?? cumulativePaid >= 5000);
+  const starterPack10kReleased = Boolean(plan.milestones?.starterPack10kReleased ?? (plan.milestones as any)?.m10k?.completed ?? cumulativePaid >= 10000);
+  const farmSlot15kAllocated = Boolean(plan.milestones?.farmSlot15kAllocated ?? (plan.milestones as any)?.m15k?.completed ?? cumulativePaid >= 15000);
+
   const dueDateFormatted = plan.nextPaymentDueDate
     ? new Date(plan.nextPaymentDueDate).toLocaleDateString("en-NG", {
         day: "numeric",
@@ -130,10 +109,10 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
     : "Immediate";
 
   const handlePayWithWallet = async () => {
-    if (walletBalance < plan.currentAmountDue) {
+    if (walletBalance < currentAmountDue) {
       toast({
         title: "Insufficient Wallet Balance",
-        description: `Your available balance (₦${walletBalance.toLocaleString()}) is less than the required amount (₦${plan.currentAmountDue.toLocaleString()}). Please pay via Flutterwave.`,
+        description: `Your available balance (₦${walletBalance.toLocaleString()}) is less than the required amount (₦${currentAmountDue.toLocaleString()}). Please pay via Flutterwave.`,
         variant: "destructive",
       });
       return;
@@ -141,10 +120,10 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
 
     try {
       setIsSubmitting(true);
-      const res = await apiClient.instalments.payWithWallet(plan.currentAmountDue);
+      const res = await apiClient.instalments.payWithWallet(currentAmountDue);
       toast({
         title: "Payment Successful! 🎉",
-        description: `₦${plan.currentAmountDue.toLocaleString()} paid successfully from your wallet balance.`,
+        description: `₦${currentAmountDue.toLocaleString()} paid successfully from your wallet balance.`,
       });
       setShowPayModal(false);
       await fetchPlanData();
@@ -165,7 +144,7 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
 
     const gateway = selectedMethod === "nomba" ? "nomba" : "flutterwave";
     const txRef = `INST_REPAY_${plan.id}_${Date.now()}`;
-    const amountToPay = plan.currentAmountDue;
+    const amountToPay = currentAmountDue;
 
     setIsSubmitting(true);
 
@@ -179,8 +158,8 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
         customerPhone: userProfile.phone || "",
         title: `AgroHeal GreenCard Instalment (₦${amountToPay.toLocaleString()})`,
         description: isOverdue
-          ? `Weekly Instalment + Overdue Surcharge (Week ${plan.currentWeek})`
-          : `Weekly Instalment (Week ${plan.currentWeek})`,
+          ? `Weekly Instalment + Overdue Surcharge (Week ${currentWeek})`
+          : `Weekly Instalment (Week ${currentWeek})`,
         onSuccess: async (payRes) => {
           try {
             await apiClient.instalments.recordGatewayPayment({
@@ -267,7 +246,7 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
                   : "bg-emerald-600 hover:bg-emerald-700 text-white"
               }`}
             >
-              Pay ₦{plan.currentAmountDue.toLocaleString()}
+              Pay ₦{currentAmountDue.toLocaleString()}
               <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
             </Button>
           </div>
@@ -279,18 +258,18 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
             <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100/80">
               <span className="text-xs text-gray-500 font-medium">Cumulative Paid</span>
               <div className="text-xl font-black text-gray-900 font-mono mt-1">
-                ₦{plan.cumulativePaid.toLocaleString()}
+                ₦{cumulativePaid.toLocaleString()}
                 <span className="text-xs text-gray-400 font-normal ml-1">/ ₦15,000</span>
               </div>
               <div className="text-[11px] text-gray-500 mt-1">
-                ₦{plan.remainingBalance.toLocaleString()} remaining
+                ₦{remainingBalance.toLocaleString()} remaining
               </div>
             </div>
 
             <div className="p-4 rounded-2xl bg-gray-50 border border-gray-100/80">
               <span className="text-xs text-gray-500 font-medium">Current Amount Due</span>
               <div className={`text-xl font-black font-mono mt-1 ${isOverdue ? "text-amber-700" : "text-emerald-700"}`}>
-                ₦{plan.currentAmountDue.toLocaleString()}
+                ₦{currentAmountDue.toLocaleString()}
               </div>
               <div className="text-[11px] text-gray-500 mt-1">
                 {isOverdue
@@ -348,17 +327,17 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
 
               {/* Milestone 2: ₦5,000 */}
               <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${
-                plan.milestones.sponsorBonus5kPaid
+                sponsorBonus5kPaid
                   ? "bg-emerald-50/60 border-emerald-100"
                   : "bg-gray-50/80 border-gray-100 opacity-80"
               }`}>
-                {plan.milestones.sponsorBonus5kPaid ? (
+                {sponsorBonus5kPaid ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 ) : (
                   <Lock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                 )}
                 <div>
-                  <div className={`text-xs font-bold ${plan.milestones.sponsorBonus5kPaid ? "text-emerald-950" : "text-gray-700"}`}>
+                  <div className={`text-xs font-bold ${sponsorBonus5kPaid ? "text-emerald-950" : "text-gray-700"}`}>
                     ₦5,000 · Sponsor Bonus
                   </div>
                   <p className="text-[11px] text-gray-600 leading-tight mt-0.5">
@@ -369,17 +348,17 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
 
               {/* Milestone 3: ₦10,000 */}
               <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${
-                plan.milestones.starterPack10kReleased
+                starterPack10kReleased
                   ? "bg-emerald-50/60 border-emerald-100"
                   : "bg-gray-50/80 border-gray-100 opacity-80"
               }`}>
-                {plan.milestones.starterPack10kReleased ? (
+                {starterPack10kReleased ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 ) : (
                   <Lock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                 )}
                 <div>
-                  <div className={`text-xs font-bold ${plan.milestones.starterPack10kReleased ? "text-emerald-950" : "text-gray-700"}`}>
+                  <div className={`text-xs font-bold ${starterPack10kReleased ? "text-emerald-950" : "text-gray-700"}`}>
                     ₦10,000 · Starter Pack
                   </div>
                   <p className="text-[11px] text-gray-600 leading-tight mt-0.5">
@@ -390,17 +369,17 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
 
               {/* Milestone 4: ₦15,000 */}
               <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${
-                plan.milestones.farmSlot15kAllocated
+                farmSlot15kAllocated
                   ? "bg-emerald-50/60 border-emerald-100"
                   : "bg-gray-50/80 border-gray-100 opacity-80"
               }`}>
-                {plan.milestones.farmSlot15kAllocated ? (
+                {farmSlot15kAllocated ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 ) : (
                   <Lock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                 )}
                 <div>
-                  <div className={`text-xs font-bold ${plan.milestones.farmSlot15kAllocated ? "text-emerald-950" : "text-gray-700"}`}>
+                  <div className={`text-xs font-bold ${farmSlot15kAllocated ? "text-emerald-950" : "text-gray-700"}`}>
                     ₦15,000 · Farm Slot
                   </div>
                   <p className="text-[11px] text-gray-600 leading-tight mt-0.5">
@@ -436,7 +415,7 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
                 <div>
                   <h3 className="text-base font-bold text-gray-900">Pay Weekly Instalment</h3>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Week {plan.currentWeek} · Total Due: ₦{plan.currentAmountDue.toLocaleString()}
+                    Week {currentWeek} · Total Due: ₦{currentAmountDue.toLocaleString()}
                   </p>
                 </div>
                 <button
@@ -460,7 +439,7 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
                 <PaymentMethodSelector
                   selectedMethod={selectedMethod}
                   onSelectMethod={setSelectedMethod}
-                  amount={plan.currentAmountDue}
+                  amount={currentAmountDue}
                   showWallet={true}
                   walletBalance={walletBalance}
                   disabled={isSubmitting}
@@ -479,7 +458,7 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
                 </Button>
                 <Button
                   size="sm"
-                  disabled={isSubmitting || (selectedMethod === "wallet" && walletBalance < plan.currentAmountDue)}
+                  disabled={isSubmitting || (selectedMethod === "wallet" && walletBalance < currentAmountDue)}
                   onClick={selectedMethod === "wallet" ? handlePayWithWallet : handlePayOnline}
                   className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
                 >
@@ -489,7 +468,7 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
                       Processing...
                     </>
                   ) : (
-                    `Pay ₦${plan.currentAmountDue.toLocaleString()} Now`
+                    `Pay ₦${currentAmountDue.toLocaleString()} Now`
                   )}
                 </Button>
               </div>
