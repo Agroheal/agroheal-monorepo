@@ -328,6 +328,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
   // ─────────────────────────────────────────────────────────────
   const handleInitiatePayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
     setErrorMessage(null);
 
     const cleanName = fullName.trim();
@@ -770,7 +771,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-base shadow-lg shadow-emerald-200 transition-all flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] text-white font-black text-base shadow-lg shadow-emerald-200 transition-all flex items-center justify-center space-x-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none"
               >
                 {isSubmitting ? (
                   <>
@@ -896,7 +897,7 @@ export const GuestPaymentDrawer: React.FC<GuestPaymentDrawerProps> = ({
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-base shadow-lg"
+                className="w-full py-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-base shadow-lg disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none"
               >
                 {isSubmitting ? "Activating..." : "Confirm & Enter Dashboard →"}
               </button>

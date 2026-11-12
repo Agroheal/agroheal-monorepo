@@ -39,6 +39,7 @@ import {
 import { CutoverCountdownBanner } from "@/components/common/CutoverCountdownBanner";
 import { getEntryPricing, isPostCutover } from "@shared/cutover";
 import { FLUTTERWAVE_KEYS } from "@/config/Index";
+import { openNombaInlineModal } from "@/components/checkout/NombaInlineModal";
 
 async function ensureFlutterwaveScript(): Promise<boolean> {
   if (typeof window !== "undefined" && (window as any).FlutterwaveCheckout) {
@@ -1445,7 +1446,28 @@ const Checkout = () => {
       });
 
       if (initRes.checkoutUrl) {
-        window.location.href = initRes.checkoutUrl;
+        openNombaInlineModal({
+          checkoutUrl: initRes.checkoutUrl,
+          txRef: order.transaction_ref,
+          amount: totalPrice,
+          customerEmail: cleanEmail(formData.email) || currentUser?.email || "",
+          customerName: `${cleanName(formData.firstName)} ${cleanName(formData.lastName)}`.trim(),
+          title: "AgroHeal Instant Checkout",
+          onSuccess: async () => {
+            window.location.href = `/claim?ref=${encodeURIComponent(order.transaction_ref)}`;
+          },
+          onClose: () => {
+            setIsProcessing(false);
+          },
+          onError: (err) => {
+            setIsProcessing(false);
+            toast({
+              title: "Payment Error",
+              description: err.message || "Failed to initialize Nomba payment.",
+              variant: "destructive",
+            });
+          },
+        });
       } else {
         toast({
           title: "Gateway Initializing",

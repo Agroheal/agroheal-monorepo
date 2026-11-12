@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
 import { FLUTTERWAVE_KEYS } from "@/config/Index";
+import { openNombaInlineModal } from "@/components/checkout/NombaInlineModal";
+import { apiClient } from "@/lib/apiClient";
 
 export type SupportedPaymentGateway = "flutterwave" | "nomba";
 
@@ -128,14 +130,50 @@ export function usePaymentGateway() {
           },
         });
       } else if (gateway === "nomba") {
+        let activeCheckoutUrl = checkoutUrl;
+
+        if (!activeCheckoutUrl) {
+          try {
+            const initRes = await apiClient.checkout.guestInitiate({
+              fullName: customerName || "AgroHeal Member",
+              email: customerEmail,
+              phone: customerPhone || "08000000000",
+              amount,
+              plan: "green_card",
+              gateway: "nomba",
+            });
+            activeCheckoutUrl = initRes.checkoutUrl;
+          } catch (initErr: any) {
+            console.warn("[usePaymentGateway] Could not auto-generate Nomba session:", initErr);
+          }
+        }
+
         setIsInitializing(false);
 
-        if (checkoutUrl) {
-          // Nomba hosted checkout link
-          window.location.href = checkoutUrl;
+        if (activeCheckoutUrl) {
+          openNombaInlineModal({
+            checkoutUrl: activeCheckoutUrl,
+            txRef,
+            amount,
+            customerEmail,
+            customerName,
+            title,
+            onSuccess: (res) => {
+              onSuccess({
+                reference: res.reference,
+                gateway: "nomba",
+                raw: res.raw,
+              });
+            },
+            onClose: () => {
+              onClose?.();
+            },
+            onError: (err) => {
+              onError?.(err);
+            },
+          });
         } else {
-          // Fallback if checkout link pending
-          onSuccess({ reference: txRef, gateway: "nomba" });
+          throw new Error("Unable to initialize Nomba checkout session. Please try again or use Flutterwave.");
         }
       } else {
         throw new Error(`Unsupported payment gateway: ${gateway}`);

@@ -116,6 +116,7 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
     : "Immediate";
 
   const handlePayWithWallet = async () => {
+    if (isSubmitting) return;
     if (walletBalance < currentAmountDue) {
       toast({
         title: "Insufficient Wallet Balance",
@@ -147,7 +148,7 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
   };
 
   const handlePayOnline = async () => {
-    if (!userProfile) return;
+    if (isSubmitting || !userProfile) return;
 
     const gateway = selectedMethod === "nomba" ? "nomba" : "flutterwave";
     const txRef = `INST_REPAY_${plan.id}_${Date.now()}`;
@@ -483,7 +484,7 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
                   size="sm"
                   disabled={isSubmitting || (selectedMethod === "wallet" && walletBalance < currentAmountDue)}
                   onClick={selectedMethod === "wallet" ? handlePayWithWallet : handlePayOnline}
-                  className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                  className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none"
                 >
                   {isSubmitting ? (
                     <>

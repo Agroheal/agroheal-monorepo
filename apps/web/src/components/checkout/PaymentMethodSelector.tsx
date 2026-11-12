@@ -103,6 +103,8 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
         <div
           onClick={() => !disabled && onSelectMethod("nomba")}
           className={`relative p-3.5 rounded-xl border transition-all cursor-pointer ${
+            disabled ? "opacity-60 pointer-events-none cursor-not-allowed " : ""
+          }${
             selectedMethod === "nomba"
               ? "border-emerald-600 bg-emerald-50/70 shadow-sm ring-1 ring-emerald-500"
               : "border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/30"
@@ -148,6 +150,8 @@ export const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
         <div
           onClick={() => !disabled && onSelectMethod("flutterwave")}
           className={`relative p-3.5 rounded-xl border transition-all cursor-pointer ${
+            disabled ? "opacity-60 pointer-events-none cursor-not-allowed " : ""
+          }${
             selectedMethod === "flutterwave"
               ? "border-emerald-600 bg-emerald-50/70 shadow-sm ring-1 ring-emerald-500"
               : "border-gray-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/30"

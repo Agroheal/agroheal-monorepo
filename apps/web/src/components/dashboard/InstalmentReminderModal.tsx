@@ -12,6 +12,7 @@ import {
   Wallet,
   ShieldCheck,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -167,6 +168,7 @@ export const InstalmentReminderModal: React.FC = () => {
     : "Immediate";
 
   const handlePayWithWallet = async () => {
+    if (isSubmitting) return;
     if (walletBalance < currentAmountDue) {
       toast({
         title: "Insufficient Wallet Balance",
@@ -197,7 +199,7 @@ export const InstalmentReminderModal: React.FC = () => {
   };
 
   const handlePayOnline = async () => {
-    if (!userProfile) return;
+    if (isSubmitting || !userProfile) return;
 
     const gateway = selectedMethod === "nomba" ? "nomba" : "flutterwave";
     const txRef = `INST_REPAY_${plan.id}_${Date.now()}`;
@@ -263,6 +265,7 @@ export const InstalmentReminderModal: React.FC = () => {
   };
 
   const handlePayNow = () => {
+    if (isSubmitting) return;
     if (selectedMethod === "wallet") {
       handlePayWithWallet();
     } else {
@@ -432,8 +435,8 @@ export const InstalmentReminderModal: React.FC = () => {
               <Button
                 type="button"
                 onClick={handlePayNow}
-                disabled={isSubmitting}
-                className={`w-full h-12 text-white font-bold text-sm sm:text-base rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 ${
+                disabled={isSubmitting || (selectedMethod === "wallet" && walletBalance < currentAmountDue)}
+                className={`w-full h-12 text-white font-bold text-sm sm:text-base rounded-xl shadow-md transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:pointer-events-none ${
                   isOverdue
                     ? "bg-rose-700 hover:bg-rose-800"
                     : isDueToday
@@ -442,7 +445,10 @@ export const InstalmentReminderModal: React.FC = () => {
                 }`}
               >
                 {isSubmitting ? (
-                  <span>Processing...</span>
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Connecting Gateway...</span>
+                  </>
                 ) : (
                   <>
                     <CreditCard className="w-4 h-4" />
