@@ -107,21 +107,21 @@ export const WithdrawalModal: React.FC<WithdrawalModalProps> = ({
       return;
     }
 
-    // Gate 2: Farm Slot Ownership
-    if (!hasFarmSlot) {
+    // Gate 4: 5 Direct Referrals Requirement
+    if (directReferralsCount < 5) {
+      setErrorMsg(`Direct Referrals Required: Bank withdrawals are locked until you refer at least 5 direct members (currently ${directReferralsCount}/5).`);
+      return;
+    }
+
+    // Gate 2: Farm Slot Ownership (Waived if member has completed First 5 direct referrals)
+    if (directReferralsCount < 5 && !hasFarmSlot) {
       setErrorMsg("Farm Slot Required: You must own at least 1 active Farm Slot to request bank withdrawals.");
       return;
     }
 
-    // Gate 3: Mushroom Power / Starter Pack Activation
-    if (!hasPurchasedStarterPack) {
+    // Gate 3: Mushroom Power / Starter Pack Activation (Waived if member has completed First 5 direct referrals)
+    if (directReferralsCount < 5 && !hasPurchasedStarterPack) {
       setErrorMsg("Mushroom Power Required: You must activate your Starter Pack (Mushroom Power 100g) to request bank withdrawals.");
-      return;
-    }
-
-    // Gate 4: 5 Direct Referrals
-    if (directReferralsCount < 5) {
-      setErrorMsg(`Direct Referrals Required: Bank withdrawals are locked until you refer at least 5 direct members (currently ${directReferralsCount}/5).`);
       return;
     }
 

@@ -123,8 +123,7 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
   const isDueToday = !isOverdue && daysDiff <= 0;
   const isUpcoming = !isOverdue && !isDueToday;
 
-  const sponsorBonus5kPaid = Boolean(plan.milestones?.sponsorBonus5kPaid ?? (plan.milestones as any)?.m5k?.completed ?? cumulativePaid >= 5000);
-  const starterPack10kReleased = Boolean(plan.milestones?.starterPack10kReleased ?? (plan.milestones as any)?.m10k?.completed ?? cumulativePaid >= 10000);
+  const starterPack10kCompleted = Boolean(plan.milestones?.starterPack10kReleased ?? (plan.milestones as any)?.m10k?.completed ?? cumulativePaid >= 10000);
   const farmSlot15kAllocated = Boolean(plan.milestones?.farmSlot15kAllocated ?? (plan.milestones as any)?.m15k?.completed ?? cumulativePaid >= 15000);
 
   const dueDateFormatted = dueDate
@@ -399,62 +398,41 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
             <h5 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">
               Registration Milestones
             </h5>
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {/* Milestone 1: ₦2,000 */}
-              <div className="p-3 rounded-xl bg-emerald-50/60 border border-emerald-100 flex items-start gap-2.5">
+              <div className="p-3.5 rounded-xl bg-emerald-50/60 border border-emerald-100 flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 <div>
-                  <div className="text-xs font-bold text-emerald-950">₦2,000 · Registration</div>
+                  <div className="text-xs font-bold text-emerald-950">₦2,000 · Registration & Matrix</div>
                   <p className="text-[11px] text-emerald-800 leading-tight mt-0.5">
-                    GreenCard ID, Training platform, & 5×7 Matrix activated.
+                    GreenCard ID, 5×7 Matrix placement, First 5 qualification, & ₦1,000 sponsor bonus.
                   </p>
                 </div>
               </div>
 
-              {/* Milestone 2: ₦5,000 */}
-              <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${
-                sponsorBonus5kPaid
+              {/* Milestone 2: ₦10,000 */}
+              <div className={`p-3.5 rounded-xl border flex items-start gap-2.5 ${
+                starterPack10kCompleted
                   ? "bg-emerald-50/60 border-emerald-100"
                   : "bg-gray-50/80 border-gray-100 opacity-80"
               }`}>
-                {sponsorBonus5kPaid ? (
+                {starterPack10kCompleted ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                 ) : (
                   <Lock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
                 )}
                 <div>
-                  <div className={`text-xs font-bold ${sponsorBonus5kPaid ? "text-emerald-950" : "text-gray-700"}`}>
-                    ₦5,000 · Sponsor Bonus
+                  <div className={`text-xs font-bold ${starterPack10kCompleted ? "text-emerald-950" : "text-gray-700"}`}>
+                    ₦10,000 · Starter Pack & Bonus
                   </div>
                   <p className="text-[11px] text-gray-600 leading-tight mt-0.5">
-                    ₦1,000 Starter Pack commission released to referrer.
+                    100g Mushroom Power pack released & ₦1,000 sponsor bonus credited.
                   </p>
                 </div>
               </div>
 
-              {/* Milestone 3: ₦10,000 */}
-              <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${
-                starterPack10kReleased
-                  ? "bg-emerald-50/60 border-emerald-100"
-                  : "bg-gray-50/80 border-gray-100 opacity-80"
-              }`}>
-                {starterPack10kReleased ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                ) : (
-                  <Lock className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
-                )}
-                <div>
-                  <div className={`text-xs font-bold ${starterPack10kReleased ? "text-emerald-950" : "text-gray-700"}`}>
-                    ₦10,000 · Starter Pack
-                  </div>
-                  <p className="text-[11px] text-gray-600 leading-tight mt-0.5">
-                    Physical Mushroom Power (SP-MUSH-100G) released.
-                  </p>
-                </div>
-              </div>
-
-              {/* Milestone 4: ₦15,000 */}
-              <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${
+              {/* Milestone 3: ₦15,000 */}
+              <div className={`p-3.5 rounded-xl border flex items-start gap-2.5 ${
                 farmSlot15kAllocated
                   ? "bg-emerald-50/60 border-emerald-100"
                   : "bg-gray-50/80 border-gray-100 opacity-80"
@@ -466,10 +444,10 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
                 )}
                 <div>
                   <div className={`text-xs font-bold ${farmSlot15kAllocated ? "text-emerald-950" : "text-gray-700"}`}>
-                    ₦15,000 · Farm Slot
+                    ₦15,000 · Farm Slot & Full Settlement
                   </div>
                   <p className="text-[11px] text-gray-600 leading-tight mt-0.5">
-                    1 compulsory slot allocated & cash withdrawals unlocked.
+                    1 compulsory Mushroom Village slot credited & ₦500 sponsor bonus released.
                   </p>
                 </div>
               </div>
@@ -481,7 +459,7 @@ export function InstalmentTrackerWidget({ onPlanUpdated }: InstalmentTrackerWidg
             <Info className="w-4 h-4 text-gray-500 shrink-0 mt-0.5" />
             <div>
               <span className="font-semibold text-gray-800">Withdrawal Notice: </span>
-              External cash withdrawals are locked until your full ₦15,000 fee is settled. However, you may use your internal wallet earnings at any time to pay subsequent weekly instalments.
+              External cash withdrawals unlock once you complete your First 5 direct referrals (with at least ₦2,000 each) or fully settle your ₦15,000 registration fee. You may also use your internal wallet earnings at any time to pay subsequent weekly instalments.
             </div>
           </div>
         </div>

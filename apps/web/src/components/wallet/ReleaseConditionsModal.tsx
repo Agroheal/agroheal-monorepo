@@ -69,16 +69,16 @@ export const ReleaseConditionsModal: React.FC<ReleaseConditionsModalProps> = ({
   // Gate 1: Green Card Lifetime Membership
   const isGate1Passed = Boolean(hasGreenCard);
 
-  // Gate 2: Farm Slot Ownership
-  const isGate2Passed = Boolean(hasFarmSlot || isProjectSubscribed);
-
-  // Gate 3: Mushroom Power / Starter Pack Activation
-  const isGate3Passed = Boolean(hasPurchasedStarterPack);
-
-  // Gate 4: 5 Direct Referrals (Rules apply uniformly to all earnings)
+  // Gate 4: 5 Direct Referrals (Completing First 5 direct referrals satisfies network qualification)
   const isDirectsMet = directReferralsCount >= 5;
   const isPqvMet = activePqv30d >= 10000;
   const isGate4Passed = isDirectsMet;
+
+  // Gate 2: Farm Slot Ownership (Satisfied by slot ownership OR completing First 5)
+  const isGate2Passed = Boolean(hasFarmSlot || isProjectSubscribed || isDirectsMet);
+
+  // Gate 3: Mushroom Power / Starter Pack Activation (Satisfied by starter pack OR completing First 5)
+  const isGate3Passed = Boolean(hasPurchasedStarterPack || isDirectsMet);
 
   // Gate 5: Minimum ₦2,000 floor
   const isGate5Passed = availableBalance >= 2000;
