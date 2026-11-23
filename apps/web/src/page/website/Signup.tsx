@@ -142,17 +142,20 @@ const Signup = () => {
       return;
     }
 
-    const phoneValidation = validatePhoneNumber(phone, countryCode);
-    if (!phoneValidation.isValid) {
-      setLoading(false);
-      showToast({
-        variant: "error",
-        title: "Invalid phone number",
-        description: phoneValidation.error || "Please enter a valid phone number.",
-      });
-      return;
+    let formattedPhone: string | null = null;
+    if (phone && phone.trim()) {
+      const phoneValidation = validatePhoneNumber(phone, countryCode);
+      if (!phoneValidation.isValid) {
+        setLoading(false);
+        showToast({
+          variant: "error",
+          title: "Invalid phone number",
+          description: phoneValidation.error || "Please enter a valid phone number.",
+        });
+        return;
+      }
+      formattedPhone = phoneValidation.normalized;
     }
-    const formattedPhone = phoneValidation.normalized;
 
     const { isValid: isPasswordValid } = checkPasswordRequirements(password);
     if (!isPasswordValid) {
@@ -231,16 +234,18 @@ const Signup = () => {
       return;
     }
 
-    const { error: phoneUpdateError } = await supabase
-      .from("profiles")
-      .update({ phone: formattedPhone })
-      .eq("id", user.id);
+    if (formattedPhone) {
+      const { error: phoneUpdateError } = await supabase
+        .from("profiles")
+        .update({ phone: formattedPhone })
+        .eq("id", user.id);
 
-    if (phoneUpdateError) {
-      console.error("Failed to save phone number on profile:", phoneUpdateError);
-      Sentry.captureException(phoneUpdateError, {
-        extra: { action: "signup_phone_update", userId: user.id },
-      });
+      if (phoneUpdateError) {
+        console.error("Failed to save phone number on profile:", phoneUpdateError);
+        Sentry.captureException(phoneUpdateError, {
+          extra: { action: "signup_phone_update", userId: user.id },
+        });
+      }
     }
 
     setLoading(false);
@@ -342,7 +347,7 @@ const Signup = () => {
   return (
     <div className="h-screen max-h-screen overflow-hidden flex">
       <Toaster />
-      <div className="flex-1 h-full flex flex-col justify-start sm:justify-center items-center px-4 sm:px-6 py-3 sm:py-4 bg-[#f8f7f4] relative overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex-1 h-full flex flex-col justify-start sm:justify-center items-center px-4 sm:px-6 py-4 sm:py-6 bg-[#f8f7f4] relative overflow-y-auto">
         <motion.div
           {...fadeUp(0)}
           className="lg:hidden flex items-center gap-2 mb-2 sm:mb-3"
@@ -353,7 +358,7 @@ const Signup = () => {
           <span className="text-green-900 font-semibold text-sm sm:text-base">Agroheal</span>
         </motion.div>
 
-        <div className="w-full max-w-[420px] my-auto">
+        <div className="w-full max-w-[440px] my-auto">
           {isEmailConfirmationPending ? (
             <motion.div {...fadeUp(0.1)} className="text-center py-6 px-5 bg-white border border-gray-100 shadow-sm rounded-2xl">
               <div className="w-14 h-14 bg-green-100 text-green-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -419,52 +424,52 @@ const Signup = () => {
             className="space-y-2 sm:space-y-2.5"
             onSubmit={handleSignup}
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
-              {/* Full Name */}
-              <div className="space-y-1">
-                <Label htmlFor="name" className="text-[11px] sm:text-xs font-semibold text-gray-700">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    type="text"
-                    placeholder="John Doe"
-                    className="pl-9 h-9 sm:h-10 bg-white border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
-                    required
-                  />
-                </div>
+            {/* Full Name */}
+            <div className="space-y-1">
+              <Label htmlFor="name" className="text-[11px] sm:text-xs font-semibold text-gray-700">Full Name</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  type="text"
+                  placeholder="John Doe"
+                  className="pl-9 h-9 sm:h-10 bg-white border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
+                  required
+                />
               </div>
+            </div>
 
-              {/* Phone Number */}
-              <div className="space-y-1">
+            {/* Phone Number (Optional) */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
                 <Label htmlFor="phone" className="text-[11px] sm:text-xs font-semibold text-gray-700">Phone Number</Label>
-                <div className="flex gap-1.5 sm:gap-2">
-                  <select
-                    value={countryCode}
-                    onChange={(e) => setCountryCode(e.target.value)}
-                    className="h-9 sm:h-10 px-2 bg-white border border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium text-gray-700 focus:border-green-700 focus:ring-green-700/20 transition-all outline-none"
-                    aria-label="Country Code"
-                  >
-                    {SUPPORTED_COUNTRY_CODES.map((item) => (
-                      <option key={item.code} value={item.code}>
-                        {item.flag} {item.code} ({item.country})
-                      </option>
-                    ))}
-                  </select>
-                  <div className="relative flex-1">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
-                    <Input
-                      id="phone"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      type="tel"
-                      placeholder={countryCode === "+234" ? "08012345678" : "Phone number"}
-                      className="pl-9 h-9 sm:h-10 bg-white border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
-                      required
-                    />
-                  </div>
+                <span className="text-[10px] sm:text-[11px] font-medium text-muted-foreground">(Optional)</span>
+              </div>
+              <div className="flex gap-1.5 sm:gap-2">
+                <select
+                  value={countryCode}
+                  onChange={(e) => setCountryCode(e.target.value)}
+                  className="w-[110px] sm:w-[125px] shrink-0 h-9 sm:h-10 px-2 bg-white border border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm font-medium text-gray-700 focus:border-green-700 focus:ring-green-700/20 transition-all outline-none truncate cursor-pointer"
+                  aria-label="Country Code"
+                >
+                  {SUPPORTED_COUNTRY_CODES.map((item) => (
+                    <option key={item.code} value={item.code}>
+                      {item.flag} {item.code} ({item.country})
+                    </option>
+                  ))}
+                </select>
+                <div className="relative flex-1 min-w-0">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                  <Input
+                    id="phone"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    type="tel"
+                    placeholder={countryCode === "+234" ? "08012345678 (Optional)" : "Phone number (Optional)"}
+                    className="w-full pl-9 h-9 sm:h-10 bg-white border-gray-200 rounded-lg sm:rounded-xl text-xs sm:text-sm focus:border-green-700 focus:ring-green-700/20 transition-all"
+                  />
                 </div>
               </div>
             </div>
