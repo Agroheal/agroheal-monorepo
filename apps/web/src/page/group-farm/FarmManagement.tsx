@@ -44,12 +44,16 @@ const FarmManagement = () => {
   const [records, setRecords] = useState<FarmRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCoordinator, setIsCoordinator] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<FarmRecord>>({});
   const [userEmail, setUserEmail] = useState<string>("");
 
-  const isSuperDeveloper = userEmail.toLowerCase() === "developerelijah360@gmail.com";
+  const emailLower = userEmail.toLowerCase();
+  const isSuperDeveloper = emailLower === "developerelijah360@gmail.com";
+  const canEditSlots = isSuperDeveloper || isAdminUser;
+  const canManage = isCoordinator || isAdminUser;
 
   const fetchFarmAndRecords = async () => {
     if (!farmSlug) return;
@@ -60,7 +64,25 @@ const FarmManagement = () => {
       navigate("/signin");
       return;
     }
-    setUserEmail(user.email || "");
+    const email = (user.email || "").toLowerCase();
+    setUserEmail(email);
+
+    // Check if user is admin / super_admin or designated admin email
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const role = profileData?.role;
+    const isAdmin =
+      role === "admin" ||
+      role === "super_admin" ||
+      email === "developerelijah360@gmail.com" ||
+      email === "estherbola888@gmail.com" ||
+      email === "adetayobola299@gmail.com";
+
+    setIsAdminUser(isAdmin);
 
     const { data: farmData, error: farmError } = await supabase
       .from("farm_groups")
@@ -132,7 +154,7 @@ const FarmManagement = () => {
     }
 
     const existingRecord = editingId ? records.find((r) => r.id === editingId) : null;
-    const slotsToSave = isSuperDeveloper
+    const slotsToSave = canEditSlots
       ? parsePositiveInt(formData.farm_slots)
       : (existingRecord ? existingRecord.farm_slots : 0);
 
@@ -259,7 +281,7 @@ const FarmManagement = () => {
 
   if (!farm) return null;
 
-  if (!isCoordinator)
+  if (!canManage)
     return (
       <div className="min-h-screen bg-gray-50 p-4 md:p-6">
         <Toaster />
@@ -270,7 +292,7 @@ const FarmManagement = () => {
                 You don't have permission to manage this farm group.
               </p>
               <p className="text-sm text-gray-500">
-                Only the farm coordinator can access this page.
+                Only the farm coordinator or a platform administrator can access this page.
               </p>
               <Button onClick={() => navigate("/dashboard")} className="mt-4">
                 Go to Dashboard
@@ -293,9 +315,16 @@ const FarmManagement = () => {
         animate={{ opacity: 1, y: 0 }}
         className="mb-8"
       >
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {farm.name} Management
-        </h1>
+        <div className="flex items-center gap-3 flex-wrap">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            {farm.name} Management
+          </h1>
+          {isAdminUser && (
+            <span className="px-2.5 py-0.5 text-xs font-semibold bg-purple-100 text-purple-800 rounded-full border border-purple-200">
+              Admin Access
+            </span>
+          )}
+        </div>
         <p className="text-gray-600">
           Manage member contributions — Setup: ₦
           {FARM_SETUP_RATE.toLocaleString()}/slot/month · Support: ₦
@@ -361,7 +390,7 @@ const FarmManagement = () => {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <Label htmlFor="farm_slots">No. of Farm Slots</Label>
-                    {!isSuperDeveloper && (
+                    {!canEditSlots && (
                       <span className="text-[10px] text-muted-foreground bg-gray-100 px-1.5 py-0.5 rounded font-medium">
                         Admin Only
                       </span>
@@ -371,12 +400,12 @@ const FarmManagement = () => {
                     id="farm_slots"
                     type="number"
                     min={0}
-                    disabled={!isSuperDeveloper}
+                    disabled={!canEditSlots}
                     value={formData.farm_slots || 0}
                     onChange={(e) => set("farm_slots", Number(e.target.value))}
-                    className={!isSuperDeveloper ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""}
+                    className={!canEditSlots ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""}
                   />
-                  {!isSuperDeveloper && (
+                  {!canEditSlots && (
                     <p className="text-[10px] text-gray-500 mt-1">
                       Slots are assigned by Platform Admins. Coordinators log expenses & revenue.
                     </p>

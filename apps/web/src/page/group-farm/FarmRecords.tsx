@@ -43,9 +43,12 @@ const FarmRecords = () => {
   const [records, setRecords] = useState<FarmRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCoordinator, setIsCoordinator] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState<Partial<FarmRecord>>({});
+
+  const canManage = isCoordinator || isAdminUser;
 
   const fetchFarmAndRecords = async () => {
     if (!farmSlug) return;
@@ -56,6 +59,23 @@ const FarmRecords = () => {
       navigate(`/farm-login?redirect=/${farmSlug}`);
       return;
     }
+
+    const email = (user.email || "").toLowerCase();
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const role = profileData?.role;
+    const isAdmin =
+      role === "admin" ||
+      role === "super_admin" ||
+      email === "developerelijah360@gmail.com" ||
+      email === "estherbola888@gmail.com" ||
+      email === "adetayobola299@gmail.com";
+
+    setIsAdminUser(isAdmin);
 
     const { data: farmData, error: farmError } = await supabase
       .from("farm_groups")
@@ -229,7 +249,7 @@ const FarmRecords = () => {
         <p className="text-gray-600">Farm bookkeeping and finance tracking</p>
       </motion.div>
 
-      {isCoordinator && (
+      {canManage && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -245,7 +265,7 @@ const FarmRecords = () => {
         </motion.div>
       )}
 
-      {(showAddForm || editingId) && isCoordinator && (
+      {(showAddForm || editingId) && canManage && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -397,7 +417,7 @@ const FarmRecords = () => {
                     <tr className="border-b bg-gray-50">
                       <th className="text-left p-2">Name</th>
                       <th className="text-left p-2">Email</th>
-                      {isCoordinator && (
+                      {canManage && (
                         <th className="text-left p-2">Phone</th>
                       )}
                       <th className="text-left p-2">Farm Slots</th>
@@ -405,7 +425,7 @@ const FarmRecords = () => {
                       <th className="text-left p-2">Total Farm Support</th>
                       <th className="text-left p-2">Absentee Fine</th>
                       <th className="text-left p-2">Total</th>
-                      {isCoordinator && (
+                      {canManage && (
                         <th className="text-left p-2">Actions</th>
                       )}
                     </tr>
@@ -415,7 +435,7 @@ const FarmRecords = () => {
                       <tr key={record.id} className="border-b hover:bg-gray-50">
                         <td className="p-2 font-medium">{record.name}</td>
                         <td className="p-2 text-gray-600">{record.email}</td>
-                        {isCoordinator && (
+                        {canManage && (
                           <td className="p-2 text-gray-600">{record.phone}</td>
                         )}
                         <td className="p-2">{record.farm_slots}</td>
@@ -439,7 +459,7 @@ const FarmRecords = () => {
                         <td className="p-2 font-semibold text-green-800">
                           ₦{calcTotal(record).toLocaleString()}
                         </td>
-                        {isCoordinator && (
+                        {canManage && (
                           <td className="p-2">
                             <div className="flex gap-1">
                               <Button
@@ -467,7 +487,7 @@ const FarmRecords = () => {
                     <tr className="border-t-2 font-semibold bg-gray-100">
                       <td className="p-2">Total</td>
                       <td className="p-2" />
-                      {isCoordinator && <td className="p-2" />}
+                      {canManage && <td className="p-2" />}
                       <td className="p-2">
                         {records.reduce((s, r) => s + r.farm_slots, 0)}
                       </td>
@@ -495,7 +515,7 @@ const FarmRecords = () => {
                           .reduce((s, r) => s + calcTotal(r), 0)
                           .toLocaleString()}
                       </td>
-                      {isCoordinator && <td className="p-2" />}
+                      {canManage && <td className="p-2" />}
                     </tr>
                   </tfoot>
                 </table>

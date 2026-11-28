@@ -115,6 +115,11 @@ const FarmRecordsView = () => {
     calcSlotFee(r) +
     (isOrganicFoodNation ? 0 : calcFine(r));
   const [isCoordinator, setIsCoordinator] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
+  const [availableFarms, setAvailableFarms] = useState<any[]>([]);
+  const [selectedFarmId, setSelectedFarmId] = useState<string | null>(null);
+
+  const canManage = isCoordinator || isAdminUser;
   const [showAddForm, setShowAddForm] = useState(false);
   const [showExpenseForm, setShowExpenseForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -214,7 +219,7 @@ const FarmRecordsView = () => {
     return enrichedRecords;
   };
 
-  const fetchRecords = async (categoryInput?: string) => {
+  const fetchRecords = async (categoryInput?: string, farmIdInput?: string) => {
     const categoryToUse = categoryInput || selectedCategory;
     const {
       data: { user },
@@ -224,32 +229,69 @@ const FarmRecordsView = () => {
       return;
     }
 
-    // First: fetch all farm groups this user is associated with (as member or coordinator)
-    // 1. Groups where user is a coordinator
-    const { data: coordFarms } = await (supabase as any).from("lg_farm_groups")
-      .select("*")
-      .eq("coordinator_id", user.id);
+    // Check if user is admin / super_admin or designated admin email
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
 
-    // 2. Groups where user is a member
-    const { data: memberRecords } = await (supabase as any).from("lg_farm_records")
-      .select("farm_id, lg_farm_groups!inner(*)")
-      .eq("email", user.email);
+    const role = profileData?.role;
+    const emailLower = user.email.trim().toLowerCase();
+    const isAdmin =
+      role === "admin" ||
+      role === "super_admin" ||
+      emailLower === "developerelijah360@gmail.com" ||
+      emailLower === "estherbola888@gmail.com" ||
+      emailLower === "adetayobola299@gmail.com";
 
-    const memberFarms = memberRecords?.map((r: any) => ((r as any).lg_farm_groups || (r as any).farm_groups) as any) || [];
+    setIsAdminUser(isAdmin);
 
-    // Combine and deduplicate
-    const combinedFarms = [...(coordFarms || []), ...memberFarms];
-    const uniqueFarms = Array.from(
-      new Map(combinedFarms.map((f) => [f.id, f])).values(),
-    );
+    let uniqueFarms: any[] = [];
+    if (isAdmin) {
+      // Platform admins & super admins can view and manage ALL group farms
+      const { data: allFarms } = await (supabase as any)
+        .from("lg_farm_groups")
+        .select("*")
+        .order("name");
+      uniqueFarms = allFarms || [];
+    } else {
+      // First: fetch all farm groups this user is associated with (as member or coordinator)
+      // 1. Groups where user is a coordinator
+      const { data: coordFarms } = await (supabase as any).from("lg_farm_groups")
+        .select("*")
+        .eq("coordinator_id", user.id);
+
+      // 2. Groups where user is a member
+      const { data: memberRecords } = await (supabase as any).from("lg_farm_records")
+        .select("farm_id, lg_farm_groups!inner(*)")
+        .eq("email", user.email);
+
+      const memberFarms = memberRecords?.map((r: any) => ((r as any).lg_farm_groups || (r as any).farm_groups) as any) || [];
+
+      // Combine and deduplicate
+      const combinedFarms = [...(coordFarms || []), ...memberFarms];
+      uniqueFarms = Array.from(
+        new Map(combinedFarms.map((f) => [f.id, f])).values(),
+      );
+    }
 
     // Filter by category
-    const activeFarm = uniqueFarms.find(
+    const categoryFarms = uniqueFarms.filter(
       (f) => (f.project_category || "Gingertown") === categoryToUse,
     );
+    setAvailableFarms(categoryFarms);
+
+    // Pick target farm: either explicit farmIdInput, selectedFarmId, or first in category
+    const targetFarmId = farmIdInput || selectedFarmId;
+    const activeFarm =
+      (targetFarmId ? categoryFarms.find((f) => f.id === targetFarmId) : null) ||
+      categoryFarms[0] ||
+      null;
 
     if (activeFarm) {
       setFarm(activeFarm);
+      setSelectedFarmId(activeFarm.id);
       setIsCoordinator(activeFarm.coordinator_id === user.id);
 
       const [recRes, expRes] = await Promise.all([
@@ -273,6 +315,7 @@ const FarmRecordsView = () => {
       setExpenses(expRes.data || []);
     } else {
       setFarm(null);
+      setSelectedFarmId(null);
       setRecords([]);
       setExpenses([]);
     }
@@ -280,12 +323,20 @@ const FarmRecordsView = () => {
     setLoading(false);
   };
 
+  const handleFarmChange = (newFarmId: string) => {
+    setSelectedFarmId(newFarmId);
+    fetchRecords(selectedCategory, newFarmId);
+  };
+
   useEffect(() => {
-    fetchRecords();
+    fetchRecords(selectedCategory, undefined);
     // Clear the Add Members Record form when category changes
     setShowAddForm(false);
+    setShowExpenseForm(false);
     setEditingId(null);
+    setEditingExpenseId(null);
     setFormData({});
+    setExpenseFormData({});
     setAutoFilled(false);
   }, [selectedCategory]);
 
@@ -516,7 +567,7 @@ const FarmRecordsView = () => {
     setEditingId(null);
     setFormData({});
     setAutoFilled(false);
-    fetchRecords();
+    fetchRecords(selectedCategory, farm?.id);
   };
 
   const handleDelete = async (id: string) => {
@@ -531,7 +582,7 @@ const FarmRecordsView = () => {
       return;
     }
     showToast({ variant: "success", title: "Record deleted" });
-    fetchRecords();
+    fetchRecords(selectedCategory, farm?.id);
   };
 
   const handleAddExpense = () => {
@@ -590,7 +641,7 @@ const FarmRecordsView = () => {
     setShowExpenseForm(false);
     setEditingExpenseId(null);
     setExpenseFormData({});
-    fetchRecords();
+    fetchRecords(selectedCategory, farm?.id);
   };
 
   const handleDeleteExpense = async (id: string) => {
@@ -607,7 +658,7 @@ const FarmRecordsView = () => {
       return;
     }
     showToast({ variant: "success", title: "Expense deleted" });
-    fetchRecords();
+    fetchRecords(selectedCategory, farm?.id);
   };
 
   const cancelEdit = () => {
@@ -775,6 +826,25 @@ const FarmRecordsView = () => {
                 </option>
               ))}
             </select>
+            {availableFarms.length > 1 && (
+              <select
+                value={farm?.id || ""}
+                onChange={(e) => handleFarmChange(e.target.value)}
+                className="h-9 w-full max-w-[250px] sm:max-w-xs md:max-w-sm rounded-lg border border-gray-200 bg-white px-3 text-xs font-semibold text-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all no-print shadow-sm text-ellipsis overflow-hidden whitespace-nowrap cursor-pointer"
+                aria-label="Select Farm Group"
+              >
+                {availableFarms.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+            )}
+            {isAdminUser && (
+              <span className="hidden sm:inline-flex items-center px-2 py-1 rounded text-[11px] font-semibold bg-purple-100 text-purple-800 border border-purple-200 no-print">
+                Admin Mode
+              </span>
+            )}
           </div>
           <Button
             onClick={handleDownloadPDF}
@@ -785,7 +855,7 @@ const FarmRecordsView = () => {
           </Button>
         </motion.div>
 
-        {isCoordinator && (
+        {canManage && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -808,7 +878,7 @@ const FarmRecordsView = () => {
           </motion.div>
         )}
 
-        {(showAddForm || editingId) && isCoordinator && (
+        {(showAddForm || editingId) && canManage && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -951,7 +1021,7 @@ const FarmRecordsView = () => {
           </motion.div>
         )}
 
-        {showExpenseForm && isCoordinator && (
+        {showExpenseForm && canManage && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -1068,7 +1138,7 @@ const FarmRecordsView = () => {
                         )}
                         <th className="text-left p-2">Total</th>
                         <th className="text-left p-2">Email</th>
-                        {isCoordinator && (
+                        {canManage && (
                           <th className="text-left p-2">Actions</th>
                         )}
                       </tr>
@@ -1128,7 +1198,7 @@ const FarmRecordsView = () => {
                             ₦{getRecordTotal(record).toLocaleString()}
                           </td>
                           <td className="p-2 text-gray-600">{record.email}</td>
-                          {isCoordinator && (
+                          {canManage && (
                             <td className="p-2">
                               <div className="flex gap-1">
                                 <Button
@@ -1205,8 +1275,8 @@ const FarmRecordsView = () => {
                             .toLocaleString()}
                         </td>
                         <td className="p-2" />
-                        {isCoordinator && <td className="p-2" />}
-                        {isCoordinator && <td className="p-2" />}
+                        {canManage && <td className="p-2" />}
+                        {canManage && <td className="p-2" />}
                       </tr>
                     </tfoot>
                   </table>
@@ -1241,7 +1311,7 @@ const FarmRecordsView = () => {
                         <th className="text-left p-2">Category</th>
                         {/* <th className="text-left p-2">Description</th> */}
                         <th className="text-right p-2">Amount</th>
-                        {isCoordinator && (
+                        {canManage && (
                           <th className="text-center p-2">Actions</th>
                         )}
                       </tr>
@@ -1262,7 +1332,7 @@ const FarmRecordsView = () => {
                           <td className="p-2 text-right font-semibold">
                             ₦{expense.amount.toLocaleString()}
                           </td>
-                          {isCoordinator && (
+                          {canManage && (
                             <td className="p-2">
                               <div className="flex justify-center gap-1">
                                 <Button
@@ -1302,7 +1372,7 @@ const FarmRecordsView = () => {
                             .reduce((sum, exp) => sum + exp.amount, 0)
                             .toLocaleString()}
                         </td>
-                        {isCoordinator && <td className="p-2" />}
+                        {canManage && <td className="p-2" />}
                       </tr>
                     </tfoot>
                   </table>
